@@ -10,18 +10,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --header-height: 80px;  /* 이 값만 바꾸면 모든 패널이 자동 반영 */
+            --header-height: 90px;  /* 이 값만 바꾸면 모든 패널이 자동 반영 */
         }
         body { margin: 0; padding: 0; }
         header {
+            position: fixed;  /* <- 필수! */
             top: 0; left: 0; right: 0;
             height: var(--header-height);
             z-index: 10000;
+            background: #fff;
         }
         #map {
             position: absolute;
             top: var(--header-height);
-            left: 0;
+            left: 340px;
             right: 0;
             bottom: 0;
             z-index: 0;
@@ -42,6 +44,19 @@
             bottom: 0;
             z-index: 9999;
         }
+        #filter-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 0; /* 혹시 mt-2 등 있으면 삭제 */
+        }
+        #office-info {
+            /* flex, gap 등만! */
+            gap: 20px;
+        }
+
+
+
     </style>
     <style>
         .filter-box-wrap {
@@ -71,7 +86,8 @@
 </head>
 <body class="m-0 p-0">
     <!-- 헤더/필터 바 -->
-    <header class="flex items-center gap-4 w-full h-[80px] px-6 py-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
+    <header class="flex items-center gap-4 w-full h-[90px] px-6 py-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
+        
         <img
             src="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC%EC%82%AC%EB%AC%B4%EC%86%8C%20%EA%B8%80%EC%94%A8%EB%A7%8C.png"
             alt="글씨로고"
@@ -79,8 +95,6 @@
             onclick="showLogin()"
         />
         
-        <!-- ✅ 필터 버튼 + 개별 패널 구조 -->
-        <div id="filter-bar" class="flex flex-wrap gap-2 items-start mt-2 relative z-[1000]">
 
         <!-- 필터초기화 -->
         <div class="relative">
@@ -88,12 +102,20 @@
             id="filter-btn-init"
             data-default-label="초기화"
             onclick="resetFilters()"
-            class="px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition"
+            class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition"
         >
             초기화
         </button>
+
         </div>
 
+        <div id="filter-bar" class="flex flex-wrap gap-2 items-start mt-2 relative z-[1000] flex-col">
+            <!-- 첫 줄: 거래유형 -->
+            <div id="deal-type-btn-wrap" class="flex gap-1 mb-0"></div>
+            <!-- 둘째 줄: 카테고리 -->
+            <div id="category-btn-wrap" class="flex gap-1 mb-0"></div>
+        <!-- ...이하 생략 (필터 버튼들) -->
+        </div>
 
         <!-- 보증금 -->
         <div class="relative">
@@ -261,7 +283,24 @@
             </div>
         </div>
         </div>
-
+        <div style="flex:1"></div> <!-- 이 줄이 헤더에서 오른쪽 정렬 역할 -->
+            
+        <!-- <div id="office-info" class="flex gap-12 items-start">
+            <div class="office text-xs leading-snug">
+                <b>백억공인중개사사무소 파주점</b><br>
+                경기 파주시 청암로17번길 43, 108호<br>
+                031-942-2834<br>
+                등록번호 제41480-2022-00001호<br>
+                조인호
+            </div>
+            <div class="office text-xs leading-snug">
+                <b>백억공인중개사사무소 일산점</b><br>
+                경기 고양시 일산동구 일산로 441번길 18, 1층<br>
+                031-922-2580<br>
+                등록번호 제41285-2022-00002호<br>
+                백은혜
+            </div>
+        </div> -->
     </header>
         <!-- 로그인 모달 -->
         <div id="login-modal"
@@ -309,17 +348,27 @@
     let hasMore = true;
     let allListings = [];
     let matchedListingsCache = [];
-    let matchedListingsPage = 1;
+    let matchedListingsPage = 1;    
+    const allDealTypes = ['월세', '매매'];
+    let selectedDealTypes = ['월세'];
+    const allCategories = ['상가', '주택', '공장·창고']; // 카테고리 종류 (고정)
+    let selectedCategories = ['상가']; // 선택된 카테고리 (여러개 가능)
+
     const PAGE_SIZE = 15;
 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const infoPanel = document.getElementById('info-panel');
     const infoContent = document.getElementById('info-content');
 
+
     const map = new kakao.maps.Map(document.getElementById('map'), {
       center: new kakao.maps.LatLng(37.7151, 126.7341),
       level: 4
     });
+    infoPanel.classList.remove("hidden");
+    infoPanel.style.display = 'block';
+    document.getElementById('map').style.left = '340px'; // 지도도 항상 패널 고려
+
 
     const clusterer = new kakao.maps.MarkerClusterer({
         map: map,
@@ -348,6 +397,38 @@
       new kakao.maps.Size(36, 36),
       { offset: new kakao.maps.Point(18, 36) }
     );
+
+    // 카테고리 버튼 동적 생성
+    function renderCategoryButtons() {
+        const wrap = document.getElementById('category-btn-wrap');
+        wrap.innerHTML = '';
+        allCategories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className =
+                'px-3 py-1 rounded bg-gray-100 text-gray-700 border border-gray-300 text-sm font-medium transition hover:bg-yellow-100';
+            btn.textContent = cat;
+            btn.dataset.cat = cat;
+            // 이미 선택된 건 색상 변경
+            if (selectedCategories.includes(cat)) {
+                btn.classList.add('bg-yellow-300', 'font-bold', 'text-black');
+                btn.classList.remove('bg-gray-100', 'text-gray-700');
+            }
+            btn.onclick = function () {
+                // 토글
+                if (selectedCategories.includes(cat)) {
+                    selectedCategories = selectedCategories.filter(c => c !== cat);
+                    btn.classList.remove('bg-yellow-300', 'font-bold', 'text-black');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                } else {
+                    selectedCategories.push(cat);
+                    btn.classList.remove('bg-gray-100', 'text-gray-700');
+                    btn.classList.add('bg-yellow-300', 'font-bold', 'text-black');
+                }
+                updateFilteredListings();
+            };
+            wrap.appendChild(btn);
+        });
+    }
 
     function shiftMapCenterByPixels(pixelsX) {
         const proj = map.getProjection();
@@ -379,20 +460,19 @@
         if (isLoading) return;
         isLoading = true;
         const level = map.getLevel();
+        let limitNum = 100;
+        if (level <= 3)      limitNum = 400;
+        else if (level === 4) limitNum = 200;
+        else if (level === 5) limitNum = 100;
+        else if (level === 6) limitNum = 60;
+        else                  limitNum = 30;
+
         const mapDiv = document.getElementById('map');
         const detailPanel = document.getElementById('detail-panel');
         const closeBtn = document.getElementById('close-detail-btn');
 
-        if (level >= 4) {
+        if (level >= 5) {
             clusterer.clear();
-
-            if (!infoPanel.classList.contains("hidden")) {
-                infoPanel.classList.add("hidden");
-                infoPanel.style.display = 'none';
-                mapDiv.style.left = '0px';
-                shiftMapCenterByPixels(-340);  // ← 보정
-                map.relayout();
-            }
 
             // ✅ 두 번째 패널(상세) 숨기기
             if (!detailPanel.classList.contains("hidden")) {
@@ -408,13 +488,6 @@
             isLoading = false;
             return;
         } else {
-            if (infoPanel.classList.contains("hidden")) {
-                infoPanel.classList.remove("hidden");
-                infoPanel.style.display = 'block';
-                mapDiv.style.left = '340px';
-                setTimeout(() => shiftMapCenterByPixels(+340), 0);
-                map.relayout();
-            }
         }
 
         const bounds = map.getBounds();
@@ -429,7 +502,7 @@
             .lte('lat', ne.getLat())
             .gte('lng', sw.getLng())
             .lte('lng', ne.getLng())
-            .limit(1000); // 안전한 최대 개수 제한
+            .limit(limitNum); // 👈 변수로 바꿔줌
 
         if (error) {
             alert("데이터를 불러오는 중 오류 발생: " + error.message);
@@ -628,7 +701,7 @@
 
         updateFilteredListings(); // 지도페이지에서 필터링 관련함수
         // ------ 추가: 처음 로딩시 리스트 자동 출력 ------
-        matchedListingsCache = allListings;
+        matchedListingsCache = filterListings(allListings);
         matchedListingsPage = 1;
         if (typeof renderMatchedListings === "function") renderMatchedListings();        
         
@@ -769,11 +842,16 @@
             area_py_max: parseFloat(document.getElementById('area_py_max').value),
         };
     }
+    
+    // 필터 함수에 카테고리 추가
+    const originalFilterListings = filterListings;
 
     // 실제로 allListings에서 조건에 맞는 것만 반환
     function filterListings(listings) {
         const f = getFilterValues();
         return listings.filter(l => {
+            if (!selectedDealTypes.includes(l.deal_type)) return false; // 카테고리 매매, 월세
+            if (selectedCategories.length > 0 && !selectedCategories.includes(l.category)) return false;// 카테고리 상가, 주택, 공장창고
             // 층
             if (!isNaN(f.floor_min) && l.floor < f.floor_min) return false;
             if (!isNaN(f.floor_max) && l.floor > f.floor_max) return false;
@@ -956,7 +1034,70 @@
         updateFilteredListings();
     }
 
+    // 필터링 초기화 버튼 누를 때 카테고리도 모두 해제
+    const originalResetFilters = resetFilters;
+    resetFilters = function () {
+        // 기존 초기화 동작
+        if (typeof originalResetFilters === 'function') originalResetFilters();
+        selectedCategories = ['상가'];
+        renderCategoryButtons();
+    }
+    
+    // 거래유형 버튼 렌더링
+    function renderDealTypeButtons() {
+        const bar = document.getElementById('filter-bar');
+        let dealTypeBtnWrap = document.getElementById('deal-type-btn-wrap');
+        if (!dealTypeBtnWrap) {
+            dealTypeBtnWrap = document.createElement('div');
+            dealTypeBtnWrap.id = 'deal-type-btn-wrap';
+            dealTypeBtnWrap.className = 'flex gap-1 relative';
+            bar.insertBefore(dealTypeBtnWrap, bar.children[1]);  // 초기화 옆에 삽입
+        }
+        dealTypeBtnWrap.innerHTML = allDealTypes.map(type => `
+            <button
+                type="button"
+                class="
+                    px-3 py-1 rounded border border-gray-300 text-sm font-medium transition
+                    ${selectedDealTypes.includes(type)
+                        ? 'bg-yellow-300 font-bold text-black'
+                        : 'bg-gray-100 text-gray-700 hover:bg-yellow-100'}
+                "
+                onclick="toggleDealType('${type}')"
+            >${type}</button>
+        `).join('');
+    }
+
+
+    // 거래유형 토글
+    function toggleDealType(type) {
+        if (selectedDealTypes.includes(type)) {
+            // 하나만 남지 않았을 때만 해제
+            if (selectedDealTypes.length > 1) {
+                selectedDealTypes = selectedDealTypes.filter(x => x !== type);
+            }
+        } else {
+            selectedDealTypes.push(type);
+        }
+        renderDealTypeButtons();
+        updateFilteredListings();
+    }
+
+    // 거래유형 초기화 (초기화 버튼 클릭 시)
+    const originalResetFilters2 = resetFilters;
+    resetFilters = function () {
+        if (typeof originalResetFilters2 === 'function') originalResetFilters2();
+        selectedDealTypes = ['월세'];
+        renderDealTypeButtons();
+        updateFilteredListings();
+    }
+
+    // ** 페이지 로드 시 버튼 표시 **
+    document.addEventListener('DOMContentLoaded', renderDealTypeButtons);
+
+    // 필터링 - 페이지 로딩/매물 불러온 뒤 1번만 버튼 세팅
+    document.addEventListener('DOMContentLoaded', renderCategoryButtons);
 
   </script>
 </body>
+
 </html>
