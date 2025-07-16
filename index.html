@@ -21,7 +21,7 @@
         #map {
             position: absolute;
             top: var(--header-height);
-            left: 340px;
+            left: 0;
             right: 0;
             bottom: 0;
             z-index: 0;
@@ -318,7 +318,7 @@
 
     const map = new kakao.maps.Map(document.getElementById('map'), {
       center: new kakao.maps.LatLng(37.7151, 126.7341),
-      level: 5
+      level: 4
     });
 
     const clusterer = new kakao.maps.MarkerClusterer({
@@ -354,49 +354,65 @@
         if (!proj) return;
 
         const center = map.getCenter();
-        const centerPoint = proj.pointFromCoords(center);
-        centerPoint.x += pixelsX;  // 왼쪽(+), 오른쪽(-)
+        // Kakao는 여기서 예외가 가장 많이 발생함
+        let centerPoint;
+        try {
+            centerPoint = proj.pointFromCoords(center);
+        } catch (e) {
+            // projection 초기화 전/도중에는 예외 발생 → 함수 종료!
+            return;
+        }
+        if (!centerPoint || typeof centerPoint.x !== "number") return;
 
-        const newCenter = proj.coordsFromPoint(centerPoint);
+        centerPoint.x += pixelsX;
+        let newCenter;
+        try {
+            newCenter = proj.coordsFromPoint(centerPoint);
+        } catch (e) {
+            return;
+        }
+        if (!newCenter) return;
         map.setCenter(newCenter);
     }
-
+    
     async function loadListingsInBounds() {
+        if (isLoading) return;
+        isLoading = true;
         const level = map.getLevel();
         const mapDiv = document.getElementById('map');
         const detailPanel = document.getElementById('detail-panel');
         const closeBtn = document.getElementById('close-detail-btn');
 
-        if (level >= 6) {
-        clusterer.clear();
+        if (level >= 4) {
+            clusterer.clear();
 
-        if (!infoPanel.classList.contains("hidden")) {
-            infoPanel.classList.add("hidden");
-            infoPanel.style.display = 'none';
-            mapDiv.style.left = '0px';
-            shiftMapCenterByPixels(-340);  // ← 보정
-            map.relayout();
-        }
+            if (!infoPanel.classList.contains("hidden")) {
+                infoPanel.classList.add("hidden");
+                infoPanel.style.display = 'none';
+                mapDiv.style.left = '0px';
+                shiftMapCenterByPixels(-340);  // ← 보정
+                map.relayout();
+            }
 
-        // ✅ 두 번째 패널(상세) 숨기기
-        if (!detailPanel.classList.contains("hidden")) {
-            detailPanel.classList.add("hidden");
-            detailPanel.style.display = 'none';
-        }
+            // ✅ 두 번째 패널(상세) 숨기기
+            if (!detailPanel.classList.contains("hidden")) {
+                detailPanel.classList.add("hidden");
+                detailPanel.style.display = 'none';
+            }
 
-        // ✅ X버튼 숨기기
-        if (!closeBtn.classList.contains("hidden")) {
-            closeBtn.classList.add("hidden");
-            closeBtn.style.display = 'none';
-        }
-
-        return;
+            // ✅ X버튼 숨기기
+            if (!closeBtn.classList.contains("hidden")) {
+                closeBtn.classList.add("hidden");
+                closeBtn.style.display = 'none';
+            }
+            isLoading = false;
+            return;
         } else {
             if (infoPanel.classList.contains("hidden")) {
                 infoPanel.classList.remove("hidden");
                 infoPanel.style.display = 'block';
                 mapDiv.style.left = '340px';
-                shiftMapCenterByPixels(+340);  // ← 보정
+                setTimeout(() => shiftMapCenterByPixels(+340), 0);
                 map.relayout();
             }
         }
@@ -421,22 +437,19 @@
         }
         allListings = data; 
         clusterer.clear(); // 기존 마커 삭제
-        const markers = [];
+        allMarkers = [];
 
         data.forEach(listing => {
-            if (!listing.lat || !listing.lng) return;
-
-            const marker = new kakao.maps.Marker({
+        if (!listing.lat || !listing.lng) return;
+        const marker = new kakao.maps.Marker({
             position: new kakao.maps.LatLng(listing.lat, listing.lng),
             image: customImage
-            });
-
-            marker.listing_id = listing.listing_id;
-            markers.push(marker);
+        });
+        marker.listing_id = listing.listing_id;
+        allMarkers.push(marker);
         });
 
-        clusterer.addMarkers(markers);
-
+        clusterer.addMarkers(allMarkers);
 
         
         // 2. 매물 리스트 렌더링 함수
@@ -617,19 +630,27 @@
         // ------ 추가: 처음 로딩시 리스트 자동 출력 ------
         matchedListingsCache = allListings;
         matchedListingsPage = 1;
-        if (typeof renderMatchedListings === "function") renderMatchedListings();
-        infoPanel.classList.remove("hidden");
-        infoPanel.style.display = 'block';
-        setTimeout(() => {
-            infoPanel.scrollTop = 0;
-        }, 0);
+        if (typeof renderMatchedListings === "function") renderMatchedListings();        
+        
+        isLoading = false;
     }
 
-    // 지도 이동/줌 끝날 때마다 실행
-    kakao.maps.event.addListener(map, 'idle', loadListingsInBounds);
+    // debounce를 위한 변수 추가
+    let mapIdleTimer = null;
+
+    // 지도 이동/줌 끝날 때마다 (debounce)
+    kakao.maps.event.addListener(map, 'idle', () => {
+    if (mapIdleTimer) clearTimeout(mapIdleTimer);
+    mapIdleTimer = setTimeout(() => {
+        loadListingsInBounds();
+    }, 200); // 0.2초 후 1번만 실행
+    });
+
 
     // 최초 한 번 로딩
     loadListingsInBounds();
+
+    
     // (1) 현재 지도 영역의 매물을 가져옴 (이미 allListings에 있음)
     matchedListingsCache = allListings; // 전체 리스트 저장
     matchedListingsPage = 1;            // 첫 페이지로 초기화
@@ -637,12 +658,6 @@
     // (2) 리스트 15개만 info-panel에 그려줌
     if (typeof renderMatchedListings === "function") renderMatchedListings();
 
-    // (3) info-panel 보이기
-    infoPanel.classList.remove("hidden");
-    infoPanel.style.display = 'block';
-    setTimeout(() => {
-        infoPanel.scrollTop = 0; // 항상 맨 위로 스크롤
-    }, 0);
 
     function formatKoreanMoney(value) {
         if (!value && value !== 0) return '-';
