@@ -1,1 +1,947 @@
-<!DOCTYPE html><html><head><meta charset='UTF-8'><title>백억지도</title></head><body><div id='root'></div><script type='module' src='/src/main.jsx'></script></body></html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>백억지도 </title>
+    <link rel="icon" type="image/png" href="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%20%EC%8B%AC%EB%B3%BC.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --header-height: 80px;  /* 이 값만 바꾸면 모든 패널이 자동 반영 */
+        }
+        body { margin: 0; padding: 0; }
+        header {
+            top: 0; left: 0; right: 0;
+            height: var(--header-height);
+            z-index: 10000;
+        }
+        #map {
+            position: absolute;
+            top: var(--header-height);
+            left: 340px;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+        }
+        #info-panel {
+            position: absolute;
+            top: var(--header-height);
+            left: 0;
+            width: 340px;
+            bottom: 0;
+            z-index: 50;
+        }
+        #detail-panel {
+            position: absolute;
+            top: var(--header-height);
+            left: 340px;
+            width: 400px;
+            bottom: 0;
+            z-index: 9999;
+        }
+    </style>
+    <style>
+        .filter-box-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem; /* gap-2 */
+        padding: 0.75rem; /* p-3 */
+        justify-content: space-between;
+        }
+        .filter-input {
+        width: 5rem; /* w-20 */
+        padding: 0.25rem 0.5rem; /* px-2 py-1 */
+        border: 1px solid #d1d5db; /* border-gray-300 */
+        border-radius: 0.375rem; /* rounded */
+        font-size: 0.875rem; /* text-sm */
+        color: #374151; /* text-gray-700 */
+        }
+        .filter-apply-btn {
+        margin-left: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        background-color: #2563eb; /* bg-blue-600 */
+        color: white;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="m-0 p-0">
+    <!-- 헤더/필터 바 -->
+    <header class="flex items-center gap-4 w-full h-[80px] px-6 py-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
+        <img
+            src="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC%EC%82%AC%EB%AC%B4%EC%86%8C%20%EA%B8%80%EC%94%A8%EB%A7%8C.png"
+            alt="글씨로고"
+            class="h-12 w-auto cursor-pointer"
+            onclick="showLogin()"
+        />
+        
+        <!-- ✅ 필터 버튼 + 개별 패널 구조 -->
+        <div id="filter-bar" class="flex flex-wrap gap-2 items-start mt-2 relative z-[1000]">
+
+        <!-- 필터초기화 -->
+        <div class="relative">
+        <button
+            id="filter-btn-init"
+            data-default-label="초기화"
+            onclick="resetFilters()"
+            class="px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition"
+        >
+            초기화
+        </button>
+        </div>
+
+
+        <!-- 보증금 -->
+        <div class="relative">
+        <button id="filter-btn-deposit" data-default-label="보증금 ▼" onclick="toggleFilterPanel('deposit')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            보증금 ▼
+        </button>
+        <div id="filter-panel-deposit" class="hidden absolute left-0 mt-1 w-[300px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="deposit_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="deposit_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 월세 -->
+        <div class="relative">
+        <button id="filter-btn-rent" data-default-label="월세 ▼" onclick="toggleFilterPanel('rent')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            월세 ▼
+        </button>
+        <div id="filter-panel-rent" class="hidden absolute left-0 mt-1 w-[280px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="rent_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="rent_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 층 -->
+        <div class="relative">
+        <button id="filter-btn-floor" data-default-label="층 ▼" onclick="toggleFilterPanel('floor')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            층 ▼
+        </button>
+        <div id="filter-panel-floor" class="hidden absolute left-0 mt-1 w-[280px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="floor_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="floor_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 전용평수 -->
+        <div class="relative">
+        <button id="filter-btn-area_py" data-default-label="전용평수 ▼" onclick="toggleFilterPanel('area_py')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            전용평수 ▼
+        </button>
+        <div id="filter-panel-area_py" class="hidden absolute left-0 mt-1 w-[280px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="area_py_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="area_py_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 매매가 -->
+        <div class="relative">
+        <button id="filter-btn-sale" data-default-label="매매가 ▼" onclick="toggleFilterPanel('sale')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            매매가 ▼
+        </button>
+        <div id="filter-panel-sale" class="hidden absolute left-0 mt-1 w-[300px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+                <input id="sale_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded text-sm" />
+                <span class="text-gray-500">~</span>
+                <input id="sale_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 총보증금 -->
+        <div class="relative">
+        <button id="filter-btn-total_deposit" data-default-label="총보증금 ▼" onclick="toggleFilterPanel('total_deposit')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            총보증금 ▼
+        </button>
+        <div id="filter-panel-total_deposit" class="hidden absolute left-0 mt-1 w-[300px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="total_deposit_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="total_deposit_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        <!-- 총월세 -->
+        <div class="relative">
+        <button id="filter-btn-total_rent" data-default-label="총월세 ▼" onclick="toggleFilterPanel('total_rent')" class="px-3 py-1.5 border border-gray-300 bg-white rounded-md shadow-sm text-sm text-gray-800 font-medium hover:bg-gray-100">
+            총월세 ▼
+        </button>
+        <div id="filter-panel-total_rent" class="hidden absolute left-0 mt-1 w-[280px] bg-white border rounded shadow z-50">
+            <div class="flex items-center gap-2 p-3">
+            <input id="total_rent_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+            <span class="text-gray-500">~</span>
+            <input id="total_rent_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+            </div>
+        </div>
+        </div>
+
+        </div>
+
+
+        <!-- ✅ 드롭다운 패널들 -->
+        <div id="filter-panels" class="mt-2 space-y-2">
+        <!-- 층 -->
+        <div id="filter-panel-floor" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">층수</span>
+            <input id="floor_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded" />
+            <input id="floor_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 매매가 -->
+        <div id="filter-panel-sale" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">매매가</span>
+            <input id="sale_price_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded" />
+            <input id="sale_price_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 보증금 -->
+        <div id="filter-panel-deposit" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">보증금</span>
+            <input id="deposit_price_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded" />
+            <input id="deposit_price_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 월세 -->
+        <div id="filter-panel-rent" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">월세</span>
+            <input id="monthly_rent_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded" />
+            <input id="monthly_rent_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 총보증금 -->
+        <div id="filter-panel-total_deposit" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">총보증금</span>
+            <input id="total_deposit_min" type="number" placeholder="이상" class="w-24 px-2 py-1 border rounded" />
+            <input id="total_deposit_max" type="number" placeholder="이하" class="w-24 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 총월세 -->
+        <div id="filter-panel-total_rent" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">총월세</span>
+            <input id="total_rent_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded" />
+            <input id="total_rent_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded" />
+            </div>
+        </div>
+
+        <!-- 전용평수 -->
+        <div id="filter-panel-area_py" class="filter-panel hidden">
+            <div class="flex items-center gap-2 p-3 bg-gray-50 border rounded">
+            <span class="text-sm font-semibold">전용평수</span>
+            <input id="area_py_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded" />
+            <input id="area_py_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded" />
+            </div>
+        </div>
+        </div>
+
+    </header>
+        <!-- 로그인 모달 -->
+        <div id="login-modal"
+            class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-80">
+            <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
+            <input id="login-email" type="email" placeholder="이메일"
+                class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+            <input id="login-password" type="password" placeholder="비밀번호"
+                class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
+            <button onclick="login()"
+                    class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+            로그인
+            </button>
+            <button onclick="hideLogin()"
+                    class="w-full text-gray-500 mt-2">닫기</button>
+            <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
+        </div>
+        </div>
+
+    <!-- ✅ 상세 정보 패널 추가 -->
+    <div id="detail-panel" class="absolute top-[80px] left-[340px] w-[400px] h-full bg-white/90 backdrop-blur-sm shadow-xl p-4 text-sm hidden z-[1000] overflow-y-auto">
+    <div id="detail-content" class="text-gray-800 text-sm whitespace-pre-line overflow-y-auto h-full"></div>
+    </div>
+    <!-- 버튼은 패널 바로 다음에! -->
+    <button
+        id="close-detail-btn"
+        onclick="hideDetailPanel()"
+        class="fixed z-[1001] w-10 h-10 bg-white text-gray-600 border border-gray-300 hover:border-black hover:text-black shadow-md flex items-center justify-center font-bold text-lg hidden"
+        style="top: 90px; left: 740px; display: none;">
+        ✕
+    </button>      
+
+    <div id="map" class="absolute top-0 bottom-0 right-0 left-[340px] z-0"></div>
+    <div id="info-panel" class="absolute top-0 bottom-0 left-0 w-[340px] overflow-y-auto bg-white shadow-xl p-3 text-sm hidden z-50">
+        <div id="info-content" class="text-xs text-gray-700"></div>
+    </div>
+
+  <script>
+    const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+    let currentPage = 1;
+    const pageSize = 20;
+    let isLoading = false;
+    let hasMore = true;
+    let allListings = [];
+    let matchedListingsCache = [];
+    let matchedListingsPage = 1;
+    const PAGE_SIZE = 15;
+
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+
+    const map = new kakao.maps.Map(document.getElementById('map'), {
+      center: new kakao.maps.LatLng(37.7151, 126.7341),
+      level: 5
+    });
+
+    const clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 1,
+        minClusterSize: 1, // ✅ 마커가 1개여도 클러스터 처리
+        disableClickZoom: true,
+        styles: [
+            {
+                width: '40px',
+                height: '40px',
+                background: '#F2C130',
+                border: 'none',
+                borderRadius: '50%',
+                color: '#fff', // ✅ 글자색 흰색으로 변경
+                fontWeight: 'bold',
+                textAlign: 'center',
+                lineHeight: '40px'
+            }
+            ]
+
+    });
+
+    const customImage = new kakao.maps.MarkerImage(
+      'https://raw.githubusercontent.com/mhale45/image/2d7ce4379b14d095d2f0b7f1d0057987548a37bf/2.png',
+      new kakao.maps.Size(36, 36),
+      { offset: new kakao.maps.Point(18, 36) }
+    );
+
+    function shiftMapCenterByPixels(pixelsX) {
+        const proj = map.getProjection();
+        if (!proj) return;
+
+        const center = map.getCenter();
+        const centerPoint = proj.pointFromCoords(center);
+        centerPoint.x += pixelsX;  // 왼쪽(+), 오른쪽(-)
+
+        const newCenter = proj.coordsFromPoint(centerPoint);
+        map.setCenter(newCenter);
+    }
+
+    async function loadListingsInBounds() {
+        const level = map.getLevel();
+        const mapDiv = document.getElementById('map');
+        const detailPanel = document.getElementById('detail-panel');
+        const closeBtn = document.getElementById('close-detail-btn');
+
+        if (level >= 6) {
+        clusterer.clear();
+
+        if (!infoPanel.classList.contains("hidden")) {
+            infoPanel.classList.add("hidden");
+            infoPanel.style.display = 'none';
+            mapDiv.style.left = '0px';
+            shiftMapCenterByPixels(-340);  // ← 보정
+            map.relayout();
+        }
+
+        // ✅ 두 번째 패널(상세) 숨기기
+        if (!detailPanel.classList.contains("hidden")) {
+            detailPanel.classList.add("hidden");
+            detailPanel.style.display = 'none';
+        }
+
+        // ✅ X버튼 숨기기
+        if (!closeBtn.classList.contains("hidden")) {
+            closeBtn.classList.add("hidden");
+            closeBtn.style.display = 'none';
+        }
+
+        return;
+        } else {
+            if (infoPanel.classList.contains("hidden")) {
+                infoPanel.classList.remove("hidden");
+                infoPanel.style.display = 'block';
+                mapDiv.style.left = '340px';
+                shiftMapCenterByPixels(+340);  // ← 보정
+                map.relayout();
+            }
+        }
+
+        const bounds = map.getBounds();
+        const sw = bounds.getSouthWest(); // 남서쪽 좌표
+        const ne = bounds.getNorthEast(); // 북동쪽 좌표
+
+        // 지도 영역 내 매물만 Supabase에서 쿼리
+        const { data, error } = await client
+            .from('baikukdbtest')
+            .select('*')
+            .gte('lat', sw.getLat())
+            .lte('lat', ne.getLat())
+            .gte('lng', sw.getLng())
+            .lte('lng', ne.getLng())
+            .limit(1000); // 안전한 최대 개수 제한
+
+        if (error) {
+            alert("데이터를 불러오는 중 오류 발생: " + error.message);
+            return;
+        }
+        allListings = data; 
+        clusterer.clear(); // 기존 마커 삭제
+        const markers = [];
+
+        data.forEach(listing => {
+            if (!listing.lat || !listing.lng) return;
+
+            const marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(listing.lat, listing.lng),
+            image: customImage
+            });
+
+            marker.listing_id = listing.listing_id;
+            markers.push(marker);
+        });
+
+        clusterer.addMarkers(markers);
+
+
+        
+        // 2. 매물 리스트 렌더링 함수
+        function renderMatchedListings() {
+            const start = 0;
+            const end = matchedListingsPage * PAGE_SIZE;
+            const listingsToShow = matchedListingsCache.slice(start, end);
+            
+            function formatKoreanMoney(value) {
+            if (!value && value !== 0) return '-';
+            const num = Number(value);
+            if (num >= 10000) {
+                const eok = Math.floor(num / 10000);
+                const man = num % 10000;
+                const manStr = man > 0 ? `${man.toLocaleString()}` : '';
+                return `${eok}억${manStr ? ' ' + manStr : ''}`;
+            } else {
+                return `${num.toLocaleString()}`;
+            }
+            }
+
+            function formatFloor(floor, floor_type) {
+            const abs = Math.abs(floor);
+            if (floor_type === '지하' || floor < 0) {
+                return `B${abs}`;
+            }
+            return `${floor}`;
+            }
+
+            const listText = listingsToShow.map(l => {
+                // 기존 템플릿(카드) 복사
+                const statusRaw = l.transaction_status || '-';
+                const status = statusRaw.trim().split(' ')[0];
+
+                let bgStyle = 'background-color: #e5e7eb; color: #374151;';
+                if (status === '진행중') {
+                    bgStyle = 'background-color: rgba(242,193,48,0.4); color: black;';
+                } else if (status === '계약완료') {
+                    bgStyle = 'background-color: rgba(255,0,0,0.3); color: black;';
+                }
+
+                function formatKoreanMoney(value) {
+                    if (!value && value !== 0) return '-';
+                    const num = Number(value);
+                    if (num >= 10000) {
+                        const eok = Math.floor(num / 10000);
+                        const man = num % 10000;
+                        const manStr = man > 0 ? `${man.toLocaleString()}` : '';
+                        return `${eok}억${manStr ? ' ' + manStr : ''}`;
+                    } else {
+                        return `${num.toLocaleString()}`;
+                    }
+                }
+
+                function formatArea(area_py) {
+                    const value = String(area_py).trim();
+                    if (
+                        area_py === undefined ||
+                        area_py === null ||
+                        value === "" ||
+                        value === "-" ||
+                        value.toLowerCase() === "nan" || // 'NaN', 'nan' 모두 대응
+                        isNaN(Number(area_py))
+                    ) return '-';
+                    return Number(area_py).toFixed(1);
+                }
+
+                function formatFloor(floor, floor_type) {
+                    if (floor === undefined || floor === null || isNaN(floor)) return '-';
+                    const abs = Math.abs(floor);
+                    if (floor_type === '지하' || floor < 0) {
+                        return `B${abs}`;
+                    }
+                    return `${floor}`;
+                }
+
+                function formatTotalFloors(total_floors) {
+                    if (total_floors === undefined || total_floors === null || isNaN(total_floors)) return '-';
+                    return total_floors;
+                }
+
+                return `
+                    <div class="mb-5 pb-2 border-b border-gray-300 text-left">
+                        <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
+                            <div class="flex items-start gap-2 mt-1 mb-1">
+                                <div class="w-[61px] border-[3px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
+                                ${l.listing_id}
+                                </div>
+                                <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-lg">
+                                    ${l.deal_type}
+                                    ${
+                                    l.deal_type === "매매"
+                                        ? ` ${formatKoreanMoney(l.sale_price)}`
+                                        : l.deal_type === "월세"
+                                        ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}`
+                                        : ""
+                                    }
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-[61px] h-[22px] flex items-center justify-center text-xs px-1 rounded-sm font-semibold" style="${bgStyle}">
+                                ${status}
+                                </div>
+                                <div class="flex-1 text-base">
+                                전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                                <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
+                                </div>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-base font-medium">
+                                    ${
+                                        l.deal_type === "월세" && Number(l.premium_price) === 0
+                                        ? `<span style="
+                                                background-color:rgb(0,222,90,0.25);
+                                                color:black;
+                                                font-weight:bold;
+                                                border-radius:4px;
+                                                padding:1px 6px;
+                                                margin-right:4px;
+                                                font-size:12px;
+                                            ">무권리</span>`
+                                        : ""
+                                    }
+                                    ${l.title}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            infoContent.innerHTML = listText;
+        }
+
+        function showListingsInPanel(listings) {
+            matchedListingsCache = listings;
+            matchedListingsPage = 1;
+            if (typeof renderMatchedListings === "function") renderMatchedListings();
+            infoPanel.classList.remove("hidden");
+            infoPanel.style.display = 'block';
+            setTimeout(() => {
+                infoPanel.scrollTop = 0;
+            }, 0);
+        }
+
+        // 3. 클러스터 클릭 이벤트 (기존 코드는 모두 삭제!)
+        kakao.maps.event.addListener(clusterer, 'clusterclick', function (cluster) {
+            const markersInCluster = cluster.getMarkers();
+            const idsInCluster = markersInCluster.map(m => String(m.listing_id));
+            // allListings는 지도 범위 내 전체 매물임
+            const matchedListings = allListings.filter(l => idsInCluster.includes(String(l.listing_id)));
+
+            if (matchedListings.length > 0) {
+                showListingsInPanel(matchedListings);
+                matchedListingsCache = matchedListings; // 전체 리스트 저장
+                matchedListingsPage = 1;                // 첫 페이지로 초기화
+                renderMatchedListings();                // 15개만 그려줌
+
+                infoPanel.classList.remove("hidden");
+                setTimeout(() => {
+                    infoPanel.scrollTop = 0; // 항상 맨 위로 스크롤
+                }, 0);
+            }
+        });
+
+        // 4. infoPanel 무한스크롤 이벤트 (스크립트 어디서든 1번만 등록)
+        infoPanel.addEventListener('scroll', function() {
+            if (infoPanel.scrollTop + infoPanel.clientHeight >= infoPanel.scrollHeight - 10) {
+                // 더 보여줄 매물이 있으면
+                if (matchedListingsCache.length > matchedListingsPage * PAGE_SIZE) {
+                    matchedListingsPage++;
+                    renderMatchedListings();
+                }
+            }
+        });
+
+        updateFilteredListings(); // 지도페이지에서 필터링 관련함수
+        // ------ 추가: 처음 로딩시 리스트 자동 출력 ------
+        matchedListingsCache = allListings;
+        matchedListingsPage = 1;
+        if (typeof renderMatchedListings === "function") renderMatchedListings();
+        infoPanel.classList.remove("hidden");
+        infoPanel.style.display = 'block';
+        setTimeout(() => {
+            infoPanel.scrollTop = 0;
+        }, 0);
+    }
+
+    // 지도 이동/줌 끝날 때마다 실행
+    kakao.maps.event.addListener(map, 'idle', loadListingsInBounds);
+
+    // 최초 한 번 로딩
+    loadListingsInBounds();
+    // (1) 현재 지도 영역의 매물을 가져옴 (이미 allListings에 있음)
+    matchedListingsCache = allListings; // 전체 리스트 저장
+    matchedListingsPage = 1;            // 첫 페이지로 초기화
+
+    // (2) 리스트 15개만 info-panel에 그려줌
+    if (typeof renderMatchedListings === "function") renderMatchedListings();
+
+    // (3) info-panel 보이기
+    infoPanel.classList.remove("hidden");
+    infoPanel.style.display = 'block';
+    setTimeout(() => {
+        infoPanel.scrollTop = 0; // 항상 맨 위로 스크롤
+    }, 0);
+
+    function formatKoreanMoney(value) {
+        if (!value && value !== 0) return '-';
+        const num = Number(value);
+        if (num >= 10000) {
+            const eok = Math.floor(num / 10000);
+            const man = num % 10000;
+            const manStr = man > 0 ? `${man.toLocaleString()}` : '';
+            return `${eok}억${manStr ? ' ' + manStr : ''}`;
+        } else {
+            return `${num.toLocaleString()}`;
+        }
+    }
+
+    function showDetailPanel(listingId) {
+        const listing = allListings.find(l => String(l.listing_id) === String(listingId));
+        if (!listing) return;
+
+        const detailContent = `
+            <div class="mb-2">
+                <span class="font-medium">${listing.description}</span>
+                </span>
+            </div>
+            
+        `;
+
+        const panel = document.getElementById('detail-panel');
+        const content = document.getElementById('detail-content');
+        const closeBtn = document.getElementById('close-detail-btn');
+
+        // ✅ 패널 내용 채우기
+        content.innerHTML = detailContent;
+
+        // ✅ 스크롤 맨 위로 이동
+        content.scrollTop = 0;
+
+        // ✅ 패널 보이기
+        panel.classList.remove('hidden');
+        panel.style.display = 'block';
+                
+        // ✅ 버튼도 같이 show
+        closeBtn.classList.remove('hidden');
+        closeBtn.style.display = 'block';
+    }
+    
+    function hideDetailPanel() { // 패널 닫는 함수
+        const detailPanel = document.getElementById('detail-panel');
+        const closeBtn = document.getElementById('close-detail-btn');
+        detailPanel.classList.add('hidden');
+        detailPanel.style.display = 'none';
+
+        // ✅ 버튼도 같이 hide
+        closeBtn.classList.add('hidden');
+        closeBtn.style.display = 'none';
+        
+        // 패널 전부 닫기
+        document.querySelectorAll('[id^="filter-panel-"]').forEach(p => p.classList.add('hidden'));
+    }
+    // 지도를 클릭하면 두 번째 패널 닫기
+    kakao.maps.event.addListener(map, 'click', function () {
+        hideDetailPanel();
+    });
+
+    //로그인
+    function showLogin() {
+        document.getElementById('login-modal').classList.remove('hidden');
+        }
+        function hideLogin() {
+        document.getElementById('login-modal').classList.add('hidden');
+        }
+        async function login() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.classList.add('hidden');
+
+        if (!email || !password) {
+            errorDiv.textContent = '이메일과 비밀번호를 입력하세요.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (error) {
+            errorDiv.textContent = '로그인 실패: ' + error.message;
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+        hideLogin();
+        alert("로그인 성공!");
+    }
+
+    // 1. 필터링 함수
+    function getFilterValues() {
+        return {
+            floor_min: parseFloat(document.getElementById('floor_min').value),
+            floor_max: parseFloat(document.getElementById('floor_max').value),
+            sale_price_min: parseFloat(document.getElementById('sale_min').value),
+            sale_price_max: parseFloat(document.getElementById('sale_max').value),
+            deposit_price_min: parseFloat(document.getElementById('deposit_min').value),
+            deposit_price_max: parseFloat(document.getElementById('deposit_max').value),
+            monthly_rent_min: parseFloat(document.getElementById('rent_min').value),
+            monthly_rent_max: parseFloat(document.getElementById('rent_max').value),
+            total_deposit_min: parseFloat(document.getElementById('total_deposit_min').value),
+            total_deposit_max: parseFloat(document.getElementById('total_deposit_max').value),
+            total_rent_min: parseFloat(document.getElementById('total_rent_min').value),
+            total_rent_max: parseFloat(document.getElementById('total_rent_max').value),
+            area_py_min: parseFloat(document.getElementById('area_py_min').value),
+            area_py_max: parseFloat(document.getElementById('area_py_max').value),
+        };
+    }
+
+    // 실제로 allListings에서 조건에 맞는 것만 반환
+    function filterListings(listings) {
+        const f = getFilterValues();
+        return listings.filter(l => {
+            // 층
+            if (!isNaN(f.floor_min) && l.floor < f.floor_min) return false;
+            if (!isNaN(f.floor_max) && l.floor > f.floor_max) return false;
+            // 매매가
+            if (!isNaN(f.sale_price_min) && l.sale_price < f.sale_price_min) return false;
+            if (!isNaN(f.sale_price_max) && l.sale_price > f.sale_price_max) return false;
+            // 보증금
+            if (!isNaN(f.deposit_price_min) && l.deposit_price < f.deposit_price_min) return false;
+            if (!isNaN(f.deposit_price_max) && l.deposit_price > f.deposit_price_max) return false;
+            // 월세
+            if (!isNaN(f.monthly_rent_min) && l.monthly_rent < f.monthly_rent_min) return false;
+            if (!isNaN(f.monthly_rent_max) && l.monthly_rent > f.monthly_rent_max) return false;
+            // 총보증금
+            if (!isNaN(f.total_deposit_min) && l.total_deposit < f.total_deposit_min) return false;
+            if (!isNaN(f.total_deposit_max) && l.total_deposit > f.total_deposit_max) return false;
+            // 총월세
+            if (!isNaN(f.total_rent_min) && l.total_rent < f.total_rent_min) return false;
+            if (!isNaN(f.total_rent_max) && l.total_rent > f.total_rent_max) return false;
+            // 전용평수
+            if (!isNaN(f.area_py_min) && l.area_py < f.area_py_min) return false;
+            if (!isNaN(f.area_py_max) && l.area_py > f.area_py_max) return false;
+            return true;
+        });
+    }
+
+
+    // 지도/리스트를 필터값에 맞게 새로 그림
+    function updateFilteredListings() {
+        const filtered = filterListings(allListings);
+
+        // 마커 다시 세팅
+        clusterer.clear();
+        const markers = [];
+        filtered.forEach(listing => {
+            if (!listing.lat || !listing.lng) return;
+            const marker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(listing.lat, listing.lng),
+                image: customImage
+            });
+            marker.listing_id = listing.listing_id;
+            markers.push(marker);
+        });
+        clusterer.addMarkers(markers);
+
+        // infoPanel의 리스트도 갱신
+        matchedListingsCache = filtered;
+        matchedListingsPage = 1;
+        if (typeof renderMatchedListings === "function") renderMatchedListings();
+    }
+
+    // 3. input 이벤트 연결 (최초 한 번만 실행)
+    document.querySelectorAll('#filter-bar input').forEach(input => {
+        input.addEventListener('input', () => {
+            updateFilteredListings(); // 매물 전체에서 필터링해서 마커/리스트 갱신
+        });
+    });
+
+    function toggleFilterPanel(type) {
+        const panelIds = ['floor', 'sale', 'deposit', 'rent', 'total_deposit', 'total_rent', 'area_py', 'init'];
+        panelIds.forEach(id => {
+            const panel = document.getElementById(`filter-panel-${id}`);
+            if (panel) {
+            if (id === type) {
+                panel.classList.toggle('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+            }
+        });
+    }
+
+    const filterUnits = {
+        floor: '층',
+        sale: '만',
+        deposit: '만',
+        rent: '만',
+        total_deposit: '만',
+        total_rent: '만',
+        area_py: '평'
+    };
+
+    function updateFilterButtonText(type) {
+        let min = document.getElementById(`${type}_min`)?.value;
+        let max = document.getElementById(`${type}_max`)?.value;
+        let btn = document.getElementById(`filter-btn-${type}`);
+        let unit = filterUnits[type] || '';
+        let label = "";
+
+        // '만' 단위로 입력받는 항목만 formatKoreanMoney 적용
+        const moneyFilters = ['sale', 'deposit', 'rent', 'total_deposit', 'total_rent'];
+
+        // 값 포맷 변환
+        function formatValue(val) {
+            if (!val && val !== 0) return '-';
+            const num = Number(val);
+
+            // '만' 단위(억, 만 변환)
+            if (['sale', 'deposit', 'rent', 'total_deposit', 'total_rent'].includes(type)) {
+                if (isNaN(num)) return '-';
+                if (num >= 10000) {
+                    return formatKoreanMoney(val);
+                } else {
+                    return num.toLocaleString() + '만';
+                }
+            }
+
+            // '층', '전용평수' 등 숫자 + 단위 붙이기
+            if (['floor', 'area_py'].includes(type)) {
+                if (isNaN(num)) return '-';
+                return num + filterUnits[type];
+            }
+
+            // 나머지 그냥 반환
+            return val;
+        }
+
+
+        if (min && max) {
+            label = `${formatValue(min)}~${formatValue(max)}`;
+        } else if (min) {
+            label = `${formatValue(min)}~`;
+        } else if (max) {
+            label = `~${formatValue(max)}`;
+        } else {
+            label = btn ? btn.getAttribute('data-default-label') || '▼' : '▼';
+        }
+
+        if (btn) {
+            btn.textContent = label;
+            // 색상 변경
+            if (label !== btn.getAttribute('data-default-label')) {
+                btn.style.backgroundColor = "#F2C130";
+                btn.style.color = "#111";
+                btn.style.borderColor = "#eab308";
+                btn.style.fontWeight = "bold";
+            } else {
+                btn.style.backgroundColor = "#fff";
+                btn.style.color = "#374151";
+                btn.style.borderColor = "#d1d5db";
+                btn.style.fontWeight = "normal";
+            }
+        }
+    }
+
+
+    document.getElementById('floor_min').addEventListener('input', () => updateFilterButtonText('floor'));
+    document.getElementById('floor_max').addEventListener('input', () => updateFilterButtonText('floor'));
+
+    ['floor', 'sale', 'deposit', 'rent', 'total_deposit', 'total_rent', 'area_py'].forEach(type => { // 필터 값 입력했을 때 그 값 버튼에 표시하는 부분
+        const minInput = document.getElementById(`${type}_min`);
+        const maxInput = document.getElementById(`${type}_max`);
+        if (minInput) minInput.addEventListener('input', () => updateFilterButtonText(type));
+        if (maxInput) maxInput.addEventListener('input', () => updateFilterButtonText(type));
+    });
+
+    function resetFilters() { // 필터초기화 버튼 누르면 동작하는 초기화함수
+        // 각 필터 input ID들
+        const ids = [
+            'floor_min', 'floor_max',
+            'sale_min', 'sale_max',
+            'deposit_min', 'deposit_max',
+            'rent_min', 'rent_max',
+            'total_deposit_min', 'total_deposit_max',
+            'total_rent_min', 'total_rent_max',
+            'area_py_min', 'area_py_max'
+        ];
+
+        // input 모두 공백 처리
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+
+        // 필터 버튼 텍스트도 원래대로 복원
+        ['floor','sale','deposit','rent','total_deposit','total_rent','area_py'].forEach(type => {
+            updateFilterButtonText(type);
+        });
+
+        // 필터 적용(마커/리스트 초기화)
+        updateFilteredListings();
+    }
+
+
+  </script>
+</body>
+</html>
