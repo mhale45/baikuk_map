@@ -9,18 +9,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --header-height: 90px; }
+        :root { --header-height: 50px; --infopanel-left: 450px;}
         body { margin: 0; padding: 0; }
         header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); z-index: 10000; background: #fff; }
-        #map { position: absolute; top: var(--header-height); left: 500px; right: 0; bottom: 0; z-index: 0; }
-        #info-panel { position: absolute; top: var(--header-height); left: 0; width: 500px; bottom: 0; z-index: 50; background: #fff; }
-        #detail-panel { position: absolute; top: var(--header-height); left: 500px; width: 400px; bottom: 0; z-index: 9999; }
+        #map { position: absolute; top: var(--header-height); left: var(--infopanel-left); right: 0; bottom: 0; z-index: 0; }
+        #info-panel { position: absolute; top: var(--header-height); left: 0; width: var(--infopanel-left); bottom: 0; z-index: 50; background: #fff; }
+        #detail-panel { position: absolute; top: var(--header-height); left: var(--infopanel-left); width: 500px; bottom: 0; z-index: 9999; border-left: 5px solid #e5e7eb;}
         #filter-bar { display: flex; flex-direction: column; gap: 2px; margin-top: 0; }
     </style>
 </head>
 <body class="m-0 p-0">
     <!-- 헤더/필터 바 -->
-    <header class="flex items-center gap-4 w-full h-[90px] px-6 py-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
+    <header class="flex items-center gap-4 w-full h-[50px] px-6 py-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
         <img src="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC%EC%82%AC%EB%AC%B4%EC%86%8C%20%EA%B8%80%EC%94%A8%EB%A7%8C.png"
             alt="글씨로고" class="h-12 w-auto cursor-pointer" onclick="showLogin()" />
         <div class="relative">
@@ -38,6 +38,25 @@
             
     </header>
     
+    <!-- 로그인 모달 -->
+    <div id="login-modal"
+        class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-80">
+            <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
+            <input id="login-email" type="email" placeholder="이메일"
+                class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+            <input id="login-password" type="password" placeholder="비밀번호"
+                class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
+            <button onclick="login()"
+                    class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+            로그인
+            </button>
+            <button onclick="hideLogin()"
+                    class="w-full text-gray-500 mt-2">닫기</button>
+            <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
+        </div>
+    </div>
+
     <div id="map" class="absolute top-0 bottom-0 right-0 left-[340px] z-0 gap-0"></div>
     <!-- 지도 우측 하단 컨트롤 패널 -->
     <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10  right-5">
@@ -75,35 +94,17 @@
         <div id="info-content" class="text-xs text-gray-700"></div>
     </div>
 
-    <!-- 로그인 모달 -->
-    <div id="login-modal"
-        class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg shadow-lg p-8 w-80">
-        <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
-        <input id="login-email" type="email" placeholder="이메일"
-            class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
-        <input id="login-password" type="password" placeholder="비밀번호"
-            class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
-        <button onclick="login()"
-                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
-        로그인
-        </button>
-        <button onclick="hideLogin()"
-                class="w-full text-gray-500 mt-2">닫기</button>
-        <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
-    </div>
-    </div>
-
     <!-- ✅ 상세 정보 패널 추가 -->
-    <div id="detail-panel" class="absolute top-[80px] left-[340px] w-[400px] h-full bg-white/90 backdrop-blur-sm shadow-xl p-4 text-sm hidden z-[1000] overflow-y-auto">
+    <div id="detail-panel" class="absolute top-[70px] left-[340px] w-[400px] bottom-0 bg-white/90 backdrop-blur-sm shadow-xl text-sm hidden z-[1000] overflow-y-auto">
     <div id="detail-content" class="text-gray-800 text-sm whitespace-pre-line overflow-y-auto h-full"></div>
     </div>
+
     <!-- 버튼은 패널 바로 닫기 버튼 -->
     <button 
         id="close-detail-btn"
         onclick="hideDetailPanel()"
         class="fixed z-[1001] w-10 h-10 bg-white text-gray-600 border border-gray-300 hover:border-black hover:text-black shadow-md flex items-center justify-center font-bold text-lg hidden"
-        style="top: 105px; left: 900px; display: none;">
+        style="top: 60px; left: 949px; display: none;">
         ✕
     </button>      
 
@@ -143,7 +144,8 @@
     let allMarkers = {};
     let map, customImage;   // 카카오맵 객체
     let clusterer, mapIdleTimer = null;
-
+    let selectedClusterEl = null;  // 클러스터 색 반전 위함
+    let isLoggedIn = false; // 페이지 최상단 스크립트 영역에 선언
 
     map = new kakao.maps.Map(document.getElementById('map'), {
       center: new kakao.maps.LatLng(37.7151, 126.7341),
@@ -270,8 +272,42 @@
                 }
             ]
         });
-        // ⭐⭐ 클러스터 클릭 이벤트 반드시 여기에 추가 ⭐⭐
+        
+        // 클러스터 클릭 시
         kakao.maps.event.addListener(clusterer, 'clusterclick', function(cluster) {
+            const clusterOverlay = cluster.getClusterMarker(); // 클러스터 마커 객체
+            if (selectedClusterEl) {
+                selectedClusterEl.style.border = "none";
+                selectedClusterEl.style.borderRadius = "50%";
+                const prevInner = selectedClusterEl.querySelector('div');
+                if (prevInner) {
+                    prevInner.style.background = HIGHLIGHT_COLOR; // 원래 배경
+                    prevInner.style.color = "#fff";               // 원래 숫자색
+                }
+                selectedClusterEl = null;
+            }
+
+            // 새로 클릭된 클러스터 DOM
+            const clusterEl = cluster.getClusterMarker().getContent().parentNode;
+            if (clusterEl) {
+                // 외곽 테두리만 남김
+                clusterEl.style.background = "transparent";
+                clusterEl.style.border = "2px solid #F2C130";
+                clusterEl.style.borderRadius = "50%";
+
+                // 내부 숫자 div 배경 흰색 + 텍스트 노란색
+                const inner = clusterEl.querySelector('div');
+                if (inner) {
+                    inner.style.background = "#ffffff";
+                    inner.style.color = "#F2C130";
+                    inner.style.borderRadius = "50%";  // 혹시 내부도 모서리가 꺾이면 추가
+                }
+
+                selectedClusterEl = clusterEl;
+            }
+
+
+            // 인포패널 내용 표시
             const markerList = cluster.getMarkers();
             const listings = markerList.map(mk => allListings[mk.listing_id]).filter(Boolean);
             showListingsInPanel(listings);
@@ -350,15 +386,39 @@
     // 매물 카드 클릭 시 상세 패널을 열고 상세 내용을 표시
     function showDetailPanel(listingId) {
         window.currentDetailListingId = listingId;
+        renderMatchedListings(); // ⭐ 하이라이트 적용 위해 리스트 다시 렌더
+
         const listing = allListings[listingId];
         if (!listing) return;
 
         const detailContent = `
-            <div class="mb-2">
-                <span class="font-medium">${listing.description}</span>
-                </span>
-            </div>            
+            <div class="sticky top-0 z-10 bg-white shadow-sm p-2 rounded transition cursor-pointer whitespace-normal" onclick="showDetailPanel(${listing.listing_id})">
+                <div class="flex items-start gap-2">
+                    <div class="w-[61px] h-[26px] flex justify-center items-center border-[2px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
+                        ${listing.listing_id}
+                    </div>
+                    <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-base translate-y-[-2px] translate-y-[3px] leading-tight">
+                        ${listing.deal_type}
+                        ${listing.deal_type === "매매"
+                            ? ` ${formatKoreanMoney(listing.sale_price)}`
+                            : listing.deal_type === "월세"
+                            ? ` ${formatKoreanMoney(listing.deposit_price)} / ${formatKoreanMoney(listing.monthly_rent)}`
+                            : ""
+                        }
+                        <span class="text-[13px] text-gray-700 ml-2">
+                            전용 <strong class="font-semibold">${Number(listing.area_py).toFixed(1)}</strong>평,
+                            <strong class="font-semibold">${formatFloor(listing.floor, listing.floor_type)}</strong>층
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-2 px-4">
+                <span class="font-medium whitespace-pre-line">${listing.description}</span>
+            </div>
         `;
+
+
+
 
         const panel = document.getElementById('detail-panel');
         const content = document.getElementById('detail-content');
@@ -529,8 +589,9 @@
             errorDiv.classList.remove('hidden');
             return;
         }
+        isLoggedIn = true; // ✅ 로그인 성공 시 상태 저장
         hideLogin();
-        alert("로그인 성공!");
+        updateFilteredListings(); // 로그인 후 리스트 다시 그림 (반영됨)
     }
 
     // 필터링 함수
@@ -638,64 +699,119 @@
 
             let bgStyle = 'background-color: #e5e7eb; color: #374151;';
             if (status === '진행중') {
-                bgStyle = 'background-color: rgba(242,193,48,0.4); color: black;';
+                bgStyle = 'background-color: rgba(250,230,172); color: black;';
             } else if (status === '계약완료') {
-                bgStyle = 'background-color: rgba(255,0,0,0.3); color: black;';
+                bgStyle = 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;';
             }
 
-            return `
-                <div class="mb-5 pb-2 border-b border-gray-300 text-left">
-                    <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
-                        <div class="flex flex-row items-start gap-3">
-                            <!-- 썸네일 이미지 -->
-                            <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-simbol.png"
-                                alt="썸네일"
-                                class="w-[120px] h-[100px] object-cover rounded border flex-shrink-0" />
+            const normalize = (val) => String(val || '').replace(/\s+/g, '');
+            const isActive = String(window.currentDetailListingId).trim() === String(l.listing_id).trim();
+            const highlightStyle = isActive
+            ? 'background-color: rgba(243,244,246);'
+            : '';
 
-                            <!-- 오른쪽 정보 전체 블록 -->
-                            <div class="flex-1 flex flex-col gap-1">
-                                <div class="flex items-start gap-2">
-                                    <div class="w-[61px] border-[3px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
-                                    ${l.listing_id}
+            return `
+                <div class="mb-5 pb-2 border-b border-gray-300 text-left" style="${highlightStyle};">
+                    <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
+                        ${
+                            isLoggedIn
+                                ? `
+                            <!-- ✅ 로그인 후 내부용 레이아웃 -->
+                            <div class="flex flex-row items-center gap-3">
+                                <div class="relative w-[120px] h-[100px]">
+                                    <!-- 상태 뱃지 -->
+                                    <div class="absolute top-1 left-1 w-[61px] h-[22px] flex items-center justify-center text-xs px-1 rounded-sm font-semibold z-10"
+                                        style="${bgStyle}">
+                                        ${status}
                                     </div>
-                                    <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-lg">
-                                        ${l.deal_type}
-                                        ${l.deal_type === "매매"
-                                            ? ` ${formatKoreanMoney(l.sale_price)}`
-                                            : l.deal_type === "월세"
-                                            ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}`
-                                            : ""
-                                        }
+                                    <!-- 썸네일 이미지 -->
+                                    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-simbol.png"
+                                        alt="썸네일"
+                                        class="w-full h-full object-cover rounded border" />
+                                </div>                                
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <strong class="text-base text-gray-800 max-w-[280px] truncate whitespace-nowrap overflow-hidden" title="${l.listing_title}">
+                                            ${l.listing_title.length > 20 ? l.listing_title.slice(0, 20) + '⋯' : l.listing_title}
+                                        </strong>
                                     </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-[61px] h-[22px] flex items-center justify-center text-xs px-1 rounded-sm font-semibold" style="${bgStyle}">
-                                    ${status}
+                                    <div class="flex flex-col gap-[2px] leading-[1.4]">
+                                        <div class="flex flex-row justify-between items-start">
+                                            <div class="flex flex-row items-center">
+                                                <div class="w-[56px] h-[24px] flex justify-center items-center border-[1px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-sm font-bold">
+                                                    ${l.listing_id}
+                                                </div>
+                                                <div class="ml-1 text-left font-bold text-[rgb(80,152,233)] text-base whitespace-nowrap">
+                                                    &nbsp;${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}
+                                                </div>
+                                            </div>
+                                            <div class="text-right font-bold text-[rgb(248,63,87)] text-base whitespace-nowrap">
+                                                ${
+                                                    l.premium_price === "0"
+                                                        ? `무권리`
+                                                        : `${formatKoreanMoney(l.premium_price)}`
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex-1 text-base">
-                                    전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
-                                    <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 text-sm">
+                                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                                            <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex justify-between mt-1">
-                                    <span class="text-base font-medium">
-                                        ${l.deal_type === "월세" && Number(l.premium_price) === 0
-                                            ? `<span style="
-                                                    background-color:rgb(0,222,90,0.25);
-                                                    color:black;
-                                                    font-weight:bold;
-                                                    border-radius:4px;
-                                                    padding:1px 6px;
-                                                    margin-right:4px;
-                                                    font-size:12px;
-                                                ">무권리</span>`
-                                            : ""
-                                        }
-                                        ${l.title}
-                                    </span>
                                 </div>
                             </div>
-                        </div>
+                            `
+                                : `
+                            <!-- ✅ 비로그인 시 공개용 레이아웃 -->
+                            <div class="flex flex-row items-center gap-3">
+                                <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-simbol.png"
+                                    alt="썸네일"
+                                    class="w-[120px] h-[100px] object-cover rounded border flex-shrink-0" />
+
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <div class="flex items-start gap-2">
+                                        <div class="flex-1 text-left font-bold text-[rgb(80,152,233)] text-base">
+                                            ${l.deal_type}
+                                            ${
+                                                l.deal_type === "매매"
+                                                    ? ` ${formatKoreanMoney(l.sale_price)}`
+                                                    : l.deal_type === "월세"
+                                                    ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}`
+                                                    : ""
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 text-sm">
+                                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                                            <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between mt-1">
+                                        <span class="inline-block text-[14px] text-[rgb(85,85,85)] leading-[1.4]">
+                                            ${
+                                                l.deal_type === "월세" && Number(l.premium_price) === 0
+                                                    ? `<span style="
+                                                            background-color:rgb(0,222,90,0.07);
+                                                            color:rgb(16,177,120);
+                                                            font-weight:bold;
+                                                            border-radius:4px;
+                                                            padding:1px 6px;
+                                                            margin-right:4px;
+                                                            font-size:12px;
+                                                            vertical-align: 0.5px;
+                                                        ">무권리</span>`
+                                                    : ""
+                                            }
+                                            ${l.title}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            `
+                        }
                     </div>
                 </div>
             `;
@@ -827,7 +943,8 @@
             updateFilterButtonText(type);
         });
         selectedCategories = ['상가'];
-        selectedDealTypes = ['월세'];
+        selectedDealTypes = ['월세'];        
+        renderDealAndCategoryButtons(); // 3. UI 다시 그림 ✅ 이게 핵심!
         loadListingsInBounds();
     }
 
@@ -911,5 +1028,4 @@
     window.resetFilters = resetFilters;
   </script>
 </body>
-
 </html>
