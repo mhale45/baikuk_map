@@ -35,7 +35,14 @@
         <div id="filter-btns-wrap" class="flex gap-1"></div>
 
         <div style="flex:1"></div> <!-- 이 줄이 헤더에서 오른쪽 정렬 역할 -->
-            
+
+        <!-- 헤더 오른쪽에 로그아웃 버튼 -->
+        <button id="logout-btn"
+                onclick="logout()"
+                class="hidden text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
+            로그아웃
+        </button>
+
     </header>
     
     <!-- 로그인 모달 -->
@@ -56,7 +63,11 @@
             <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
         </div>
     </div>
-
+    <!-- ✅ 로그인 중 로딩 오버레이 추가 -->
+    <div id="loading-overlay"
+        class="fixed inset-0 z-[30000] bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="text-white text-xl font-bold">로그인 중입니다...</div>
+    </div>
     <div id="map" class="absolute top-0 bottom-0 right-0 left-[340px] z-0 gap-0"></div>
     <!-- 지도 우측 하단 컨트롤 패널 -->
     <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10  right-5">
@@ -120,7 +131,7 @@
 
     const PAGE_SIZE = 15;
     const allDealTypes = ['월세', '매매'];
-    const allCategories = ['상가', '주택', '공장·창고']; // 카테고리 종류 (고정)
+    const allCategories = ['상가', '공장·창고']; // 카테고리 종류 (고정)
     const infoPanel = document.getElementById('info-panel');
     const infoContent = document.getElementById('info-content');
     const filterTypes = ['floor','sale','deposit','rent','total_deposit','total_rent','area_py'];
@@ -340,7 +351,7 @@
             btnWrap.appendChild(btn);
         });
 
-        // 카테고리(상가, 주택, 공장창고) 버튼
+        // 카테고리(상가, 공장창고) 버튼
         allCategories.forEach(cat => {
             const btn = document.createElement('button');
             btn.textContent = selectedCategories.includes(cat) ? '✓ ' + cat : cat;
@@ -569,9 +580,11 @@
     // 로그인 모달 열기
     function showLogin() {
         document.getElementById('login-modal').classList.remove('hidden');
-        }
+    }
         
-        async function login() {
+    async function login() {
+        showLoadingOverlay();  // 로그인 시작 시 오버레이 보여주기
+
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-password').value.trim();
         const errorDiv = document.getElementById('login-error');
@@ -580,6 +593,7 @@
         if (!email || !password) {
             errorDiv.textContent = '이메일과 비밀번호를 입력하세요.';
             errorDiv.classList.remove('hidden');
+            hideLoadingOverlay();  // 실패 시 오버레이 숨기기
             return;
         }
 
@@ -587,11 +601,35 @@
         if (error) {
             errorDiv.textContent = '로그인 실패: ' + error.message;
             errorDiv.classList.remove('hidden');
+            hideLoadingOverlay();  // 실패 시 오버레이 숨기기
             return;
         }
-        isLoggedIn = true; // ✅ 로그인 성공 시 상태 저장
+
+        isLoggedIn = true;
         hideLogin();
-        updateFilteredListings(); // 로그인 후 리스트 다시 그림 (반영됨)
+        document.getElementById('logout-btn')?.classList.remove('hidden');
+
+        // 🔽 지도 클러스터/마커 초기화
+        clusterer.clear();  // 기존 클러스터 제거
+        allListings = {};   // 매물 데이터 초기화
+        allMarkers = {};    // 마커 초기화
+
+        await loadListingsInBounds();  // 로그인 후 데이터 새로 로딩
+        hideLoadingOverlay();  // 완료 후 오버레이 숨기기
+    }
+
+
+    function showLoadingOverlay() {
+        document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+
+    function hideLoadingOverlay() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    async function logout() {
+        await client.auth.signOut();
+        location.reload();  // 완전 초기화
     }
 
     // 필터링 함수
@@ -673,7 +711,7 @@
                     position: new kakao.maps.LatLng(listing.lat, listing.lng),
                     image: customImage
                 });
-                marker.listing_id = listing.listing_id;
+                if (!listing || !listing.listing_id || !listing.lat || !listing.lng) return;
                 allMarkers[listing.listing_id] = marker;
             }
             markers.push(allMarkers[listing.listing_id]);
@@ -688,6 +726,7 @@
 
     // 매물 리스트 렌더링 함수
     function renderMatchedListings() {
+        if (!Array.isArray(matchedListingsCache)) return;
         const start = 0;
         const end = matchedListingsPage * PAGE_SIZE;
         const listingsToShow = matchedListingsCache.slice(start, end);            
@@ -729,7 +768,18 @@
                                         alt="썸네일"
                                         class="w-full h-full object-cover rounded border" />
                                 </div>                                
-                                <div class="flex-1 flex flex-col gap-1">
+                                <div class="flex-1 flex flex-col gap-1">                                    
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex flex-row items-center">
+                                            <div class="w-[56px] h-[24px] flex justify-center items-center border-[1px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-sm font-bold">
+                                                ${l.listing_id}
+                                            </div>
+                                            </div>
+                                        <div class="flex-1 text-sm">
+                                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                                            <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
+                                        </div>
+                                    </div>
                                     <div class="flex items-center gap-2">
                                         <strong class="text-base text-gray-800 max-w-[280px] truncate whitespace-nowrap overflow-hidden" title="${l.listing_title}">
                                             ${l.listing_title.length > 20 ? l.listing_title.slice(0, 20) + '⋯' : l.listing_title}
@@ -737,12 +787,16 @@
                                     </div>
                                     <div class="flex flex-col gap-[2px] leading-[1.4]">
                                         <div class="flex flex-row justify-between items-start">
-                                            <div class="flex flex-row items-center">
-                                                <div class="w-[56px] h-[24px] flex justify-center items-center border-[1px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-sm font-bold">
-                                                    ${l.listing_id}
-                                                </div>
-                                                <div class="ml-1 text-left font-bold text-[rgb(80,152,233)] text-base whitespace-nowrap">
-                                                    &nbsp;${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}
+                                            <div class="flex items-start gap-2">
+                                                <div class="flex-1 text-left font-bold text-[rgb(80,152,233)] text-base">
+                                                    ${l.deal_type}
+                                                    ${
+                                                        l.deal_type === "매매"
+                                                            ? ` ${formatKoreanMoney(l.sale_price)}`
+                                                            : l.deal_type === "월세"
+                                                            ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}`
+                                                            : ""
+                                                    }
                                                 </div>
                                             </div>
                                             <div class="text-right font-bold text-[rgb(248,63,87)] text-base whitespace-nowrap">
@@ -752,12 +806,6 @@
                                                         : `${formatKoreanMoney(l.premium_price)}`
                                                 }
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex-1 text-sm">
-                                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
-                                            <strong class="font-semibold">${formatFloor(l.floor, l.floor_type)}</strong>/${l.total_floors}층
                                         </div>
                                     </div>
                                 </div>
@@ -821,31 +869,38 @@
     }
     
     async function loadListingsInBounds() {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
         isLoading = true;
 
         const bounds = map.getBounds();
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-        const centerLat = (sw.getLat() + ne.getLat()) / 2;
-        const centerLng = (sw.getLng() + ne.getLng()) / 2;
-        const latSpan = ne.getLat() - sw.getLat();
-        const lngSpan = ne.getLng() - sw.getLng();
 
         // 확장된 범위
-        const extSwLat = centerLat - latSpan;
-        const extSwLng = centerLng - lngSpan;
-        const extNeLat = centerLat + latSpan;
-        const extNeLng = centerLng + lngSpan;
+        const extSwLat = sw.getLat(); // 기존 sw 그대로
+        const extSwLng = sw.getLng();
+        const extNeLat = ne.getLat(); // 기존 ne 그대로
+        const extNeLng = ne.getLng();
+        const tableToQuery = isLoggedIn ? 'baikukdbtest' : 'public_baikuk_view';
+
+        // ✅ 비로그인 시 내부 테이블 접근 방지
+        if (!isLoggedIn && tableToQuery === 'baikukdbtest') {
+            console.warn("비로그인 상태에서 내부 테이블 접근 시도 차단됨");
+            isLoading = false;
+            return;
+        }
 
         // 1. 확장된 영역 내 매물ID 조회
         const { data: idData, error: idError } = await client
-            .from('baikukdbtest')
+            .from(tableToQuery)
             .select('listing_id, lat, lng')
             .gte('lat', extSwLat)
             .lte('lat', extNeLat)
             .gte('lng', extSwLng)
-            .lte('lng', extNeLng);
+            .lte('lng', extNeLng)
+            .limit(1000); 
 
         if (idError) {
             alert("데이터를 불러오는 중 오류 발생: " + idError.message);
@@ -858,7 +913,7 @@
         const toFetch = neededIds.filter(id => !(id in allListings));
         if (toFetch.length > 0) {
             const { data: detailData, error: detailError } = await client
-                .from('baikukdbtest')
+                .from(tableToQuery)
                 .select('*')
                 .in('listing_id', toFetch);
             if (detailError) {
@@ -870,8 +925,10 @@
         }
 
         // 3. info-panel/마커 모두 "필터된 매물만" 반영!
-        const listArr = neededIds.map(id => allListings[id]);
-        const filtered = filterListings(listArr);
+        const listArr = neededIds.map(id => allListings[id]).filter(v => !!v);
+
+        // 필터링
+        const filtered = filterListings(listArr) || [];  // ← undefined 방지
         
         // ✅ 여기에 줌 레벨 별 gridSize 조절 (아래 코드 추가!)
         const level = map.getLevel();
@@ -879,11 +936,11 @@
         if (level <= 2) {
             gridSize = 10;
         } else if (level === 3) {
-            gridSize = 40;
+            gridSize = 30;
         } else if (level === 4) {
-            gridSize = 50;
+            gridSize = 40;
         } else {
-            gridSize = 150;  // ← 이게 '동' 단위로 클러스터링의 근사값. (100~300px 사이로 조절)
+            gridSize = 50;  // ← 이게 '동' 단위로 클러스터링의 근사값. (100~300px 사이로 조절)
         }
         createClusterer(gridSize);
 
@@ -905,9 +962,11 @@
         clusterer.addMarkers(markers);
 
         // 리스트 패널
-        matchedListingsCache = filtered;
+        matchedListingsCache = Array.isArray(filtered) ? filtered : [];
         matchedListingsPage = 1;
-        if (typeof renderMatchedListings === "function") renderMatchedListings();
+        if (typeof renderMatchedListings === "function") {
+            renderMatchedListings();
+        }
 
         isLoading = false;
     }
@@ -951,7 +1010,7 @@
     // 지도를 클릭하면 두 번째 패널 닫기
     kakao.maps.event.addListener(map, 'click', function () {
         hideDetailPanel();
-        updateFilteredListings();
+        loadListingsInBounds();
     });
 
     // 1. 지도 idle 리스너는 딱 이것만!
@@ -961,12 +1020,28 @@
             loadListingsInBounds();
         }, 200);
     });
+
+
     
     // 페이지 로딩 시 필터 버튼 표시
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         renderDealAndCategoryButtons();
         renderFilterButtons();
+
+        const { data: { session } } = await client.auth.getSession();
+        if (session) {
+            isLoggedIn = true;
+            document.getElementById('logout-btn')?.classList.remove('hidden');
+            console.log('✅ 로그인 세션 유지됨');
+        } else {
+            isLoggedIn = false;
+            document.getElementById('logout-btn')?.classList.add('hidden');
+            console.log('🔒 로그인 필요');
+        }
+
+        await loadListingsInBounds();
     });
+
 
     // 확대/축소/현재위치 버튼 이벤트 연결
     document.getElementById('btn-zoom-in').onclick = function() {
