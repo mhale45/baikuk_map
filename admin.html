@@ -18,64 +18,6 @@
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script> 
-        // 1) 경로/상수
-        const ADMIN_PATH = '/admin';         // 디렉토리(= /admin/index.html)
-        const LOGIN_PAGE = 'index.html';     // 루트 로그인 페이지
-        const REQUIRE_AUTH = true;           // admin은 항상 인증 필요
-
-        // 2) Supabase 클라이언트 (이미 있으면 재사용)
-        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-        const client = window.client || supabase.createClient(supabaseUrl, supabaseKey);
-        window.client = client;
-
-        // 3) 리다이렉트 유틸 (index로 보낼 때 안내 메시지를 세션스토리지에)
-        function redirectWithMessage(msg) {
-            const loginUrl = new URL(`/${LOGIN_PAGE}`, location.origin);
-            try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
-            if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
-        }
-
-        // 4) admin 전용 권한/세션 가드
-        (async function guardAuthForAdmin() {
-            try {
-            const { data: { session } } = await client.auth.getSession();
-            if (!session) {
-                return redirectWithMessage('로그인이 필요합니다.');
-            }
-
-            // (선택) staff_profiles 권한 확인
-            const { data: me, error } = await client
-                .from('staff_profiles')
-                .select('authority')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-
-            if (error) throw error;
-            if (!me?.authority) {
-                return redirectWithMessage('접근 권한이 없습니다.');
-            }
-            } catch (e) {
-            console.warn('[admin guard] error:', e);
-            redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
-            }
-        })();
-
-        // 5) 로그아웃 버튼 핸들러(있다면 연결)
-        async function logout() {
-            try { await client.auth.signOut(); } catch (_) {}
-            const target = new URL(`/${LOGIN_PAGE}`, location.origin).href;
-            // 두 단계 리다이렉트(일부 환경 대응)
-            window.location.href = target;
-            setTimeout(() => window.location.replace(target), 0);
-        }
-        window.logout = logout;
-
-        // 6) (선택) 세션 만료 시 자동 회수
-        client.auth.onAuthStateChange((_event, session) => {
-            if (!session) redirectWithMessage('로그인이 필요합니다.');
-        });
-
         const BUCKET = 'listing-images'; //이미지 관련 변수
         window.BUCKET = 'listing-images'; // 버킷명
         window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
@@ -100,6 +42,49 @@
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+        
+        // 🔧 세션 영구 유지 + 자동 갱신
+        window.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            // storageKey: 'baikuk-auth'  // (선택) 로컬스토리지 키 커스터마이즈
+            }
+        });
+        window.client = supabase; // 만약 기존 코드가 client로 썼다면 이것도 추가
+
+        // ✅ 얼리 가드: 세션 없으면 index.html로
+        (async () => {
+            const { data: { session} } = await window.supabase.auth.getSession();
+            // 버튼 표시/숨김 초기 동기화
+            try {
+                const has = !!session;
+                document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
+                document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
+            } catch {}
+            if (!session) {
+                location.replace('index.html' + location.search);
+                return;
+            }
+
+            // ✅ DOM이 만들어진 뒤에 배지 렌더 보장
+            document.addEventListener('DOMContentLoaded', () => {
+                window.renderAffiliationBadge?.();
+            });
+        })();
+
+        // 🔧 세션 변화 시 UI 동기화 + 미인증 리다이렉트
+        window.supabase.auth.onAuthStateChange((_evt, session) => {
+            const has = !!session;
+            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
+            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
+            if (!session) location.replace('index.html' + location.search);
+            window.renderAffiliationBadge?.();
+        });
         
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
