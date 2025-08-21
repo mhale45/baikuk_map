@@ -207,6 +207,8 @@
     </div>
 
   <script>
+    
+    const sleep = (ms = 5000) => new Promise(res => setTimeout(res, ms));
 
     (function () {
         const info = {
@@ -222,7 +224,9 @@
         sessionStorage.setItem(k, n);
         if (n >= 3) {
             console.warn('⚠️ 빠른 재부팅 감지(리다이렉트 루프 의심):', n, info);
+            sleep(5000);
         }
+
     })();
 
     const _nz = (s) => (s ?? '').toString();
@@ -299,9 +303,11 @@
             map.setCenter(new kakao.maps.LatLng(lat, lng));
         }, function(error) {
             console.log("위치 정보를 사용할 수 없습니다.", error);
+            sleep(5000);
         });
     } else {
         console.log("이 브라우저에서는 Geolocation을 지원하지 않습니다.");
+            sleep(5000);
     }
 
     infoPanel.style.display = 'block';
@@ -386,6 +392,7 @@
             `;
         } catch (e) {
             console.warn('affiliation 렌더 실패:', e);
+            sleep(5000);
             el.textContent = '';
             el.classList.add('hidden');
         }
@@ -434,6 +441,7 @@
             }
         } catch (e) {
             console.warn('ensurePrimaryAfterDeletion error', e);
+            sleep(5000);
         }
     }
 
@@ -453,6 +461,7 @@
         // 2) 방어: 유효 id 없으면 중단
         if (!ids.length) { 
             console.warn('[bulkDelete] invalid ids from checkboxes:', selected.map(el => el.dataset?.id));
+            sleep(5000);
             showToast('삭제할 이미지 ID를 읽지 못했어요. 새로고침 후 다시 시도해 주세요.');
             return;
         }
@@ -547,6 +556,7 @@
     async function openNewListing() {
         try {
             console.log('[openNewListing] start');
+            sleep(5000);
             const newId = await getNextListingId();            // Supabase 최대 listing_id + 1
             const center = window.map?.getCenter();
 
@@ -590,9 +600,11 @@
             isEditMode = true;
 
             console.log('[openNewListing] done');
+            sleep(5000);
         } catch (err) {
             console.error('[openNewListing] 실패:', err);
             alert('매물등록 패널을 여는 중 문제가 발생했습니다.');
+            sleep(5000);
         }
     }
 
@@ -606,6 +618,7 @@
 
         if (error || !data || data.length === 0) {
             console.warn('listing_id 조회 실패:', error);
+            sleep(5000);
             return Date.now(); // fallback
         }
 
@@ -647,6 +660,7 @@
             if (allowMissing && cached) return cached;
             console.error('단건 로드 실패:', error || 'not found');
             showToast('매물 정보를 불러오지 못했습니다.');
+            sleep(5000);
             throw error || new Error('listing not found');
         }
 
@@ -707,6 +721,7 @@
             return display;
         } catch (e) {
             console.warn('resolveAgentDisplayName error:', e);
+            sleep(5000);
             // 문제 있으면 원본 그대로 표시
             return n;
         }
@@ -849,6 +864,7 @@
         } catch (e) {
             console.error('staff_profiles 로드 실패:', e);
             selectEl.innerHTML = `<option value="">직원 없음</option>`;
+            sleep(5000);
         }
     }
 
@@ -907,6 +923,7 @@
             showToast(`담당자 저장 실패: ${error.message}`, { type: 'error' });
             }
             console.error('saveAgentName error', error);
+            sleep(5000);
             return false;
         }
 
@@ -929,6 +946,7 @@
 
         console.log(`📸 예열 대상 ${idsInView.length}건`);
         ensureThumbsReady(idsInView, { timeout: 1000 }).catch(console.warn);
+        sleep(5000);
     }
 
     async function ensureThumbsReady(ids, { timeout = 350 } = {}) {
@@ -4808,10 +4826,10 @@
         const idFromUrl = getListingIdFromURL();
         if (idFromUrl) {
             try {
-            await openDeepLink(idFromUrl, /*skipUrl*/ true);
+                await openDeepLink(idFromUrl, /*skipUrl*/ true);
             } catch (e) {
-            console.error(e);
-            showToast('URL의 매물 정보를 불러오지 못했습니다.');
+                console.error(e);
+                showToast('URL의 매물 정보를 불러오지 못했습니다.');
             }
         }
         
