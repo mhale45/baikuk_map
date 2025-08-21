@@ -4477,14 +4477,11 @@
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
 
     async function logout() {
-        try {
-            await client.auth.signOut();
-        } catch (e) {
-            console.warn('signOut failed:', e);
-        } finally {
-            window.location.replace('https://baikuk-map.netlify.app/');
-        }
+        try { await client.auth.signOut(); } catch (_) {}
+        // 루트로 가지 말고, 정적 페이지로 보냅니다.
+        location.href = '/logged-out.html';
     }
+
 
     function getFilterValues() {
         const values = {};
