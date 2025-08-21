@@ -62,7 +62,6 @@
             initializeApp();
         }
 
-        debugger;
     </script>
 
     <style>
@@ -2357,6 +2356,9 @@
         const url = new URL(location.href);
         if (listingId) url.searchParams.set('id', String(listingId));
         else url.searchParams.delete('id');
+        const newHref = url.toString();
+        // ✅ 동일 주소면 히스토리 조작 생략 (루프/히스토리 폭증 방지)
+        if (newHref === location.href) return;
         try {
             history[replace ? 'replaceState' : 'pushState']({}, '', url);
         } catch (_) {}
@@ -2366,6 +2368,12 @@
     async function openDeepLink(listingId, skipUrl = false) {
         if (!listingId) return;
         const id = String(listingId);
+
+        // ✅ 이미 같은 매물이 열려 있으면 재호출/URL갱신 생략
+        if (String(window.currentDetailListingId || '') === id) {
+            if (!skipUrl) updateURLForListing(id, /*replace*/ true);
+            return;
+        }
 
         if (!allListings[id]) {
             const { data, error } = await client
@@ -4792,28 +4800,20 @@
 
         await loadListingsInBounds();
 
-        
-
         // 👇 몰래 예열
         const idsForWarm = Object.values(allListings).slice(0, 500).map(l => l.listing_id);
         ensureThumbsReady(idsForWarm, { timeout: 1000 }).catch(()=>{});
 
-        const deepId = getListingIdFromURL();
-        if (deepId) await openDeepLink(deepId);   // ✅ URL에 id 있으면 바로 열기
-
-        // ✅ 여기 교체!
-        (async () => {
-            const idFromUrl = getListingIdFromURL();
-            if (idFromUrl) {
+        // ✅ 딥링크는 한 번만, URL은 건드리지 않도록(skipUrl) 안전 호출
+        const idFromUrl = getListingIdFromURL();
+        if (idFromUrl) {
             try {
-                await ensureListingLoaded(idFromUrl);  // 먼저 메모리에 보장
-                await showDetailPanel(idFromUrl);      // 그 다음 상세 패널 오픈
+            await openDeepLink(idFromUrl, /*skipUrl*/ true);
             } catch (e) {
-                console.error(e);
-                showToast('URL의 매물 정보를 불러오지 못했습니다.');
+            console.error(e);
+            showToast('URL의 매물 정보를 불러오지 못했습니다.');
             }
-            }
-        })();
+        }
         
         renderDealFields();
         const listing = allListings?.[window.currentDetailListingId];
