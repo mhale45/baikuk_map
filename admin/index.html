@@ -36,9 +36,10 @@
     <button onclick="login()">로그인</button>
 
     <script>
-        const supabaseUrl = "https://YOUR_PROJECT.supabase.co";  // ← 본인의 Supabase URL
-        const supabaseKey = "YOUR_PUBLIC_ANON_KEY";              // ← 본인의 공개 키
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
+        window.client = client;
 
         async function login() {
             const email = document.getElementById('email').value;
@@ -55,21 +56,6 @@
             }
 
             console.log("✅ 로그인 성공, 세션 적용 대기 중...");
-            checkSessionAndRedirect();
-        }
-
-        // ✅ 세션이 확실히 적용됐을 때만 admin.html로 이동
-        async function checkSessionAndRedirect() {
-            for (let i = 0; i < 10; i++) {
-                const { data } = await client.auth.getSession();
-                if (data.session) {
-                    console.log("✅ 세션 확인됨 → admin.html 이동");
-                    window.location.replace('admin.html');
-                    return;
-                }
-                await new Promise(res => setTimeout(res, 300)); // 0.3초 대기
-            }
-            alert("세션을 불러오지 못했습니다. 다시 시도해 주세요.");
         }
     </script>
 

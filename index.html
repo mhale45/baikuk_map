@@ -32,7 +32,7 @@
         window.WATERMARK_BUCKET_IS_PUBLIC = true;
 
         const LOGIN_PAGE = 'index.html'; // 안내 후 보낼 로그인 페이지
-        const REQUIRE_AUTH = /admin\.html$/.test(location.pathname);
+        const REQUIRE_AUTH = /\admin$/.test(location.pathname);
 
         const staffPublicMap = new Map();
     </script>
@@ -169,7 +169,7 @@
         }
     })();
 
-    // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(단, index에서는 건너뜀)
+    // 접속 즉시 세션 확인 → 있으면 admin로 이동(단, index에서는 건너뜀)
     (async function earlyRedirect() {
     const onIndex =
         location.pathname.endsWith('/index.html') ||
@@ -180,7 +180,7 @@
 
     const { data: { session } } = await client.auth.getSession();
     if (session) {
-        location.replace('admin.html' + location.search);
+        location.replace('/admin' + location.search);
         return;
     }
     })();
@@ -189,12 +189,12 @@
     // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
     client.auth.onAuthStateChange((_event, session) => {
         const onIndex =
-            location.pathname.endsWith('/index.html') ||
+            location.pathname.endsWith('/') ||
             location.pathname === '/' ||
             /(?:^|\/)index\.html$/.test(location.pathname);
 
         if (!onIndex && session) {
-            location.replace('admin.html' + location.search);
+            location.replace('/admin' + location.search);
         }
     });
 
@@ -1349,7 +1349,7 @@
             // }
 
             // 4) 이동
-            window.location.href = 'admin.html';
+            window.location.href = '/admin';
         } catch (e) {
             // 오류 처리
             errorDiv.textContent = '로그인 실패: ' + (e?.message || e);
@@ -1379,9 +1379,9 @@
 
         const deepId = getListingIdFromURL();
 
-        // 로그인되어 있고 ?id= 가 있으면 admin.html로 넘김
+        // 로그인되어 있고 ?id= 가 있으면 admin로 넘김
         if (window.isLoggedIn && deepId) {
-            location.replace(`admin.html?id=${deepId}`);
+            location.replace(`/admin?id=${deepId}`);
             return;
         }
 
