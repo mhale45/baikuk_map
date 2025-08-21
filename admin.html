@@ -310,6 +310,7 @@
       center: new kakao.maps.LatLng(37.7151, 126.7341),
       level: 3
     });
+    window.map = map;
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -679,7 +680,7 @@
         const { data: { session } } = await window.supabase.auth.getSession();
         
         // 필요할 때만 블로킹 알림 (예: Netlify에서만)
-        const isNetlify = location.hostname.endsWith('netlify.app');
+        const isNetlify = /netlify\.app$/.test(location.hostname) || location.hostname.includes('netlify');
         if (isNetlify) {
             alert(
             [
