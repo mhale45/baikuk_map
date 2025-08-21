@@ -18,6 +18,8 @@
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script> 
+        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
+        window.LOGIN_PAGE = 'index.html';
         const BUCKET = 'listing-images'; //이미지 관련 변수
         window.BUCKET = 'listing-images'; // 버킷명
         window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
