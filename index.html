@@ -1,181 +1,1762 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>백억지도 - 로그인 테스트</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
-  <style>
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif; }
-    header { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid #e5e7eb; position:sticky; top:0; background:#fff; z-index:10;}
-    .btn { padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; }
-    .btn:hover { background:#f9fafb; }
-    #login-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.4); z-index:1000; }
-    #login-modal .card { width:320px; background:#fff; padding:20px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.1); }
-    .input { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; margin-top:8px; }
-    .primary { background:#2563eb; color:#fff; border-color:#2563eb; }
-    .primary:hover { background:#1d4ed8; }
-    #loading-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.45); color:#fff; font-weight:700; z-index:1100; }
-    .hint { font-size:12px; color:#6b7280; }
-    .error { color:#dc2626; font-size:13px; margin-top:6px; display:none; }
-    main { max-width:720px; margin:24px auto; padding:0 16px; }
-    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
-  </style>
+    <meta charset="UTF-8" />
+    <title>백억지도</title>
+    <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- LightGallery CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lightgallery.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-zoom.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-thumbnail.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-fullscreen.css">
+
+    <!-- LightGallery JS -->
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery/lightgallery.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
+    <script>
+        // 고객뷰도 같은 버킷 사용 (Private)
+        window.BUCKET = 'listing-images';
+        window.BUCKET_IS_PUBLIC = false;
+
+        // 워터마크 파일(투명 PNG) 위치
+        window.WATERMARK_BUCKET = 'baikuk-images-open';
+        window.WATERMARK_PREFIX = '';           // 루트면 빈 문자열
+        window.WATERMARK_FILE   = 'baikuk-logo-warter-mark.png';
+        window.WATERMARK_BUCKET_IS_PUBLIC = true;
+
+        const LOGIN_PAGE = 'index.html'; // 안내 후 보낼 로그인 페이지
+        const ADMIN_PATH = '/admin'; // 디렉토리/파일 모두 대응
+        const REQUIRE_AUTH = /\admin$/.test(location.pathname);
+
+        const staffPublicMap = new Map();
+    </script>
+    <style>
+        :root {
+            --header-height: 3.5rem;
+            --infopanel-left: 23.5%;
+            --header-button-height: 1.6rem !important;
+        }
+        body { margin: 0; padding: 0; }
+        header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); z-index: 10000; background: #fff; }
+        #map { position: absolute; top: var(--header-height); left: var(--infopanel-left); right: 0; bottom: 0; z-index: 0; }
+        #info-panel { position: absolute; top: var(--header-height); left: 0; width: var(--infopanel-left); bottom: 0; z-index: 50; background: #fff; }
+        #detail-panel { position: absolute; top: var(--header-height); left: var(--infopanel-left); width: 26%; bottom: 0; z-index: 9999; border-left: 0.3rem solid #e5e7eb;}
+        #filter-bar { display: flex; flex-direction: column; gap: 2px; margin-top: 0; }
+        header button {
+            height: var(--header-button-height);
+            font-size: 0.8rem !important;
+            display: flex;
+            align-items: center;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    </style>
+    <style>
+        /* 두 장 썸네일 위에 ‘흰색’ 워터마크 마스크 */
+        .wm-white{
+            position:absolute; inset:0; pointer-events:none; user-select:none;
+            background:#fff; opacity:.40;
+            -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+            -webkit-mask-position:center; mask-position:center;
+            -webkit-mask-size: var(--wm-size, 360px) auto;
+            mask-size: var(--wm-size, 360px) auto;
+        }
+        .thumb-box { background:#f3f4f6; overflow:hidden; }         /* 여백 색 */
+        .thumb-img { width:100%; height:100%;  object-fit: cover; object-position:center; }
+        /* 상세패널(두 장 미리보기) 전용: 꽉 채우고 잘리기 */
+        .thumb-img-cover { width:100%; height:100%; object-fit: cover; object-position:center; }
+
+        /* 인포패널 전용: 전체 보이게, 잘리지 않기 */
+        .thumb-img-contain { width:100%; height:100%; object-fit: cover; object-position:center; }
+        /* 우클릭 방지용 보조 (드래그/롱탭/선택 차단) */
+        .no-save {
+            -webkit-user-drag: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            -webkit-touch-callout: none; /* iOS 길게눌러 저장 방지 */
+        }
+    </style>
 </head>
-<body>
+<body class="m-0 p-0">
+    <header class="flex items-center gap-4 w-full px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0">
+        <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="showLogin()" />
+        <div class="relative">
+            <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
+                    class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
+        </div>
+        <div id="filter-bar" class="flex flex-row gap-2 items-start mt-2 relative z-[1000]">
+            <div id="btn-wrap" class="flex flex-row gap-2"></div>
+        </div>
 
-  <header>
-    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png" alt="백억지도" height="36" />
-    <div style="flex:1"></div>
-    <button id="open-login" class="btn">로그인</button>
-    <button id="logout-btn" class="btn" style="display:none">로그아웃</button>
-  </header>
+        <button id="filter-btns-wrap" class="flex gap-1"></button>
 
-  <main>
-    <h2>로그인 세션 테스트 페이지</h2>
-    <p class="hint">
-      이 페이지는 <code>Supabase</code> 로그인/세션/권한 가드 동작만 점검하기 위한 최소 페이지입니다.<br />
-      로그인에 성공하면 <code>/admin</code>으로 이동합니다. 권한/세션 가드는 코드에 포함되어 있으며, 실제 동작은 /admin에서 확인됩니다.
-    </p>
-    <div id="session-box" class="hint" style="margin-top:12px;"></div>
-  </main>
-
-  <!-- 로그인 모달 -->
-  <div id="login-modal">
-    <div class="card">
-      <h3 style="margin:0 0 12px; font-size:18px;">직원 로그인</h3>
-      <input id="login-email" type="email" placeholder="이메일" class="input" />
-      <input id="login-password" type="password" placeholder="비밀번호" class="input" />
-      <button id="login-btn" class="input primary" style="margin-top:12px;">로그인</button>
-      <button id="close-login" class="input" style="margin-top:8px;">닫기</button>
-      <div id="login-error" class="error"></div>
+        <div style="flex:1"></div> <button id="logout-btn" onclick="logout()" class="hidden text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
+            로그아웃
+        </button>
+    </header>
+    
+    <div id="login-modal" class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-80">
+            <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
+            <input id="login-email" type="email" placeholder="이메일" class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+            <input id="login-password" type="password" placeholder="비밀번호" class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
+            <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+                로그인
+            </button>
+            <button onclick="hideLogin()" class="w-full text-gray-500 mt-2">닫기</button>
+            <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
+        </div>
     </div>
-  </div>
+    <div id="loading-overlay" class="fixed inset-0 z-[30000] bg-black bg-opacity-40 flex items-center justify-center hidden">
+        <div class="text-white text-xl font-bold">로그인 중입니다...</div>
+    </div>
 
-  <!-- 로딩 오버레이 -->
-  <div id="loading-overlay">로그인 처리 중...</div>
+    <div id="map"></div>
+    <div id="info-panel" class="overflow-y-auto bg-white shadow-xl p-3 text-sm hidden">
+        <div id="info-content" class="text-xs text-gray-700"></div>
+    </div>
+    <div id="detail-panel" class="hidden" style="background-color: white;">
+        <button id="close-detail-btn" onclick="hideDetailPanel()" class="absolute top-2 right-4 w-8 h-8 bg-white text-gray-600 border border-gray-300 hover:border-black hover:text-black shadow-md flex items-center justify-center font-bold text-lg z-[1001]">
+            ✕
+        </button>
+        <div id="detail-content" class="text-gray-800 text-sm whitespace-pre-line overflow-y-auto h-full px-4 pb-4"></div>
+    </div>
+
+    <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
+        <button id="btn-naver-map" class="w-10 h-10 shadow rounded-lg flex items-center justify-center border border-gray-300 bg-[#00de5a] hover:bg-[#00b74a] transition mb-3 text-white text-[28px] font-black" style="text-shadow: 0 1px 2px #ffffff, 0 0 1px #ffffff;" title="네이버지도">
+            N
+        </button>
+        <button id="btn-current-location" class="w-10 h-10 shadow rounded-lg flex items-center justify-center border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5" title="현재 위치로 이동">
+            <span class="text-xl text-black font-bold">◉</span>
+        </button>
+        <div class="flex flex-col space-y-1">
+            <button id="btn-zoom-in" class="w-10 h-10 shadow rounded-lg flex items-center justify-center border border-gray-300 bg-white hover:bg-yellow-200 transition" title="확대">
+                <span class="text-2xl text-black font-bold">＋</span>
+            </button>
+            <button id="btn-zoom-out" class="w-10 h-10 shadow rounded-lg flex items-center justify-center border border-gray-300 bg-white hover:bg-yellow-200 transition" title="축소">
+                <span class="text-2xl text-black font-bold">－</span>
+            </button>
+        </div>
+    </div>
 
   <script>
-    // ====== Supabase 초기화 ======
     const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     window.client = client;
+    const BUCKET = window.BUCKET || 'listing-images';
 
-    // ====== 라우팅/가드 공통 유틸 (index에선 비활성, /admin에서 유효) ======
-    const LOGIN_PAGE = 'index.html';
-    const REQUIRE_AUTH = /\/admin(?:\.html)?$/.test(location.pathname); // 현재 페이지가 /admin이면 true
-
-    function redirectWithMessage(msg) {
-      const loginUrl = new URL(LOGIN_PAGE, location.origin);
-      try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
-      if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
-    }
-
-    (function showAuthRedirectMessage(){
-      try {
-        const msg = sessionStorage.getItem('auth_msg');
-        if (msg) {
-          sessionStorage.removeItem('auth_msg');
-          const err = document.getElementById('login-error');
-          if (err) { err.textContent = msg; err.style.display = 'block'; }
-          openLogin();
-        }
-      } catch(_) {}
-    })();
-
-    // ====== 권한 가드 (현재 페이지가 /admin일 때만 작동) ======
-    (async function guardAuthIfNeeded() {
-      if (!REQUIRE_AUTH) return; // index.html에서는 작동하지 않음
-      try {
+    // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(쿼리스트링은 그대로 유지)
+    (async function earlyRedirect() {
         const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-          return redirectWithMessage('로그인이 필요합니다.');
+        if (session) {
+            location.replace(ADMIN_PATH + location.search);
+        return;
         }
-
-        // 예시: staff_profiles에서 authority 검사 (관리자/지점장만 허용 등)
-        // 실제 정책에 맞게 수정하세요.
-        const { data: me, error } = await client
-          .from('staff_profiles')
-          .select('authority')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        // 예: 권한이 없으면 로그인 페이지로 돌려보냄
-        if (!me?.authority) {
-          return redirectWithMessage('접근 권한이 없습니다.');
-        }
-      } catch (e) {
-        console.warn('[guardAuthIfNeeded] error:', e);
-        redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
-      }
     })();
 
-    // ====== index 전용: 세션 상태 표시 및 로그인/리다이렉트 ======
-    async function refreshSessionBox() {
-      const box = document.getElementById('session-box');
-      const { data: { session } } = await client.auth.getSession();
-      if (session) {
-        box.innerHTML = `세션 있음 · 사용자: <code>${session.user.email || session.user.id}</code>`;
-        document.getElementById('logout-btn').style.display = '';
-      } else {
-        box.textContent = '세션 없음';
-        document.getElementById('logout-btn').style.display = 'none';
-      }
-    }
-
-    // 세션이 생기면 /admin으로 이동 (index에서만)
+    // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
     client.auth.onAuthStateChange((_event, session) => {
-      refreshSessionBox();
-      if (!REQUIRE_AUTH && session) {
-        // index → admin
-        location.replace('/admin');
-      }
+        if (!REQUIRE_AUTH && session) {
+            location.replace(ADMIN_PATH + location.search);
+        }
     });
 
-    // 초기 상태 동기화
-    (async function initIndex(){
-      await refreshSessionBox();
-      // index에서 이미 로그인 상태면 바로 /admin으로
-      if (!REQUIRE_AUTH) {
+    let _imgReqToken = 0;
+
+    // --- Constants ---
+    const HIGHLIGHT_COLOR = "#F2C130";
+    const HIGHLIGHT_TEXT_COLOR = "#111";
+    const DEFAULT_BTN_BG = "#f3f4f6";
+    const DEFAULT_BTN_TEXT = "#374151";
+    const PAGE_SIZE = 15;
+    
+    const allDealTypes = ['월세', '매매'];
+    const allCategories = ['상가', '공장·창고'];
+    
+    const filterDefs = [
+        { id: 'deposit',       label: '보증금',    width: 300 },
+        { id: 'rent',          label: '월세',      width: 280 },
+        { id: 'floor',         label: '층',        width: 280 },
+        { id: 'area_py',       label: '전용평수',   width: 280 },
+        { id: 'sale',          label: '매매가',     width: 300 },
+        { id: 'total_deposit', label: '총보증금',   width: 300 },
+        { id: 'total_rent',    label: '총월세',     width: 280 },
+    ];
+    const filterUnits = {
+        floor: '층', sale: '만', deposit: '만', rent: '만',
+        total_deposit: '만', total_rent: '만', area_py: '평'
+    };
+
+    // --- State Variables ---
+    let selectedDealTypes = ['월세'];
+    let selectedCategories = ['상가'];
+    let allListings = {};
+    window.allListings = allListings;
+    let allMarkers = {};
+    let isLoading = false;
+    let isLoggedIn = false;
+    let map, clusterer, customImage, mapIdleTimer;
+    let selectedClusterEl = null;
+    let matchedListingsCache = [];
+    let matchedListingsPage = 1;
+    window.currentDetailListingId = null;
+
+    // === ② 캐시: key -> { url, expireAt, inflight? } ===
+    const _signedUrlCache2 = new Map();
+
+    // key 조합 유틸
+    const _k = (path, kind, w='') => `${kind}:${path}|w=${w}`;
+
+    // === ① TTL 상수(원하는 값으로 조절) ===
+    const TTL_THUMB_SEC   = 600;  // 썸네일 10분
+    const TTL_DISPLAY_SEC = 900;  // 상세 15분
+    const TTL_ORIG_SEC    = 900;  // 원본 15분
+    const TTL_SKEW_MS     = 15_000; // 만료 15초 전이면 갱신
+
+    // --- DOM Elements ---
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+    const detailPanel = document.getElementById('detail-panel');
+    const detailContent = document.getElementById('detail-content');
+
+    // 지점정보/담당자 소속 캐시
+    const staffAffCache   = new Map();   // key: staff id or name  → affiliation
+    const branchInfoCache = new Map();   // key: affiliation       → branch_info row
+    
+
+    // --- Initialization ---
+    map = new kakao.maps.Map(document.getElementById('map'), {
+        center: new kakao.maps.LatLng(37.7151, 126.7341),
+        level: 3
+    });
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => map.setCenter(new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude)),
+            err => console.log("위치 정보를 사용할 수 없습니다.", err)
+        );
+    }
+
+    infoPanel.style.display = 'block';
+
+    customImage = new kakao.maps.MarkerImage(
+        'https://raw.githubusercontent.com/mhale45/image/2d7ce4379b14d095d2f0b7f1d0057987548a37bf/2.png',
+        new kakao.maps.Size(36, 36),
+        { offset: new kakao.maps.Point(18, 36) }
+    );
+
+    // 스크립트 시작
+
+    // listing에서 담당자 식별자 후보를 뽑는다
+    function extractAgentKeys(listing) {
+        const ids = [listing.staff_profiles_id, listing.staff_id, listing.staffId, listing.agent_id, listing.agentId]
+            .filter(v => v !== null && v !== undefined)
+            .map(v => String(v));
+        const names = [listing.staff_name, listing.agent_name, listing.manager_name]
+            .filter(Boolean)
+            .map(n => String(n).trim())
+            .filter(n => n && n !== '-' && n !== '미지정');
+        return { ids, names };
+    }
+
+    // 담당자의 affiliation을 찾는다 (id 우선, 여러 방식으로 넓게)
+    async function resolveListingAffiliation(listing) {
+        // 0) listing 자체에 affiliation 비슷한 필드가 있으면 바로 사용
+        const directAff =
+            listing.affiliation || listing.branch_affiliation || listing.branch || '';
+        if (directAff && directAff.trim()) return directAff.trim();
+
+        const { ids, names } = extractAgentKeys(listing);
+
+        // 1) id들 일괄 조회 (여러개를 in으로 한 번에)
+        if (ids.length) {
+            const { data, error } = await client
+            .from('public_staff_view')
+            .select('id, affiliation')
+            .in('id', ids.map(String));
+            if (!error && Array.isArray(data) && data.length) {
+            const hit = data.find(r => r?.affiliation);
+            if (hit?.affiliation) return String(hit.affiliation).trim();
+            }
+        }
+
+        // 2) 이름 넓은 매칭: 공백 제거/직함 제거 + ilike
+        const norm = s =>
+            String(s)
+            .replace(/\s+/g, '')    // 모든 공백 제거
+            .replace(/팀장|실장|과장|대리|대표|님|씨/g, '') // 흔한 직함 제거(필요시 추가)
+            .trim();
+
+        for (const raw of names) {
+            const name = norm(raw);
+            if (!name) continue;
+
+            // 정확 일치 우선
+            {
+            const { data, error } = await client
+                .from('public_staff_view')
+                .select('affiliation')
+                .eq('name', raw)             // 우선 원문으로
+                .maybeSingle();
+            if (!error && data?.affiliation) return String(data.affiliation).trim();
+            }
+
+            // 그 다음 ilike(부분일치)
+            {
+            const { data, error } = await client
+                .from('public_staff_view')
+                .select('name, affiliation')
+                .ilike('name', `%${name}%`)
+                .limit(3);
+            if (!error && Array.isArray(data) && data.length) {
+                const hit = data.find(r => r?.affiliation);
+                if (hit?.affiliation) return String(hit.affiliation).trim();
+            }
+            }
+        }
+
+        // 그래도 못 찾으면 null
+        return null;
+    }
+
+
+    // affiliation으로 branch_info 1건을 가져온다
+    async function fetchBranchInfoByAffiliation(affiliation) {
+        if (!affiliation) return null;
+        if (branchInfoCache.has(affiliation)) return branchInfoCache.get(affiliation);
+
+        const { data, error } = await client
+        .from('branch_info')
+        .select('affiliation, office_name, full_address, contact_number, registration_number, representative_name, is_public')
+        .ilike('affiliation', affiliation)
+        .maybeSingle();
+
+        if (error || !data) return null;
+        branchInfoCache.set(affiliation, data);
+        return data;
+    }
+
+    // 지점 필수 표기 정보
+    function buildBranchInfoHTML(row) {
+        if (!row) return '';
+        const safe = (v) => (v ?? '').toString().trim() || '-';
+        return `<div class="mt-4 border-t pt-3">
+            <div class="text-[13px] leading-6 text-gray-700"><div>${safe(row.affiliation)}
+            </div><div>${safe(row.office_name)}
+            </div><div>${safe(row.full_address)}
+            </div><div>${safe(row.contact_number)}
+            </div><div>${safe(row.registration_number)}
+            </div><div>${safe(row.representative_name)}
+            </div></div>
+        </div>`;
+    }
+
+    // 상세패널에 지점정보 블록을 채워 넣는다
+    async function populateBranchInfoFor(listing) {
+        try {
+            const aff = await resolveListingAffiliation(listing);
+            console.log('[BRANCH] resolved affiliation =', aff, 'from listing=', listing?.agent_name || listing?.staff_name);
+            const info = await fetchBranchInfoByAffiliation(aff);
+            console.log('[BRANCH] branch_info row =', info);
+            const slot = document.getElementById('branch-info-slot');
+            if (slot) slot.innerHTML = buildBranchInfoHTML(info);
+        } catch (e) {
+            console.warn('[branch info] render failed:', e);
+        }
+    }
+
+    
+    // createSignedUrl 호출 래퍼
+    async function _issueSignedUrl(kind, path, w) {
+        if (kind === 'thumb') {
+            const { data, error } = await client.storage.from(BUCKET)
+            .createSignedUrl(path, TTL_THUMB_SEC, { transform: { width: w ?? 220, resize: 'contain', quality: 85 }});
+            if (error) throw error;
+            return { url: data.signedUrl, ttlSec: TTL_THUMB_SEC };
+        }
+        if (kind === 'display') {
+            const { data, error } = await client.storage.from(BUCKET)
+            .createSignedUrl(path, TTL_DISPLAY_SEC, { transform: { width: w ?? 900, quality: 85 }});
+            if (error) throw error;
+            return { url: data.signedUrl, ttlSec: TTL_DISPLAY_SEC };
+        }
+        if (kind === 'orig') {
+            const { data, error } = await client.storage.from(BUCKET)
+            .createSignedUrl(path, TTL_ORIG_SEC);
+            if (error) throw error;
+            return { url: data.signedUrl, ttlSec: TTL_ORIG_SEC };
+        }
+        throw new Error('unknown kind');
+    }
+
+    // signed URL 헬퍼 (캐시/TTL 자동 관리)
+    const signThumb    = (path, w=240) => getSignedUrlAuto('thumb',    path, w);
+    const signDisplay  = (path, w=900) => getSignedUrlAuto('display',  path, w);
+    const signOriginal = (path)        => getSignedUrlAuto('orig',     path);
+
+    // 만료 임박 시 자동 재발급해 주는 getter
+    async function getSignedUrlAuto(kind, path, w) {
+        const key = _k(path, kind, w);
+        const now = Date.now();
+        const cached = _signedUrlCache2.get(key);
+
+        // 이미 발급 중이면 그 프라미스를 그대로 대기
+        if (cached?.inflight) return cached.inflight;
+
+        // 캐시가 있고 아직 충분히 유효하면 사용
+        if (cached?.url && cached.expireAt && (cached.expireAt - now) > TTL_SKEW_MS) {
+            return cached.url;
+        }
+
+        // 새로 발급(중복 호출 방지용 inflight 저장)
+        const inflight = (async () => {
+            const { url, ttlSec } = await _issueSignedUrl(kind, path, w);
+            const expireAt = Date.now() + (ttlSec * 1000);
+            _signedUrlCache2.set(key, { url, expireAt, inflight: null });
+            return url;
+        })();
+
+        _signedUrlCache2.set(key, { ...(cached||{}), inflight });
+        return inflight;
+    }
+    
+
+    async function preloadPublicStaffExtensions() {
+        try {
+            const { data, error } = await client
+            .from('public_staff_view')
+            .select('name, extension');
+
+            if (error) {
+            console.warn('[public_staff_view] 불러오기 실패:', error);
+            return;
+            }
+
+            (data || []).forEach(row => {
+            if (row.name) {
+                staffPublicMap.set(row.name.trim(), row.extension || '');
+            }
+            });
+        } catch (e) {
+            console.warn('[public_staff_view] 예외 발생:', e);
+        }
+    }
+
+    function getExtensionFromAgentName(listing) {
+        const name = listing.agent_name?.trim();
+        if (!name) return '';
+        return staffPublicMap.get(name) || '';
+    }
+
+
+    // ── 숫자/문자 유틸 ─────────────────────────────────────────
+    function escapeHtml(s='') {
+        return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+    function fmtMan(v) {
+        if (v === null || v === undefined || v === '') return '';
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toLocaleString('ko-KR') : String(v);
+    }
+    function toPyeong(m2) {
+        if (m2 === null || m2 === undefined || m2 === '') return '';
+        const n = Number(m2);
+        if (!Number.isFinite(n)) return '';
+        return Math.round(n * 0.3025 * 10) / 10; // 소수1자리
+    }
+
+    // ── 담당자 extension 맵 ────────────────────────────────────
+    const staffExtMap = new Map(); // id/name 모두 키로 보관
+
+    async function preloadStaffExtensions() {
+        try {
+        const { data, error } = await client
+            .from('public_staff_view')
+            .select('name, extension');
+
+        if (error) { console.warn('[staff ext] load error:', error); return; }
+        (data || []).forEach(s => {
+            if (s.name)         staffExtMap.set(s.name, s.extension || '');
+        });
+        } catch (e) {
+        console.warn('[staff ext] exception:', e);
+        }
+    }
+
+    function getStaffExtensionFor(listing) {
+        const keys = [
+        listing.staff_id, listing.staffId, listing.agent_id, listing.agentId,
+        listing.staff_name, listing.agent_name, listing.manager_name
+        ].filter(Boolean);
+        for (const k of keys) {
+        const ext = staffExtMap.get(String(k));
+        if (ext) return ext;
+        }
+        return '';
+    }
+
+    // 🔹 소수 첫째자리 포맷터
+    function oneDecimal(v) {
+        if (v === null || v === undefined || v === '') return '';
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toFixed(1) : '';
+    }
+
+    // ── 설명문 생성 ────────────────────────────────────────────
+    function buildListingDescBlock(listing) {
+        const listingId   = listing.listing_id ?? listing.id ?? '';
+        const deposit     = fmtMan(listing.deposit_price);
+        const monthly     = fmtMan(listing.monthly_rent);
+        const areaPy = oneDecimal(listing.area_py ?? toPyeong(listing.area_m2));
+        const loc = [
+            listing.province, listing.city, listing.district,
+            listing.detail_address, listing.building_name
+        ].filter(Boolean).join(' ');
+        const buildingUsage   = listing.building_usage ?? '';
+        const restroom        = listing.restroom ?? '';
+        const storeTypeDetail = listing.store_type_detail ?? '';
+        const title           = listing.title ?? '';
+        const staffExt        = getExtensionFromAgentName(listing);
+
+        const lines = [
+            '┎  네이버에 "백억지도"를 검색하세요',
+            '│  모든 매물을 확인할 수 있습니다',
+            '└  www.백억지도.com',
+            '',
+            `🌈 백억 매물번호 :  ${listingId}`,
+            '위 매물번호 알려주시면 빠르게 상담진행 가능합니다!',
+            '',
+            '🌈 매물 정보 요약',
+            `- 금액 : 보증금 ${deposit} 만 / 월세 ${monthly}만 /  권리(전화문의)`,
+            `- 면적 : 약 ${areaPy}평`,
+            `- 위치 : ${loc}`,
+            `- 용도 : ${buildingUsage}`,
+            `- 방 : 건축물현황도상 방없음`,
+            `- 화장실 : ${restroom}`,
+            `- 추천업종 : ${storeTypeDetail}`,
+            `- 특징 : ${title}`,
+            '',
+            '🌈 백억 부동산의 약속',
+            '- 신속, 정확, 정직한 중개, 신뢰있는 중개, 허위 매물 ZERO',
+            '- 업종과 조건(위치, 면적, 보증금, 임대료, 권리금)에 맞는 최적화 매물을 찾아 드립니다.',
+            '- 고객님의 입장에서 보증금과 임대료, 권리금 최대한 조율 해 드립니다.',
+            '- 고객님 한분 한분의 인연을 소중하게 생각합니다.',
+            '',
+            `📞 친절한 상담 ${staffExt}`
+        ];
+
+        // 템플릿을 HTML로 주입하므로 XSS 대비 이스케이프
+        return lines.map(escapeHtml).join('\n');
+    }
+
+    // 앱 시작 시 한 번만 호출 (로그인/초기화 직후 적절한 위치에서)
+    preloadStaffExtensions();
+    preloadPublicStaffExtensions();
+
+    // ================== 🧊 상세 썸네일 예열(디코드) ==================
+    async function prewarmDetailThumbs(listingIds, {
+        perListing = 2,         // 매물당 몇 장 미리?
+        displayWidth = 900,     // 상세패널 표시용 변환폭
+        timeout = 800,          // 디코딩 타임아웃(ms)
+        maxListings = 60        // 한 번에 예열할 매물 수 상한
+    } = {}) {
+        const ids = [...new Set((listingIds||[]).map(String))].slice(0, maxListings);
+        if (!ids.length) return;
+
+        // 1) 해당 매물들의 이미지 목록(대표 우선 → 순서) 가져오기
+        const { data: rows, error } = await client
+            .from('listing_images')
+            .select('listing_id, path, is_primary, order_index')
+            .in('listing_id', ids)
+            .eq('is_private', false)
+            .order('is_primary', { ascending: false })
+            .order('order_index', { ascending: true });
+
+        if (error || !rows?.length) return;
+
+        // 2) 매물별 상위 N장만 추리기
+        const pick = [];
+        const pickedCount = new Map(); // listing_id -> count
+        for (const r of rows) {
+            const id = String(r.listing_id);
+            const n = pickedCount.get(id) || 0;
+            if (n < perListing) {
+            pick.push(r.path);
+            pickedCount.set(id, n + 1);
+            }
+        }
+
+        // 3) 표시용 URL 발급(캐시 사용) → 디코딩
+        const urls = await Promise.all(
+            pick.map(p => signDisplay(p, displayWidth).catch(() => ''))
+        );
+        const finalUrls = urls.filter(Boolean);
+        if (!finalUrls.length) return;
+
+        // 4) 이미지 디코딩 (조용히, 짧은 타임아웃)
+        const loaders = finalUrls.map(u => {
+            const img = new Image();
+            img.decoding = 'async';
+            img.loading  = 'eager';
+            img.src = u;
+            return img.decode ? img.decode().catch(()=>{}) : new Promise(res => {
+            img.onload = img.onerror = () => res();
+            });
+        });
+
+        await Promise.race([
+            Promise.allSettled(loaders),
+            new Promise(res => setTimeout(res, timeout))
+        ]);
+    }
+
+    // ============ 🔥 몰래 예열 유틸 ============
+    // 캐시된 썸네일들을 실제로 디코딩해서 브라우저 캐시에 올려둔다
+    async function ensureThumbsReady(ids, { timeout = 1000 } = {}) {
+        const strIds = (ids || []).map(String);
+        if (!strIds.length) return;
+
+        await loadPrimaryThumbsBatch(strIds).catch(() => {});
+
+        // ✅ 캐시 객체 -> 문자열 URL만 추출
+        const urls = strIds
+            .map(id => primaryThumbCache.get(id)?.url)
+            .filter(Boolean);
+
+        if (!urls.length) return;
+
+        const loaders = urls.map(u => {
+            const img = new Image();
+            img.decoding = 'async';
+            img.loading  = 'eager';
+            img.src = u;
+            return img.decode ? img.decode().catch(()=>{}) : new Promise(res => {
+            img.onload = img.onerror = () => res();
+            });
+        });
+
+        await Promise.race([
+            Promise.allSettled(loaders),
+            new Promise(res => setTimeout(res, timeout))
+        ]);
+    }
+
+
+    // 현재 화면과 관련 높은 매물들 우선으로 예열 (matched → allListings)
+    function tryPrewarmVisibleThumbs() {
+        const base = (Array.isArray(matchedListingsCache) && matchedListingsCache.length > 0)
+            ? matchedListingsCache
+            : Object.values(allListings);
+
+        const ids = [...new Set(
+            base.slice(0, 500)             // 과한 디코딩 방지
+                .map(l => l?.listing_id)
+                .filter(Boolean)
+        )];
+
+        if (ids.length) {
+            ensureThumbsReady(ids, { timeout: 800 }).catch(() => {});
+        }
+    }
+
+    function redirectWithMessage(msg) {
+        const loginUrl = new URL(LOGIN_PAGE, location.origin);
+        // 이미 로그인 페이지면 리다이렉트 말고 모달만 띄움
+        if (location.pathname === loginUrl.pathname) {
+            try { sessionStorage.removeItem('auth_msg'); } catch (_) {}
+            const errorDiv = document.getElementById('login-error');
+            if (errorDiv) { errorDiv.textContent = String(msg || ''); errorDiv.classList.remove('hidden'); }
+            if (typeof showLogin === 'function') showLogin();
+            return;
+        }
+
+        try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
+        if (location.search) loginUrl.search = location.search;
+        location.replace(loginUrl.href);
+    }
+    
+    // 개별 url 관련코드
+    // === 딥링크 유틸: ?id=12345 방식 ===
+    function getListingIdFromURL() {
+        const sp = new URLSearchParams(location.search);
+        const qId = sp.get('id');
+        return qId && /^\d+$/.test(qId) ? qId : null;
+    }
+
+    function updateURLForListing(listingId, replace=false) {
+        const url = new URL(location.href);
+        if (listingId) url.searchParams.set('id', String(listingId));
+        else url.searchParams.delete('id');
+        const method = replace ? 'replaceState' : 'pushState';
+        try { history[method]({}, '', url); } catch (_) {}
+    }
+
+    async function openDeepLink(listingId) {
+        if (!listingId) return;
+        const id = String(listingId);
+
+        // 로컬 캐시에 없으면 단건 조회
+        if (!allListings[id]) {
+            const table = 'public_baikuk_view';
+            const { data, error } = await client
+            .from(table).select('*').eq('listing_id', id).maybeSingle();
+
+            if (error || !data) { showToast?.('해당 매물을 찾지 못했습니다.'); return; }
+
+            // building_info 병합
+            try {
+            const key = (data.addr_compare || '').replace(/\s+/g,'').trim();
+            if (key) {
+                const { data: bi } = await client
+                .from('building_info')
+                .select('building_name, building_note, addr_compare')
+                .eq('addr_compare', key).maybeSingle();
+                if (bi) {
+                data.building_name = bi.building_name ?? data.building_name ?? '-';
+                data.building_note = bi.building_note ?? data.building_note ?? '-';
+                }
+            }
+            } catch (e) {}
+
+            allListings[id] = data;         // ← 로컬 캐시에 저장
+            window.allListings = allListings; // ← (선택) 윈도우와도 동일 객체 유지
+        }
+
+        const l = allListings[id];        // ← 이제 로컬에서 읽기
+        if (map && l?.lat && l?.lng) {
+            map.setCenter(new kakao.maps.LatLng(l.lat, l.lng));
+            map.setLevel(3);
+        }
+        showDetailPanel(id);
+        updateURLForListing(id, true);
+    }
+
+
+    // 브라우저 뒤/앞 이동 대응
+    window.addEventListener('popstate', () => {
+    const id = getListingIdFromURL();
+    if (id) openDeepLink(id);
+    else if (typeof hideDetailPanel === 'function') hideDetailPanel();
+    });
+    // 개별 url 관련코드
+    
+    function applyButtonStyle(button, isActive) {
+        if (isActive) {
+            button.style.backgroundColor = HIGHLIGHT_COLOR;
+            button.style.color = HIGHLIGHT_TEXT_COLOR;
+            button.style.fontWeight = 'bold';
+            button.style.borderColor = "#eab308";
+        } else {
+            button.style.backgroundColor = DEFAULT_BTN_BG;
+            button.style.color = DEFAULT_BTN_TEXT;
+            button.style.fontWeight = 'normal';
+            button.style.borderColor = "#d1d5db";
+        }
+    }
+
+    function renderFilterButtons() {
+        const wrap = document.getElementById('filter-btns-wrap');
+        wrap.innerHTML = '';
+
+        filterDefs.forEach(def => {
+            const box = document.createElement('div');
+            box.className = 'relative';
+            
+            const btn = document.createElement('button');
+            btn.id = `filter-btn-${def.id}`;
+            btn.className = "px-2 py-2 border border-gray-300 bg-white rounded-md shadow-sm text-[14px] text-gray-800 font-medium hover:bg-gray-100";
+            btn.dataset.defaultLabel = def.label + ' ▼';
+            btn.innerText = def.label + ' ▼';
+            btn.onclick = () => toggleFilterPanel(def.id);
+
+            const panel = document.createElement('div');
+            panel.id = `filter-panel-${def.id}`;
+            panel.className = 'hidden absolute left-0 mt-1 bg-white border rounded shadow z-50 p-3';
+            panel.style.width = `${def.width}px`;
+            panel.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input id="${def.id}_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+                    <span class="text-gray-500">~</span>
+                    <input id="${def.id}_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+                </div>`;
+            
+            box.appendChild(btn);
+            box.appendChild(panel);
+            wrap.appendChild(box);
+
+            const updateAction = () => {
+                updateFilterButtonText(def.id);
+                updateFilteredListings();
+            };
+            panel.querySelector(`#${def.id}_min`).addEventListener('input', updateAction);
+            panel.querySelector(`#${def.id}_max`).addEventListener('input', updateAction);
+        });
+    }
+
+    // ✅ Original Style Restored: 클러스터 클릭, 마우스오버/아웃 스타일을 원래대로 복원
+    function createClusterer(gridSize) {
+        if (clusterer) clusterer.clear();
+        clusterer = new kakao.maps.MarkerClusterer({
+            map: map,
+            averageCenter: true,
+            minLevel: 1,
+            minClusterSize: 1,
+            disableClickZoom: true,
+            gridSize: gridSize,
+            styles: [{
+                width: '40px', height: '40px', background: HIGHLIGHT_COLOR,
+                border: '2px solid #F2C130', borderRadius: '50%',
+                color: '#fff', fontWeight: 'bold', textAlign: 'center', lineHeight: '40px'
+            }]
+        });
+
+        kakao.maps.event.addListener(clusterer, 'clusterclick', function(cluster) {
+            if (selectedClusterEl) {
+                selectedClusterEl.style.border = "none";
+                selectedClusterEl.style.borderRadius = "50%";
+                const prevInner = selectedClusterEl.querySelector('div');
+                if (prevInner) {
+                    prevInner.style.background = HIGHLIGHT_COLOR;
+                    prevInner.style.color = "#fff";
+                }
+                selectedClusterEl = null;
+            }
+
+            const clusterEl = cluster.getClusterMarker().getContent().parentNode;
+            if (clusterEl) {
+                clusterEl.style.background = "transparent";
+                clusterEl.style.border = "2px solid #F2C130";
+                clusterEl.style.borderRadius = "50%";
+
+                const inner = clusterEl.querySelector('div');
+                if (inner) {
+                    inner.style.background = "#ffffff";
+                    inner.style.color = "#F2C130";
+                    inner.style.borderRadius = "50%";
+                }
+                selectedClusterEl = clusterEl;
+            }
+            const listings = cluster.getMarkers().map(mk => allListings[mk.listing_id]).filter(Boolean);
+            showListingsInPanel(listings);
+
+            // ✅ 클릭한 클러스터의 매물들 상세이미지(대표 1~2장) 미리 디코딩
+            prewarmDetailThumbs(listings.map(l => l.listing_id), {
+                perListing: 2,        // 필요시 1로 줄이면 더 가벼움
+                displayWidth: 900,
+                timeout: 800,
+                maxListings: 60       // 너무 큰 클러스터는 상한
+            }).catch(()=>{});
+        });
+        
+        kakao.maps.event.addListener(clusterer, 'clusterover', function(cluster) {
+            const el = cluster.getClusterMarker().getContent()?.parentNode;
+            if (el) {
+                el.style.border = '3px solid white';
+                el.style.borderRadius = '50%';
+            }
+        });
+
+        kakao.maps.event.addListener(clusterer, 'clusterout', function(cluster) {
+            const el = cluster.getClusterMarker().getContent()?.parentNode;
+            if (el) {
+                el.style.border = 'none';
+            }
+        });
+    }
+
+    function renderDealAndCategoryButtons() {
+        const btnWrap = document.getElementById('btn-wrap');
+        btnWrap.innerHTML = '';
+        
+        const createButton = (text, collection, clickHandler) => {
+            const btn = document.createElement('button');
+            const isActive = collection.includes(text);
+            btn.textContent = isActive ? '✓ ' + text : text;
+            btn.className = "px-3 py-2 rounded-full border text-[13px] font-medium transition";
+            btn.onclick = () => clickHandler(text);
+            applyButtonStyle(btn, isActive);
+            btnWrap.appendChild(btn);
+        };
+        
+        allDealTypes.forEach(type => createButton(type, selectedDealTypes, toggleDealType));
+        allCategories.forEach(cat => createButton(cat, selectedCategories, toggleCategory));
+    }
+    
+    function toggleDealType(type) {
+        if (selectedDealTypes.includes(type)) {
+            if (selectedDealTypes.length > 1) {
+                selectedDealTypes = selectedDealTypes.filter(x => x !== type);
+            }
+        } else {
+            selectedDealTypes.push(type);
+        }
+        renderDealAndCategoryButtons();
+        updateFilteredListings();
+    }
+
+    function toggleCategory(cat) {
+        if (selectedCategories.includes(cat)) {
+            selectedCategories = selectedCategories.filter(c => c !== cat);
+        } else {
+            selectedCategories.push(cat);
+        }
+        renderDealAndCategoryButtons();
+        updateFilteredListings();
+    }
+
+    // --- Formatting Helpers ---
+    function formatKoreanMoney(value) {
+        if (!value && value !== 0) return '-';
+        const num = Number(value);
+        if (isNaN(num)) return '-';
+        if (num >= 10000) {
+            const eok = Math.floor(num / 10000);
+            const man = num % 10000;
+            return `${eok}억${man > 0 ? ' ' + man.toLocaleString() : ''}`;
+        }
+        return num.toLocaleString();
+    }
+    
+    function formatDealPrice(l) {
+        if (l.deal_type === "매매") return formatKoreanMoney(l.sale_price);
+        if (l.deal_type === "월세") return `${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}`;
+        return "";
+    }
+    
+    function formatFloor(floor, total_floors) {
+        const floorStr = floor < 0 ? `B${Math.abs(floor)}` : `${floor}`;
+        return `${floorStr}${total_floors ? `/${total_floors}층` : ''}`;
+    }
+
+    function formatValue(type, val) {
+        if (val === "" || val == null) return '-';
+        const num = Number(val);
+        if (isNaN(num)) return '-';
+        
+        if (['sale', 'deposit', 'rent', 'total_deposit', 'total_rent'].includes(type)) {
+            return formatKoreanMoney(val) + (num < 10000 ? '만' : '');
+        }
+        if (['floor', 'area_py'].includes(type)) {
+            return num + filterUnits[type];
+        }
+        return val;
+    }
+
+    // --- UI Update Functions ---
+    // 고객뷰 상세패널 열기 (사진 뷰어: 사진 없으면 자동 숨김)
+    async function showDetailPanel(listingId) {
+        window.currentDetailListingId = listingId;
+        renderMatchedListings?.();
+
+        const listing = allListings[String(listingId)];
+        if (!listing) return;
+
+        // 상세 템플릿 (+ 이미지 뷰어 블록 포함)
+        detailContent.innerHTML = `
+            <div class="sticky top-0 z-10 bg-white shadow-md p-2 rounded cursor-pointer whitespace-normal">
+            <div class="flex items-start gap-2">
+                <div class="w-[61px] h-[26px] flex justify-center items-center border-[2px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
+                ${listing.listing_id}
+                </div>
+                <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-base translate-y-[3px] leading-tight">
+                ${listing.deal_type} ${formatDealPrice(listing)}
+                <span class="text-[13px] text-gray-700 ml-2">
+                    전용 <strong class="font-semibold">${Number(listing.area_py).toFixed(1)}</strong>평,
+                    <strong class="font-semibold">${formatFloor(listing.floor)}</strong>
+                </span>
+                </div>
+            </div>
+            <div class="text-base font-bold text-gray-900 mt-1">${(listing.title || '-')}
+            <!-- 이미지 뷰어: 기본은 숨김. initImageViewer에서 사진 있으면 보여줌 -->
+            </div></div><div id="image-viewer-slot"> </div> </div><div class="mb-2 px-4 pt-2">
+            <span class="font-medium whitespace-pre-line leading-relaxed md:leading-7">${buildListingDescBlock(listing)}
+            </span></div><div class="px-4 pb-4">
+            <table class="table-auto w-full text-sm border-t border-gray-300 mt-2">
+                <tbody>
+                <tr class="border-b border-gray-300">
+                    <td class="w-[7.5rem] py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">소재지</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.province} ${listing.city} ${listing.district}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">계약/전용면적</td>
+                    <td class="py-2 text-gray-800 pl-3 whitespace-nowrap">
+                    ${
+                        (!listing.supply_area_m2 || listing.supply_area_m2 === '-')
+                        ? `${listing.area_m2}㎡ / ${listing.area_m2}㎡`
+                        : `${listing.supply_area_m2}㎡ / ${listing.area_m2}㎡`
+                    }
+                    </td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">해당층/총층</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.floor} / ${listing.total_floors}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">입주가능일</td>
+                    <td class="py-2 text-gray-800 pl-3">즉시입주 협의가능</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">방향</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.direction ?? ''}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">총주차대수</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.parking ?? ''}</td>
+                </tr>
+                <tr>
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">사용승인일</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.approved_date ?? ''}</td>
+                </tr>
+                </tbody>
+            </table></div><div id="branch-info-slot" class="px-4 pb-6"></div>`;
+
+        // 스크롤/표시
+        detailContent.scrollTop = 0;
+        detailPanel.classList.remove('hidden');
+
+        // 이미지 뷰어 초기 상태는 숨김(방금 템플릿에서 hidden으로 넣었음)
+        // 실제 이미지가 있으면 initImageViewer 안에서 보여줌
+        // 대표사진은 즉시, 나머지는 백그라운드에서 미리불러오기
+        if (typeof initImageViewerFast === 'function') {
+            initImageViewerFast(listingId);
+        }
+
+        populateBranchInfoFor(listing);  // 담당자 소속 → branch_info 붙이기
+
+        // 개별 URL 동기화
+        updateURLForListing?.(listingId);
+    }
+    
+    function updateFilterButtonText(type) {
+        const min = document.getElementById(`${type}_min`)?.value;
+        const max = document.getElementById(`${type}_max`)?.value;
+        const btn = document.getElementById(`filter-btn-${type}`);
+        if (!btn) return;
+
+        let label = "";
+        if (min && max) label = `${formatValue(type, min)}~${formatValue(type, max)}`;
+        else if (min) label = `${formatValue(type, min)}~`;
+        else if (max) label = `~${formatValue(type, max)}`;
+        else label = btn.dataset.defaultLabel;
+
+        btn.textContent = label;
+        applyButtonStyle(btn, label !== btn.dataset.defaultLabel);
+    }
+    
+    function showListingsInPanel(listings) {
+        matchedListingsCache = listings;
+        matchedListingsPage = 1;
+        renderMatchedListings();
+        infoPanel.classList.remove("hidden");
+        infoPanel.scrollTop = 0;
+    }
+
+    function renderMatchedListings() {
+        if (!Array.isArray(matchedListingsCache)) return;
+
+        const end = matchedListingsPage * PAGE_SIZE;
+        const listingsToShow = matchedListingsCache.slice(0, end);
+
+        infoContent.innerHTML = listingsToShow.map(l => {
+            const isActive = String(window.currentDetailListingId) === String(l.listing_id);
+            const highlightStyle = isActive ? 'background-color: rgba(243,244,246);' : '';
+            const logo = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/baikuk-simbol.png';
+
+            return `
+            <div class="mb-1 pb-1 border-b border-gray-300 text-left" style="${highlightStyle}">
+                <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition p-2">
+                <div class="flex flex-row items-center gap-3">
+                    <div class="relative w-[150px] h-[120px] flex-shrink-0 thumb-box overflow-hidden rounded border">
+                        <div class="absolute top-1 left-1 w-[53px] h-[22px] flex items-center justify-center text-[15px] px-1 rounded-md font-semibold z-10"
+                            style="background-color:#F2C130;color:#37373d;">
+                            ${l.listing_id}
+                        </div>
+                        <img id="thumb-${l.listing_id}" src="${logo}" alt="썸네일"
+                            class="thumb-img-contain rounded no-save" draggable="false" oncontextmenu="return false" />
+                        </div>
+                        <div class="flex-1 flex flex-col gap-1">
+                        <div class="font-bold text-[rgb(80,152,233)] text-base">
+                            ${l.deal_type} ${formatDealPrice(l)}
+                        </div>
+                        <div class="text-sm">
+                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                            <strong class="font-semibold">${formatFloor(l.floor, l.total_floors)}</strong>
+                        </div>
+                        <div class="mt-1">
+                            <span class="inline-block text-[14px] text-gray-800 leading-snug">
+                            ${l.title || ''}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        const ids = listingsToShow.map(l => l.listing_id);
+
+        // ① 캐시에 있는 썸네일 즉시 적용 (재렌더 순간 로고로 바뀌는 현상 방지)
+        applyPrimaryThumbsFromCache(ids);
+
+        // ② 캐시에 없는 것만 비동기로 발급/적용
+        loadPrimaryThumbsBatch(ids).catch(console.warn);
+    }
+
+
+
+    // --- Data Fetching and Filtering ---
+    function getFilterValues() {
+        const values = {};
+        filterDefs.forEach(def => {
+            const id = def.id;
+            // Map filter ID to database column name
+            const colName = id === 'rent' ? 'monthly_rent' : 
+                            id === 'deposit' ? 'deposit_price' :
+                            id === 'sale' ? 'sale_price' : id;
+            values[`${colName}_min`] = parseFloat(document.getElementById(`${id}_min`)?.value);
+            values[`${colName}_max`] = parseFloat(document.getElementById(`${id}_max`)?.value);
+        });
+        return values;
+    }
+
+    function filterListings(listings) {
+        const f = getFilterValues();
+        return listings.filter(l => {
+            if (!selectedDealTypes.includes(l.deal_type)) return false;
+            if (selectedCategories.length > 0 && !selectedCategories.includes(l.category)) return false;
+            for (const key in f) {
+                const isMin = key.endsWith('_min');
+                const col = key.replace(/_min|_max/, '');
+                if (!isNaN(f[key])) {
+                    if (isMin && l[col] < f[key]) return false;
+                    if (!isMin && l[col] > f[key]) return false;
+                }
+            }
+            return true;
+        });
+    }
+    
+    function updateFilteredListings() {
+        const filtered = filterListings(Object.values(allListings));
+        const markers = filtered.map(l => allMarkers[l.listing_id]).filter(Boolean);
+        
+        clusterer.clear();
+        clusterer.addMarkers(markers);
+        
+        matchedListingsCache = filtered;
+        matchedListingsPage = 1;
+        renderMatchedListings();
+        setTimeout(tryPrewarmVisibleThumbs, 0);
+    }
+    
+    async function loadListingsInBounds() {
+        if (isLoading) return;
+        isLoading = true;
+
+        const bounds = map.getBounds();
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        const tableToQuery = 'public_baikuk_view';
+
+        const { data, error } = await client
+            .from(tableToQuery)
+            .select('*')
+            .gte('lat', sw.getLat())
+            .lte('lat', ne.getLat())
+            .gte('lng', sw.getLng())
+            .lte('lng', ne.getLng())
+            .limit(1000);
+
+        isLoading = false;
+
+        if (error) {
+            return console.error("Data loading error:", error.message);
+        }
+        
+        if (!data || data.length === 0) {
+            clusterer.clear();
+            infoContent.innerHTML = '<div class="p-4 text-center text-gray-500">현재 지도에 표시할 매물이 없습니다.</div>';
+            return;
+        }
+
+        data.forEach(l => {
+            if (l.listing_id && !allListings[l.listing_id]) {
+                allListings[l.listing_id] = l;
+            }
+        });
+
+        // Create markers for newly loaded listings
+        data.forEach(l => {
+            if (l.lat && l.lng && !allMarkers[l.listing_id]) {
+                const marker = new kakao.maps.Marker({
+                    position: new kakao.maps.LatLng(l.lat, l.lng),
+                    image: customImage
+                });
+                marker.listing_id = l.listing_id;
+                allMarkers[l.listing_id] = marker;
+            }
+        });
+        
+        const level = map.getLevel();
+        let gridSize = 50;
+        if (level <= 2) gridSize = 10;
+        else if (level === 3) gridSize = 30;
+        else if (level === 4) gridSize = 40;
+        
+        createClusterer(gridSize);
+        updateFilteredListings();
+    }
+    
+    function resetFilters() {
+        filterDefs.forEach(def => {
+            document.getElementById(`${def.id}_min`).value = "";
+            document.getElementById(`${def.id}_max`).value = "";
+            updateFilterButtonText(def.id);
+        });
+        selectedCategories = ['상가'];
+        selectedDealTypes = ['월세'];
+        renderDealAndCategoryButtons();
+        updateFilteredListings();
+    }
+
+    function toggleFilterPanel(type) {
+        document.querySelectorAll('[id^="filter-panel-"]').forEach(panel => {
+            if (panel.id === `filter-panel-${type}`) {
+                panel.classList.toggle('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- Auth Functions ---
+    const showHide = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
+    const showLogin = () => showHide('login-modal', true);
+    const hideLogin = () => showHide('login-modal', false);
+    const showLoadingOverlay = () => showHide('loading-overlay', true);
+    const hideLoadingOverlay = () => showHide('loading-overlay', false);
+
+    async function login() {
+        showLoadingOverlay();
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        const errorDiv = document.getElementById('login-error');
+
+        try {
+            const { error } = await client.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            // 이동은 onAuthStateChange가 처리함
+        } catch (e) {
+            errorDiv.textContent = '로그인 실패: ' + (e?.message || e);
+            showHide('login-error', true);
+        } finally {
+            hideLoadingOverlay();
+        }
+    }
+
+
+    async function logout() {
+        await client.auth.signOut();
+        window.location.reload();
+    }
+
+    // --- Event Listeners ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        renderDealAndCategoryButtons();
+        renderFilterButtons();
+
         const { data: { session } } = await client.auth.getSession();
-        if (session) location.replace('/admin');
-      }
+        isLoggedIn = !!session;
+        if (isLoggedIn) document.getElementById('logout-btn')?.classList.remove('hidden');
+
+        window.isLoggedIn = !!session;
+        if (window.isLoggedIn) document.getElementById('logout-btn')?.classList.remove('hidden');
+
+        const deepId = getListingIdFromURL();
+
+        // 로그인되어 있고 ?id= 가 있으면 admin.html로 넘김
+        if (window.isLoggedIn && deepId) {
+            location.replace(`admin.html?id=${deepId}`);
+            return;
+        }
+
+        await loadListingsInBounds();
+        // 👇 첫 로드 직후 한 번 예열
+        {
+            const idsForWarm = Object.values(allListings).slice(0, 500).map(l => l.listing_id);
+            ensureThumbsReady(idsForWarm, { timeout: 1000 }).catch(() => {});
+        }
+
+        window.renderDealFields?.();
+
+        if (deepId) await openDeepLink(deepId);
+        else {
+            const listing = allListings?.[window.currentDetailListingId];
+            if (listing && typeof renderDealFieldsViewer === 'function') {
+            renderDealFieldsViewer(listing);
+            }
+        }
+
+        // ▼ 우클릭/드래그 방지: 인포패널 썸네일 + 상세 2장만
+        const protectSelector = '#info-content img.no-save, #image-viewer img.no-save';
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.closest(protectSelector)) e.preventDefault();
+        });
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.closest(protectSelector)) e.preventDefault();
+        });
+    });
+
+    kakao.maps.event.addListener(map, 'idle', () => {
+        clearTimeout(mapIdleTimer);
+        mapIdleTimer = setTimeout(async () => {
+            const before = Object.keys(allListings).length;
+            await loadListingsInBounds();       // 새로 보이는 범위 로드
+            const after = Object.keys(allListings).length;
+
+            // 새로 로드했든 안 했든, 현재 보이는/필터된 것 위주로 예열
+            tryPrewarmVisibleThumbs();
+        }, 200);
+    });
+
+    kakao.maps.event.addListener(map, 'click', hideDetailPanel);
+
+    document.getElementById('btn-zoom-in').onclick = () => map.setLevel(map.getLevel() - 1);
+    document.getElementById('btn-zoom-out').onclick = () => map.setLevel(map.getLevel() + 1);
+    
+    document.getElementById('btn-current-location').onclick = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                map.setCenter(new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+            });
+        }
+    };
+    
+    document.getElementById('btn-naver-map').onclick = function () {
+        let lat, lng;
+        const listing = allListings[window.currentDetailListingId];
+        
+        if (listing && !detailPanel.classList.contains('hidden')) {
+            lat = listing.lat;
+            lng = listing.lng;
+        } else {
+            const center = map.getCenter();
+            lat = center.getLat();
+            lng = center.getLng();
+        }
+        window.open(`https://map.naver.com/v5/?c=${lng},${lat},17,0,0,0,d`, '_blank');
+    };
+
+    infoPanel.addEventListener('scroll', function () {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
+            if (matchedListingsPage * PAGE_SIZE < matchedListingsCache.length) {
+                matchedListingsPage++;
+                renderMatchedListings();
+            }
+        }
+    });
+
+    window.resetFilters = resetFilters;
+
+    // 사진넣는부분
+
+    /* ---------- 워터마크 PNG 경로 ---------- */
+    async function getWatermarkUrl() {
+        const bucket = window.WATERMARK_BUCKET || BUCKET;
+        const rawPrefix = (window.WATERMARK_PREFIX ?? '').toString().trim();
+        const prefix = rawPrefix.replace(/^\/+|\/+$/g, '');
+        const fname  = window.WATERMARK_FILE || 'baikuk-logo-warter-mark.png';
+        const path   = prefix ? `${prefix}/${fname}` : fname;
+
+        if (window.WATERMARK_BUCKET_IS_PUBLIC !== false) {
+            const { data } = client.storage.from(bucket).getPublicUrl(path);
+            return data.publicUrl;
+        } else {
+            const { data } = await client.storage.from(bucket).createSignedUrl(path, 3600);
+            return data?.signedUrl;
+        }
+    }
+
+    /* ---------- 팝업 라이트갤러리 (닫기/워터마크 포함) ---------- */
+    function openExternalViewer(items, startIndex = 0, pageTitle = '이미지 보기', listingId = '', watermarkUrl = '') {
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        const html = `<!doctype html>
+        <html lang="ko"><head>
+        <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+        <title>${esc(pageTitle)}</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lightgallery.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-zoom.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-thumbnail.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-fullscreen.css">
+        <style>
+            body{margin:0;background:#000;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;}
+            #gallery{padding:8px;}
+            .lg-wm-white{
+                position:fixed; inset:0; pointer-events:none; user-select:none;
+                opacity:.40; background:#fff; z-index:2147483647;
+                -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+                -webkit-mask-position:center; mask-position:center;
+            }
+            /* 팝업(라이트갤러리) 전체화면에서 저장/롱탭/드래그 최소화 */
+            html, body {
+                -webkit-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+            }
+            .lg-outer img, .lg-thumb-outer img {
+                -webkit-user-drag: none;
+            }
+        </style></head>
+        <body><div id="gallery"></div>
+        <script>
+        function loadScript(src){return new Promise(r=>{const s=document.createElement('script');s.src=src;s.onload=r;document.head.appendChild(s);});}
+        window.__ITEMS__=${JSON.stringify(items)};
+        window.__START__=${Number(startIndex)};
+        window.__WM_URL__=${JSON.stringify(watermarkUrl||'')};
+
+        const WM_RATIO_NORMAL = 0.55;
+        const WM_RATIO_FS = 2.2;
+        const WM_MIN = 400, WM_MAX = 6000;
+
+        function isFS(){return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement||
+            document.querySelector('.lg-fullscreen-on')||document.querySelector('.lg-outer.lg-fullscreen'));}
+
+        function addWM(){
+            let wm = document.querySelector('.lg-wm-white');
+            if(!wm){
+                wm = document.createElement('div');
+                wm.className = 'lg-wm-white';
+                document.body.appendChild(wm);   // ← 핵심: body에 고정 부착
+            }
+
+            if(!window.__WM_URL__){
+                wm.style.webkitMaskImage = 'none';
+                wm.style.maskImage = 'none';
+                return;
+            }
+
+            // 현재 보이는 슬라이드의 이미지 가로폭으로 워터마크 크기 산정
+            const img = document.querySelector('.lg-current .lg-image');
+            let w = img ? img.getBoundingClientRect().width : window.innerWidth;
+            const ratio = isFS() ? WM_RATIO_FS : WM_RATIO_NORMAL;
+            const targetW = Math.max(WM_MIN, Math.min(w * ratio, WM_MAX));
+
+            wm.style.webkitMaskImage = 'url(' + window.__WM_URL__ + ')';
+            wm.style.maskImage = 'url(' + window.__WM_URL__ + ')';
+            wm.style.webkitMaskSize = targetW + 'px auto';
+            wm.style.maskSize = targetW + 'px auto';
+        }
+
+        (async()=>{
+            await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/lightgallery.umd.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js');
+
+            const dynamicEl = (window.__ITEMS__||[]).map(it=>({src: it.display, thumb: it.thumb, subHtml: it.caption}));
+            const index = Math.max(0, Math.min(window.__START__||0, Math.max(0, dynamicEl.length-1)));
+            
+            const lg = lightGallery(document.getElementById('gallery'), {
+            dynamic:true, dynamicEl, index,
+            plugins:[lgZoom, lgThumbnail, lgFullscreen], download:false
+            });
+            lg.openGallery(index);
+
+            // 팝업 전체에서 우클릭/드래그 방지 (라이트갤러리 영역 한정)
+            const protectCtx = (e) => {
+                // 라이트갤러리 바깥은 통과, 안쪽만 차단
+                if (e.target.closest('.lg-outer')) e.preventDefault();
+            };
+            document.addEventListener('contextmenu', protectCtx, { capture: true });
+            document.addEventListener('dragstart', protectCtx, { capture: true });
+
+            // Ctrl+S, Command+S 저장 단축키 방지
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
+            // ✅ 오픈 직후 즉시 1회 적용
+            const ensure = () => requestAnimationFrame(addWM);
+            ensure();
+
+            ['lgAfterOpen','lgAfterSlide','lgResize','lgContainerResize','lgFullscreenChange']
+            .forEach(ev => lg.on(ev, ensure));
+
+            document.addEventListener('fullscreenchange', ensure);
+            window.addEventListener('resize', ensure);
+        })();
+        <\/script></body></html>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const w = window.open(url, `img-${listingId||'viewer'}`, 'popup=yes,width=1280,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+        if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용해주세요.'); URL.revokeObjectURL(url); return; }
+        w.focus();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    // 인포패널에도 사진표시 관련
+    // === 썸네일 캐시 (listingId -> signed URL) ===
+    const primaryThumbCache = new Map();
+
+    // 캐시된 썸네일을 DOM에 반영(만료 임박시 자동 갱신)
+    async function applyPrimaryThumbsFromCache(listingIds) {
+        for (const id of listingIds) {
+            const el = document.getElementById(`thumb-${id}`);
+            if (!el) continue;
+            const cached = primaryThumbCache.get(String(id));
+            if (cached?.url && cached?.expireAt && (cached.expireAt - Date.now()) > TTL_SKEW_MS) {
+            if (el.src !== cached.url) el.src = cached.url;
+            } else {
+            // 만료 임박 또는 없음 → 재발급
+            const row = _firstByListing.get(String(id)); // 아래 loadPrimaryThumbsBatch가 채움
+            if (row?.path) {
+                const url = await signThumb(row.path, 240).catch(()=> '');
+                if (url) {
+                primaryThumbCache.set(String(id), { url, expireAt: Date.now() + TTL_THUMB_SEC*1000 });
+                if (el.src !== url) el.src = url;
+                }
+            }
+            }
+        }
+    }
+
+    // 조회 결과를 재사용하기 위한 임시 맵
+    let _firstByListing = new Map();
+
+    async function loadPrimaryThumbsBatch(listingIds) {
+        const ids = listingIds.map(String);
+        // 즉시 반영(있으면)
+        await applyPrimaryThumbsFromCache(ids);
+
+        // 아직 대표행을 모르면 질의(한 번만)
+        if (!ids.some(id => !_firstByListing.has(id))) {
+            // 모두 갖고 있으면 넘어감
+        } else {
+            const { data, error } = await client
+            .from('listing_images')
+            .select('listing_id, path, is_primary, order_index')
+            .in('listing_id', ids)
+            .eq('is_private', false)
+            .order('is_primary', { ascending: false })
+            .order('order_index', { ascending: true });
+
+            if (error) { console.warn('대표사진 조회 실패:', error); return; }
+
+            _firstByListing = new Map(_firstByListing); // 새 맵 복사
+            for (const row of (data||[])) {
+            const id = String(row.listing_id);
+            if (!_firstByListing.has(id)) _firstByListing.set(id, row);
+            }
+        }
+
+        // 썸네일 URL 발급/갱신
+        for (const id of ids) {
+            const row = _firstByListing.get(id);
+            if (!row?.path) { primaryThumbCache.set(id, { url:'', expireAt: 0 }); continue; }
+            const cached = primaryThumbCache.get(id);
+            if (!cached?.url || (cached.expireAt - Date.now()) <= TTL_SKEW_MS) {
+            const url = await signThumb(row.path, 240).catch(()=> '');
+            primaryThumbCache.set(id, { url: url || '', expireAt: Date.now() + TTL_THUMB_SEC*1000 });
+            }
+        }
+
+        // 최종 DOM 반영
+        const els = ids.map(id => document.getElementById(`thumb-${id}`)).filter(Boolean);
+        for (const id of ids) {
+            const el = document.getElementById(`thumb-${id}`);
+            const cached = primaryThumbCache.get(id);
+            if (el && cached?.url && el.src !== cached.url) el.src = cached.url;
+        }
+    }
+
+    // -------- 상세패널: 대표 1장 즉시 로드 + 나머지 미리불러오기 --------
+    async function initImageViewerFast(listingId) {
+        const slot = document.getElementById('image-viewer-slot');
+        if (!slot || !listingId) return;
+
+        // 새 요청 토큰
+        const myToken = ++_imgReqToken;
+
+        // 0) 일단 비움(이전 뷰어 제거)
+        slot.innerHTML = '';
+
+        // 1) 목록만 빠르게 조회
+        const { data: rows, error } = await client
+            .from('listing_images')
+            .select('path, caption, order_index, is_primary')
+            .eq('listing_id', String(listingId))
+            .eq('is_private', false)
+            .order('is_primary', { ascending: false })
+            .order('order_index', { ascending: true });
+
+        // 중간에 다른 매물로 바뀌었으면 중단
+        if (myToken !== _imgReqToken) return;
+
+        if (error || !rows?.length) {
+            // 사진 없으면 아무것도 렌더하지 않음(번쩍임 없음)
+            return;
+        }
+
+        // 2) 컨테이너를 아직 DOM에 붙이지 말고 메모리에서 구성
+        const wrap = document.createElement('div');
+        wrap.id = 'image-viewer';
+        wrap.className = 'bg-white';         // hidden 대신, 처음엔 아예 붙이지 않음
+        wrap.style.display = 'none';          // 첫 이미지 decode 끝난 뒤 보이게
+
+        wrap.innerHTML = `
+            <div class="flex gap-2"><div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box"> <img id="image-viewer-main-0" class="thumb-img-cover cursor-pointer no-save" alt="" draggable="false" oncontextmenu="return false" />
+                <div id="wm-ov-0" class="wm-white" style="display:none"></div>
+            </div><div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box"> <img id="image-viewer-main-1" class="thumb-img-cover cursor-pointer no-save hidden" alt="" draggable="false" oncontextmenu="return false" />
+                <div id="wm-ov-1" class="wm-white" style="display:none"></div>
+            </div> </div>`;
+
+        const img0 = wrap.querySelector('#image-viewer-main-0');
+        const img1 = wrap.querySelector('#image-viewer-main-1');
+        const ov0  = wrap.querySelector('#wm-ov-0');
+        const ov1  = wrap.querySelector('#wm-ov-1');
+
+        const listing = allListings?.[String(listingId)];
+        const pageTitle = (listing?.listing_title || listing?.title || `매물 ${listingId} 이미지`).trim();
+
+        // 3) 대표 1장 URL 먼저 발급
+        const first = rows[0];
+        const firstUrl = await signDisplay(first.path, 900).catch(()=>'');
+
+        // 중간에 다른 매물로 바뀌었으면 중단
+        if (myToken !== _imgReqToken) return;
+
+        // 4) 첫 이미지 decode가 끝난 뒤에만 DOM에 삽입 -> "하얀 상자" 깜빡임 제거
+        if (firstUrl) {
+            img0.src = firstUrl;
+            try {
+            if (img0.decode) await img0.decode();
+            } catch (_) {}
+
+            // 워터마크(첫 장)
+            getWatermarkUrl().then(wm => {
+            if (myToken !== _imgReqToken) return;
+            if (!wm) return;
+            ov0.style.webkitMaskImage = `url('${wm}')`;
+            ov0.style.maskImage = `url('${wm}')`;
+            ov0.style.display = 'block';
+            });
+
+            // 이제야 slot에 한 번에 삽입 + 표시
+            slot.appendChild(wrap);
+            wrap.style.display = ''; // 보이기
+        } else {
+            // 대표 URL 발급 실패 시, 아예 뷰어를 만들지 않음
+            return;
+        }
+
+        // 5) 나머지 전부 병렬 미리 준비
+        (async () => {
+            const items = await Promise.all(rows.map(async (r) => {
+            const [display, thumb, full] = await Promise.all([
+                signDisplay(r.path, 900),
+                signThumb(r.path, 220),
+                signOriginal(r.path),
+            ]);
+            return { display, thumb, full, caption: r.caption || '' };
+            })).catch(()=>[]);
+
+            if (myToken !== _imgReqToken) return;
+
+            // 두 번째 칸 채우기
+            if (rows[1] && img1) {
+            img1.classList.remove('hidden');
+            img1.src = items[1]?.display || '';
+            getWatermarkUrl().then(wm => {
+                if (myToken !== _imgReqToken) return;
+                if (wm) {
+                ov1.style.webkitMaskImage = `url('${wm}')`;
+                ov1.style.maskImage = `url('${wm}')`;
+                ov1.style.display = 'block';
+                }
+            });
+            }
+
+            // 팝업 갤러리 오픈 (items 준비됨)
+            const wmUrl = await getWatermarkUrl().catch(()=> '');
+            const openAt = (i) => openExternalViewer(items, i, pageTitle, listingId, wmUrl);
+            img0.onclick = () => openAt(0);
+            if (!img1.classList.contains('hidden')) img1.onclick = () => openAt(1);
+        })();
+        }
+
+        // 패널 닫을 때 슬롯도 비워 레거시 잔상 방지
+        function hideDetailPanel() {
+        const detailPanel = document.getElementById('detail-panel');
+        detailPanel.classList.add('hidden');
+        window.currentDetailListingId = null;
+        renderMatchedListings();
+        document.querySelectorAll('[id^="filter-panel-"]').forEach(p => p.classList.add('hidden'));
+        const slot = document.getElementById('image-viewer-slot');
+        if (slot) slot.innerHTML = '';
+        updateURLForListing(null);
+    }
+
+    // --- 리디렉트 안내 메시지 표시(세션 스토리지 → 모달 열기) ---
+    (function showAuthRedirectMessage() {
+        try {
+            const msg = sessionStorage.getItem('auth_msg');
+            if (msg) {
+            sessionStorage.removeItem('auth_msg');
+            const errorDiv = document.getElementById('login-error');
+            if (errorDiv) {
+                errorDiv.textContent = msg;
+                errorDiv.classList.remove('hidden');
+            }
+            if (typeof showLogin === 'function') showLogin();
+            }
+        } catch (_) {}
     })();
 
-    // ====== 로그인/로그아웃 UI 로직 ======
-    const modal = document.getElementById('login-modal');
-    const loader = document.getElementById('loading-overlay');
-    function openLogin(){ modal.style.display = 'flex'; }
-    function closeLogin(){ modal.style.display = 'none'; }
 
-    document.getElementById('open-login').onclick = openLogin;
-    document.getElementById('close-login').onclick = closeLogin;
+    setInterval(async () => {
+        if (document.hidden) return; // 탭 비활성화 시 스킵
 
-    document.getElementById('login-btn').onclick = async () => {
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value.trim();
-      const err = document.getElementById('login-error');
-      err.style.display = 'none';
-      loader.style.display = 'flex';
-      try {
-        const { error } = await client.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // onAuthStateChange에서 /admin 이동 처리
-      } catch (e) {
-        err.textContent = '로그인 실패: ' + (e?.message || e);
-        err.style.display = 'block';
-      } finally {
-        loader.style.display = 'none';
-      }
-    };
+        // (기존 썸네일/상세 갱신 로직 그대로)
+        const thumbs = document.querySelectorAll('#info-content img[id^="thumb-"]');
+        for (const img of thumbs) {
+            const id = img.id.replace('thumb-','');
+            const cached = primaryThumbCache.get(String(id));
+            if (!cached) continue;
+            if ((cached.expireAt - Date.now()) <= TTL_SKEW_MS) {
+                await applyPrimaryThumbsFromCache([id]);
+            }
+        }
 
-    document.getElementById('logout-btn').onclick = async () => {
-      await client.auth.signOut().catch(()=>{});
-      await refreshSessionBox();
-    };
+        const mains = ['image-viewer-main-0','image-viewer-main-1']
+            .map(id => document.getElementById(id)).filter(Boolean);
+        for (const img of mains) {
+            if (!img.src) continue;
+            const currentId = window.currentDetailListingId && String(window.currentDetailListingId);
+            if (!currentId) continue;
+            try { await initImageViewerFast(currentId); } catch(e) {}
+            break;
+        }
+    }, 180_000);
+
   </script>
 </body>
 </html>
