@@ -34,6 +34,7 @@
     <input type="email" id="email" placeholder="이메일"><br>
     <input type="password" id="password" placeholder="비밀번호"><br>
     <button onclick="login()">로그인</button>
+    <button id="logout-btn" class="btn">로그아웃</button>
 
     <script>
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
@@ -57,6 +58,20 @@
 
             console.log("✅ 로그인 성공, 세션 적용 대기 중...");
         }
+        
+        async function logout() {
+            try {
+            // Supabase 세션 해제
+            await client.auth.signOut();
+            } catch (e) {
+            console.warn("로그아웃 중 오류:", e);
+            }
+            // index.html로 강제 이동
+            window.location.replace("/index.html");
+        }
+        
+        // 로그아웃 버튼 연결
+        document.getElementById("logout-btn")?.addEventListener("click", logout);
     </script>
 
 </body>
