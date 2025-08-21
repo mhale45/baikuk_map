@@ -4756,16 +4756,22 @@
         renderDealAndCategoryButtons();
         renderFilterButtons();
 
+
         const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            location.replace('index.html' + location.search);
-            return;
+
+        if (session) {
+            await renderAffiliationBadge();
+            isLoggedIn = true;
+            document.getElementById('logout-btn')?.classList.remove('hidden');
+        } else {
+            isLoggedIn = false;
+            document.getElementById('logout-btn')?.classList.add('hidden');
+            // 필요하면 로그인 모달 띄우기: showLogin();
         }
-        await renderAffiliationBadge();
-        isLoggedIn = true;
-        document.getElementById('logout-btn')?.classList.remove('hidden');
 
         await loadListingsInBounds();
+
+        
 
         // 👇 몰래 예열
         const idsForWarm = Object.values(allListings).slice(0, 500).map(l => l.listing_id);
