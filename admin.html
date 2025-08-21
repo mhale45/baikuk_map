@@ -4480,8 +4480,13 @@
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
 
     async function logout() {
-        await client.auth.signOut();
-        window.location.replace(location.origin);
+        try {
+            await client.auth.signOut();
+        } catch (e) {
+            console.warn('signOut failed:', e);
+        } finally {
+            window.location.replace('https://baikuk-map.netlify.app/');
+        }
     }
 
     function getFilterValues() {
