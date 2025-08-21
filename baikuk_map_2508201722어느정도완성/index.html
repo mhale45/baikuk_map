@@ -162,7 +162,7 @@
         return;
         }
     })();
-    
+
     // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
     client.auth.onAuthStateChange((_event, session) => {
         if (session) location.replace('admin.html' + location.search);
@@ -263,28 +263,27 @@
                 return;
             }
 
-            // 로그인 횟수 제한
             // 허용 세션인지 서버(RLS 함수)에게 확인
-            // const { data: allowed, error } = await client.rpc('is_session_allowed');
-            // if (error || allowed !== true) {
-            //     // 안전하게 세션 종료 후 로그인 페이지로
-            //     await client.auth.signOut();
-            //     redirectWithMessage('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
-            //     return;
-            // }
+            const { data: allowed, error } = await client.rpc('is_session_allowed');
+            if (error || allowed !== true) {
+                // 안전하게 세션 종료 후 로그인 페이지로
+                await client.auth.signOut();
+                redirectWithMessage('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
+                return;
+            }
 
-            // // (선택) 실시간 변동 대응: 세션/토큰 갱신 때마다 다시 체크
-            // client.auth.onAuthStateChange(async (_evt, s) => {
-            //     if (!s) {
-            //     redirectWithMessage('로그인이 필요합니다.');
-            //     return;
-            //     }
-            //     const { data: ok } = await client.rpc('is_session_allowed').catch(() => ({ data: false }));
-            //     if (!ok) {
-            //     await client.auth.signOut();
-            //     redirectWithMessage('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
-            //     }
-            // });
+            // (선택) 실시간 변동 대응: 세션/토큰 갱신 때마다 다시 체크
+            client.auth.onAuthStateChange(async (_evt, s) => {
+                if (!s) {
+                redirectWithMessage('로그인이 필요합니다.');
+                return;
+                }
+                const { data: ok } = await client.rpc('is_session_allowed').catch(() => ({ data: false }));
+                if (!ok) {
+                await client.auth.signOut();
+                redirectWithMessage('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
+                }
+            });
             } catch (e) {
             // 오류 시도 역시 안전하게 돌려보냄
             await client.auth.signOut().catch(()=>{});
@@ -1301,21 +1300,20 @@
             const { data, error } = await client.auth.signInWithPassword({ email, password });
             if (error) throw error;
 
-            // 로그인 횟수제한
             // 2) 현재 세션을 허용 목록에 등록 (최신 N개만 유지: 함수 내부에서 정리됨)
             //    device_label/ua는 운영에 편한 수준으로만 넘겨도 됩니다.
-            // await client.rpc('register_session', {
-            // device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
-            // user_agent: navigator.userAgent
-            // });
+            await client.rpc('register_session', {
+            device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
+            user_agent: navigator.userAgent
+            });
 
-            // // (선택) 3) 예방적 체크: 이 세션이 실제 허용 상태인지 확인
-            // // register_session이 오래된 세션을 정리하므로 보통 true가 나옵니다.
-            // const { data: allowed } = await client.rpc('is_session_allowed');
-            // if (allowed === false) {
-            //     await client.auth.signOut();
-            //     throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
-            // }
+            // (선택) 3) 예방적 체크: 이 세션이 실제 허용 상태인지 확인
+            // register_session이 오래된 세션을 정리하므로 보통 true가 나옵니다.
+            const { data: allowed } = await client.rpc('is_session_allowed');
+            if (allowed === false) {
+            await client.auth.signOut();
+            throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
+            }
 
             // 4) 이동
             window.location.href = 'admin.html';
