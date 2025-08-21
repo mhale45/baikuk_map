@@ -74,19 +74,47 @@
             document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
         }
 
-        // admin 전용 가드: 세션 없으면 index.html로
-        (async function guardAdmin() {
-            const { data: { session } } = await client.auth.getSession();
-            toggleAuthButtons(!!session);
-            if (!session && here === 'admin.html') go('index.html');
+        // ── Auth 가드: 논블로킹 + 타임아웃 ──────────────────────────
 
-            // DOM 준비 후 배지 렌더
+        // getSession이 지연돼도 화면이 멈추지 않도록 타임아웃 적용
+        async function getSessionNonBlocking(timeoutMs = 1500) {
+            const TIMEOUT = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), timeoutMs));
+            try {
+                const res = await Promise.race([
+                client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
+                TIMEOUT
+                ]);
+                return res; // null | session | '__TIMEOUT__'
+            } catch {
+                return null;
+            }
+        }
+
+        // 초기 1회: 세션 없으면 index로, 세션 있으면 버튼/뱃지 세팅
+        async function runAdminGuardOnce() {
+            const result = await getSessionNonBlocking(1500);
+
+            if (result === '__TIMEOUT__') {
+                console.warn('[auth] getSession timeout → continue rendering and check later');
+                toggleAuthButtons(false); // 일단 비로그인 UI로
+                return; // 초기화 계속 (멈춤 방지)
+            }
+
+            const has = !!result;
+            toggleAuthButtons(has);
+
+            if (!has) {
+                if (here === 'admin.html') go('index.html'); // 쿼리스트링 자동 보존
+                return;
+            }
+
+            // DOM 준비 뒤 배지 렌더
             document.addEventListener('DOMContentLoaded', () => {
                 window.renderAffiliationBadge?.();
             });
-        })();
+        }
 
-        // 상태 변화에도 동일 정책 1회만
+        // 상태 변화: 로그아웃 시 index로, 로그인 시 버튼/뱃지 갱신
         client.auth.onAuthStateChange((_evt, session) => {
             const has = !!session;
             toggleAuthButtons(has);
@@ -94,7 +122,9 @@
             window.renderAffiliationBadge?.();
         });
 
-        
+        // 실행
+        runAdminGuardOnce();
+
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
             initializeApp();
