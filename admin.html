@@ -1,34 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <script>
-        (function(){
-        const once = (k, ms=4000) => {
-            const now = Date.now(), last = +sessionStorage.getItem(k)||0;
-            sessionStorage.setItem(k, String(now));
-            return now - last < ms;
-        };
-
-        const logStack = (label, detail) => {
-            console.warn(`🔁 ${label}`, detail, new Error().stack);
-        };
-
-        const origReload = location.reload.bind(location);
-        location.reload = function(...a){ 
-            logStack('location.reload()', a);
-            if (once('__reload_guard__')) { console.warn('⛔ reload blocked for debug'); return; }
-            origReload(...a);
-        };
-
-        ['assign','replace'].forEach(fn=>{
-            const orig = location[fn].bind(location);
-            location[fn] = function(url){ logStack(`location.${fn}(${url})`); orig(url); };
-        });
-
-        window.addEventListener('beforeunload', ()=>console.warn('↩️ beforeunload fired'));
-        })();
-    </script>
-
     <meta charset="UTF-8" />
     <title>백억지도</title>
     <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
@@ -3264,6 +3236,26 @@
 
         return { urls, decoded };
     }
+    
+    window.fetchWorkLogs = async function(listingId) {
+        const { data, error } = await client
+            .from("work_log")
+            .select("*")
+            .eq("listing_id", listingId)
+            .order("Registration_date", { ascending: false });
+
+        if (error) {
+            console.error("❌ 업무일지 가져오기 실패:", error);
+            renderWorkLogPanel([]);  // 빈 상태 표시
+            return [];
+        }
+
+        // 화면에 실제로 렌더링
+        renderWorkLogPanel(data);
+
+        // 필요 시 호출부에서 활용할 수 있도록 반환
+        return data;
+    };
 
     // 상세패널
     async function showDetailPanel(listingId) {
@@ -4912,26 +4904,6 @@
 
     window.resetFilters = resetFilters;
     
-    window.fetchWorkLogs = async function(listingId) {
-
-    const { data, error } = await client
-        .from("work_log")
-        .select("*")
-        .eq("listing_id", listingId)
-        .order("Registration_date", { ascending: false });
-
-    if (error) {
-        console.error("❌ 업무일지 가져오기 실패:", error);
-        renderWorkLogPanel([]);  // 빈 상태 표시
-        return [];
-    }
-
-    // 화면에 실제로 렌더링
-    renderWorkLogPanel(data);
-
-    // 필요 시 호출부에서 활용할 수 있도록 반환
-    return data;
-    };
 
   </script>
   <!-- 오른쪽 아래 안내창 -->
