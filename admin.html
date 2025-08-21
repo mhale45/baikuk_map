@@ -48,43 +48,52 @@
         
         // 🔧 세션 영구 유지 + 자동 갱신
         window.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true,
-            // storageKey: 'baikuk-auth'  // (선택) 로컬스토리지 키 커스터마이즈
-            }
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
         });
-        window.client = supabase; // 만약 기존 코드가 client로 썼다면 이것도 추가
 
-        // ✅ 얼리 가드: 세션 없으면 index.html로
-        (async () => {
-            const { data: { session} } = await window.supabase.auth.getSession();
-            // 버튼 표시/숨김 초기 동기화
-            try {
-                const has = !!session;
-                document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
-                document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
-            } catch {}
-            if (!session) {
-                location.replace('index.html' + location.search);
-                return;
-            }
+        // ✅ 이후 코드는 client로만 사용(혼용 방지)
+        const client = window.supabase;
+        window.client = client;
+        
+        // ✅ 배포 서브패스에서도 안전한 이동 유틸
+        const BASE = location.pathname.replace(/[^/]*$/, '');
+        const here = (location.pathname.split('/').pop() || 'admin.html');
 
-            // ✅ DOM이 만들어진 뒤에 배지 렌더 보장
+        function go(page) {
+            const targetPath = BASE + page;
+            const targetUrl = new URL(targetPath, location.origin);
+            if (!page.includes('?') && location.search) targetUrl.search = location.search;
+            if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
+            location.replace(targetUrl.href);
+        }
+        window.go = go; // (onclick 등에서 쓸 수 있게)
+
+        // 버튼 토글 유틸
+        function toggleAuthButtons(has) {
+            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
+            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
+        }
+
+        // admin 전용 가드: 세션 없으면 index.html로
+        (async function guardAdmin() {
+            const { data: { session } } = await client.auth.getSession();
+            toggleAuthButtons(!!session);
+            if (!session && here === 'admin.html') go('index.html');
+
+            // DOM 준비 후 배지 렌더
             document.addEventListener('DOMContentLoaded', () => {
                 window.renderAffiliationBadge?.();
             });
         })();
 
-        // 🔧 세션 변화 시 UI 동기화 + 미인증 리다이렉트
-        window.supabase.auth.onAuthStateChange((_evt, session) => {
+        // 상태 변화에도 동일 정책 1회만
+        client.auth.onAuthStateChange((_evt, session) => {
             const has = !!session;
-            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
-            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
-            if (!session) location.replace('index.html' + location.search);
+            toggleAuthButtons(has);
+            if (!has && here === 'admin.html') go('index.html');
             window.renderAffiliationBadge?.();
         });
+
         
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
@@ -145,7 +154,7 @@
 <body class="m-0 p-0">
     <header class="flex items-center gap-4 w-full h-8 sm:h-10 md:h-12 px-2 sm:px-3 md:px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="window.location.href='listings.html'" />
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="go('listings.html')" />
         <div class="relative">
             <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
                     class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
@@ -668,7 +677,7 @@
 
     // ✅ 로그인 사용자 & 관리자 여부
     async function getAuthContext() {
-        const { data: { session } } = await window.supabase.auth.getSession();
+        const { data: { session } } = await client.auth.getSession();
         if (!session?.user) return { isAdmin: false, me: null };
 
         const uid    = session.user.id;      // Supabase auth user id (uuid)
@@ -2167,7 +2176,7 @@
             showToast('중복매물입니다. 해당 매물로 이동합니다.', 2000);
             setTimeout(() => {
                 if (typeof openDeepLink === 'function') openDeepLink(dupRow.listing_id);
-                else location.assign(`admin.html?id=${dupRow.listing_id}`);
+                else go(`admin.html?id=${dupRow.listing_id}`);
             }, 400);
             return true;
             }
@@ -2485,22 +2494,51 @@
 
                 (async () => {
                     try {
-                        const res = await fetch('http://localhost:5000/api/gris-start', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ address: fullAddr }) // buildFullAddress() 결과
+                        // 1) 로컬에서만 호출 (배포/내부 IP면 스킵)
+                        const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+                        const API_BASE = window.GRIS_API_BASE || (isLocal ? 'http://localhost:5000' : null);
+
+                        if (!API_BASE) {
+                            console.log('[GRIS] skip on non-local host:', location.hostname);
+                            return;
+                        }
+
+                        // 2) 3초 타임아웃 설정
+                        const controller = new AbortController();
+                        const t = setTimeout(() => controller.abort(), 3000);
+
+                        const res = await fetch(`${API_BASE}/api/gris-start`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ address: fullAddr }), // buildFullAddress() 결과
+                            signal: controller.signal,
+                        }).catch((e) => {
+                            // fetch 자체가 바로 터지는 경우 (ECONNREFUSED 등)
+                            throw e;
                         });
-                        const data = await res.json().catch(() => ({}));
-                        if (res.ok) {
-                        console.log('GRIS job started:', data);
-                        showToast('GRIS 원스톱 열기 요청 전송됨', 1600);
+
+                        clearTimeout(t);
+
+                        // 3) 응답 처리
+                        const data = await (async () => {
+                            try { return await res.json(); } catch { return {}; }
+                        })();
+
+                        if (res && res.ok) {
+                            console.log('GRIS job started:', data);
+                            showToast('GRIS 원스톱 열기 요청 전송됨', 1600);
                         } else {
-                        console.warn('GRIS start failed:', res.status, data);
-                        showToast('GRIS 시작 실패', 2500);
+                            console.warn('GRIS start failed:', res?.status, data);
+                            showToast('GRIS 시작 실패', 2500);
                         }
                     } catch (err) {
-                        console.error('GRIS 호출 오류:', err);
-                        showToast('GRIS 호출 오류', 2500);
+                        if (err.name === 'AbortError') {
+                            console.warn('[GRIS] timeout (3s) — skipped');
+                            showToast('GRIS 응답 지연(3초)으로 건너뜀', 2000);
+                        } else {
+                            console.error('GRIS 호출 오류:', err);
+                            showToast('GRIS 호출 오류', 2500);
+                        }
                     }
                 })();
             } else {
@@ -4785,11 +4823,6 @@
         renderDealAndCategoryButtons();
         renderFilterButtons();
 
-        const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            location.replace('index.html' + location.search);
-            return;
-        }
         await renderAffiliationBadge();
         isLoggedIn = true;
         document.getElementById('logout-btn')?.classList.remove('hidden');

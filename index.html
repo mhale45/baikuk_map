@@ -32,7 +32,6 @@
         window.WATERMARK_BUCKET_IS_PUBLIC = true;
 
         const LOGIN_PAGE = 'index.html'; // 안내 후 보낼 로그인 페이지
-        const REQUIRE_AUTH = /admin\.html$/.test(location.pathname);
 
         const staffPublicMap = new Map();
     </script>
@@ -152,20 +151,21 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     window.client = client;
+    // 1) BASE: 현재 디렉토리 경로 (예: /baikuk_map/)
+    const BASE = location.pathname.replace(/[^/]*$/, '');
+    const here = (location.pathname.split('/').pop() || 'index.html');
+
     const BUCKET = window.BUCKET || 'listing-images';
 
-    // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(쿼리스트링은 그대로 유지)
-    (async function earlyRedirect() {
-        const { data: { session } } = await client.auth.getSession();
-        if (session) {
-        location.replace('admin.html' + location.search);
-        return;
-        }
+    // index 전용 가드: 세션 있으면 admin.html로
+    (async function guardIndex() {
+    const { data: { session } } = await client.auth.getSession();
+    if (session && here === 'index.html') go('admin.html');
     })();
 
-    // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
-    client.auth.onAuthStateChange((_event, session) => {
-        if (session) location.replace('admin.html' + location.search);
+    // 상태 변화 시에도 동일 정책 1회만
+    client.auth.onAuthStateChange((_evt, session) => {
+    if (session && here === 'index.html') go('admin.html');
     });
 
     let _imgReqToken = 0;
@@ -293,6 +293,20 @@
     }
 
     // 스크립트 시작
+    // 2) 안전 이동(같은 페이지면 이동 안 함) — 쿼리스트링 있으면 덮어씀
+    function go(page) {
+        const targetPath = BASE + page;
+        const targetUrl = new URL(targetPath, location.origin);
+
+        // page 안에 ?가 있으면 그대로 사용, 없으면 현재 search 유지
+        if (!page.includes('?') && location.search) targetUrl.search = location.search;
+
+        // 같은 경로면 이동하지 않음(루프 차단)
+        if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
+
+        location.replace(targetUrl.href);
+    }
+
 
     // listing에서 담당자 식별자 후보를 뽑는다
     function extractAgentKeys(listing) {
@@ -1316,7 +1330,7 @@
             }
 
             // 4) 이동
-            window.location.href = 'admin.html';
+            go('admin.html');
         } catch (e) {
             // 오류 처리
             errorDiv.textContent = '로그인 실패: ' + (e?.message || e);
@@ -1348,7 +1362,7 @@
 
         // 로그인되어 있고 ?id= 가 있으면 admin.html로 넘김
         if (window.isLoggedIn && deepId) {
-            location.replace(`admin.html?id=${deepId}`);
+            go(`admin.html?id=${deepId}`);  // 쿼리 포함해 넘김
             return;
         }
 
@@ -1813,7 +1827,6 @@
             break;
         }
     }, 180_000);
-
   </script>
 </body>
 </html>
