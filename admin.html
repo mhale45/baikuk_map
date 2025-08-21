@@ -46,37 +46,41 @@
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
         
-        // 🔧 세션 영구 유지 + 자동 갱신
-        window.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true,
-            // storageKey: 'baikuk-auth'  // (선택) 로컬스토리지 키 커스터마이즈
-            }
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
         });
-        window.client = supabase; // 만약 기존 코드가 client로 썼다면 이것도 추가
+        window.supabase = supabase;
+        window.client = supabase;
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-        // 계정정보 알림 + 일시정지
-        blockWithAlert(
+        // ✅ 호이스팅되는 "함수 선언문"으로 정의 (위치 고정 OK)
+        function blockWithAlert(msg)   { alert(msg); }
+        function blockWithConfirm(msg) { return confirm(msg); }
+
+        // (선택) Netlify에서만 멈춤
+        const isNetlify = location.hostname.endsWith('netlify.app');
+
+        const { data: { session }, error: authErr } = await supabase.auth.getSession();
+
+        if (isNetlify) {
+            blockWithAlert(
             [
-            '🔐 [AUTH:first] 세션 확인',
-            `loggedIn: ${!!session}`,
-            session ? `email: ${session.user.email}` : 'email: -',
-            session ? `id: ${session.user.id}` : 'id: -',
-            error ? `error: ${error.message}` : ''
+                '🔐 [AUTH:first] 세션 확인',
+                `loggedIn: ${!!session}`,
+                session ? `email: ${session.user.email}` : 'email: -',
+                session ? `id: ${session.user.id}` : 'id: -',
+                authErr ? `error: ${authErr.message}` : ''
             ].filter(Boolean).join('\n')
-        );
-        
-        // ⛔ 사용자 확인 전까지 멈추는 함수 (alert는 자체가 blocking)
-        const blockWithAlert = (msg) => { alert(msg); };          // OK 누르면 계속 진행
-        const blockWithConfirm = (msg) => confirm(msg);           // OK=true, 취소=false
+            );
+
+            // (옵션) 계속 진행 여부 묻고 중단
+            // if (!blockWithConfirm('이어서 스크립트를 진행할까요?')) {
+            //   console.warn('User cancelled at AUTH gate');
+            //   throw new Error('Stop after auth gate'); // 이후 초기화 중단
+            // }
+        }
 
         // 앱 초기화 (인증 등)
-        if (window.initializeApp) {
-            initializeApp();
-        }
+        if (window.initializeApp) initializeApp();
 
     </script>
 
@@ -673,21 +677,25 @@
     // ✅ 로그인 사용자 & 관리자 여부
     async function getAuthContext() {
         const { data: { session } } = await window.supabase.auth.getSession();
+        
+        // 필요할 때만 블로킹 알림 (예: Netlify에서만)
+        const isNetlify = location.hostname.endsWith('netlify.app');
+        if (isNetlify) {
+            alert(
+            [
+                '🔐 [AUTH:getAuthContext] 세션 확인',
+                `loggedIn: ${!!session}`,
+                session ? `email: ${session.user.email}` : 'email: -',
+                session ? `id: ${session.user.id}` : 'id: -',
+                authErr ? `error: ${authErr.message}` : ''
+            ].filter(Boolean).join('\n')
+            );
+        }
+        
         if (!session?.user) return { isAdmin: false, me: null };
 
         const uid    = session.user.id;      // Supabase auth user id (uuid)
         const uemail = session.user.email ?? '';
-
-        // 여기서 알림 창 띄우고, OK 누를 때까지 정지
-        alert(
-            [
-            '🔐 [AUTH:DOMContentLoaded] 세션 확인',
-            `loggedIn: ${!!session}`,
-            session ? `email: ${session.user.email}` : 'email: -',
-            session ? `id: ${session.user.id}` : 'id: -',
-            error ? `error: ${error.message}` : ''
-            ].filter(Boolean).join('\n')
-        );
 
         // 스키마: staff_profiles.user_id (uuid)
         let { data: me, error } = await client
