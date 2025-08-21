@@ -158,11 +158,14 @@
     // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(쿼리스트링은 그대로 유지)
     (async function earlyRedirect() {
         const { data: { session } } = await client.auth.getSession();
-        if (session) {
-            location.replace(ADMIN_PATH + location.search);
-        return;
+        
+        // 현재 경로가 /index.html 또는 / 이고, 로그인 되어 있다면 /admin/index.html 로 이동
+        if (session && location.pathname === '/' || location.pathname.endsWith('/index.html')) {
+            location.replace('/admin/index.html' + location.search);
+            return;
         }
     })();
+
 
     // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
     client.auth.onAuthStateChange((_event, session) => {

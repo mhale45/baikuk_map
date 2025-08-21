@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>백억지도 - 로그인 테스트</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif; }
+    header { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid #e5e7eb; position:sticky; top:0; background:#fff; z-index:10;}
+    .btn { padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; }
+    .btn:hover { background:#f9fafb; }
+    #login-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.4); z-index:1000; }
+    #login-modal .card { width:320px; background:#fff; padding:20px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.1); }
+    .input { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; margin-top:8px; }
+    .primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    .primary:hover { background:#1d4ed8; }
+    #loading-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.45); color:#fff; font-weight:700; z-index:1100; }
+    .hint { font-size:12px; color:#6b7280; }
+    .error { color:#dc2626; font-size:13px; margin-top:6px; display:none; }
+    main { max-width:720px; margin:24px auto; padding:0 16px; }
+    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png" alt="백억지도" height="36" />
+    <div style="flex:1"></div>
+    <button id="open-login" class="btn">로그인</button>
+    <button id="logout-btn" class="btn" style="display:none">로그아웃</button>
+  </header>
+
+  <main>
+    <h2>로그인 세션 테스트 페이지</h2>
+    <p class="hint">
+      이 페이지는 <code>Supabase</code> 로그인/세션/권한 가드 동작만 점검하기 위한 최소 페이지입니다.<br />
+      로그인에 성공하면 <code>/admin</code>으로 이동합니다. 권한/세션 가드는 코드에 포함되어 있으며, 실제 동작은 /admin에서 확인됩니다.
+    </p>
+    <div id="session-box" class="hint" style="margin-top:12px;"></div>
+  </main>
+
+  <!-- 로그인 모달 -->
+  <div id="login-modal">
+    <div class="card">
+      <h3 style="margin:0 0 12px; font-size:18px;">직원 로그인</h3>
+      <input id="login-email" type="email" placeholder="이메일" class="input" />
+      <input id="login-password" type="password" placeholder="비밀번호" class="input" />
+      <button id="login-btn" class="input primary" style="margin-top:12px;">로그인</button>
+      <button id="close-login" class="input" style="margin-top:8px;">닫기</button>
+      <div id="login-error" class="error"></div>
+    </div>
+  </div>
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay">로그인 처리 중...</div>
+
+  <script>
+    // ====== Supabase 초기화 ======
+    const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    window.client = client;
+
+    // ====== 라우팅/가드 공통 유틸 (index에선 비활성, /admin에서 유효) ======
+    const LOGIN_PAGE = 'index.html';
+    const REQUIRE_AUTH = /\/admin(?:\.html)?$/.test(location.pathname); // 현재 페이지가 /admin이면 true
+
+    function redirectWithMessage(msg) {
+      const loginUrl = new URL(LOGIN_PAGE, location.origin);
+      try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
+      if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
+    }
+
+    (function showAuthRedirectMessage(){
+      try {
+        const msg = sessionStorage.getItem('auth_msg');
+        if (msg) {
+          sessionStorage.removeItem('auth_msg');
+          const err = document.getElementById('login-error');
+          if (err) { err.textContent = msg; err.style.display = 'block'; }
+          openLogin();
+        }
+      } catch(_) {}
+    })();
+
+    // ====== 권한 가드 (현재 페이지가 /admin일 때만 작동) ======
+    (async function guardAuthIfNeeded() {
+      if (!REQUIRE_AUTH) return; // index.html에서는 작동하지 않음
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) {
+          return redirectWithMessage('로그인이 필요합니다.');
+        }
+
+        // 예시: staff_profiles에서 authority 검사 (관리자/지점장만 허용 등)
+        // 실제 정책에 맞게 수정하세요.
+        const { data: me, error } = await client
+          .from('staff_profiles')
+          .select('authority')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        // 예: 권한이 없으면 로그인 페이지로 돌려보냄
+        if (!me?.authority) {
+          return redirectWithMessage('접근 권한이 없습니다.');
+        }
+      } catch (e) {
+        console.warn('[guardAuthIfNeeded] error:', e);
+        redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
+      }
+    })();
+
+    // ====== index 전용: 세션 상태 표시 및 로그인/리다이렉트 ======
+    async function refreshSessionBox() {
+      const box = document.getElementById('session-box');
+      const { data: { session } } = await client.auth.getSession();
+      if (session) {
+        box.innerHTML = `세션 있음 · 사용자: <code>${session.user.email || session.user.id}</code>`;
+        document.getElementById('logout-btn').style.display = '';
+      } else {
+        box.textContent = '세션 없음';
+        document.getElementById('logout-btn').style.display = 'none';
+      }
+    }
+
+    // 세션이 생기면 /admin으로 이동 (index에서만)
+    client.auth.onAuthStateChange((_event, session) => {
+      refreshSessionBox();
+      if (!REQUIRE_AUTH && session) {
+        // index → admin
+        location.replace('/admin');
+      }
+    });
+
+    // 초기 상태 동기화
+    (async function initIndex(){
+      await refreshSessionBox();
+      // index에서 이미 로그인 상태면 바로 /admin으로
+      if (!REQUIRE_AUTH) {
+        const { data: { session } } = await client.auth.getSession();
+        if (session) location.replace('/admin');
+      }
+    })();
+
+    // ====== 로그인/로그아웃 UI 로직 ======
+    const modal = document.getElementById('login-modal');
+    const loader = document.getElementById('loading-overlay');
+    function openLogin(){ modal.style.display = 'flex'; }
+    function closeLogin(){ modal.style.display = 'none'; }
+
+    document.getElementById('open-login').onclick = openLogin;
+    document.getElementById('close-login').onclick = closeLogin;
+
+    document.getElementById('login-btn').onclick = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const err = document.getElementById('login-error');
+      err.style.display = 'none';
+      loader.style.display = 'flex';
+      try {
+        const { error } = await client.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        // onAuthStateChange에서 /admin 이동 처리
+      } catch (e) {
+        err.textContent = '로그인 실패: ' + (e?.message || e);
+        err.style.display = 'block';
+      } finally {
+        loader.style.display = 'none';
+      }
+    };
+
+    document.getElementById('logout-btn').onclick = async () => {
+      await client.auth.signOut().catch(()=>{});
+      await refreshSessionBox();
+    };
+  </script>
+</body>
+</html>

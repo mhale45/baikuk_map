@@ -37,13 +37,6 @@
     <button id="logout-btn" class="btn">로그아웃</button>
 
     <script>
-        (async () => {
-            const { data: { session } } = await client.auth.getSession();
-            if (!session) {
-                // 로그인 안된 경우 → 메인(index.html)으로 이동
-                window.location.replace('/index.html');
-            }
-        })();
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
