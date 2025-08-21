@@ -57,6 +57,22 @@
         });
         window.client = supabase; // 만약 기존 코드가 client로 썼다면 이것도 추가
 
+        const { data: { session }, error } = await supabase.auth.getSession();
+        // 계정정보 알림 + 일시정지
+        blockWithAlert(
+            [
+            '🔐 [AUTH:first] 세션 확인',
+            `loggedIn: ${!!session}`,
+            session ? `email: ${session.user.email}` : 'email: -',
+            session ? `id: ${session.user.id}` : 'id: -',
+            error ? `error: ${error.message}` : ''
+            ].filter(Boolean).join('\n')
+        );
+        
+        // ⛔ 사용자 확인 전까지 멈추는 함수 (alert는 자체가 blocking)
+        const blockWithAlert = (msg) => { alert(msg); };          // OK 누르면 계속 진행
+        const blockWithConfirm = (msg) => confirm(msg);           // OK=true, 취소=false
+
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
             initializeApp();
@@ -207,10 +223,6 @@
     </div>
 
   <script>
-    
-    const sleep = (ms = 5000) => new Promise(res => setTimeout(res, ms));
-    sleep(5000);
-
     (function () {
         const info = {
             href: location.href,
@@ -229,7 +241,6 @@
 
     })();
 
-    sleep(5000);
     const _nz = (s) => (s ?? '').toString();
     const normalizeAddr = (s) => _nz(s).replace(/\s+/g, '').trim();
 
@@ -246,7 +257,6 @@
     // 네이버 부동산(랜드) 버튼 아이콘 URL - Supabase의 이미지 URL로 교체하세요
     const LAND_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_land_icon.png';
 
-    
     const filterDefs = [
         { id: 'deposit',       label: '보증금',   width: 300 },
         { id: 'rent',          label: '월세',     width: 280 },
@@ -667,6 +677,17 @@
 
         const uid    = session.user.id;      // Supabase auth user id (uuid)
         const uemail = session.user.email ?? '';
+
+        // 여기서 알림 창 띄우고, OK 누를 때까지 정지
+        alert(
+            [
+            '🔐 [AUTH:DOMContentLoaded] 세션 확인',
+            `loggedIn: ${!!session}`,
+            session ? `email: ${session.user.email}` : 'email: -',
+            session ? `id: ${session.user.id}` : 'id: -',
+            error ? `error: ${error.message}` : ''
+            ].filter(Boolean).join('\n')
+        );
 
         // 스키마: staff_profiles.user_id (uuid)
         let { data: me, error } = await client
