@@ -139,6 +139,24 @@
             title="네이버지도">
         N
     </button>
+    <div id="login-modal"
+         class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-80">
+            <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
+            <input id="login-email" type="email" placeholder="이메일"
+                   class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+            <input id="login-password" type="password" placeholder="비밀번호"
+                   class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
+            <button onclick="login()"
+                    class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+                로그인
+            </button>
+            <button onclick="hideLogin()"
+                    class="w-full text-gray-500 mt-2">닫기</button>
+            <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
+        </div>
+    </div>
+    
     <div id="map" class="absolute top-0 bottom-0 right-0 left-[25%] z-0"></div>
     <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10  right-5">
         
@@ -3213,26 +3231,6 @@
 
         return { urls, decoded };
     }
-    
-    window.fetchWorkLogs = async function(listingId) {
-        const { data, error } = await client
-            .from("work_log")
-            .select("*")
-            .eq("listing_id", listingId)
-            .order("Registration_date", { ascending: false });
-
-        if (error) {
-            console.error("❌ 업무일지 가져오기 실패:", error);
-            renderWorkLogPanel([]);  // 빈 상태 표시
-            return [];
-        }
-
-        // 화면에 실제로 렌더링
-        renderWorkLogPanel(data);
-
-        // 필요 시 호출부에서 활용할 수 있도록 반환
-        return data;
-    };
 
     // 상세패널
     async function showDetailPanel(listingId) {
@@ -4453,6 +4451,10 @@
         }, 0);
     }
     
+    function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+    function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
+
+
     function getFilterValues() {
         const values = {};
         filterDefs.forEach(def => {
@@ -4744,8 +4746,20 @@
         hideDetailPanel(true); // URL은 건드리지 않도록 skipUrl=true
         renderDealAndCategoryButtons();
         renderFilterButtons();
-        
-        await renderAffiliationBadge?.();
+
+
+        const { data: { session } } = await client.auth.getSession();
+
+        if (session) {
+            await renderAffiliationBadge();
+            isLoggedIn = true;
+            document.getElementById('logout-btn')?.classList.remove('hidden');
+        } else {
+            isLoggedIn = false;
+            document.getElementById('logout-btn')?.classList.add('hidden');
+            // 필요하면 로그인 모달 띄우기: showLogin();
+        }
+
         await loadListingsInBounds();
 
         
@@ -4861,6 +4875,26 @@
 
     window.resetFilters = resetFilters;
     
+    window.fetchWorkLogs = async function(listingId) {
+
+    const { data, error } = await client
+        .from("work_log")
+        .select("*")
+        .eq("listing_id", listingId)
+        .order("Registration_date", { ascending: false });
+
+    if (error) {
+        console.error("❌ 업무일지 가져오기 실패:", error);
+        renderWorkLogPanel([]);  // 빈 상태 표시
+        return [];
+    }
+
+    // 화면에 실제로 렌더링
+    renderWorkLogPanel(data);
+
+    // 필요 시 호출부에서 활용할 수 있도록 반환
+    return data;
+    };
 
   </script>
   <!-- 오른쪽 아래 안내창 -->
