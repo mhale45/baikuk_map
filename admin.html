@@ -57,35 +57,6 @@
         });
         window.client = supabase; // 만약 기존 코드가 client로 썼다면 이것도 추가
 
-        // ✅ 얼리 가드: 세션 없으면 index.html로
-        (async () => {
-            const { data: { session} } = await window.supabase.auth.getSession();
-            // 버튼 표시/숨김 초기 동기화
-            try {
-                const has = !!session;
-                document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
-                document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
-            } catch {}
-            if (!session) {
-                location.replace('index.html' + location.search);
-                return;
-            }
-
-            // ✅ DOM이 만들어진 뒤에 배지 렌더 보장
-            document.addEventListener('DOMContentLoaded', () => {
-                window.renderAffiliationBadge?.();
-            });
-        })();
-
-        // 🔧 세션 변화 시 UI 동기화 + 미인증 리다이렉트
-        window.supabase.auth.onAuthStateChange((_evt, session) => {
-            const has = !!session;
-            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
-            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
-            if (!session) location.replace('index.html' + location.search);
-            window.renderAffiliationBadge?.();
-        });
-        
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
             initializeApp();
