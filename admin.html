@@ -677,7 +677,7 @@
 
     // ✅ 로그인 사용자 & 관리자 여부
     async function getAuthContext() {
-        const { data: { session } } = await window.supabase.auth.getSession();
+        const { data: { session }, error: authErr } = await window.supabase.auth.getSession();
         
         // 필요할 때만 블로킹 알림 (예: Netlify에서만)
         const isNetlify = /netlify\.app$/.test(location.hostname) || location.hostname.includes('netlify');
