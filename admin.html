@@ -41,6 +41,24 @@
     </style>
 
     <script type="module">
+        // 🚧 6초 내 3회 이상 부팅 시 하드 스톱 (가장 위에 두세요)
+        {
+            const KEY = 'reload_guard_times';
+            const WINDOW_MS = 6000;
+            const LIMIT = 3;
+
+            const now = Date.now();
+            let times = [];
+            try { times = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch {}
+            times = times.filter(t => now - t < WINDOW_MS);
+            times.push(now);
+            sessionStorage.setItem(KEY, JSON.stringify(times));
+
+            if (times.length >= LIMIT) {
+            alert(`⚠️ 빠른 재부팅 감지: ${times.length}회/6초\n초기화를 중단합니다.`);
+            throw new Error('Reload loop guard: aborting init');
+            }
+        }
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
@@ -137,7 +155,7 @@
 <body class="m-0 p-0">
     <header class="flex items-center gap-4 w-full h-8 sm:h-10 md:h-12 px-2 sm:px-3 md:px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="window.location.href='listings'" />
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="window.location.href='/listings'" />
         <div class="relative">
             <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
                     class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
