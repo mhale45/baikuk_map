@@ -61,17 +61,24 @@
         
         async function logout() {
             try {
-            // Supabase 세션 해제
-            await client.auth.signOut();
+                // Supabase 세션 해제
+                await client.auth.signOut();
             } catch (e) {
-            console.warn("로그아웃 중 오류:", e);
+                console.warn("로그아웃 중 오류:", e);
             }
             // index.html로 강제 이동
-            window.location.replace("/index.html");
+            // ✅ 항상 절대경로로 강제 이동 (동일 페이지여도 새로고침 느낌으로 확실히 이동)
+            const target = new URL('/index.html', location.origin).href;
+            window.location.href = target;                 // 1차 시도
+            setTimeout(() => window.location.replace(target), 150); // 2차 강제 백업
         }
         
-        // 로그아웃 버튼 연결
-        document.getElementById("logout-btn")?.addEventListener("click", logout);
+        // 이벤트 바인딩(안전하게 두 경로 모두)
+        const $btn = document.getElementById('logout-btn');
+        if ($btn) {
+            $btn.onclick = logout;                         // inline 방식
+            $btn.addEventListener('click', logout);        // addEventListener 방식
+        }
     </script>
 
 </body>
