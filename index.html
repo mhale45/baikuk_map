@@ -154,19 +154,50 @@
     window.client = client;
     const BUCKET = window.BUCKET || 'listing-images';
 
-    // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(쿼리스트링은 그대로 유지)
-    (async function earlyRedirect() {
-        const { data: { session } } = await client.auth.getSession();
-        if (session) {
-        location.replace('admin.html' + location.search);
-        return;
+    // ✅ index.html에 도착하면 무조건 로그아웃
+    (async function forceLogoutOnIndex() {
+        // 루트(/)로 서빙되는 경우도 포함
+        const onIndex =
+            location.pathname.endsWith('/index.html') ||
+            location.pathname === '/' ||
+            /(?:^|\/)index\.html$/.test(location.pathname);
+
+        if (onIndex) {
+            try { await client.auth.signOut(); } catch (_) {}
+            // 필요시 안내메시지 제거
+            try { sessionStorage.removeItem('auth_msg'); } catch (_) {}
         }
     })();
+
+    // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(단, index에서는 건너뜀)
+    (async function earlyRedirect() {
+    const onIndex =
+        location.pathname.endsWith('/index.html') ||
+        location.pathname === '/' ||
+        /(?:^|\/)index\.html$/.test(location.pathname);
+
+    if (onIndex) return; // 🔸 index에서는 자동 리다이렉트 금지
+
+    const { data: { session } } = await client.auth.getSession();
+    if (session) {
+        location.replace('admin.html' + location.search);
+        return;
+    }
+    })();
+
     
     // 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비)
     client.auth.onAuthStateChange((_event, session) => {
-        if (session) location.replace('admin.html' + location.search);
+        const onIndex =
+            location.pathname.endsWith('/index.html') ||
+            location.pathname === '/' ||
+            /(?:^|\/)index\.html$/.test(location.pathname);
+
+        if (!onIndex && session) {
+            location.replace('admin.html' + location.search);
+        }
     });
+
 
     let _imgReqToken = 0;
 
