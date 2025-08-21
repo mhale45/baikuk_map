@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script> 
@@ -97,16 +98,6 @@
         #image-viewer-slot:empty { display: none; }
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
-
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        
-        // 앱 초기화 (인증 등)
-        if (window.initializeApp) {
-            initializeApp();
-        }
-    </script>
-
     <style>
         :root {
             --header-height: 3.5rem;
@@ -290,7 +281,6 @@
     let allListings = {};
     let allMarkers = {};
     let map, customImage;
-    window.map = map;
     let clusterer, mapIdleTimer = null;
     let isFetching = false;
 
@@ -317,6 +307,7 @@
       center: new kakao.maps.LatLng(37.7151, 126.7341),
       level: 3
     });
+    window.map = map; // ← 생성 직후 연결
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -624,7 +615,7 @@
 
     // listing_id 가져오는 함수
     async function getNextListingId() {
-        const { data, error } = await supabase
+        const { data, error } = await client
             .from('baikukdbtest')
             .select('listing_id')
             .order('listing_id', { ascending: false })
@@ -683,7 +674,7 @@
 
     // ✅ 로그인 사용자 & 관리자 여부
     async function getAuthContext() {
-        const { data: { session } } = await window.supabase.auth.getSession();
+        const { data: { session } } = await client.auth.getSession();
         if (!session?.user) return { isAdmin: false, me: null };
 
         const uid    = session.user.id;      // Supabase auth user id (uuid)
@@ -2182,7 +2173,7 @@
             showToast('중복매물입니다. 해당 매물로 이동합니다.', 2000);
             setTimeout(() => {
                 if (typeof openDeepLink === 'function') openDeepLink(dupRow.listing_id);
-                else location.assign(`admin.html?id=${dupRow.listing_id}`);
+                else location.assign(`/admin?id=${dupRow.listing_id}`);
             }, 400);
             return true;
             }
@@ -4503,11 +4494,6 @@
     function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
 
-    async function logout() {
-        await client.auth.signOut();
-        window.location.replace(location.origin);
-    }
-
     function getFilterValues() {
         const values = {};
         filterDefs.forEach(def => {
@@ -4801,14 +4787,9 @@
         renderFilterButtons();
 
         const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            location.replace('index.html' + location.search);
-            return;
-        }
-        await renderAffiliationBadge();
-        isLoggedIn = true;
-        document.getElementById('logout-btn')?.classList.remove('hidden');
+        if (session) document.getElementById('logout-btn')?.classList.remove('hidden');
 
+        await renderAffiliationBadge();
         await loadListingsInBounds();
 
         // 👇 몰래 예열
