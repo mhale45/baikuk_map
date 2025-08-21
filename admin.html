@@ -131,6 +131,11 @@
             <button id="open-listing-form-btn" class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
                 🏢 매물등록
             </button>
+            <button id="logout-btn"
+                    onclick="logout()"
+                    class="hidden text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
+                🔓 로그아웃
+            </button>
         </div>
     </header>
     <button id="btn-naver-map"
@@ -4454,6 +4459,15 @@
     function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
 
+    async function logout() {
+        try {
+            await client.auth.signOut();
+        } catch (e) {
+            console.warn('signOut failed:', e);
+        } finally {
+            window.location.replace('https://baikuk-map.netlify.app/');
+        }
+    }
 
     function getFilterValues() {
         const values = {};
