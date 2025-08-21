@@ -1,6 +1,34 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <script>
+        (function(){
+        const once = (k, ms=4000) => {
+            const now = Date.now(), last = +sessionStorage.getItem(k)||0;
+            sessionStorage.setItem(k, String(now));
+            return now - last < ms;
+        };
+
+        const logStack = (label, detail) => {
+            console.warn(`🔁 ${label}`, detail, new Error().stack);
+        };
+
+        const origReload = location.reload.bind(location);
+        location.reload = function(...a){ 
+            logStack('location.reload()', a);
+            if (once('__reload_guard__')) { console.warn('⛔ reload blocked for debug'); return; }
+            origReload(...a);
+        };
+
+        ['assign','replace'].forEach(fn=>{
+            const orig = location[fn].bind(location);
+            location[fn] = function(url){ logStack(`location.${fn}(${url})`); orig(url); };
+        });
+
+        window.addEventListener('beforeunload', ()=>console.warn('↩️ beforeunload fired'));
+        })();
+    </script>
+
     <meta charset="UTF-8" />
     <title>백억지도</title>
     <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
