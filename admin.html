@@ -207,6 +207,23 @@
 
   <script>
 
+    (function () {
+        const info = {
+            href: location.href,
+            referrer: document.referrer,
+            ts: Date.now()
+        };
+        console.log('[BOOT]', info);
+
+        // 리다이렉트 감지: 3초 이내 3회 이상 부팅되면 경고
+        const k = 'boot-count';
+        const n = +(sessionStorage.getItem(k) || 0) + 1;
+        sessionStorage.setItem(k, n);
+        if (n >= 3) {
+            console.warn('⚠️ 빠른 재부팅 감지(리다이렉트 루프 의심):', n, info);
+        }
+    })();
+
     const _nz = (s) => (s ?? '').toString();
     const normalizeAddr = (s) => _nz(s).replace(/\s+/g, '').trim();
 
