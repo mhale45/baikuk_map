@@ -18,95 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script> 
-        // ✅ Supabase 먼저 생성
-        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
-        window.client = client;
-
-        // 1) 경로/상수
-        const LOGIN_PAGE = 'index.html';     // 루트 로그인 페이지
-        const REQUIRE_AUTH = true;           // admin은 항상 인증 필요
-
-        // 3) 리다이렉트 유틸 (index로 보낼 때 안내 메시지를 세션스토리지에)
-        function redirectWithMessage(msg) {
-            const loginUrl = new URL(`/${LOGIN_PAGE}`, location.origin);
-            try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
-            if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
-        }
-
-        // 4) admin 전용 권한/세션 가드
-        (async function guardAuthForAdmin() {
-            try {
-            const { data: { session } } = await client.auth.getSession();
-            if (!session) {
-                return redirectWithMessage('로그인이 필요합니다.');
-            }
-
-            // (선택) staff_profiles 권한 확인
-            const { data: me, error } = await client
-                .from('staff_profiles')
-                .select('authority')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-
-            if (error) throw error;
-            if (!me?.authority) {
-                return redirectWithMessage('접근 권한이 없습니다.');
-            }
-            } catch (e) {
-            console.warn('[admin guard] error:', e);
-            redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
-            }
-        })();
-
-        async function logout() {
-            try { await client.auth.signOut(); } catch(e) {}
-            const target = new URL('/index.html', location.origin).href;
-            window.location.href = target;                      // 1차
-            setTimeout(() => window.location.replace(target), 0); // 백업
-        }
-
-
-        // 로그아웃 버튼 바인딩(두 경로 모두)
-        (function bindLogoutButtonOnce(){
-            const $btn = document.getElementById('logout-btn');
-            if ($btn) {
-                $btn.onclick = logout;                      // inline
-                $btn.addEventListener('click', logout);     // addEventListener
-            }
-        })();
-
-        // 6) (선택) 세션 만료 시 자동 회수
-        client.auth.onAuthStateChange((_event, session) => {
-            if (!session) window.location.replace('/index.html');
-        });
-        
-        client.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN') {
-                document.getElementById('logout-btn')?.classList.remove('hidden');
-                try { await loadListingsInBounds(); } catch {}
-            }
-            if (event === 'SIGNED_OUT') {
-                document.getElementById('logout-btn')?.classList.add('hidden');
-                // 안전하게 /index.html로 이동
-                const target = new URL('/index.html', location.origin).href;
-                window.location.href = target;
-                setTimeout(() => window.location.replace(target), 0);
-            }
-        });
-
-        const BUCKET = 'listing-images'; //이미지 관련 변수
-        window.BUCKET = 'listing-images'; // 버킷명
-        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
-        // 페이지네이션/좌측 목록 캐시 (초기값)
-        let matchedListingsCache = [];
-        let matchedListingsPage = 0;
-        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
-        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
-        let _imgReqToken = 0;
-    </script>
+    
     <style>
         .image-wm { position: relative; overflow: hidden; }
         .thumb-box { background:#f3f4f6; overflow:hidden; }
@@ -241,9 +153,114 @@
         class="pl-2 pt-2 absolute border-l border-gray-200 top-[var(--header-height)] left-[52.7%] w-[24rem] bottom-0 bg-white shadow-xl overflow-y-auto z-[1100]"
         style="border-left-width: 0.35rem;">
     </div>
-
   <script>
 
+    (function debugPageIdentity() {
+        console.log("==== [DEBUG: PAGE LOAD] ====");
+        console.log("📄 location.href   =", location.href);
+        console.log("📄 location.pathname =", location.pathname);
+
+        // index.html / admin.html 마다 다른 ID 찍기
+        console.log("📄 This file claims to be: ADMIN PAGE");
+
+        // 실제 HTML title / body id 등도 출력
+        console.log("📄 document.title =", document.title);
+        console.log("📄 body.id/class =", document.body.id, document.body.className);
+
+        // 스크립트가 진짜 admin/index.html에서 실행되는지 DOM에 흔적 남기기
+        const tag = document.createElement("div");
+        tag.textContent = "✅ DEBUG: loaded from ADMIN HTML";
+        tag.style.cssText = "position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:2px 5px;font-size:12px;";
+        document.body.appendChild(tag);
+    })();
+        
+    // ✅ Supabase 먼저 생성
+    const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    window.client = client;
+
+    // 1) 경로/상수
+    const LOGIN_PAGE = 'index.html';     // 루트 로그인 페이지
+    const REQUIRE_AUTH = true;           // admin은 항상 인증 필요
+
+    // 3) 리다이렉트 유틸 (index로 보낼 때 안내 메시지를 세션스토리지에)
+    function redirectWithMessage(msg) {
+        const loginUrl = new URL(`/${LOGIN_PAGE}`, location.origin);
+        try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
+        if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
+    }
+
+    // 4) admin 전용 권한/세션 가드
+    (async function guardAuthForAdmin() {
+        try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) {
+            return redirectWithMessage('로그인이 필요합니다.');
+        }
+
+        // (선택) staff_profiles 권한 확인
+        const { data: me, error } = await client
+            .from('staff_profiles')
+            .select('authority')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!me?.authority) {
+            return redirectWithMessage('접근 권한이 없습니다.');
+        }
+        } catch (e) {
+        console.warn('[admin guard] error:', e);
+        redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
+        }
+    })();
+
+    async function logout() {
+        try { await client.auth.signOut(); } catch(e) {}
+        const target = new URL('/index.html', location.origin).href;
+        window.location.href = target;                      // 1차
+        setTimeout(() => window.location.replace(target), 0); // 백업
+    }
+
+
+    // 로그아웃 버튼 바인딩(두 경로 모두)
+    (function bindLogoutButtonOnce(){
+        const $btn = document.getElementById('logout-btn');
+        if ($btn) {
+            $btn.onclick = logout;                      // inline
+            $btn.addEventListener('click', logout);     // addEventListener
+        }
+    })();
+
+    // 6) (선택) 세션 만료 시 자동 회수
+    client.auth.onAuthStateChange((_event, session) => {
+        if (!session) window.location.replace('/index.html');
+    });
+    
+    client.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN') {
+            document.getElementById('logout-btn')?.classList.remove('hidden');
+            try { await loadListingsInBounds(); } catch {}
+        }
+        if (event === 'SIGNED_OUT') {
+            document.getElementById('logout-btn')?.classList.add('hidden');
+            // 안전하게 /index.html로 이동
+            const target = new URL('/index.html', location.origin).href;
+            window.location.href = target;
+            setTimeout(() => window.location.replace(target), 0);
+        }
+    });
+
+    const BUCKET = 'listing-images'; //이미지 관련 변수
+    window.BUCKET = 'listing-images'; // 버킷명
+    window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
+    // 페이지네이션/좌측 목록 캐시 (초기값)
+    let matchedListingsCache = [];
+    let matchedListingsPage = 0;
+    let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
+    let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
+    let _imgReqToken = 0;
     const _nz = (s) => (s ?? '').toString();
     const normalizeAddr = (s) => _nz(s).replace(/\s+/g, '').trim();
 

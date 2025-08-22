@@ -149,6 +149,18 @@
     </div>
 
   <script>
+    (function debugIndexPage() {
+        console.log("==== [DEBUG: INDEX PAGE LOAD] ====");
+        console.log("📄 location.href      =", location.href);
+        console.log("📄 location.pathname  =", location.pathname);
+        console.log("📄 document.title     =", document.title);
+
+        // DOM에도 표시
+        const tag = document.createElement("div");
+        tag.textContent = "✅ DEBUG: loaded from INDEX HTML";
+        tag.style.cssText = "position:fixed;top:0;left:0;z-index:9999;background:blue;color:white;padding:2px 5px;font-size:12px;";
+        document.body.appendChild(tag);
+    })();
     const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
