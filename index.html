@@ -160,7 +160,7 @@
         const { data: { session } } = await client.auth.getSession();
         
         // 현재 경로가 /index.html 또는 / 이고, 로그인 되어 있다면 /admin/index.html 로 이동
-        if (session && location.pathname === '/' || location.pathname.endsWith('/index.html')) {
+        if (session && (location.pathname === '/' || location.pathname.endsWith('/index.html'))) {
             location.replace('/admin/index.html' + location.search);
             return;
         }

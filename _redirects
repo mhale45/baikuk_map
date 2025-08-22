@@ -1,0 +1,6 @@
+# /admin 또는 /admin/ → 무조건 admin/index.html 응답
+/admin     /admin/index.html   200
+/admin/*   /admin/index.html   200
+
+# 그 외 모든 경로는 index.html로 (SPA 라우팅 기본)
+ /*        /index.html         200
