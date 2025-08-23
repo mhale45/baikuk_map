@@ -15,10 +15,21 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script> 
+        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
+        window.LOGIN_PAGE = 'index.html';
+        const BUCKET = 'listing-images'; //이미지 관련 변수
+        window.BUCKET = 'listing-images'; // 버킷명
+        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
+        // 페이지네이션/좌측 목록 캐시 (초기값)
+        let matchedListingsCache = [];
+        let matchedListingsPage = 0;
+        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
+        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
+        let _imgReqToken = 0;
+    </script>
     <style>
         .image-wm { position: relative; overflow: hidden; }
         .thumb-box { background:#f3f4f6; overflow:hidden; }
@@ -30,6 +41,98 @@
         #image-viewer-slot:empty { display: none; }
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+        
+        // 🔧 세션 영구 유지 + 자동 갱신
+        window.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+
+        // ✅ 이후 코드는 client로만 사용(혼용 방지)
+        const client = window.supabase;
+        window.client = client;
+        
+        // ✅ 배포 서브패스에서도 안전한 이동 유틸
+        const BASE = location.pathname.replace(/[^/]*$/, '');
+        const here = (location.pathname.split('/').pop() || 'admin.html');
+
+        function go(page) {
+            const targetPath = BASE + page;
+            const targetUrl = new URL(targetPath, location.origin);
+            if (!page.includes('?') && location.search) targetUrl.search = location.search;
+            if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
+            location.replace(targetUrl.href);
+        }
+        window.go = go; // (onclick 등에서 쓸 수 있게)
+
+        // 버튼 토글 유틸
+        function toggleAuthButtons(has) {
+            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
+            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
+        }
+
+        // ── Auth 가드: 논블로킹 + 타임아웃 ──────────────────────────
+
+        // getSession이 지연돼도 화면이 멈추지 않도록 타임아웃 적용
+        async function getSessionNonBlocking(timeoutMs = 1500) {
+            const TIMEOUT = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), timeoutMs));
+            try {
+                const res = await Promise.race([
+                client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
+                TIMEOUT
+                ]);
+                return res; // null | session | '__TIMEOUT__'
+            } catch {
+                return null;
+            }
+        }
+
+        // 초기 1회: 세션 없으면 index로, 세션 있으면 버튼/뱃지 세팅
+        async function runAdminGuardOnce() {
+            const result = await getSessionNonBlocking(1500);
+
+            if (result === '__TIMEOUT__') {
+                console.warn('[auth] getSession timeout → continue rendering and check later');
+                toggleAuthButtons(false); // 일단 비로그인 UI로
+                return; // 초기화 계속 (멈춤 방지)
+            }
+
+            const has = !!result;
+            toggleAuthButtons(has);
+
+            if (!has) {
+                if (here === 'admin.html') go('index.html'); // 쿼리스트링 자동 보존
+                return;
+            }
+
+            // DOM 준비 뒤 배지 렌더
+            document.addEventListener('DOMContentLoaded', () => {
+                window.renderAffiliationBadge?.();
+            });
+        }
+
+        // 상태 변화: 로그아웃 시 index로, 로그인 시 버튼/뱃지 갱신
+        client.auth.onAuthStateChange((_evt, session) => {
+            const has = !!session;
+            toggleAuthButtons(has);
+            if (!has && here === 'admin.html') go('index.html');
+            window.renderAffiliationBadge?.();
+        });
+
+        // 실행
+        runAdminGuardOnce();
+
+        // 앱 초기화 (인증 등)
+        if (window.initializeApp) {
+            initializeApp();
+        }
+    </script>
+
     <style>
         :root {
             --header-height: 3.5rem;
@@ -83,7 +186,7 @@
 <body class="m-0 p-0">
     <header class="flex items-center gap-4 w-full h-8 sm:h-10 md:h-12 px-2 sm:px-3 md:px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="window.location.href='listings.html'" />
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="go('listings.html')" />
         <div class="relative">
             <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
                     class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
@@ -110,7 +213,25 @@
             style="text-shadow: 0 1px 2px #ffffff, 0 0 1px #ffffff;"
             title="네이버지도">
         N
-    </button>    
+    </button>
+    <div id="login-modal"
+         class="fixed inset-0 z-[20000] bg-black/40 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-80">
+            <h2 class="font-bold text-xl mb-4 text-center">직원 로그인</h2>
+            <input id="login-email" type="email" placeholder="이메일"
+                   class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+            <input id="login-password" type="password" placeholder="비밀번호"
+                   class="w-full border border-gray-300 rounded px-3 py-2 mb-4" />
+            <button onclick="login()"
+                    class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+                로그인
+            </button>
+            <button onclick="hideLogin()"
+                    class="w-full text-gray-500 mt-2">닫기</button>
+            <div id="login-error" class="text-red-600 text-sm mt-2 hidden"></div>
+        </div>
+    </div>
+    
     <div id="map" class="absolute top-0 bottom-0 right-0 left-[25%] z-0"></div>
     <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10  right-5">
         
@@ -153,114 +274,9 @@
         class="pl-2 pt-2 absolute border-l border-gray-200 top-[var(--header-height)] left-[52.7%] w-[24rem] bottom-0 bg-white shadow-xl overflow-y-auto z-[1100]"
         style="border-left-width: 0.35rem;">
     </div>
+
   <script>
 
-    (function debugPageIdentity() {
-        console.log("==== [DEBUG: PAGE LOAD] ====");
-        console.log("📄 location.href   =", location.href);
-        console.log("📄 location.pathname =", location.pathname);
-
-        // index.html / admin.html 마다 다른 ID 찍기
-        console.log("📄 This file claims to be: ADMIN PAGE");
-
-        // 실제 HTML title / body id 등도 출력
-        console.log("📄 document.title =", document.title);
-        console.log("📄 body.id/class =", document.body.id, document.body.className);
-
-        // 스크립트가 진짜 admin/index.html에서 실행되는지 DOM에 흔적 남기기
-        const tag = document.createElement("div");
-        tag.textContent = "✅ DEBUG: loaded from ADMIN HTML";
-        tag.style.cssText = "position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:2px 5px;font-size:12px;";
-        document.body.appendChild(tag);
-    })();
-        
-    // ✅ Supabase 먼저 생성
-    const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    window.client = client;
-
-    // 1) 경로/상수
-    const LOGIN_PAGE = 'index.html';     // 루트 로그인 페이지
-    const REQUIRE_AUTH = true;           // admin은 항상 인증 필요
-
-    // 3) 리다이렉트 유틸 (index로 보낼 때 안내 메시지를 세션스토리지에)
-    function redirectWithMessage(msg) {
-        const loginUrl = new URL(`/${LOGIN_PAGE}`, location.origin);
-        try { sessionStorage.setItem('auth_msg', String(msg || '')); } catch (_) {}
-        if (location.pathname !== loginUrl.pathname) location.replace(loginUrl.href);
-    }
-
-    // 4) admin 전용 권한/세션 가드
-    (async function guardAuthForAdmin() {
-        try {
-        const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            return redirectWithMessage('로그인이 필요합니다.');
-        }
-
-        // (선택) staff_profiles 권한 확인
-        const { data: me, error } = await client
-            .from('staff_profiles')
-            .select('authority')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-        if (error) throw error;
-        if (!me?.authority) {
-            return redirectWithMessage('접근 권한이 없습니다.');
-        }
-        } catch (e) {
-        console.warn('[admin guard] error:', e);
-        redirectWithMessage('인증 확인 중 오류가 발생했습니다.');
-        }
-    })();
-
-    async function logout() {
-        try { await client.auth.signOut(); } catch(e) {}
-        const target = new URL('/index.html', location.origin).href;
-        window.location.href = target;                      // 1차
-        setTimeout(() => window.location.replace(target), 0); // 백업
-    }
-
-
-    // 로그아웃 버튼 바인딩(두 경로 모두)
-    (function bindLogoutButtonOnce(){
-        const $btn = document.getElementById('logout-btn');
-        if ($btn) {
-            $btn.onclick = logout;                      // inline
-            $btn.addEventListener('click', logout);     // addEventListener
-        }
-    })();
-
-    // 6) (선택) 세션 만료 시 자동 회수
-    client.auth.onAuthStateChange((_event, session) => {
-        if (!session) window.location.replace('/index.html');
-    });
-    
-    client.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN') {
-            document.getElementById('logout-btn')?.classList.remove('hidden');
-            try { await loadListingsInBounds(); } catch {}
-        }
-        if (event === 'SIGNED_OUT') {
-            document.getElementById('logout-btn')?.classList.add('hidden');
-            // 안전하게 /index.html로 이동
-            const target = new URL('/index.html', location.origin).href;
-            window.location.href = target;
-            setTimeout(() => window.location.replace(target), 0);
-        }
-    });
-
-    const BUCKET = 'listing-images'; //이미지 관련 변수
-    window.BUCKET = 'listing-images'; // 버킷명
-    window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
-    // 페이지네이션/좌측 목록 캐시 (초기값)
-    let matchedListingsCache = [];
-    let matchedListingsPage = 0;
-    let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
-    let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
-    let _imgReqToken = 0;
     const _nz = (s) => (s ?? '').toString();
     const normalizeAddr = (s) => _nz(s).replace(/\s+/g, '').trim();
 
@@ -300,6 +316,7 @@
     let allListings = {};
     let allMarkers = {};
     let map, customImage;
+    window.map = map;
     let clusterer, mapIdleTimer = null;
     let isFetching = false;
 
@@ -326,7 +343,6 @@
       center: new kakao.maps.LatLng(37.7151, 126.7341),
       level: 3
     });
-    window.map = map; // ← 생성 직후 연결
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -634,7 +650,7 @@
 
     // listing_id 가져오는 함수
     async function getNextListingId() {
-        const { data, error } = await client
+        const { data, error } = await supabase
             .from('baikukdbtest')
             .select('listing_id')
             .order('listing_id', { ascending: false })
@@ -2192,7 +2208,7 @@
             showToast('중복매물입니다. 해당 매물로 이동합니다.', 2000);
             setTimeout(() => {
                 if (typeof openDeepLink === 'function') openDeepLink(dupRow.listing_id);
-                else location.assign(`/admin?id=${dupRow.listing_id}`);
+                else go(`admin.html?id=${dupRow.listing_id}`);
             }, 400);
             return true;
             }
@@ -2510,22 +2526,51 @@
 
                 (async () => {
                     try {
-                        const res = await fetch('http://localhost:5000/api/gris-start', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ address: fullAddr }) // buildFullAddress() 결과
+                        // 1) 로컬에서만 호출 (배포/내부 IP면 스킵)
+                        const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+                        const API_BASE = window.GRIS_API_BASE || (isLocal ? 'http://localhost:5000' : null);
+
+                        if (!API_BASE) {
+                            console.log('[GRIS] skip on non-local host:', location.hostname);
+                            return;
+                        }
+
+                        // 2) 3초 타임아웃 설정
+                        const controller = new AbortController();
+                        const t = setTimeout(() => controller.abort(), 3000);
+
+                        const res = await fetch(`${API_BASE}/api/gris-start`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ address: fullAddr }), // buildFullAddress() 결과
+                            signal: controller.signal,
+                        }).catch((e) => {
+                            // fetch 자체가 바로 터지는 경우 (ECONNREFUSED 등)
+                            throw e;
                         });
-                        const data = await res.json().catch(() => ({}));
-                        if (res.ok) {
-                        console.log('GRIS job started:', data);
-                        showToast('GRIS 원스톱 열기 요청 전송됨', 1600);
+
+                        clearTimeout(t);
+
+                        // 3) 응답 처리
+                        const data = await (async () => {
+                            try { return await res.json(); } catch { return {}; }
+                        })();
+
+                        if (res && res.ok) {
+                            console.log('GRIS job started:', data);
+                            showToast('GRIS 원스톱 열기 요청 전송됨', 1600);
                         } else {
-                        console.warn('GRIS start failed:', res.status, data);
-                        showToast('GRIS 시작 실패', 2500);
+                            console.warn('GRIS start failed:', res?.status, data);
+                            showToast('GRIS 시작 실패', 2500);
                         }
                     } catch (err) {
-                        console.error('GRIS 호출 오류:', err);
-                        showToast('GRIS 호출 오류', 2500);
+                        if (err.name === 'AbortError') {
+                            console.warn('[GRIS] timeout (3s) — skipped');
+                            showToast('GRIS 응답 지연(3초)으로 건너뜀', 2000);
+                        } else {
+                            console.error('GRIS 호출 오류:', err);
+                            showToast('GRIS 호출 오류', 2500);
+                        }
                     }
                 })();
             } else {
@@ -4509,6 +4554,14 @@
             infoPanel.scrollTop = 0;
         }, 0);
     }
+    
+    function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+    function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
+
+    async function logout() {
+        await client.auth.signOut();
+        window.location.replace(location.origin);
+    }
 
     function getFilterValues() {
         const values = {};
@@ -4796,23 +4849,6 @@
     });
     
     document.addEventListener('DOMContentLoaded', async () => {
-        const { data: { session } } = await client.auth.getSession();
-
-        // Supabase 세션이 초기화되는데 시간이 걸릴 수 있으니 몇 번 재시도
-        for (let i = 0; i < 5 && !session; i++) {
-            await new Promise(r => setTimeout(r, 300));
-            ({ data: { session } } = await client.auth.getSession());
-        }
-        
-        if (!session) {
-            // ✅ 세션 없으면 로그인 페이지(= index.html)로 즉시 이동
-            window.location.replace('/index.html');
-            return;
-        }
-
-        // 로그인됨: 로그아웃 버튼 보이기
-        document.getElementById('logout-btn')?.classList.remove('hidden');
-
         // ✅ 첫 로드 때 사이드패널/상세패널 닫기
         closeSidePanel();
         hideDetailPanel(true); // URL은 건드리지 않도록 skipUrl=true
@@ -4820,6 +4856,9 @@
         renderFilterButtons();
 
         await renderAffiliationBadge();
+        isLoggedIn = true;
+        document.getElementById('logout-btn')?.classList.remove('hidden');
+
         await loadListingsInBounds();
 
         // 👇 몰래 예열
