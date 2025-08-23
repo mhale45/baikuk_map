@@ -80,7 +80,9 @@
 
         // getSession이 지연돼도 화면이 멈추지 않도록 타임아웃 적용
         async function getSessionNonBlocking(timeoutMs = 1500) {
-            const TIMEOUT = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), timeoutMs));
+            const TIMEOUT = new Promise((resolve) =>
+                setTimeout(() => resolve('__TIMEOUT__'), timeoutMs)
+            );
             try {
                 const res = await Promise.race([
                 client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
@@ -92,35 +94,46 @@
             }
         }
 
-        // 초기 1회: 세션 없으면 index로, 세션 있으면 버튼/뱃지 세팅
+        // 초기 1회: 세션 없으면 (관리영역이면) 루트로, 세션 있으면 버튼/뱃지 세팅
         async function runAdminGuardOnce() {
-            const result = await getSessionNonBlocking(1500);
+            const session = await getSessionNonBlocking(1500);
 
-            if (result === '__TIMEOUT__') {
+            if (session === '__TIMEOUT__') {
                 console.warn('[auth] getSession timeout → continue rendering and check later');
                 toggleAuthButtons(false); // 일단 비로그인 UI로
-                return; // 초기화 계속 (멈춤 방지)
-            }
-
-            const has = !!result;
-            toggleAuthButtons(has);
-
-            if (!has) {
-                if (here === 'admin.html') go('index.html'); // 쿼리스트링 자동 보존
                 return;
             }
 
-            // DOM 준비 뒤 배지 렌더
+            const isAuthed = !!session;
+            toggleAuthButtons(isAuthed);
+
+            // /admin 하위 경로에서 비로그인 → 루트로
+            if (!isAuthed && location.pathname.startsWith('/admin')) {
+                const url = new URL('/', location.origin);
+                // 쿼리스트링을 보존하고 싶으면 유지
+                if (location.search) url.search = location.search;
+                location.replace(url.href);
+                return;
+            }
+
+            // 배지 렌더 (DOM 준비 후 1회)
             document.addEventListener('DOMContentLoaded', () => {
                 window.renderAffiliationBadge?.();
             });
         }
 
-        // 상태 변화: 로그아웃 시 index로, 로그인 시 버튼/뱃지 갱신
+        // 상태 변화: 로그아웃 시 (관리영역이면) 루트로, 로그인 시 UI/뱃지 갱신
         client.auth.onAuthStateChange((_evt, session) => {
-            const has = !!session;
-            toggleAuthButtons(has);
-            if (!has && here === 'admin.html') go('index.html');
+            const isAuthed = !!session;
+            toggleAuthButtons(isAuthed);
+
+            if (!isAuthed && location.pathname.startsWith('/admin')) {
+                const url = new URL('/', location.origin);
+                if (location.search) url.search = location.search;
+                location.replace(url.href);
+                return;
+            }
+
             window.renderAffiliationBadge?.();
         });
 
@@ -131,6 +144,7 @@
         if (window.initializeApp) {
             initializeApp();
         }
+
     </script>
 
     <style>
@@ -186,7 +200,7 @@
 <body class="m-0 p-0">
     <header class="flex items-center gap-4 w-full h-8 sm:h-10 md:h-12 px-2 sm:px-3 md:px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="go('listings.html')" />
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" onclick="go('/admin/listings/')" />
         <div class="relative">
             <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
                     class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
