@@ -17,19 +17,6 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script> 
-        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
-        window.LOGIN_PAGE = 'index.html';
-        const BUCKET = 'listing-images'; //이미지 관련 변수
-        window.BUCKET = 'listing-images'; // 버킷명
-        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
-        // 페이지네이션/좌측 목록 캐시 (초기값)
-        let matchedListingsCache = [];
-        let matchedListingsPage = 0;
-        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
-        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
-        let _imgReqToken = 0;
-    </script>
     <style>
         .image-wm { position: relative; overflow: hidden; }
         .thumb-box { background:#f3f4f6; overflow:hidden; }
@@ -41,8 +28,18 @@
         #image-viewer-slot:empty { display: none; }
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
-
-    <script type="module">
+    <script>
+        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
+        window.LOGIN_PAGE = 'index.html';
+        const BUCKET = 'listing-images'; //이미지 관련 변수
+        window.BUCKET = 'listing-images'; // 버킷명
+        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
+        // 페이지네이션/좌측 목록 캐시 (초기값)
+        let matchedListingsCache = [];
+        let matchedListingsPage = 0;
+        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
+        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
+        let _imgReqToken = 0;
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
