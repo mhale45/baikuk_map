@@ -403,8 +403,8 @@
 
             // (선택) 내부 id→표시명 매핑이 있다면 표시명으로 정규화
             if (window.resolveAgentDisplayName) {
-            const disp = await window.resolveAgentDisplayName(name);
-            if (disp) name = disp.toString().trim();
+                const disp = await window.resolveAgentDisplayName(name);
+                if (disp) name = disp.toString().trim();
             }
             // (선택) 직함/괄호 등 제거가 필요하면 여기서 정리
             name = name.replace(/\s*\([^)]+\)\s*$/, '').trim();
@@ -2191,32 +2191,39 @@
             const currentId = String(window.currentDetailListingId ?? '');
             const targetUnitNorm = normalizeUnit(unitValue);
 
+            // 현재 선택된(또는 기존) 거래유형 확보
+            const targetDealType = (
+                document.getElementById('dealTypeSelect')?.value ||
+                allListings?.[currentId]?.deal_type ||
+                ''
+            ).trim();
+
             // 최소한 시/도, 시/군/구, 읍/면/동은 있어야 의미 있음
             if (!parts.province || !parts.city || !parts.district) return false;
 
             let q = client
-            .from('baikukdbtest')
-            .select('listing_id, unit_info')
-            .eq('province', parts.province)
-            .eq('city', parts.city)
-            .eq('district', parts.district);
+                .from('baikukdbtest')
+                .select('listing_id, unit_info, deal_type') // ★ deal_type 포함
+                .eq('province', parts.province)
+                .eq('city', parts.city)
+                .eq('district', parts.district);
 
-            // detail_address가 입력돼 있으면 동일한 값만 비교
             if (parts.detail_address) {
-            q = q.eq('detail_address', parts.detail_address);
-            } else {
-            // 필요하면 빈값/NULL 처리 범위를 늘려주자 (선택)
-            // q = q.or('detail_address.is.null,detail_address.eq.');
+                q = q.eq('detail_address', parts.detail_address);
             }
+
+            // ★ 현재 deal_type을 알고 있으면 동종만 조회(불필요한 레코드 감소)
+            if (targetDealType) q = q.eq('deal_type', targetDealType);
 
             const { data, error } = await q;
             if (error) return false;
 
             const dupRow = (data || []).find((row) => {
-            const rowUnitNorm = normalizeUnit(row.unit_info);
-            return rowUnitNorm &&
-                    rowUnitNorm === targetUnitNorm &&
-                    String(row.listing_id) !== currentId;
+                const rowUnitNorm = normalizeUnit(row.unit_info);
+                const sameUnit = rowUnitNorm && rowUnitNorm === targetUnitNorm;
+                const differentId = String(row.listing_id) !== currentId;
+                const sameDealType = String(row.deal_type || '').trim() === targetDealType; // ★ 핵심
+                return sameUnit && differentId && sameDealType;
             });
 
             if (dupRow) {
@@ -2538,56 +2545,6 @@
                 window._previewLatLng = { lat: y, lng: x };
 
                 showToast('지도 위치가 업데이트되었습니다.');
-
-                (async () => {
-                    try {
-                        // 1) 로컬에서만 호출 (배포/내부 IP면 스킵)
-                        const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
-                        const API_BASE = window.GRIS_API_BASE || (isLocal ? 'http://localhost:5000' : null);
-
-                        if (!API_BASE) {
-                            console.log('[GRIS] skip on non-local host:', location.hostname);
-                            return;
-                        }
-
-                        // 2) 3초 타임아웃 설정
-                        const controller = new AbortController();
-                        const t = setTimeout(() => controller.abort(), 3000);
-
-                        const res = await fetch(`${API_BASE}/api/gris-start`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ address: fullAddr }), // buildFullAddress() 결과
-                            signal: controller.signal,
-                        }).catch((e) => {
-                            // fetch 자체가 바로 터지는 경우 (ECONNREFUSED 등)
-                            throw e;
-                        });
-
-                        clearTimeout(t);
-
-                        // 3) 응답 처리
-                        const data = await (async () => {
-                            try { return await res.json(); } catch { return {}; }
-                        })();
-
-                        if (res && res.ok) {
-                            console.log('GRIS job started:', data);
-                            showToast('GRIS 원스톱 열기 요청 전송됨', 1600);
-                        } else {
-                            console.warn('GRIS start failed:', res?.status, data);
-                            showToast('GRIS 시작 실패', 2500);
-                        }
-                    } catch (err) {
-                        if (err.name === 'AbortError') {
-                            console.warn('[GRIS] timeout (3s) — skipped');
-                            showToast('GRIS 응답 지연(3초)으로 건너뜀', 2000);
-                        } else {
-                            console.error('GRIS 호출 오류:', err);
-                            showToast('GRIS 호출 오류', 2500);
-                        }
-                    }
-                })();
             } else {
                 showToast('주소를 찾지 못했습니다. 입력값을 확인해주세요.', 3000);
             }
