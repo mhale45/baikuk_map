@@ -59,15 +59,14 @@
         
         // ✅ 배포 서브패스에서도 안전한 이동 유틸
         const BASE = location.pathname.replace(/[^/]*$/, '');
-        const here = (location.pathname.split('/').pop() || 'admin.html');
+        const here = (location.pathname.split('/').pop() || '/admin');
 
-        function go(page) {
-            const targetPath = BASE + page;
-            const targetUrl = new URL(targetPath, location.origin);
-            if (!page.includes('?') && location.search) targetUrl.search = location.search;
+        function go(page){
+            const targetUrl = new URL(page.startsWith('/') ? page : BASE + page, location.origin);
             if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
             location.replace(targetUrl.href);
         }
+
         window.go = go; // (onclick 등에서 쓸 수 있게)
 
         // 버튼 토글 유틸
@@ -2222,7 +2221,7 @@
             showToast('중복매물입니다. 해당 매물로 이동합니다.', 2000);
             setTimeout(() => {
                 if (typeof openDeepLink === 'function') openDeepLink(dupRow.listing_id);
-                else go(`admin.html?id=${dupRow.listing_id}`);
+                else go(`/admin?id=${dupRow.listing_id}`);
             }, 400);
             return true;
             }
