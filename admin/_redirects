@@ -1,0 +1,2 @@
+/admin/listings        /admin/listings.html  200   # /admin/listings 로 들어오면 listings.html을 그대로 서빙(주소 유지)
+/admin/listings.html   /admin/listings/      301!  # .html로 온 요청은 / 붙인 버전으로 영구 리다이렉트
