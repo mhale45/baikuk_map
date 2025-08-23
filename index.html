@@ -65,7 +65,7 @@
 
     // ====== 라우팅/가드 공통 유틸 (index에선 비활성, /admin에서 유효) ======
     const LOGIN_PAGE = 'index.html';
-    const REQUIRE_AUTH = /\/admin(?:\.html)?$/.test(location.pathname); // 현재 페이지가 /admin이면 true
+    const REQUIRE_AUTH = /^\/admin(\/|$)/.test(location.pathname);
 
     function redirectWithMessage(msg) {
       const loginUrl = new URL(LOGIN_PAGE, location.origin);
@@ -126,24 +126,25 @@
       }
     }
 
-    // 세션이 생기면 /admin으로 이동 (index에서만)
+    // index 전용: 세션이 생기면 /admin으로 이동
     client.auth.onAuthStateChange((_event, session) => {
-      refreshSessionBox();
-      if (!REQUIRE_AUTH && session) {
-        // index → admin
-        location.replace('/admin/index.html');
-      }
+        const IS_INDEX_PAGE =
+            !/^\/admin(\/|$)/.test(location.pathname); // 어드민이 아니어야만
+        if (IS_INDEX_PAGE) refreshSessionBox();
+        if (IS_INDEX_PAGE && session) {
+            location.replace('/admin'); // 깔끔하게 /admin으로만
+        }
     });
+
 
     // 초기 상태 동기화
     (async function initIndex(){
-      await refreshSessionBox();
-      // index에서 이미 로그인 상태면 바로 /admin으로
-      if (!REQUIRE_AUTH) {
+        await refreshSessionBox();
         const { data: { session } } = await client.auth.getSession();
-        if (session) location.replace('/admin/index.html');
-      }
+        const IS_INDEX_PAGE = !/^\/admin(\/|$)/.test(location.pathname);
+        if (IS_INDEX_PAGE && session) location.replace('/admin');
     })();
+
 
     // ====== 로그인/로그아웃 UI 로직 ======
     const modal = document.getElementById('login-modal');
