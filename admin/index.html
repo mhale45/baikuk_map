@@ -4747,6 +4747,24 @@
     function renderMatchedListings() {
         if (!Array.isArray(matchedListingsCache)) return;
         const end = matchedListingsPage * PAGE_SIZE;
+
+        const sorted = [...matchedListingsCache].sort((a, b) => {
+            // 1. floor (숫자 비교, 지하층도 숫자로 비교)
+            const floorA = Number(a.floor) || 0;
+            const floorB = Number(b.floor) || 0;
+            if (floorA !== floorB) return floorA - floorB;
+
+            // 2. unit_info (문자열 비교, 없으면 '' 처리)
+            const unitA = (a.unit_info || '').toString();
+            const unitB = (b.unit_info || '').toString();
+            if (unitA !== unitB) return unitA.localeCompare(unitB, 'ko');
+
+            // 3. listing_title (문자열 비교)
+            const titleA = (a.listing_title || '').toString();
+            const titleB = (b.listing_title || '').toString();
+            return titleA.localeCompare(titleB, 'ko');
+        });
+
         const listingsToShow = matchedListingsCache.slice(0, end);             
 
         infoContent.innerHTML = listingsToShow.map(l => {
