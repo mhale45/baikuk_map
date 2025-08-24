@@ -4765,7 +4765,7 @@
             return titleA.localeCompare(titleB, 'ko');
         });
 
-        const listingsToShow = matchedListingsCache.slice(0, end);             
+        const listingsToShow = sorted.slice(0, end);          
 
         infoContent.innerHTML = listingsToShow.map(l => {
             const statusRaw = l.transaction_status || '-';
