@@ -2786,19 +2786,6 @@
             return btn;
         };
 
-        // “전체 해제” 버튼 (선택 모두 비우기)
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.textContent = '전체';
-        clearBtn.className = "px-3 py-2 rounded-full border border-gray-300 text-[13px] font-medium transition mr-0";
-        Object.assign(clearBtn.style, { backgroundColor: DEFAULT_BTN_BG, color: DEFAULT_BTN_TEXT, borderColor: "#d1d5db" });
-        clearBtn.onclick = () => {
-            selectFilterState[field] = [];
-            renderSelectFilter({ containerId, field, label, options });
-            updateFilteredListingsDebounced();
-        };
-        group.appendChild(clearBtn);
-
         // 옵션 버튼들
         options.forEach(opt => group.appendChild(makeBtn(opt, opt)));
 
@@ -5006,7 +4993,6 @@
 
     window.__selectFilterMeta = window.__selectFilterMeta || {};
     window.__selectFilterMeta.transaction_status = {
-        label: '진행상태',
         options: ['진행중', '보류', '계약완료']  // DB에 실제 들어가는 값에 맞게 조정
     };
 
