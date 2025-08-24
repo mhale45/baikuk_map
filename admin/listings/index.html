@@ -70,6 +70,30 @@
       { key: 'roi', min: 'filter-roi-min', max: 'filter-roi-max' }
     ];
 
+    function bindNumericFilterInputs() {
+      filterInputs.forEach(({ key, min, max }) => {
+        const minInput = document.getElementById(min);
+        const maxInput = document.getElementById(max);
+        if (!minInput || !maxInput) {
+          console.warn(`필터 입력을 찾지 못했습니다: ${min}, ${max}`);
+          return;
+        }
+        const updateFilter = () => {
+          const minVal = parseFloat(minInput.value);
+          const maxVal = parseFloat(maxInput.value);
+          filterConditions[key] = {
+            min: Number.isNaN(minVal) ? null : minVal,
+            max: Number.isNaN(maxVal) ? null : maxVal
+          };
+          // 검색 모드가 아닐 때는 현재 목록에 즉시 적용하고 싶으면 아래 두 줄 주석 해제
+          // const final = applyAllFilters(listings);
+          // rerender(final);
+        };
+        minInput.addEventListener('blur', updateFilter);
+        maxInput.addEventListener('blur', updateFilter);
+      });
+    }
+
     filterInputs.forEach(({ key, min, max }) => {
       const minInput = document.getElementById(min);
       const maxInput = document.getElementById(max);
@@ -337,6 +361,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       fetchMoreListings();
       setupScrollTrigger();
+      bindNumericFilterInputs(); 
 
       // ✅ 필터 UI 초기값 설정
       document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
@@ -447,43 +472,12 @@
     });
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
-      const win = window.open(
-        'admin.html?autoclick=open-listing',
-        '_blank',
-        'noopener,noreferrer'  // ← 크기 옵션 빼고 이것만 남기기
-      );
-    });
-
-    // 거래유형, 공개, 거래완료, 대분류 필터링 관련
-    function getSelectedValues(selectId) {
-      const select = document.getElementById(selectId);
-      return Array.from(select.selectedOptions).map(option => option.value);
-    }
-
-    const selectedDealTypes = getSelectedValues("deal-type"); // ['월세', '매매'] 등
-    const selectedPublics = getSelectedValues("is-public"); // ['공개']
-    const selectedStatuses = getSelectedValues("transaction-status"); // ['진행중', '보류']
-    const selectedCategory = getSelectedValues("category"); // 상가, 공장창고, 빌딩, 토지, 주택
-
-    const filteredListings = allListings.filter(listing => {
-      const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
-      const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
-      const matchStatus = selectedStatuses.length === 0 || selectedStatuses.some(status => (listing.transaction_status || '').includes(status));
-      const matchCategory = selectedCategory.length === 0 || selectedCategory.includes(listing.category);
-      return matchDealType && matchIsPublic && matchStatus && matchCategory;
-    });
-
-    document.getElementById("search-button").addEventListener("click", () => {
-      // 위에서 만든 filter 로직 실행 → 필터링된 결과 render
-      renderListings(sortListingsDefault(filteredListings)); // ← 이건 사용자 정의 함수
+      window.open('/admin?autoclick=open-listing', '_blank', 'noopener,noreferrer');
     });
 
     function getCheckedValues(className) {
       return Array.from(document.querySelectorAll(`.${className}:checked`)).map(el => el.value);
     }
-
-
-
 
   </script>
 </head>
@@ -516,7 +510,7 @@
           </div>
         </div>
         <!-- 필터 입력창 영역 -->
-        <div id="fixed-filter-box" class="bg-gray-100 px-4 pt-2 pb-4">
+        <div id="fixed-filter-box2" class="bg-gray-100 px-4 pt-2 pb-4">
           <!-- 제목줄 -->
           <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
             <div class="w-[6rem] text-center">보증금</div>
