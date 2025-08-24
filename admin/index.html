@@ -2242,6 +2242,15 @@
         }
     }
 
+    // 루트(/)로 들어왔고 ?id= 가 있으면 한 번만 /admin으로 넘겨준다.
+    (function () {
+        if (location.pathname === '/' && location.search.includes('id=')) {
+            // 쿼리스트링 그대로 보존
+            location.replace('/admin/' + location.search);
+            return; // 이후 초기화 코드 실행되지 않도록 가드
+        }
+    })();
+
     //호수 확인 관련함수
     function askUnitInfo() {
         return new Promise((resolve) => {
