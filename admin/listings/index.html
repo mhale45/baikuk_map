@@ -338,10 +338,19 @@
             </a>
           </td>
           <td class="p-2 text-base text-right whitespace-nowrap">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" ${listing.is_public ? 'checked' : ''} />
-              <span>${listing.is_public ? '공개' : '비공개'}</span>
-            </label>
+            <div style="
+              ${listing.is_public 
+                ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;'      /* 공개 → 진행중 스타일 */
+                : 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;' /* 비공개 → 계약완료 스타일 */
+              }
+              padding: 2px 8px; 
+              border-radius: 8px; 
+              display: inline-block;
+              font-size: 0.8rem;
+              text-align: center;
+            ">
+              ${listing.is_public ? '공개' : '비공개'}
+            </div>
             <div style="
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
