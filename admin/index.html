@@ -206,12 +206,11 @@
             <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
                     class="ml-[100px] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
         </div>
+        <div id="select-filter-wrap"></div>
         <div id="filter-bar" class="flex flex-row gap-2 items-start mt-2 relative z-[1000]">
             <div id="btn-wrap" class="flex flex-row gap-2"></div>
         </div>
-
         <button id="filter-btns-wrap" class="flex gap-1"></button>
-
         <div class="ml-auto flex items-center gap-2">
             <button id="open-listing-form-btn" class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
                 🏢 매물등록
@@ -2729,6 +2728,101 @@
 
     }
 
+    /*************************
+     * 다중선택 셀렉트 버튼 필터
+     * - filter-btns-wrap와 동일한 버튼 UI
+     * - 값 다중 선택 가능
+     *************************/
+
+    // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
+    const selectFilterState = {}; 
+
+    // 버튼 렌더링
+    function renderSelectFilter({ containerId = 'select-filter-wrap', field, label = '', options = [] }) {
+        const wrap = document.getElementById(containerId);
+        if (!wrap) return;
+
+        // 컨테이너 비우고 라벨 + 버튼 묶음 생성
+        wrap.innerHTML = '';
+        const group = document.createElement('div');
+        group.className = 'flex flex-wrap items-center gap-2';
+
+        if (label) {
+            const title = document.createElement('div');
+            title.className = 'text-[13px] text-gray-700 font-semibold mr-1';
+            title.textContent = label;
+            group.appendChild(title);
+        }
+
+        // 선택 상태 보장
+        if (!Array.isArray(selectFilterState[field])) selectFilterState[field] = [];
+
+        // 버튼 생성 함수
+        const makeBtn = (text, value) => {
+            const isSelected = selectFilterState[field].includes(value);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = isSelected ? '✓ ' + text : text;
+            btn.className = "px-3 py-2 rounded-full border border-gray-300 text-[13px] font-medium transition mr-0";
+            if (isSelected) {
+            Object.assign(btn.style, { 
+                backgroundColor: HIGHLIGHT_COLOR, 
+                color: HIGHLIGHT_TEXT_COLOR, 
+                fontWeight: 'bold', 
+                borderColor: "#eab308" 
+            });
+            } else {
+            Object.assign(btn.style, { 
+                backgroundColor: DEFAULT_BTN_BG, 
+                color: DEFAULT_BTN_TEXT, 
+                fontWeight: 'normal', 
+                borderColor: "#d1d5db" 
+            });
+            }
+
+            btn.onclick = () => {
+            toggleSelectFilter(field, value);
+            };
+            return btn;
+        };
+
+        // “전체 해제” 버튼 (선택 모두 비우기)
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.textContent = '전체';
+        clearBtn.className = "px-3 py-2 rounded-full border border-gray-300 text-[13px] font-medium transition mr-0";
+        Object.assign(clearBtn.style, { backgroundColor: DEFAULT_BTN_BG, color: DEFAULT_BTN_TEXT, borderColor: "#d1d5db" });
+        clearBtn.onclick = () => {
+            selectFilterState[field] = [];
+            renderSelectFilter({ containerId, field, label, options });
+            updateFilteredListingsDebounced();
+        };
+        group.appendChild(clearBtn);
+
+        // 옵션 버튼들
+        options.forEach(opt => group.appendChild(makeBtn(opt, opt)));
+
+        wrap.appendChild(group);
+    }
+
+    // 토글 동작
+    function toggleSelectFilter(field, value) {
+        if (!Array.isArray(selectFilterState[field])) selectFilterState[field] = [];
+        const arr = selectFilterState[field];
+        const idx = arr.indexOf(value);
+        if (idx >= 0) arr.splice(idx, 1); else arr.push(value);
+        // UI 다시 그림
+        renderSelectFilter({
+            containerId: 'select-filter-wrap',
+            field,
+            // label, options은 마지막 렌더 시 전달된 걸 기억하지 못하므로,
+            // 아래 init 예시처럼 매번 같은 파라미터로 호출해 주는 것이 안전합니다.
+            label: window.__selectFilterMeta?.[field]?.label || '',
+            options: window.__selectFilterMeta?.[field]?.options || []
+        });
+        // 필터 재적용
+        updateFilteredListingsDebounced();
+    }
 
     function renderDealAndCategoryButtons() {
         const btnWrap = document.getElementById('btn-wrap');
@@ -4568,7 +4662,15 @@
                 if (!isNaN(minVal) && l[dbKey] < minVal) return false;
                 if (!isNaN(maxVal) && l[dbKey] > maxVal) return false;
             }
-            
+
+            // ⬇️ 다중선택 셀렉트 필터 적용 (이제 l을 참조 가능)
+            for (const [field, selectedValues] of Object.entries(selectFilterState)) {
+                if (Array.isArray(selectedValues) && selectedValues.length > 0) {
+                    const cur = (l[field] ?? '').toString().trim();
+                    if (!selectedValues.includes(cur)) return false;
+                }
+            }
+
             return true;
         });
     }
@@ -4901,6 +5003,20 @@
         }, 120);
         }
     });
+
+    window.__selectFilterMeta = window.__selectFilterMeta || {};
+    window.__selectFilterMeta.transaction_status = {
+        label: '진행상태',
+        options: ['진행중', '보류', '계약완료']  // DB에 실제 들어가는 값에 맞게 조정
+    };
+
+    renderSelectFilter({
+        containerId: 'select-filter-wrap',   // 원하는 div id
+        field: 'transaction_status',         // 테이블 컬럼명 그대로
+        label: window.__selectFilterMeta.transaction_status.label,
+        options: window.__selectFilterMeta.transaction_status.options
+    });
+
 
     const setupControlButtons = () => {
         document.getElementById('btn-zoom-in').onclick = () => map.setLevel(map.getLevel() - 1);
