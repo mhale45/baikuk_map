@@ -388,7 +388,7 @@
         if (!row) return '';
         const safe = (v) => (v ?? '').toString().trim() || '-';
         return `<div class="mt-4 border-t pt-3">
-            <div class="text-[13px] leading-6 text-gray-700"><div>${safe(row.affiliation)}
+            <div class="leading-5 text-gray-700"><div>${safe(row.affiliation)}
             </div><div>${safe(row.office_name)}
             </div><div>${safe(row.full_address)}
             </div><div>${safe(row.contact_number)}
@@ -1060,7 +1060,7 @@
                     <td class="py-2 text-gray-800 pl-3">${listing.approved_date ?? ''}</td>
                 </tr>
                 </tbody>
-            </table></div><div id="branch-info-slot" class="px-4 pb-6 text-sm"></div>`;
+            </table></div><div id="branch-info-slot" class="px-4 pb-6 text-xs"></div>`;
 
         // 스크롤/표시
         detailContent.scrollTop = 0;
