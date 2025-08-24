@@ -32,38 +32,6 @@
         // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
         const selectFilterState = {}; 
         selectFilterState['transaction_status'] = ['진행중'];
-    </script>
-    <style>
-        .image-wm { position: relative; overflow: hidden; }
-        .thumb-box { background:#f3f4f6; overflow:hidden; }
-        .thumb-img-contain { width:100%; height:100%; object-fit: contain; object-position:center; background:#fff; }
-        .no-save {
-            -webkit-user-drag: none; user-select: none; -webkit-user-select: none;
-            -ms-user-select: none; -webkit-touch-callout: none;
-        }
-        #image-viewer-slot:empty { display: none; }
-        #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
-    </style>
-
-    <script>
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        
-        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-        
-        // 🔧 세션 영구 유지 + 자동 갱신
-        window.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-        });
-
-        // ✅ 이후 코드는 client로만 사용(혼용 방지)
-        const client = window.supabase;
-        window.client = client;
-        
-        // ✅ 배포 서브패스에서도 안전한 이동 유틸
-        const BASE = location.pathname.replace(/[^/]*$/, '');
-        const here = (location.pathname.split('/').pop() || '/admin');
-
         function go(page){
             const targetUrl = new URL(page.startsWith('/') ? page : BASE + page, location.origin);
             if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
@@ -141,6 +109,37 @@
 
         // 실행
         runAdminGuardOnce();
+    </script>
+    <style>
+        .image-wm { position: relative; overflow: hidden; }
+        .thumb-box { background:#f3f4f6; overflow:hidden; }
+        .thumb-img-contain { width:100%; height:100%; object-fit: contain; object-position:center; background:#fff; }
+        .no-save {
+            -webkit-user-drag: none; user-select: none; -webkit-user-select: none;
+            -ms-user-select: none; -webkit-touch-callout: none;
+        }
+        #image-viewer-slot:empty { display: none; }
+        #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
+    </style>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+        
+        // 🔧 세션 영구 유지 + 자동 갱신
+        window.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+
+        // ✅ 이후 코드는 client로만 사용(혼용 방지)
+        const client = window.supabase;
+        window.client = client;
+        
+        // ✅ 배포 서브패스에서도 안전한 이동 유틸
+        const BASE = location.pathname.replace(/[^/]*$/, '');
+        const here = (location.pathname.split('/').pop() || '/admin');
 
         // 앱 초기화 (인증 등)
         if (window.initializeApp) {
