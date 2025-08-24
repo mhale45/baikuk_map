@@ -341,11 +341,10 @@
           <td class="flex flex-col p-2 text-base text-right whitespace-nowrap">
             <div style="
               ${listing.is_public 
-                ? 'background-color: #ffffff; color: #00b74a; font-weight: bold; border: 1.5px solid #00b74a;'   /* 공개: 초록 */
-                : 'background-color: #ffffff; color: rgba(247,63,87); font-weight: 900; border: 1.5px solid rgba(247,63,87);' /* 비공개: 빨강 */
+                ? 'background-color: #ffffff; color: #00b74a; font-weight: bold; border: 1.5px solid #00b74a; border-radius: 9999px;'   /* 공개: 초록 pill */
+                : 'background-color: #ffffff; color: rgba(247,63,87); font-weight: 900; border: 1.5px solid rgba(247,63,87); border-radius: 9999px;' /* 비공개: 빨강 pill */
               }
-              padding: 2px 8px; 
-              border-radius: 8px; 
+              padding: 2px 12px; 
               display: inline-block;
               font-size: 0.8rem;
               text-align: center;
