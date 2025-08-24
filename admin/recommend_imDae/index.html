@@ -243,6 +243,15 @@
     </div>
   </div>  
   <script type="module">
+    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    (async () => {
+      const { data, error } = await client.auth.getSession();
+      if (!data?.session) {
+        console.warn("로그인 세션 없음 → /index.html로 이동");
+        location.replace("/index.html");
+      }
+    })();
+
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const supabase = createClient(
