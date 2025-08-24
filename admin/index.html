@@ -45,7 +45,7 @@
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
 
-    <script type="module">
+    <script>
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
@@ -2454,7 +2454,6 @@
             history[replace ? 'replaceState' : 'pushState']({}, '', url);
         } catch (_) {}
     }
-
 
     // openDeepLink 교체 (두 번째 인자 skipUrl=false 추가)
     async function openDeepLink(listingId, skipUrl = false) {
