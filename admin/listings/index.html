@@ -71,6 +71,20 @@
     ];
 
     // 스크립트 시작부분
+
+    function normalizePublic(v) {
+      // 불리언/숫자/문자열 전부 안전하게 '공개' / '비공개'로 통일
+      if (v === true || v === 1 || v === '1' || v === 'true' || v === 'TRUE') return '공개';
+      if (v === false || v === 0 || v === '0' || v === 'false' || v === 'FALSE') return '비공개';
+      if (typeof v === 'string') {
+        const s = v.trim();
+        if (s.includes('공개')) return '공개';
+        if (s.includes('비공개')) return '비공개';
+      }
+      // 애매하면 비공개로 취급(원하면 '공개'로 바꿔도 OK)
+      return '비공개';
+    }
+
     // ✅ admin URL을 항상 '/admin' 형태로 만들어 주는 헬퍼
     function makeAdminUrl(params = {}) {
       const u = new URL('/admin', location.origin);
@@ -146,7 +160,7 @@
       maxInput.addEventListener('blur', updateFilter);
     });
 
-
+    
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
       deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
@@ -242,8 +256,8 @@
         const matchDealType = selectedDealTypes.length === 0 
           || selectedDealTypes.includes(listing.deal_type);
 
-        const matchIsPublic = selectedPublics.length === 0 
-          || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
+        const matchIsPublic = selectedPublics.length === 0
+          || selectedPublics.includes(normalizePublic(listing.is_public));
 
         const normStatus = normalizeStatus(listing.transaction_status);
         const matchStatus = selectedStatuses.length === 0 
@@ -344,10 +358,16 @@
             </a>
           </td>
           <td class="p-2 text-base text-right whitespace-nowrap">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" ${listing.is_public ? 'checked' : ''} />
-              <span>${listing.is_public ? '공개' : '비공개'}</span>
-            </label>
+            ${(() => {
+              const pub = normalizePublic(listing.is_public);
+              const checkedAttr = pub === '공개' ? 'checked' : '';
+              return `
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" ${checkedAttr} />
+                  <span>${pub}</span>
+                </label>
+              `;
+            })()}
             <div style="
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
@@ -417,6 +437,10 @@
       fetchMoreListings();
       setupScrollTrigger();
       bindNumericFilterInputs(); 
+
+      // ✅ 필터 UI 초기값 설정
+      document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
+      document.querySelector('input.category-checkbox[value="상가"]').checked = true;
 
       // 검색 입력 요소들
       const searchButton = document.getElementById('search-button');
