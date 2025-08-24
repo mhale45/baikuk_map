@@ -101,47 +101,62 @@
           return;
         }
         const updateFilter = () => {
-          const minVal = parseFloat(minInput.value);
-          const maxVal = parseFloat(maxInput.value);
+          let minVal = parseFloat(minInput.value);
+          let maxVal = parseFloat(maxInput.value);
+          if (key === 'roi') {
+            if (!Number.isNaN(minVal)) minVal = minVal / 100; // % → 소수
+            if (!Number.isNaN(maxVal)) maxVal = maxVal / 100;
+          }
           filterConditions[key] = {
             min: Number.isNaN(minVal) ? null : minVal,
             max: Number.isNaN(maxVal) ? null : maxVal
           };
-          // 검색 모드가 아닐 때는 현재 목록에 즉시 적용하고 싶으면 아래 두 줄 주석 해제
-          // const final = applyAllFilters(listings);
-          // rerender(final);
         };
         minInput.addEventListener('blur', updateFilter);
         maxInput.addEventListener('blur', updateFilter);
       });
     }
 
+
     filterInputs.forEach(({ key, min, max }) => {
       const minInput = document.getElementById(min);
       const maxInput = document.getElementById(max);
 
       const updateFilter = () => {
-        const minVal = parseFloat(minInput.value);
-        const maxVal = parseFloat(maxInput.value);
+        let minVal = parseFloat(minInput.value);
+        let maxVal = parseFloat(maxInput.value);
+
+        // ROI는 % 단위 입력 → 소수로 변환
+        if (key === 'roi') {
+          if (!Number.isNaN(minVal)) minVal = minVal / 100;
+          if (!Number.isNaN(maxVal)) maxVal = maxVal / 100;
+        }
+
         filterConditions[key] = {
-          min: isNaN(minVal) ? null : minVal,
-          max: isNaN(maxVal) ? null : maxVal
+          min: Number.isNaN(minVal) ? null : minVal,
+          max: Number.isNaN(maxVal) ? null : maxVal
         };
-        applyAllFilters?.();
+
+        // 목록 즉시 반영 (원하면 주석 해제)
+        // const final = applyAllFilters(listings);
+        // rerender(final);
       };
 
       minInput.addEventListener('blur', updateFilter);
       maxInput.addEventListener('blur', updateFilter);
     });
+
     
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
+      deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
       premium_price: { min: null, max: null },
       monthly_rent: { min: null, max: null },
       area_py: { min: null, max: null },
       sale_price: { min: null, max: null },
-      roi: { min: null, max: null }
+      roi: { min: null, max: null } // ✅ ROI는 소수 단위
     };
+
 
     // 정렬 관련 함수
     function sortListingsDefault(list) {
@@ -199,30 +214,48 @@
 
     // 필터 적용함수
     function applyAllFilters(dataToFilter) {
-      const selectedDealTypes = getCheckedValues("deal-type-checkbox");
-      const selectedPublics = getCheckedValues("is-public-checkbox");
-      const selectedStatuses = getCheckedValues("transaction-status-checkbox");
+      const selectedDealTypes  = getCheckedValues("deal-type-checkbox");
+      const selectedPublics    = getCheckedValues("is-public-checkbox");
+      const selectedStatuses   = getCheckedValues("transaction-status-checkbox");
       const selectedCategories = getCheckedValues("category-checkbox");
 
-      const filtered = dataToFilter.filter(listing => {
+      const normalizeStatus = (raw) => {
+        const s = (raw || '').trim();
+        if (!s) return '-';
+        if (s.includes('진행중'))   return '진행중';
+        if (s.includes('보류'))     return '보류';
+        if (s.includes('계약완료')) return '계약완료';
+        return '-';
+      };
+
+      return dataToFilter.filter(listing => {
+        // 숫자 필터
         const numericMatch = Object.entries(filterConditions).every(([key, { min, max }]) => {
           const value = parseFloat(listing[key]);
-          if (isNaN(value)) return true;
+          if (Number.isNaN(value)) return true;
           if (min != null && value < min) return false;
           if (max != null && value > max) return false;
           return true;
         });
 
-        const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
-        const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
-        const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(listing.transaction_status || '-');
-        const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(listing.category || '-');
+        // 체크박스 필터
+        const matchDealType = selectedDealTypes.length === 0 
+          || selectedDealTypes.includes(listing.deal_type);
+
+        const matchIsPublic = selectedPublics.length === 0 
+          || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
+
+        const normStatus = normalizeStatus(listing.transaction_status);
+        const matchStatus = selectedStatuses.length === 0 
+          || selectedStatuses.includes(normStatus);
+
+        const matchCategory = selectedCategories.length === 0 
+          || selectedCategories.includes(listing.category || '-');
 
         return numericMatch && matchDealType && matchIsPublic && matchStatus && matchCategory;
       });
-
-      return filtered;
     }
+
 
     // 카테고리 선택시 휠 없어지면 추가로 매물로딩 관련함수
     function checkAndFetchIfNoScroll() {
