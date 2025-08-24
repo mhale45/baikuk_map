@@ -52,7 +52,7 @@
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
-  
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -356,7 +356,7 @@
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
                 : (listing.transaction_status || '').includes('보류') 
-                  ? 'background-color: #d2f4ef; color: #00b0ad; font-weight: bold;' 
+                  ? 'background-color: #e5e7eb; color: #000000; font-weight: bold;'
                   : (listing.transaction_status || '').includes('계약완료') 
                     ? 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;' 
                     : 'background-color: #e5e7eb; color: #374151;'}
