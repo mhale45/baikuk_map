@@ -3112,6 +3112,7 @@
             ownerphonenumber: getVal('ownerphonenumber'),
             ownergender: getVal('ownergender'),
             store_category: getVal('store_category') || original.store_category || '-',
+            is_public: document.getElementById('is_public')?.checked ? '공개' : '비공개',
         };
 
         // 1. baikukdbtest 업데이트
