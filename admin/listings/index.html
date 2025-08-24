@@ -60,7 +60,7 @@
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
-    
+
     // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
     (async () => {
       const { data, error } = await client.auth.getSession();
@@ -392,7 +392,7 @@
               ${listing.listing_title || '-'}
             </a>
           </td>
-          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city}<br />${listing.district} ${listing.detail_address}</td>
+          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city} ${listing.district} ${listing.detail_address}</td>
           <td class="p-2 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
           <td class="p-2 text-base"><div id="scroll-cell-${listing.listing_id}" class="max-w-[6rem] overflow-x-auto whitespace-nowrap">${listing.unit_info || '-'}</div></td>
           <td class="p-2 text-right text-base">${formatNumber(listing.floor)}층</td>
