@@ -2439,15 +2439,22 @@
 
     function updateURLForListing(listingId, replace = false) {
         const url = new URL(location.href);
-        if (url.pathname !== '/admin/' && url.pathname !== '/admin') { // ✅ 항상 /admin 으로 경로 고정 (쿼리는 아래에서 세팅)
+
+        // ✅ /admin.html, /admin/index.html, /admin → 전부 /admin/ 으로 통일
+        if (!url.pathname.startsWith('/admin')) {
+            url.pathname = '/admin/';
+        } else if (url.pathname === '/admin.html' || url.pathname === '/admin/index.html') {
             url.pathname = '/admin/';
         }
+
         if (listingId) url.searchParams.set('id', String(listingId));
         else url.searchParams.delete('id');
+
         try {
             history[replace ? 'replaceState' : 'pushState']({}, '', url);
         } catch (_) {}
     }
+
 
     // openDeepLink 교체 (두 번째 인자 skipUrl=false 추가)
     async function openDeepLink(listingId, skipUrl = false) {
@@ -4651,7 +4658,7 @@
         window.location.replace(location.origin);
     }
 
-    
+
     function getFilterValues() {
         const values = {};
         filterDefs.forEach(def => {
