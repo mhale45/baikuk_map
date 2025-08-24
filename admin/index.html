@@ -2826,8 +2826,7 @@
             renderSelectFilter({
                 containerId: 'select-filter-wrap',
                 field: 'transaction_status',
-                label: window.__selectFilterMeta?.transaction_status?.label || '진행상태',
-                options: window.__selectFilterMeta?.transaction_status?.options || ['진행중', '계약완료', '-']
+                options: window.__selectFilterMeta?.transaction_status?.options || ['진행중', '보류', '계약완료']
             });
         }
     }
