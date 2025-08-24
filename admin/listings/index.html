@@ -146,7 +146,7 @@
       maxInput.addEventListener('blur', updateFilter);
     });
 
-    
+
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
       deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
@@ -417,10 +417,6 @@
       fetchMoreListings();
       setupScrollTrigger();
       bindNumericFilterInputs(); 
-
-      // ✅ 필터 UI 초기값 설정
-      document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
-      document.querySelector('input.category-checkbox[value="상가"]').checked = true;
 
       // 검색 입력 요소들
       const searchButton = document.getElementById('search-button');
