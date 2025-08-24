@@ -51,21 +51,6 @@
         const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
         
-        // 루트에서만, 그리고 id 파라미터가 있을 때만 /admin 으로 보냄
-        (function () {
-            if (window.__redirecting) return;
-            window.__redirecting = true;
-
-            const p = location.pathname.replace(/\/+/g, '/');
-            const qs = new URLSearchParams(location.search);
-            // 루트(혹은 /index.html) + id 있을 때만 /admin/?id=...로 이동
-            if ((p === '/' || p === '/index.html') && qs.has('id')) {
-                location.replace('/admin/?' + location.search.slice(1));
-                return;
-            }
-            window.__redirecting = false;
-        })();
-        
         // 🔧 세션 영구 유지 + 자동 갱신
         window.supabase = createClient(supabaseUrl, supabaseKey, {
             auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -2257,15 +2242,6 @@
         }
     }
 
-    // 루트(/)로 들어왔고 ?id= 가 있으면 한 번만 /admin으로 넘겨준다.
-    (function () {
-        if (location.pathname === '/' && location.search.includes('id=')) {
-            // 쿼리스트링 그대로 보존
-            location.replace('/admin/' + location.search);
-            return; // 이후 초기화 코드 실행되지 않도록 가드
-        }
-    })();
-
     //호수 확인 관련함수
     function askUnitInfo() {
         return new Promise((resolve) => {
@@ -2454,9 +2430,6 @@
 
     function updateURLForListing(listingId, replace = false) {
         const url = new URL(location.href);
-        if (url.pathname !== '/admin/' && url.pathname !== '/admin') { // ✅ 항상 /admin 으로 경로 고정 (쿼리는 아래에서 세팅)
-            url.pathname = '/admin/';
-        }
         if (listingId) url.searchParams.set('id', String(listingId));
         else url.searchParams.delete('id');
         try {
@@ -4130,31 +4103,28 @@
             await populateStaffSelect('agent_name', listing.agent_name || '');
         }
 
-        // 업무일지 영역 추가 (중복 방지)
-        document.getElementById('work-log-section')?.remove();   // ← 이미 있으면 제거
-
+        // 업무일지 영역 추가
         const workLogContainer = document.createElement("div");
-        workLogContainer.id = "work-log-section";                // ← 고유 id 부여
         workLogContainer.className = "px-4 pb-4";
-        workLogContainer.innerHTML = `
+        workLogContainer.innerHTML = `                      
             <div class="flex flex-row items-start gap-2">
                 <div class="flex flex-col items-center gap-3.3 pb-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-800 font-semibold mb-2">업무일지</span>
-                </div>
-                <button id="worklog-save-btn" class="bg-[#F2C130] text-white text-sm px-4 py-1 rounded hover:bg-yellow-400">저장</button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-800 font-semibold mb-2">업무일지</span>
+                    </div>
+                    <button id="worklog-save-btn" class="bg-[#F2C130] text-white text-sm px-4 py-1 rounded hover:bg-yellow-400">저장</button>
                 </div>    
                 <div class="flex items-center gap-8 pb-2">                                    
-                <div class="flex flex-col items-start gap-1">
-                    <textarea
-                    id="textarea-worklog"
-                    class="border border-gray-300 rounded px-3 py-1 text-sm w-[25.3rem] h-[4rem] resize-none"
-                    placeholder="업무일지내용"
-                    ></textarea>
-                </div>
+                    <div class="flex flex-col items-start gap-1">
+                        <textarea
+                            id="textarea-worklog"
+                            class="border border-gray-300 rounded px-3 py-1 text-sm w-[25.3rem] h-[4rem] resize-none"
+                            placeholder="업무일지내용"
+                        ></textarea>
+                    </div>
                 </div> 
             </div>
-        <div id="work-log-content" class="text-sm text-gray-300 leading-tight">불러오는 중...</div>
+            <div id="work-log-content" class="text-sm text-gray-300 leading-tight">불러오는 중...</div>
         `;
         content.appendChild(workLogContainer);
 
@@ -4662,14 +4632,8 @@
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
 
     async function logout() {
-        try { await client.auth.signOut(); } catch (_) {}
-
-        // deep-link / 플래그류 초기화(혹시 있다면)
-        try { sessionStorage.removeItem('redirected_from_root'); } catch(_) {}
-        window.__redirecting = false;
-
-        // 쿼리 없이 루트로 이동 (id가 절대 붙지 않도록)
-        location.replace('/');
+        await client.auth.signOut();
+        window.location.replace(location.origin);
     }
 
     function getFilterValues() {
@@ -4984,6 +4948,20 @@
 
         const deepId = getListingIdFromURL();
         if (deepId) await openDeepLink(deepId);   // ✅ URL에 id 있으면 바로 열기
+
+        // ✅ 여기 교체!
+        (async () => {
+            const idFromUrl = getListingIdFromURL();
+            if (idFromUrl) {
+            try {
+                await ensureListingLoaded(idFromUrl);  // 먼저 메모리에 보장
+                await showDetailPanel(idFromUrl);      // 그 다음 상세 패널 오픈
+            } catch (e) {
+                console.error(e);
+                showToast('URL의 매물 정보를 불러오지 못했습니다.');
+            }
+            }
+        })();
         
         renderDealFields();
         const listing = allListings?.[window.currentDetailListingId];
