@@ -17,99 +17,6 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script> 
-        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
-        window.LOGIN_PAGE = 'index.html';
-        const BUCKET = 'listing-images'; //이미지 관련 변수
-        window.BUCKET = 'listing-images'; // 버킷명
-        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
-        // 페이지네이션/좌측 목록 캐시 (초기값)
-        let matchedListingsCache = [];
-        let matchedListingsPage = 0;
-        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
-        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
-        let _imgReqToken = 0;
-        // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
-        const selectFilterState = {}; 
-        selectFilterState['transaction_status'] = ['진행중'];
-        function go(page){
-            const targetUrl = new URL(page.startsWith('/') ? page : BASE + page, location.origin);
-            if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
-            location.replace(targetUrl.href);
-        }
-
-        window.go = go; // (onclick 등에서 쓸 수 있게)
-
-        // 버튼 토글 유틸
-        function toggleAuthButtons(has) {
-            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
-            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
-        }
-
-        // ── Auth 가드: 논블로킹 + 타임아웃 ──────────────────────────
-
-        // getSession이 지연돼도 화면이 멈추지 않도록 타임아웃 적용
-        async function getSessionNonBlocking(timeoutMs = 1500) {
-            const TIMEOUT = new Promise((resolve) =>
-                setTimeout(() => resolve('__TIMEOUT__'), timeoutMs)
-            );
-            try {
-                const res = await Promise.race([
-                client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
-                TIMEOUT
-                ]);
-                return res; // null | session | '__TIMEOUT__'
-            } catch {
-                return null;
-            }
-        }
-
-        // 초기 1회: 세션 없으면 (관리영역이면) 루트로, 세션 있으면 버튼/뱃지 세팅
-        async function runAdminGuardOnce() {
-            const session = await getSessionNonBlocking(1500);
-
-            if (session === '__TIMEOUT__') {
-                console.warn('[auth] getSession timeout → continue rendering and check later');
-                toggleAuthButtons(false); // 일단 비로그인 UI로
-                return;
-            }
-
-            const isAuthed = !!session;
-            toggleAuthButtons(isAuthed);
-
-            // /admin 하위 경로에서 비로그인 → 루트로
-            if (!isAuthed && location.pathname.startsWith('/admin')) {
-                const url = new URL('/', location.origin);
-                // 쿼리스트링을 보존하고 싶으면 유지
-                if (location.search) url.search = location.search;
-                location.replace(url.href);
-                return;
-            }
-
-            // 배지 렌더 (DOM 준비 후 1회)
-            document.addEventListener('DOMContentLoaded', () => {
-                window.renderAffiliationBadge?.();
-            });
-        }
-
-        // 상태 변화: 로그아웃 시 (관리영역이면) 루트로, 로그인 시 UI/뱃지 갱신
-        client.auth.onAuthStateChange((_evt, session) => {
-            const isAuthed = !!session;
-            toggleAuthButtons(isAuthed);
-
-            if (!isAuthed && location.pathname.startsWith('/admin')) {
-                const url = new URL('/', location.origin);
-                if (location.search) url.search = location.search;
-                location.replace(url.href);
-                return;
-            }
-
-            window.renderAffiliationBadge?.();
-        });
-
-        // 실행
-        runAdminGuardOnce();
-    </script>
     <style>
         .image-wm { position: relative; overflow: hidden; }
         .thumb-box { background:#f3f4f6; overflow:hidden; }
@@ -121,7 +28,6 @@
         #image-viewer-slot:empty { display: none; }
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
-
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
@@ -136,18 +42,95 @@
         // ✅ 이후 코드는 client로만 사용(혼용 방지)
         const client = window.supabase;
         window.client = client;
-        
-        // ✅ 배포 서브패스에서도 안전한 이동 유틸
+    </script>
+    <script> 
+        // 전역 설정
+        window.REQUIRE_AUTH = true;
+        window.LOGIN_PAGE = 'index.html';
+        window.BUCKET = 'listing-images';
+        window.BUCKET_IS_PUBLIC = false;
+
+        let matchedListingsCache = [];
+        let matchedListingsPage = 0;
+        let _prewarmDoneOnce = false;
+        let lastPrewarmHash = null;
+        let _imgReqToken = 0;
+
+        // 다중선택 초기값
+        const selectFilterState = {};
+        selectFilterState['transaction_status'] = ['진행중'];
+
+        // 배포 서브패스에서도 안전한 이동 유틸
         const BASE = location.pathname.replace(/[^/]*$/, '');
         const here = (location.pathname.split('/').pop() || '/admin');
 
-        // 앱 초기화 (인증 등)
-        if (window.initializeApp) {
-            initializeApp();
+        if (window.initializeApp) initializeApp();
+
+        function go(page){
+            const targetUrl = new URL(page.startsWith('/') ? page : BASE + page, location.origin);
+            if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
+            location.replace(targetUrl.href);
+        }
+        window.go = go;
+
+        function toggleAuthButtons(has) {
+            document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
+            document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
         }
 
-    </script>
+        async function getSessionNonBlocking(timeoutMs = 1500) {
+            const TIMEOUT = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), timeoutMs));
+            try {
+                const res = await Promise.race([
+                    client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
+                    TIMEOUT
+            ]);
+            return res; // null | session | '__TIMEOUT__'
+            } catch {
+                return null;
+            }
+        }
 
+        async function runAdminGuardOnce() {
+            const session = await getSessionNonBlocking(1500);
+
+            if (session === '__TIMEOUT__') {
+                console.warn('[auth] getSession timeout → continue rendering and check later');
+                toggleAuthButtons(false);
+                return;
+            }
+
+            const isAuthed = !!session;
+            toggleAuthButtons(isAuthed);
+
+            if (!isAuthed && location.pathname.startsWith('/admin')) {
+                const url = new URL('/', location.origin);
+                if (location.search) url.search = location.search;
+                location.replace(url.href);
+                return;
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+            window.renderAffiliationBadge?.();
+            });
+        }
+
+        client.auth.onAuthStateChange((_evt, session) => {
+            const isAuthed = !!session;
+            toggleAuthButtons(isAuthed);
+
+            if (!isAuthed && location.pathname.startsWith('/admin')) {
+                const url = new URL('/', location.origin);
+                if (location.search) url.search = location.search;
+                location.replace(url.href);
+                return;
+            }
+
+            window.renderAffiliationBadge?.();
+        });
+
+        runAdminGuardOnce();
+    </script>
     <style>
         :root {
             --header-height: 3.5rem;
