@@ -4767,19 +4767,29 @@
 
         const listingsToShow = sorted.slice(0, end);          
 
-        infoContent.innerHTML = listingsToShow.map(l => {
+        infoContent.innerHTML = listingsToShow.map((l, idx, arr) => {
             const statusRaw = l.transaction_status || '-';
             const status = statusRaw.trim().split(' ')[0];
             let bgStyle = 'background-color: #d1d5db; color: #37373d;';
             if (status === '진행중') bgStyle = 'background-color: #d9fae6; color: #00b74a;';
             else if (status === '계약완료') bgStyle = 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;';
-            
+
             const isActive = String(window.currentDetailListingId).trim() === String(l.listing_id).trim();
             const highlightStyle = isActive ? 'background-color: rgba(243,244,246);' : '';
             const logo = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/baikuk-simbol.png';
 
+            // 🔑 바로 이전 매물과 floor 비교
+            const prev = arr[idx - 1];
+            const prevFloor = prev ? Number(prev.floor) || 0 : null;
+            const currFloor = Number(l.floor) || 0;
+
+            // 층이 바뀌면 border 두껍게
+            const borderStyle = (idx > 0 && prevFloor !== currFloor)
+                ? 'border-b-4 border-gray-400'
+                : 'border-b border-gray-300';
+
             return `
-                <div class="mb-1 pb-1 border-b border-gray-300 text-left" style="${highlightStyle};">
+                <div class="mb-1 pb-1 ${borderStyle} text-left" style="${highlightStyle};">
                     <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
                         <div class="flex flex-row items-center gap-3">
                             <div class="relative w-[140px] h-[100px]">
@@ -4799,7 +4809,9 @@
                                 <div class="flex items-center gap-2">
                                     <div class="flex flex-row items-center">
                                         <div class="flex items-center gap-5 leading-[1.4]">
-                                            <strong class="text-[15px] text-gray-800 max-w-[280px]" title="${l.listing_title}">${l.listing_title.length > 40 ? l.listing_title.slice(0, 40) + '⋯' : l.listing_title}</strong>
+                                            <strong class="text-[15px] text-gray-800 max-w-[280px]" title="${l.listing_title}">
+                                                ${l.listing_title.length > 40 ? l.listing_title.slice(0, 40) + '⋯' : l.listing_title}
+                                            </strong>
                                         </div>
                                     </div>
                                 </div>
@@ -4807,7 +4819,11 @@
                                     <div class="flex flex-row justify-between items-start">
                                         <div class="flex items-start gap-2">
                                             <div class="flex-1 text-left font-bold text-[rgb(80,152,233)] text-base">
-                                                ${l.deal_type} ${l.deal_type === "매매" ? ` ${formatKoreanMoney(l.sale_price)}` : l.deal_type === "월세" ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}` : ""}
+                                                ${l.deal_type} ${
+                                                    l.deal_type === "매매" ? ` ${formatKoreanMoney(l.sale_price)}` 
+                                                    : l.deal_type === "월세" ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}` 
+                                                    : ""
+                                                }
                                             </div>
                                         </div>                                        
                                         <div class="text-right font-bold text-[rgb(248,63,87)] text-base whitespace-nowrap">
@@ -4825,7 +4841,6 @@
                                                     : ''
                                             }
                                         </div>
-
                                     </div>
                                     <div class="flex-1 text-[16px]">
                                         <strong class="font-semibold">${l.floor < 0 ? `B${Math.abs(l.floor)}` : `${l.floor}`}</strong>/${l.total_floors}층
@@ -4838,6 +4853,7 @@
                     </div>
                 </div>`;
         }).join('');
+
 
         // ▼ 새로 그려진 썸네일들에 대표사진 적용
         const ids = listingsToShow.map(l => l.listing_id);
