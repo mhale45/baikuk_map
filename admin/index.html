@@ -29,6 +29,9 @@
         let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
         let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
         let _imgReqToken = 0;
+        // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
+        const selectFilterState = {}; 
+        selectFilterState['transaction_status'] = ['진행중'];
     </script>
     <style>
         .image-wm { position: relative; overflow: hidden; }
@@ -2734,8 +2737,6 @@
      * - 값 다중 선택 가능
      *************************/
 
-    // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
-    const selectFilterState = {}; 
 
     // 버튼 렌더링
     function renderSelectFilter({ containerId = 'select-filter-wrap', field, label = '', options = [] }) {
@@ -4991,6 +4992,7 @@
         }
     });
 
+    // 진행중, 보류, 계약완료 선택 필터링 관련
     window.__selectFilterMeta = window.__selectFilterMeta || {};
     window.__selectFilterMeta.transaction_status = {
         options: ['진행중', '보류', '계약완료']  // DB에 실제 들어가는 값에 맞게 조정
@@ -5002,7 +5004,6 @@
         label: window.__selectFilterMeta.transaction_status.label,
         options: window.__selectFilterMeta.transaction_status.options
     });
-
 
     const setupControlButtons = () => {
         document.getElementById('btn-zoom-in').onclick = () => map.setLevel(map.getLevel() - 1);
