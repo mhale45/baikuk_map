@@ -52,6 +52,7 @@
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
+  
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -337,7 +338,7 @@
               ${listing.listing_id}
             </a>
           </td>
-          <td class="p-2 text-base text-right whitespace-nowrap">
+          <td class="flex flex-col p-2 text-base text-right whitespace-nowrap">
             <div style="
               ${listing.is_public 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;'      /* 공개 → 진행중 스타일 */
