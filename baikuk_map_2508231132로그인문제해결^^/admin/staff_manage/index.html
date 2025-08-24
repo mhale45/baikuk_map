@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>직원정보</title>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.MY_AUTHORITY = null;
+    window.IS_STAFF = false;
+  </script>
+  <style>
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+    th.resizable {
+      position: relative;
+      min-width: 40px;
+      white-space: nowrap;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 0.4rem;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+      background-color: transparent;
+    }
+  </style>
+  <script>
+    window.STAFF_BASE_ROWS = [];
+  </script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://sfinbtiqlfnaaarziixu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+    );
+
+    window.supabase = supabase; // 전역으로 접근
+    window.FORM_MODE = 'create';
+    window.CURRENT_EDIT_USER_ID = null;
+  </script>
+</head>
+<body class="w-screen">
+  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
+    메시지 영역
+  </div>
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC%EC%82%AC%EB%AC%B4%EC%86%8C%20%EA%B8%80%EC%94%A8%EB%A7%8C.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()"/>
+  </div>
+  <div class="flex min-h-screen">
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+      <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
+      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
+      <a href="/admin/staff_manage/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+    </div>
+    <div class="w-[93%] flex flex-col bg-gray-100 p-6 overflow-x-auto">
+      <div class="mt-[4rem]">
+        <div class="w-[70rem]">
+          <div class="flex">
+            <button id="toggle-edit-btn" onclick="openSignupPanel()" class="mr-10 mb-[0.5rem] h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded">
+              회원가입
+            </button>
+            <!-- 👇 부서 필터 입력창 -->
+            <input id="filter-aff" type="text"
+                  placeholder="부서 필터"
+                  class="mb-2 h-[2rem] px-2 py-1 border rounded text-sm w-[7rem]" />
+          </div>
+          <table id="staffTable" class="bg-white rounded shadow overflow-hidden">
+            <thead>
+              <tr class="bg-gray-200 text-center text-sm font-semibold text-gray-700">
+                <th class="px-1 py-1 w-[5rem]">이름</th>
+                <th class="px-1 py-1 w-[6.5rem]">부서</th>
+                <th class="px-1 py-1 w-[4rem]">직급</th>
+                <th class="px-1 py-1 w-[5rem]">권한</th>
+                <th class="px-1 py-1 w-[4rem]">성별</th>
+                <th class="px-1 py-1 w-[7rem]">생일</th>
+                <th class="px-1 py-1 w-[7rem]">입사일</th>
+                <th id="th-leave-date" class="px-1 py-1 w-[7rem]">퇴사일</th>
+                <th class="px-1 py-1 w-[9rem]">전화번호</th>
+                <th class="px-1 py-1 w-[8rem]">내선번호</th>
+                <th id="th-max-sessions" class="px-1 py-1 w-[6rem]">로그인기기</th>
+              </tr>
+            </thead>
+            <tbody id="staffTableBody" class="text-sm text-gray-800">
+              <!-- 여기에 데이터가 채워질 예정 -->
+            </tbody>
+          </table>
+        </div>        
+        <!-- 회원가입 패널 -->
+        <div id="signupPanel" class="fixed top-0 right-0 h-full w-[28rem] bg-white shadow-lg transform translate-x-full transition-transform duration-300 z-[9999]">
+          <div class="flex items-center justify-between px-4 py-3 border-b">
+            <h2 class="text-lg font-bold">계정정보</h2>
+            <button onclick="closeSignupPanel()" class="text-gray-500 hover:text-red-500">✖</button>
+          </div>
+          <div class="p-4 space-y-4 text-sm">
+            <input type="text" id="signup-name" placeholder="이름" class="w-[16rem] border p-2 rounded" />
+            <input type="email" id="signup-email" placeholder="이메일" class="w-[16rem] border p-2 rounded" />
+            <div>
+              <input type="password" id="signup-password"
+                placeholder="비밀번호"
+                class="flex-1 w-[16rem] border p-2 rounded" />
+              <button id="reset-password-btn" class="w-[16rem] bg-gray-100 text-gray-700 py-2 rounded border hover:bg-gray-200" onclick="sendResetPasswordEmail()">
+                비밀번호 이메일 재설정 버튼
+              </button>
+            </div>
+            <!-- 새 비밀번호 입력 + 변경 버튼 (편집모드 전용) -->
+            <div id="pw-row" class="mt-2 space-y-2 hidden">
+              <input type="password" id="new-password" placeholder="새 비밀번호"
+                    class="w-[16rem] border p-2 rounded" />
+              <button id="btn-change-password"
+                      class="w-[16rem] bg-red-500 text-white py-2 rounded hover:bg-red-600">
+                비밀번호 변경
+              </button>
+              <p class="text-xs text-gray-500">
+                * 관리자: 모두 변경 가능 / 지점장: 같은 부서만 / 직원: 불가
+              </p>
+            </div>
+            <!-- ⬇️⬇️ 광고 계정 정보 (편집/가입 공용) ⬇️⬇️ -->
+            <div id="ad-rows" class="mt-3 space-y-2">
+              <div class="flex items-center gap-2">
+                <label for="signup-ad-channel" class="w-[6rem] text-gray-600">광고채널</label>
+                <input id="signup-ad-channel" type="text" class="w-[16rem] border p-2 rounded"
+                      placeholder="예: 한경 / 매경 / 뱅크 .." />
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label for="signup-ad-account-id" class="w-[6rem] text-gray-600">광고계정 ID</label>
+                <input id="signup-ad-account-id" type="text" class="w-[16rem] border p-2 rounded"
+                      placeholder="아이디" autocomplete="off" />
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label for="signup-ad-account-pw" class="w-[6rem] text-gray-600">광고계정 PW</label>
+                <div class="flex items-center gap-2">
+                  <input id="signup-ad-account-pw" type="password" class="w-[16rem] border p-2 rounded"
+                        placeholder="비밀번호" autocomplete="new-password" />
+                  <button type="button" id="toggle-ad-pw" class="text-xs px-2 py-1 border rounded">보기</button>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-5">
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1">
+                  직급: 
+                </div>
+                <select id="signup-position" class="w-[7.5rem] border rounded">
+                  <option value="">선택</option>
+                  <option value="실장">실장</option>
+                  <option value="팀장">팀장</option>
+                  <option value="부장">부장</option>
+                  <option value="대표">대표</option>
+                </select>
+              </div>
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1 mr-[1.5rem]">
+                  부서: 
+                </div>
+                <select id="signup-affiliation" class="w-[7.5rem] border rounded">
+                  <option value="">선택</option>
+                  <option value="일산본점">일산본점</option>
+                  <option value="파주목동점">파주목동점</option>
+                  <option value="파주야당점">파주야당점</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-5">
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1">
+                  권한: 
+                </div>
+                <select id="signup-authority" class="w-[7.5rem] border rounded">
+                  <option value="">선택</option>
+                  <option value="직원">직원</option>
+                  <option value="지점장">지점장</option>
+                  <option value="관리자">관리자</option>
+                </select>
+              </div>
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1 mr-[1.5rem]">
+                  성별: 
+                </div>
+                <select id="signup-gender" class="w-[7.5rem] border rounded">
+                  <option value="">선택</option>
+                  <option value="남">남</option>
+                  <option value="여">여</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-5">
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1">
+                  생일: 
+                </div>
+                <input type="date" id="signup-birth" placeholder="생일" class="border p-1 rounded" />
+              </div>
+            </div>
+            <div class="flex gap-5">
+              <div class="flex">
+                <div class="mr-[0.5rem] p-1">
+                  입사일: 
+                </div>
+                <input type="date" id="signup-join" placeholder="입사일" class="border p-1 rounded" />
+              </div>
+              <div id="row-leave-date" class="flex">
+                <div class="mr-[0.5rem] p-1">
+                  퇴사일:
+                </div>
+                <input type="date" id="signup-leave" placeholder="퇴사일" class="border p-1 rounded" />
+              </div>
+            </div>
+            <!-- 로그인기기(최대) -->
+            <div class="flex items-center gap-3">
+              <label for="signup-max-sessions" class="w-[5rem]">로그인기기:</label>
+              <input
+                type="number"
+                id="signup-max-sessions"
+                placeholder="예: 2"
+                class="border p-1 rounded w-[3rem]"
+                min="1" max="10" step="1"
+              />
+              <span class="text-xs text-gray-500">최대 동시 로그인 기기 수</span>
+            </div>
+            <input type="text" id="signup-phone" placeholder="010-9199-1944" class="w-full border p-1 rounded" />
+            <input type="text" id="signup-extension" placeholder="031-988-8555" class="w-full border p-1 rounded" />
+            <button data-role="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+              가입하기
+            </button>
+          </div>
+        </div>
+      </div>      
+    </div>
+  </div>  
+  <script>
+    window.openSignupPanel = function () {
+      window.FORM_MODE = 'create';
+      window.CURRENT_EDIT_USER_ID = null;
+      document.getElementById('signup-email').disabled = false;
+      document.getElementById('signupPanel').classList.remove('translate-x-full');
+      document.getElementById('signup-password')?.classList.remove('hidden');
+      document.getElementById('reset-password-btn')?.classList.add('hidden');
+
+      // 버튼 라벨/핸들러 전환
+      const btn = document.querySelector('#signupPanel button[data-role="submit"]');
+      btn.textContent = '가입하기';
+      btn.onclick = submitSignup;  // 기존 가입 함수
+      resetSignupForm();
+      applyUiByAuthority();
+    };
+
+    window.openEditPanel = function (staff) {
+      window.FORM_MODE = 'edit';
+      window.CURRENT_EDIT_USER_ID = staff.user_id;
+      document.getElementById('signup-password')?.classList.add('hidden'); // 또는 disabled = true
+      document.getElementById('reset-password-btn')?.classList.remove('hidden');
+      document.getElementById('signupPanel').classList.remove('translate-x-full');
+
+      // 값 채우기
+      document.getElementById('signup-name').value        = staff.name || '';
+      document.getElementById('signup-email').value       = staff.email || '';
+      document.getElementById('signup-password').value    = ''; // 보안상 비움
+      document.getElementById('signup-position').value    = staff.position || '';
+      document.getElementById('signup-affiliation').value = staff.affiliation || '';
+      document.getElementById('signup-authority').value   = staff.authority || '';
+      document.getElementById('signup-gender').value      = staff.gender || '';
+      document.getElementById('signup-birth').value       = staff.birth_date || '';
+      document.getElementById('signup-join').value        = staff.join_date || '';
+      document.getElementById('signup-phone').value       = staff.phone_num || '';
+      document.getElementById('signup-extension').value   = staff.extension || '';
+      document.getElementById('signup-max-sessions').value = (staff.max_sessions ?? '');
+      document.getElementById('signup-ad-channel').value     = staff.ad_channel || '';
+      document.getElementById('signup-ad-account-id').value  = staff.ad_account_id || '';
+      document.getElementById('signup-ad-account-pw').value  = staff.ad_account_pw || '';
+
+      // 이메일은 Auth와 연결되니 수정 금지(권장)
+      document.getElementById('signup-email').disabled = true;
+
+      // 버튼 라벨/핸들러 전환
+      const btn = document.querySelector('#signupPanel button[data-role="submit"]');
+      btn.textContent = '저장하기';
+      btn.onclick = updateStaff;  // 아래 새 함수
+      applyUiByAuthority();
+
+      // 이메일 비활성화 등 기존 코드들...
+      const allowed = canChangePasswordFor(staff);
+      const row = document.getElementById('pw-row');
+      row?.classList.toggle('hidden', !allowed);
+
+      // 클릭 핸들러 바인딩(중복 바인딩 방지용으로 먼저 기존 핸들러 제거)
+      const btn_change_password = document.getElementById('btn-change-password');
+      if (btn_change_password) {
+        const newBtn = btn_change_password.cloneNode(true);
+        btn_change_password.parentNode.replaceChild(newBtn, btn_change_password);
+        newBtn.addEventListener('click', () => changePasswordForCurrentEditUser(staff));
+      }
+
+      applyUiByAuthority();
+    };
+    
+    // 스크립트 시작
+
+    // 관리자, 지점장 다른 직원 비번 변경
+    async function changePasswordForCurrentEditUser(staff) {
+      const allowed = canChangePasswordFor(staff);
+      if (!allowed) { showToast('비밀번호 변경 권한이 없습니다.'); return; }
+      
+      // 세션 만료 방지: 호출 직전에 확인
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showToast('로그인이 만료되었습니다. 다시 로그인 후 시도해주세요.'); return; }
+
+      const newPwInput = document.getElementById('new-password');
+      const newPw = (newPwInput?.value || '').trim();
+      if (!newPw || newPw.length < 6) { showToast('비밀번호는 6자 이상으로 입력하세요.'); return; }
+
+      // ⛔️ 버튼 연타 방지
+      const btn = document.getElementById('btn-change-password');
+      btn.disabled = true;
+      const prev = btn.textContent;
+      btn.textContent = '변경 중...';
+
+      try {
+        // ✅ 엣지 함수 호출 (supabase-js v2)
+        const { data, error } = await supabase.functions.invoke('admin-update-password', {
+          body: { user_id: staff.user_id, new_password: newPw }
+          // invoke는 현재 로그인 세션의 access token을 자동으로 Authorization 헤더에 넣어줍니다.
+        });
+
+        if (error) throw error;
+        showToast('비밀번호가 변경되었습니다.');
+        newPwInput.value = '';
+      } catch (e) {
+        console.error(e);
+        const msg = (typeof e?.message === 'string' && e.message) || '비밀번호 변경 실패';
+        showToast(msg);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
+    }
+
+    // 비번 변경 허용 여부 함수
+    function canChangePasswordFor(staff) {
+      const myAuth = window.MY_AUTHORITY;
+      const myAff  = window.MY_AFFILIATION;
+
+      if (myAuth === '관리자') return true;
+      if (myAuth === '지점장') return staff.affiliation === myAff; // 같은 부서만
+      return false; // 직원은 불가 (현재 UI에서 패널 자체가 안 열림)
+    }
+
+    // 리스트 정렬 관련
+    // 권한 우선순위(원하면 자유롭게 바꾸세요)
+    const AUTH_RANK = { '관리자': 1, '지점장': 0, '직원': 2 };
+    const collateKo = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
+
+    function dateMs(d) {
+      if (!d) return Number.MAX_SAFE_INTEGER; // 날짜 없으면 맨 뒤로
+      const t = new Date(d).getTime();
+      return Number.isFinite(t) ? t : Number.MAX_SAFE_INTEGER;
+    }
+
+    // 부서 → 권한 → 입사일(오래된 순) 정렬
+    function sortStaff(rows = []) {
+      return [...rows].sort((a, b) => {
+        // ✅ 1) 퇴사 여부 먼저 비교 (퇴사자는 항상 아래)
+        const aResigned = String(a.leave_date ?? '').trim() !== '';
+        const bResigned = String(b.leave_date ?? '').trim() !== '';
+        if (aResigned !== bResigned) {
+          return aResigned ? 1 : -1;  // a가 퇴사면 아래로
+        }
+
+        // ✅ 2) 기존 정렬 유지
+        const aAff = a.affiliation || '';
+        const bAff = b.affiliation || '';
+        const byAff = collateKo.compare(aAff, bAff);
+        if (byAff !== 0) return byAff;
+
+        const ar = AUTH_RANK[a.authority] ?? 99;
+        const br = AUTH_RANK[b.authority] ?? 99;
+        if (ar !== br) return ar - br;
+
+        const at = dateMs(a.join_date);
+        const bt = dateMs(b.join_date);
+        return at - bt;
+      });
+    }
+
+
+    // 표 렌더
+    function renderStaffTable(rows) {
+      const tbody = document.getElementById('staffTableBody');
+      tbody.innerHTML = '';
+
+      (rows || []).forEach(staff => {
+        const row = document.createElement('tr');
+
+        const isResigned = String(staff.leave_date ?? '').trim() !== '';
+        row.classList.add('hover:bg-gray-100');
+
+        if (isResigned) {
+          row.classList.add('bg-gray-100', 'opacity-80');
+          row.classList.remove('hover:bg-gray-100');
+          row.classList.add('hover:bg-gray-200');
+        }
+
+        // ⬇️ 권한에 따른 클릭 허용/차단 표시
+        const permitted = canOpenEditFor(staff);
+        row.style.cursor = permitted ? 'pointer' : 'not-allowed';
+        if (!permitted) row.classList.add('opacity-70');
+
+        row.innerHTML = `
+          <td class="px-4 py-2" data-col="name">${staff.name ?? ''}</td>
+          <td class="px-4 py-2" data-col="affiliation">${staff.affiliation ?? ''}</td>
+          <td class="px-4 py-2" data-col="position">${staff.position ?? ''}</td>
+          <td class="px-4 py-2" data-col="authority">${staff.authority ?? ''}</td>
+          <td class="px-4 py-2" data-col="gender">${staff.gender ?? ''}</td>
+          <td class="px-4 py-2" data-col="birth_date">${staff.birth_date ?? ''}</td>
+          <td class="px-4 py-2" data-col="join_date">${staff.join_date ?? ''}</td>
+          <td class="px-4 py-2 td-leave-date" data-col="leave_date">${staff.leave_date ?? ''}</td>
+          <td class="px-4 py-2" data-col="phone_num">${staff.phone_num ?? ''}</td>
+          <td class="px-4 py-2" data-col="extension">${staff.extension ?? ''}</td>
+          <td class="px-4 py-2 td-max-sessions" data-col="max_sessions">${staff.max_sessions ?? ''}</td>
+        `;
+
+        // ⬇️ 클릭 가드: 권한 불가면 토스트만, 허용이면 패널 오픈
+        row.addEventListener('click', () => {
+          if (!canOpenEditFor(staff)) {
+            showToast(denyReason(staff));
+            return;
+          }
+          openEditPanel(staff);
+        });
+
+        tbody.appendChild(row);
+      });
+
+      applyUiByAuthority();
+    }
+
+    // 부서 필터 적용
+    function applyAffFilter() {
+      const q = (document.getElementById('filter-aff')?.value || '').trim().toLowerCase();
+      if (!q) { renderStaffTable(window.STAFF_BASE_ROWS); return; }
+
+      // 스페이스/콤마로 다중 키워드 지원 (모두 포함 조건: AND)
+      const tokens = q.split(/[,\s]+/).filter(Boolean);
+      const filtered = window.STAFF_BASE_ROWS.filter(r => {
+        const aff = (r.affiliation ?? '').toString().toLowerCase();
+        return tokens.every(t => aff.includes(t));
+      });
+      renderStaffTable(sortStaff(filtered));
+    }
+    
+    // 권한에 따라 UI 숨김/비활성화 적용
+    function applyUiByAuthority() {
+      const myAuth = window.MY_AUTHORITY;
+      const isStaff = (myAuth === '직원');
+      const canSeeSensitive = (myAuth === '관리자' || myAuth === '지점장');
+
+      // 로그인기기 토글 (기존)
+      document.getElementById('th-max-sessions')?.classList.toggle('hidden', isStaff);
+      document.querySelectorAll('.td-max-sessions').forEach(td => td.classList.toggle('hidden', isStaff));
+
+      // ✅ 퇴사일 행(패널) 토글 (기존)
+      document.getElementById('row-leave-date')?.classList.toggle('hidden', !canSeeSensitive);
+      const leaveInput = document.getElementById('signup-leave');
+      if (leaveInput) leaveInput.disabled = !canSeeSensitive;
+
+      // ✅ 테이블의 퇴사일 헤더/셀 토글 (새로 추가)
+      document.getElementById('th-leave-date')?.classList.toggle('hidden', !canSeeSensitive);
+      document.querySelectorAll('.td-leave-date').forEach(td => td.classList.toggle('hidden', !canSeeSensitive));
+
+      // 직원이면 회원가입 버튼 숨김 (기존)
+      document.getElementById('toggle-edit-btn')?.classList.toggle('hidden', isStaff);
+    }
+
+    // 내 권한 불러와서 플래그 설정 + UI 적용
+    async function initAuthorityUi() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: me } = await supabase
+        .from('staff_profiles')
+        .select('authority, affiliation')  // ⬅️ affiliation 추가
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      window.MY_AUTHORITY   = me?.authority ?? null;
+      window.MY_AFFILIATION = me?.affiliation ?? null; // ⬅️ 추가
+      window.IS_STAFF = (window.MY_AUTHORITY === '직원');
+      applyUiByAuthority();
+    }
+
+    // 
+    function canOpenEditFor(staff) {
+      const myAuth = window.MY_AUTHORITY;
+      const myAff  = window.MY_AFFILIATION;
+
+      if (myAuth === '관리자') return true;                  // 모두 허용
+      if (myAuth === '지점장') return staff.affiliation === myAff; // 같은 부서만
+      if (myAuth === '직원')   return false;                 // 모두 금지
+      return false; // 그 외 불명확한 권한은 보수적으로 차단
+    }
+
+    // 권한 안내메세지
+    function denyReason(staff) {
+      const myAuth = window.MY_AUTHORITY;
+      const myAff  = window.MY_AFFILIATION;
+      if (myAuth === '직원') return '직원 권한은 계정정보 창을 열 수 없습니다.';
+      if (myAuth === '지점장' && staff.affiliation !== myAff)
+        return `지점장은 본인 부서(${myAff}) 직원만 열람할 수 있습니다.`;
+      return '열람 권한이 없습니다.';
+    }
+
+
+
+    async function updateStaff() {
+      if (window.FORM_MODE !== 'edit' || !CURRENT_EDIT_USER_ID) {
+        showToast('수정할 대상을 찾을 수 없습니다.');
+        return;
+      }
+
+      const myAuth = window.MY_AUTHORITY;
+      const canSeeSensitive = (myAuth === '관리자' || myAuth === '지점장');
+      const isStaff = (myAuth === '직원');
+
+      // ✅ 직원은 저장 불가 (서버 요청 자체 차단)
+      if (isStaff) {
+        showToast('직원 권한은 계정정보를 저장할 수 없습니다.');
+        return;
+      }
+
+      const emptyToNull = v => (v === '' || v === undefined ? null : v);
+
+      // max_sessions 정수 처리
+      const maxRaw = (document.getElementById('signup-max-sessions').value || '').trim();
+      const maxParsed = maxRaw === '' ? null : Number.parseInt(maxRaw, 10);
+      if (maxParsed !== null && (!Number.isInteger(maxParsed) || maxParsed < 1 || maxParsed > 10)) {
+        showToast('로그인기기 수는 1~10 사이의 정수로 입력해주세요.');
+        return;
+      }
+
+      // ✅ payload 먼저 만들기
+      const payload = {
+        name:        document.getElementById('signup-name').value.trim(),
+        position:    emptyToNull(document.getElementById('signup-position').value),
+        affiliation: emptyToNull(document.getElementById('signup-affiliation').value),
+        authority:   emptyToNull(document.getElementById('signup-authority').value),
+        gender:      emptyToNull(document.getElementById('signup-gender').value),
+        birth_date:  emptyToNull(document.getElementById('signup-birth').value),
+        join_date:   emptyToNull(document.getElementById('signup-join').value),
+        phone_num:   emptyToNull(document.getElementById('signup-phone').value),
+        extension:   emptyToNull(document.getElementById('signup-extension').value),
+        max_sessions: maxParsed,
+        // 퇴사일은 입력값만 일단 싣고, 아래에서 권한별로 최종 반영
+        leave_date:  emptyToNull(document.getElementById('signup-leave')?.value || null),
+        ad_channel:      emptyToNull(document.getElementById('signup-ad-channel').value),
+        ad_account_id:   emptyToNull(document.getElementById('signup-ad-account-id').value),
+        ad_account_pw:   emptyToNull(document.getElementById('signup-ad-account-pw').value),
+      };
+
+      // 직원은 로그인기기/퇴사일 변경 불가
+      if (isStaff) {
+        delete payload.max_sessions;
+        delete payload.leave_date;
+      } else {
+        // 관리자/지점장 외에는 퇴사일 불가
+        if (!canSeeSensitive) delete payload.leave_date;
+      }
+
+      const { error } = await supabase
+        .from('staff_profiles')
+        .update(payload)
+        .eq('user_id', window.CURRENT_EDIT_USER_ID);
+
+      if (error) {
+        console.error(error);
+        showToast(`저장 실패: ${error.message}`);
+        return;
+      }
+
+      showToast('저장되었습니다.');
+      closeSignupPanel();
+      fetchStaffProfiles();
+      FORM_MODE = 'create';
+      CURRENT_EDIT_USER_ID = null;
+    }
+
+    window.closeSignupPanel = function () {
+      document.getElementById('signupPanel').classList.add('translate-x-full');
+    };
+
+    window.showToast = function (message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+
+      // 스타일 직접 지정
+      toast.style.backgroundColor = '#F2C130';
+      toast.style.color = 'black';
+      toast.style.fontWeight = 'bold';
+      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
+
+      toast.classList.remove('hidden');
+
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    };
+
+    window.submitSignup = async function () {
+      const name        = document.getElementById('signup-name').value.trim();
+      const email       = document.getElementById('signup-email').value.trim();
+      const password    = document.getElementById('signup-password').value;
+      const position    = document.getElementById('signup-position').value;
+      const affiliation = document.getElementById('signup-affiliation').value;
+      const authority   = document.getElementById('signup-authority').value;
+      const gender      = document.getElementById('signup-gender').value;
+      const birth_date  = document.getElementById('signup-birth').value;
+      const join_date   = document.getElementById('signup-join').value;
+      const phone_num   = document.getElementById('signup-phone').value;
+      const extension   = document.getElementById('signup-extension').value;
+      const maxRaw = (document.getElementById('signup-max-sessions').value || '').trim();
+      const maxParsed = maxRaw === '' ? null : Number.parseInt(maxRaw, 10);
+      if (maxParsed !== null && (!Number.isInteger(maxParsed) || maxParsed < 1 || maxParsed > 10)) {
+        showToast('로그인기기 수는 1~10 사이의 정수로 입력해주세요.');
+        return;
+      }
+
+      if (!email || !password || !name) {
+        showToast('이메일, 비밀번호, 이름은 필수입니다.');
+        return;
+      }
+
+      // 0) 현재 로그인/내 프로필
+      const { data: { user: sessionUser } } = await supabase.auth.getUser();
+      if (!sessionUser) { showToast('로그인이 필요합니다.'); return; }
+
+      const { data: me, error: meErr } = await supabase
+        .from('staff_profiles')
+        .select('authority, affiliation')
+        .eq('user_id', sessionUser.id)
+        .single();
+
+      if (meErr || !me) { showToast('내 권한 정보를 불러오지 못했습니다.'); return; }
+
+      // 1) 권한 검증 (통과 못하면 auth.signUp 호출 자체를 안 함)
+      const isAdmin   = me.authority === '관리자';
+      const isManager = me.authority === '지점장';
+
+      if (!isAdmin) {
+        if (isManager) {
+          if (authority !== '직원') {
+            showToast('지점장은 "직원" 권한만 생성할 수 있습니다.');
+            return;
+          }
+          if (affiliation !== me.affiliation) {
+            showToast(`지점장은 본인 부서(${me.affiliation})만 생성할 수 있습니다.`);
+            return;
+          }
+        } else {
+          showToast('직원 권한은 다른 계정을 생성할 수 없습니다.');
+          return;
+        }
+      }
+
+      // 2) staff_profiles에서 이메일 중복 검사 (먼저)
+      const { data: dup, error: dupErr } = await supabase
+        .from('staff_profiles')
+        .select('user_id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (dupErr) {
+        console.error(dupErr);
+        showToast('이메일 중복 확인 중 오류가 발생했습니다.');
+        return;
+      }
+      if (dup) {
+        showToast('이미 등록된 이메일입니다. 다른 이메일을 입력해 주세요.');
+        return;
+      }
+
+      // 3) 여기서만 Supabase Auth에 사용자 생성 시도
+      const { data: signUpData, error: signUpErr } =
+        await supabase.auth.signUp({ email, password });
+
+      if (signUpErr) {
+        const msg = signUpErr.message?.toLowerCase() || '';
+        if (msg.includes('already') && msg.includes('registered')) {
+          showToast('이미 가입된 이메일입니다. 다른 이메일을 입력해 주세요.');
+        } else if (msg.includes('password')) {
+          showToast('비밀번호 조건을 확인해 주세요. (최소 6자 이상)');
+        } else {
+          showToast(`회원가입 실패: ${signUpErr.message}`);
+        }
+        return;
+      }
+
+      const newUserId = signUpData?.user?.id || signUpData?.session?.user?.id;
+      if (!newUserId) {
+        showToast('가입 메일을 확인한 뒤 다시 시도해 주세요.');
+        return;
+      }
+
+      // helper: 빈 문자열을 null로
+      const emptyToNull = v => (v === '' || v === undefined ? null : v);
+
+      // 4) staff_profiles insert (RLS가 서버에서 한 번 더 검증)
+      const profileData = {
+        user_id: newUserId,
+        name: name.trim(),                 // 이름은 trim만
+        email,                             // text OK
+        position:    emptyToNull(position),
+        affiliation: emptyToNull(affiliation),
+        authority:   emptyToNull(authority),
+        gender:      emptyToNull(gender),
+        birth_date:  emptyToNull(birth_date), // ← '' -> null (DATE)
+        join_date:   emptyToNull(join_date),  // ← '' -> null (DATE)
+        phone_num:   emptyToNull(phone_num),
+        extension:   emptyToNull(extension),
+        max_sessions: maxParsed,
+        ad_channel:     emptyToNull(document.getElementById('signup-ad-channel').value),
+        ad_account_id:  emptyToNull(document.getElementById('signup-ad-account-id').value),
+        ad_account_pw:  emptyToNull(document.getElementById('signup-ad-account-pw').value),
+      };
+
+      const { error: insertErr } = await supabase.from('staff_profiles').insert(profileData);
+      if (insertErr) {
+        console.error(insertErr);
+        showToast(`프로필 저장 실패: ${insertErr.message}`);
+        return;
+      }
+
+      showToast('회원가입 완료!');
+      closeSignupPanel();
+      fetchStaffProfiles();
+      resetSignupForm();
+    };
+
+    window.resetSignupForm = function () {
+      ['signup-name','signup-email','signup-password',
+      'signup-position','signup-affiliation','signup-authority',
+      'signup-gender','signup-birth','signup-join',
+      'signup-phone','signup-extension',
+      'signup-max-sessions',
+      'signup-ad-channel','signup-ad-account-id','signup-ad-account-pw'
+      ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    };
+
+    // 위에서 설정한 supabase 객체를 사용합니다.
+    async function fetchStaffProfiles() {
+      const isStaff = (window.MY_AUTHORITY === '직원');
+
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select(`
+          user_id,
+          name,
+          email,
+          affiliation,
+          position,
+          authority,
+          gender,
+          birth_date,
+          join_date,
+          leave_date,
+          phone_num,
+          extension,
+          max_sessions,
+          ad_channel,
+          ad_account_id,
+          ad_account_pw
+        `)
+        .order('name', { ascending: true });
+
+
+      if (error) {
+        console.error('데이터 불러오기 오류:', error);
+        showToast('직원 데이터를 불러오는데 실패했습니다.');
+        return;
+      }
+
+      // 직원이면 퇴사자 제외(leave_date null/공백만 표시)
+      const base = isStaff
+        ? (data || []).filter(r => (r.leave_date ?? '').toString().trim() === '')
+        : (data || []);
+
+      window.STAFF_BASE_ROWS = sortStaff(base); // 기본정렬
+
+      // 첫 렌더는 현재 입력값 반영해서
+      applyAffFilter();
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showToast('로그인이 필요합니다.'); return; }
+
+      await initAuthorityUi();
+      await fetchStaffProfiles();
+      applyUiByAuthority();
+      resetSignupForm();
+
+      // 부서 필터 실시간 반영
+      document.getElementById('filter-aff')?.addEventListener('input', applyAffFilter);
+
+      document.getElementById('toggle-ad-pw')?.addEventListener('click', () => {
+        const el = document.getElementById('signup-ad-account-pw');
+        el.type = (el.type === 'password') ? 'text' : 'password';
+      });
+
+    });
+
+    // 비밀번호 재설정 동작
+    window.sendResetPasswordEmail = async function () {
+      const email = (document.getElementById('signup-email')?.value || '').trim();
+      if (!email) { showToast('이메일이 없습니다.'); return; }
+
+      // 🔧 Supabase Auth → 비번 재설정 메일 발송
+      // Auth 설정의 Site URL / Redirect URL 허용 목록에 아래 redirectTo를 등록해 두세요.
+      const redirectTo = location.origin + '/index.html'; // 원하는 페이지로 교체 가능
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error) {
+        showToast('재설정 메일 발송 실패: ' + error.message);
+      } else {
+        showToast('재설정 메일을 보냈습니다.');
+      }
+    };
+
+  </script>
+
+</body>
+</html>
