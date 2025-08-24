@@ -249,24 +249,16 @@
       return enrichedData;
     }
 
-    // ✅ 항상 "https://도메인/admin?id=123" 형태의 절대 URL을 반환
-    function adminUrlWithId(id) {
-      const u = new URL('/admin', window.location.origin);
-      u.searchParams.set('id', String(id));
-      return u.toString();
-    }
-
     function renderListings(data) {
       const tbody = document.getElementById('listings-body');
       data.forEach(listing => {
-        const detailHref = adminUrlWithId(listing.listing_id);
         const row = document.createElement('tr');
         row.dataset.listingId = listing.listing_id; // ✅ 클릭용 ID 저장
         row.className = 'border-b border-gray-300 bg-white hover:bg-gray-50 cursor-pointer';
 
         row.innerHTML = `
           <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
-            <a href="${detailHref}"
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_id}
@@ -302,7 +294,7 @@
             </div>
           </td>
           <td class="p-2 font-bold text-lg whitespace-normal break-words">
-            <a href="${detailHref}"
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_title || '-'}
@@ -429,7 +421,7 @@
       const tbody = document.getElementById('listings-body');
 
       function goToListing(id) {
-        const href = adminUrlWithId(id);
+        const href = `/?id=${encodeURIComponent(id)}`;
         // 항상 새 탭
         window.open(href, '_blank', 'noopener,noreferrer');
       }
@@ -455,11 +447,13 @@
     });
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
-      const url = new URL('/admin', window.location.origin);
-      url.searchParams.set('autoclick', 'open-listing'); // 유지
-      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+      const win = window.open(
+        'admin.html?autoclick=open-listing',
+        '_blank',
+        'noopener,noreferrer'  // ← 크기 옵션 빼고 이것만 남기기
+      );
     });
-    
+
     // 거래유형, 공개, 거래완료, 대분류 필터링 관련
     function getSelectedValues(selectId) {
       const select = document.getElementById(selectId);
@@ -605,7 +599,7 @@
                   <th class="p-2 border-r text-sm text-center w-[4.54rem]">매물번호</th>
                   <th class="p-2 border-r text-sm text-center w-[5rem]">상태</th>
                   <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div></th>
-                  <th class="p-2 border-r text-sm text-center w-[10.5rem]">주소</th>
+                  <th class="p-2 border-r text-sm text-center w-[10rem]">주소</th>
                   <th class="p-2 border-r text-sm text-center w-[9rem]">건물정보</th>
                   <th class="p-2 border-r text-sm text-center">호수</th>
                   <th class="p-2 border-r text-sm text-center w-[3rem]">층</th>
