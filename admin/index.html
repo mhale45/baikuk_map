@@ -4755,8 +4755,8 @@
             if (floorA !== floorB) return floorA - floorB;
 
             // 2. unit_info (문자열 비교, 없으면 '' 처리)
-            const unitA = (a.unit_info || '').toString();
-            const unitB = (b.unit_info || '').toString();
+            const unitA = a.unit_info ? a.unit_info.toString() : '~';  // 없는 건 맨 뒤로
+            const unitB = b.unit_info ? b.unit_info.toString() : '~';
             if (unitA !== unitB) return unitA.localeCompare(unitB, 'ko');
 
             // 3. listing_title (문자열 비교)
@@ -4891,7 +4891,7 @@
             // 1. 주요 매물 데이터 조회
             const { data: listings, error: listingError } = await client
                 .from(tableToQuery)
-                .select('listing_id, lat, lng, listing_title, deal_type, deposit_price, monthly_rent, sale_price, total_deposit, total_rent, premium_price, roi, floor, total_floors, area_py, supply_area_py, area_m2, supply_area_m2, category, transaction_status, is_public, province, city, district, detail_address, addr_compare, primary_image_path')
+                .select('listing_id, lat, lng, listing_title, deal_type, deposit_price, monthly_rent, sale_price, total_deposit, total_rent, premium_price, roi, floor, unit_info, total_floors, area_py, supply_area_py, area_m2, supply_area_m2, category, transaction_status, is_public, province, city, district, detail_address, addr_compare, primary_image_path')
                 .gte('lat', sw.getLat()).lte('lat', ne.getLat())
                 .gte('lng', sw.getLng()).lte('lng', ne.getLng());
 
