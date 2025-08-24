@@ -71,20 +71,6 @@
     ];
 
     // 스크립트 시작부분
-
-    function normalizePublic(v) {
-      // 불리언/숫자/문자열 전부 안전하게 '공개' / '비공개'로 통일
-      if (v === true || v === 1 || v === '1' || v === 'true' || v === 'TRUE') return '공개';
-      if (v === false || v === 0 || v === '0' || v === 'false' || v === 'FALSE') return '비공개';
-      if (typeof v === 'string') {
-        const s = v.trim();
-        if (s.includes('공개')) return '공개';
-        if (s.includes('비공개')) return '비공개';
-      }
-      // 애매하면 비공개로 취급(원하면 '공개'로 바꿔도 OK)
-      return '비공개';
-    }
-
     // ✅ admin URL을 항상 '/admin' 형태로 만들어 주는 헬퍼
     function makeAdminUrl(params = {}) {
       const u = new URL('/admin', location.origin);
@@ -160,7 +146,6 @@
       maxInput.addEventListener('blur', updateFilter);
     });
 
-    
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
       deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
@@ -229,7 +214,6 @@
     // 필터 적용함수
     function applyAllFilters(dataToFilter) {
       const selectedDealTypes  = getCheckedValues("deal-type-checkbox");
-      const selectedPublics    = getCheckedValues("is-public-checkbox");
       const selectedStatuses   = getCheckedValues("transaction-status-checkbox");
       const selectedCategories = getCheckedValues("category-checkbox");
 
@@ -256,9 +240,6 @@
         const matchDealType = selectedDealTypes.length === 0 
           || selectedDealTypes.includes(listing.deal_type);
 
-        const matchIsPublic = selectedPublics.length === 0
-          || selectedPublics.includes(normalizePublic(listing.is_public));
-
         const normStatus = normalizeStatus(listing.transaction_status);
         const matchStatus = selectedStatuses.length === 0 
           || selectedStatuses.includes(normStatus);
@@ -266,10 +247,9 @@
         const matchCategory = selectedCategories.length === 0 
           || selectedCategories.includes(listing.category || '-');
 
-        return numericMatch && matchDealType && matchIsPublic && matchStatus && matchCategory;
+        return numericMatch && matchDealType && matchStatus && matchCategory;
       });
     }
-
 
     // 카테고리 선택시 휠 없어지면 추가로 매물로딩 관련함수
     function checkAndFetchIfNoScroll() {
@@ -358,16 +338,10 @@
             </a>
           </td>
           <td class="p-2 text-base text-right whitespace-nowrap">
-            ${(() => {
-              const pub = normalizePublic(listing.is_public);
-              const checkedAttr = pub === '공개' ? 'checked' : '';
-              return `
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" ${checkedAttr} />
-                  <span>${pub}</span>
-                </label>
-              `;
-            })()}
+            <label class="flex items-center gap-2">
+              <input type="checkbox" ${listing.is_public ? 'checked' : ''} />
+              <span>${listing.is_public ? '공개' : '비공개'}</span>
+            </label>
             <div style="
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
@@ -623,13 +597,6 @@
               <div class="font-semibold mb-1">거래유형</div>
               <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
               <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
-            </div>
-
-            <!-- 공개여부 -->
-            <div>
-              <div class="font-semibold mb-1">공개여부</div>
-              <label class="block"><input type="checkbox" class="is-public-checkbox" value="공개" /> 공개</label>
-              <label class="block"><input type="checkbox" class="is-public-checkbox" value="비공개" /> 비공개</label>
             </div>
 
             <!-- 거래완료 -->
