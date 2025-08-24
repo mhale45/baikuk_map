@@ -2614,6 +2614,7 @@
         selectedCategories = ['상가'];
         selectedDealTypes = ['월세'];      
         renderDealAndCategoryButtons();
+        resetSelectFiltersToDefault();// ⬇️ 진행상태를 '진행중'만 선택으로 초기화
         updateFilteredListingsDebounced();
     }
 
@@ -2811,6 +2812,26 @@
         // 필터 재적용
         updateFilteredListingsDebounced();
     }
+
+    // ⬇️ 다중선택 필터를 기본값으로 되돌리는 헬퍼
+    function resetSelectFiltersToDefault() {
+        // 기본 상태: transaction_status = ['진행중']
+        if (!window.__selectFilterMeta) window.__selectFilterMeta = {};
+        if (!selectFilterState) window.selectFilterState = {};
+
+        selectFilterState.transaction_status = ['진행중'];
+
+        // UI 다시 렌더
+        if (document.getElementById('select-filter-wrap')) {
+            renderSelectFilter({
+                containerId: 'select-filter-wrap',
+                field: 'transaction_status',
+                label: window.__selectFilterMeta?.transaction_status?.label || '진행상태',
+                options: window.__selectFilterMeta?.transaction_status?.options || ['진행중', '계약완료', '-']
+            });
+        }
+    }
+
 
     function renderDealAndCategoryButtons() {
         const btnWrap = document.getElementById('btn-wrap');
