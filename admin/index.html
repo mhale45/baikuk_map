@@ -2439,6 +2439,9 @@
 
     function updateURLForListing(listingId, replace = false) {
         const url = new URL(location.href);
+        if (url.pathname !== '/admin/' && url.pathname !== '/admin') { // ✅ 항상 /admin 으로 경로 고정 (쿼리는 아래에서 세팅)
+            url.pathname = '/admin/';
+        }
         if (listingId) url.searchParams.set('id', String(listingId));
         else url.searchParams.delete('id');
         try {
