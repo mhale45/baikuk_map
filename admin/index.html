@@ -4799,7 +4799,7 @@
                                                         const price = l.premium_price;
                                                         if (parseFloat(price) === 0) return '무권리';
                                                         if (!price || price === '-' || isNaN(price)) return '';
-                                                        if (parseFloat(price) > 0) return `권 ${formatKoreanMoney(price)}`;
+                                                        if (parseFloat(price) > 0) return `${formatKoreanMoney(price)}`;
                                                         return '';
                                                     })()
                                                     : l.deal_type?.includes("매매")
