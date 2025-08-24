@@ -258,7 +258,7 @@
 
         row.innerHTML = `
           <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
-            <a href="/?id=${listing.listing_id}"
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_id}
@@ -294,7 +294,7 @@
             </div>
           </td>
           <td class="p-2 font-bold text-lg whitespace-normal break-words">
-            <a href="/?id=${listing.listing_id}"
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_title || '-'}
@@ -421,7 +421,7 @@
       const tbody = document.getElementById('listings-body');
 
       function goToListing(id) {
-        const href = `/?id=${id}`;
+        const href = `/?id=${encodeURIComponent(id)}`;
         // 항상 새 탭
         window.open(href, '_blank', 'noopener,noreferrer');
       }
@@ -448,7 +448,7 @@
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
       const win = window.open(
-        'admin.html?autoclick=open-listing',
+        'admin?autoclick=open-listing',
         '_blank',
         'noopener,noreferrer'  // ← 크기 옵션 빼고 이것만 남기기
       );
@@ -599,7 +599,7 @@
                   <th class="p-2 border-r text-sm text-center w-[4.54rem]">매물번호</th>
                   <th class="p-2 border-r text-sm text-center w-[5rem]">상태</th>
                   <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div></th>
-                  <th class="p-2 border-r text-sm text-center w-[10rem]">주소</th>
+                  <th class="p-2 border-r text-sm text-center w-[10.5rem]">주소</th>
                   <th class="p-2 border-r text-sm text-center w-[9rem]">건물정보</th>
                   <th class="p-2 border-r text-sm text-center">호수</th>
                   <th class="p-2 border-r text-sm text-center w-[3rem]">층</th>
