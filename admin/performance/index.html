@@ -159,20 +159,20 @@
     );
     window.supabase = supabase; // 전역으로 접근
 
-    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    // 로그인 체크
     (async () => {
-      const { data, error } = await client.auth.getSession();
-      if (!data?.session) {
+        const { data, error } = await supabase.auth.getSession();
+        if (!data?.session) {
         console.warn("로그인 세션 없음 → /index.html로 이동");
         location.replace("/");
-      }
+        }
     })();
 
-    // 직원 정보 로딩
+    // 직원 정보 불러오기 및 표시
     (async () => {
         const { data, error } = await supabase
             .from('staff_profiles')
-            .select('name, affiliation')
+            .select('name, affiliation, leave_date')
             .order('affiliation', { ascending: true });
 
         if (error) {
@@ -183,25 +183,40 @@
         const container = document.getElementById('staff-list');
         const grouped = {};
 
-        // affiliation 기준 그룹화
-        data.forEach(({ name, affiliation }) => {
-            if (!grouped[affiliation]) grouped[affiliation] = [];
-            grouped[affiliation].push(name);
+        // affiliation 기준으로 재직/퇴사 분리
+        data.forEach(({ name, affiliation, leave_date }) => {
+            if (!grouped[affiliation]) {
+                grouped[affiliation] = { active: [], inactive: [] };
+            }
+            if (leave_date === null) {
+                grouped[affiliation].active.push(name);
+            } else {
+                grouped[affiliation].inactive.push(name);
+            }
         });
 
-        // HTML 구성
-        Object.entries(grouped).forEach(([aff, names]) => {
-            const header = document.createElement('div');
-            header.className = 'grade-header';
-            header.textContent = aff;
-            container.appendChild(header);
+        // HTML 출력
+        Object.entries(grouped).forEach(([aff, { active, inactive }]) => {
+        const header = document.createElement('div');
+        header.className = 'grade-header';
+        header.textContent = aff;
+        container.appendChild(header);
 
-            names.forEach(name => {
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'name-item';
-                nameDiv.textContent = name;
-                container.appendChild(nameDiv);
-            });
+        // 재직자 먼저 표시
+        active.forEach(name => {
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'name-item';
+            nameDiv.textContent = name;
+            container.appendChild(nameDiv);
+        });
+
+        // 퇴사자는 맨 아래 표시 (회색 스타일 추가)
+        inactive.forEach(name => {
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'name-item text-gray-400 italic'; // 퇴사자 표시용 스타일
+            nameDiv.textContent = name + ' (퇴사)';
+            container.appendChild(nameDiv);
+        });
         });
     })();
   </script>
