@@ -154,71 +154,96 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const supabase = createClient(
-      'https://sfinbtiqlfnaaarziixu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+        'https://sfinbtiqlfnaaarziixu.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
-    window.supabase = supabase; // 전역으로 접근
 
-    // 로그인 체크
+    // 로그인 세션 확인
     (async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (!data?.session) {
-        console.warn("로그인 세션 없음 → /index.html로 이동");
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
         location.replace("/");
-        }
+    }
     })();
 
-    // 직원 정보 불러오기 및 표시
+    // 직원 데이터 로딩
     (async () => {
-        const { data, error } = await supabase
-            .from('staff_profiles')
-            .select('name, affiliation, leave_date')
-            .order('affiliation', { ascending: true });
+    const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('name, affiliation, leave_date')
+        .order('affiliation', { ascending: true });
 
-        if (error) {
-            console.error('직원 정보 가져오기 실패:', error);
-            return;
+    if (error) {
+        console.error('직원 정보 가져오기 실패:', error);
+        return;
+    }
+
+    const container = document.getElementById('staff-list');
+    const grouped = {};
+
+    // affiliation별로 그룹화 (재직자 / 퇴사자)
+    data.forEach(({ name, affiliation, leave_date }) => {
+        if (!grouped[affiliation]) {
+        grouped[affiliation] = { active: [], inactive: [] };
         }
+        if (leave_date === null) {
+        grouped[affiliation].active.push(name);
+        } else {
+        grouped[affiliation].inactive.push(name);
+        }
+    });
 
-        const container = document.getElementById('staff-list');
-        const grouped = {};
-
-        // affiliation 기준으로 재직/퇴사 분리
-        data.forEach(({ name, affiliation, leave_date }) => {
-            if (!grouped[affiliation]) {
-                grouped[affiliation] = { active: [], inactive: [] };
-            }
-            if (leave_date === null) {
-                grouped[affiliation].active.push(name);
-            } else {
-                grouped[affiliation].inactive.push(name);
-            }
-        });
-
-        // HTML 출력
-        Object.entries(grouped).forEach(([aff, { active, inactive }]) => {
+    // HTML 생성
+    Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+        // 부서 헤더
         const header = document.createElement('div');
-        header.className = 'grade-header';
-        header.textContent = aff;
+        header.className = 'grade-header flex justify-between items-center';
+
+        const title = document.createElement('span');
+        title.textContent = aff;
+        header.appendChild(title);
+
         container.appendChild(header);
 
-        // 재직자 먼저 표시
+        // 재직자 목록
         active.forEach(name => {
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item';
-            nameDiv.textContent = name;
-            container.appendChild(nameDiv);
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name-item';
+        nameDiv.textContent = name;
+        container.appendChild(nameDiv);
         });
 
-        // 퇴사자는 맨 아래 표시 (회색 스타일 추가)
+        // ▼ 펼치기 버튼 (퇴사자 있을 때만 표시)
+        if (inactive.length > 0) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = '▼ 퇴사자 보기';
+        toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2';
+        header.appendChild(toggleBtn);
+
+        const collapseDiv = document.createElement('div');
+        collapseDiv.className = 'pl-4 mt-1 hidden';
+        collapseDiv.id = `inactive-group-${idx}`;
+        container.appendChild(collapseDiv);
+
+        // 퇴사자 목록 삽입
         inactive.forEach(name => {
             const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item text-gray-400 italic'; // 퇴사자 표시용 스타일
+            nameDiv.className = 'name-item text-gray-400 italic';
             nameDiv.textContent = name + ' (퇴사)';
-            container.appendChild(nameDiv);
+            collapseDiv.appendChild(nameDiv);
         });
+
+        // 토글 기능
+        let expanded = false;
+        toggleBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            collapseDiv.classList.toggle('hidden', !expanded);
+            toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
         });
+        }
+    });
     })();
+
   </script>
   <script>
     // 스크립트 시작
