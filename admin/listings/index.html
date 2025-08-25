@@ -52,6 +52,7 @@
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -59,6 +60,15 @@
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
+
+    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    (async () => {
+      const { data, error } = await client.auth.getSession();
+      if (!data?.session) {
+        console.warn("로그인 세션 없음 → /index.html로 이동");
+        location.replace("/");
+      }
+    })();
 
     const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
     const filterInputs = [
@@ -70,32 +80,92 @@
       { key: 'roi', min: 'filter-roi-min', max: 'filter-roi-max' }
     ];
 
+    // 스크립트 시작부분
+    // ✅ admin URL을 항상 '/admin' 형태로 만들어 주는 헬퍼
+    function makeAdminUrl(params = {}) {
+      const u = new URL('/admin', location.origin);
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
+      });
+      return u.pathname + u.search + u.hash; // '/admin?id=123' 형태 반환
+    }
+
+    // ✅ 혹시 '/admin.html?...'로 진입해도 한 번만 '/admin?...'로 정규화
+    (function normalizeAdminHtmlOnce() {
+      if (location.pathname === '/admin.html') {
+        const u = new URL(location.href);
+        // /admin.html → /admin 로 교체 (쿼리/해시 유지)
+        const clean = '/admin' + u.search + u.hash;
+        // replace: 히스토리 남기지 않음, 무한루프 방지
+        location.replace(clean);
+      }
+    })();
+
+
+    function bindNumericFilterInputs() {
+      filterInputs.forEach(({ key, min, max }) => {
+        const minInput = document.getElementById(min);
+        const maxInput = document.getElementById(max);
+        if (!minInput || !maxInput) {
+          console.warn(`필터 입력을 찾지 못했습니다: ${min}, ${max}`);
+          return;
+        }
+        const updateFilter = () => {
+          let minVal = parseFloat(minInput.value);
+          let maxVal = parseFloat(maxInput.value);
+          if (key === 'roi') {
+            if (!Number.isNaN(minVal)) minVal = minVal / 100; // % → 소수
+            if (!Number.isNaN(maxVal)) maxVal = maxVal / 100;
+          }
+          filterConditions[key] = {
+            min: Number.isNaN(minVal) ? null : minVal,
+            max: Number.isNaN(maxVal) ? null : maxVal
+          };
+        };
+        minInput.addEventListener('blur', updateFilter);
+        maxInput.addEventListener('blur', updateFilter);
+      });
+    }
+
+
     filterInputs.forEach(({ key, min, max }) => {
       const minInput = document.getElementById(min);
       const maxInput = document.getElementById(max);
 
       const updateFilter = () => {
-        const minVal = parseFloat(minInput.value);
-        const maxVal = parseFloat(maxInput.value);
+        let minVal = parseFloat(minInput.value);
+        let maxVal = parseFloat(maxInput.value);
+
+        // ROI는 % 단위 입력 → 소수로 변환
+        if (key === 'roi') {
+          if (!Number.isNaN(minVal)) minVal = minVal / 100;
+          if (!Number.isNaN(maxVal)) maxVal = maxVal / 100;
+        }
+
         filterConditions[key] = {
-          min: isNaN(minVal) ? null : minVal,
-          max: isNaN(maxVal) ? null : maxVal
+          min: Number.isNaN(minVal) ? null : minVal,
+          max: Number.isNaN(maxVal) ? null : maxVal
         };
-        applyAllFilters?.();
+
+        // 목록 즉시 반영 (원하면 주석 해제)
+        // const final = applyAllFilters(listings);
+        // rerender(final);
       };
 
       minInput.addEventListener('blur', updateFilter);
       maxInput.addEventListener('blur', updateFilter);
     });
-    
+
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
+      deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
       premium_price: { min: null, max: null },
       monthly_rent: { min: null, max: null },
       area_py: { min: null, max: null },
       sale_price: { min: null, max: null },
-      roi: { min: null, max: null }
+      roi: { min: null, max: null } // ✅ ROI는 소수 단위
     };
+
 
     // 정렬 관련 함수
     function sortListingsDefault(list) {
@@ -153,29 +223,42 @@
 
     // 필터 적용함수
     function applyAllFilters(dataToFilter) {
-      const selectedDealTypes = getCheckedValues("deal-type-checkbox");
-      const selectedPublics = getCheckedValues("is-public-checkbox");
-      const selectedStatuses = getCheckedValues("transaction-status-checkbox");
+      const selectedDealTypes  = getCheckedValues("deal-type-checkbox");
+      const selectedStatuses   = getCheckedValues("transaction-status-checkbox");
       const selectedCategories = getCheckedValues("category-checkbox");
 
-      const filtered = dataToFilter.filter(listing => {
+      const normalizeStatus = (raw) => {
+        const s = (raw || '').trim();
+        if (!s) return '-';
+        if (s.includes('진행중'))   return '진행중';
+        if (s.includes('보류'))     return '보류';
+        if (s.includes('계약완료')) return '계약완료';
+        return '-';
+      };
+
+      return dataToFilter.filter(listing => {
+        // 숫자 필터
         const numericMatch = Object.entries(filterConditions).every(([key, { min, max }]) => {
           const value = parseFloat(listing[key]);
-          if (isNaN(value)) return true;
+          if (Number.isNaN(value)) return true;
           if (min != null && value < min) return false;
           if (max != null && value > max) return false;
           return true;
         });
 
-        const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
-        const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
-        const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(listing.transaction_status || '-');
-        const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(listing.category || '-');
+        // 체크박스 필터
+        const matchDealType = selectedDealTypes.length === 0 
+          || selectedDealTypes.includes(listing.deal_type);
 
-        return numericMatch && matchDealType && matchIsPublic && matchStatus && matchCategory;
+        const normStatus = normalizeStatus(listing.transaction_status);
+        const matchStatus = selectedStatuses.length === 0 
+          || selectedStatuses.includes(normStatus);
+
+        const matchCategory = selectedCategories.length === 0 
+          || selectedCategories.includes(listing.category || '-');
+
+        return numericMatch && matchDealType && matchStatus && matchCategory;
       });
-
-      return filtered;
     }
 
     // 카테고리 선택시 휠 없어지면 추가로 매물로딩 관련함수
@@ -258,22 +341,18 @@
 
         row.innerHTML = `
           <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
-            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
+            <a href="${makeAdminUrl({ id: String(listing.listing_id) })}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_id}
             </a>
           </td>
-          <td class="p-2 text-base text-right whitespace-nowrap">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" ${listing.is_public ? 'checked' : ''} />
-              <span>${listing.is_public ? '공개' : '비공개'}</span>
-            </label>
+          <td class="flex flex-col p-2 text-base text-right whitespace-nowrap">
             <div style="
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
                 : (listing.transaction_status || '').includes('보류') 
-                  ? 'background-color: #d2f4ef; color: #00b0ad; font-weight: bold;' 
+                  ? 'background-color: #e5e7eb; color: #000000; font-weight: bold;'
                   : (listing.transaction_status || '').includes('계약완료') 
                     ? 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;' 
                     : 'background-color: #e5e7eb; color: #374151;'}
@@ -292,15 +371,28 @@
                     ? '계약완료' 
                     : '-'}
             </div>
+            <div style="
+              ${listing.is_public 
+                ? 'background-color: #ffffff; color: #00b74a; font-weight: bold; border: 1.5px solid #00b74a; border-radius: 9999px;'   /* 공개: 초록 pill */
+                : 'background-color: #ffffff; color: rgba(247,63,87); font-weight: 900; border: 1.5px solid rgba(247,63,87); border-radius: 9999px;' /* 비공개: 빨강 pill */
+              }
+              padding: 2px 12px; 
+              display: inline-block;
+              font-size: 0.8rem;
+              text-align: center;
+              margin-top: 0.25rem;
+            ">
+              ${listing.is_public ? '공개' : '비공개'}
+            </div>
           </td>
           <td class="p-2 font-bold text-lg whitespace-normal break-words">
-            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
+            <a href="${makeAdminUrl({ id: String(listing.listing_id) })}"
               target="_blank" rel="noopener"
               onclick="event.stopPropagation();" class="hover:underline">
               ${listing.listing_title || '-'}
             </a>
           </td>
-          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city}<br />${listing.district} ${listing.detail_address}</td>
+          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city} ${listing.district} ${listing.detail_address}</td>
           <td class="p-2 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
           <td class="p-2 text-base"><div id="scroll-cell-${listing.listing_id}" class="max-w-[6rem] overflow-x-auto whitespace-nowrap">${listing.unit_info || '-'}</div></td>
           <td class="p-2 text-right text-base">${formatNumber(listing.floor)}층</td>
@@ -337,6 +429,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       fetchMoreListings();
       setupScrollTrigger();
+      bindNumericFilterInputs(); 
 
       // ✅ 필터 UI 초기값 설정
       document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
@@ -421,8 +514,7 @@
       const tbody = document.getElementById('listings-body');
 
       function goToListing(id) {
-        const href = `/?id=${encodeURIComponent(id)}`;
-        // 항상 새 탭
+        const href = makeAdminUrl({ id: String(id) }); // ✅ '/admin?id=24873'
         window.open(href, '_blank', 'noopener,noreferrer');
       }
 
@@ -447,43 +539,13 @@
     });
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
-      const win = window.open(
-        '/admin?autoclick=open-listing',
-        '_blank',
-        'noopener,noreferrer'  // ← 크기 옵션 빼고 이것만 남기기
-      );
-    });
-
-    // 거래유형, 공개, 거래완료, 대분류 필터링 관련
-    function getSelectedValues(selectId) {
-      const select = document.getElementById(selectId);
-      return Array.from(select.selectedOptions).map(option => option.value);
-    }
-
-    const selectedDealTypes = getSelectedValues("deal-type"); // ['월세', '매매'] 등
-    const selectedPublics = getSelectedValues("is-public"); // ['공개']
-    const selectedStatuses = getSelectedValues("transaction-status"); // ['진행중', '보류']
-    const selectedCategory = getSelectedValues("category"); // 상가, 공장창고, 빌딩, 토지, 주택
-
-    const filteredListings = allListings.filter(listing => {
-      const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
-      const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
-      const matchStatus = selectedStatuses.length === 0 || selectedStatuses.some(status => (listing.transaction_status || '').includes(status));
-      const matchCategory = selectedCategory.length === 0 || selectedCategory.includes(listing.category);
-      return matchDealType && matchIsPublic && matchStatus && matchCategory;
-    });
-
-    document.getElementById("search-button").addEventListener("click", () => {
-      // 위에서 만든 filter 로직 실행 → 필터링된 결과 render
-      renderListings(sortListingsDefault(filteredListings)); // ← 이건 사용자 정의 함수
+      const href = makeAdminUrl({ autoclick: 'open-listing' });
+      window.open(href, '_blank', 'noopener,noreferrer');
     });
 
     function getCheckedValues(className) {
       return Array.from(document.querySelectorAll(`.${className}:checked`)).map(el => el.value);
     }
-
-
-
 
   </script>
 </head>
@@ -516,7 +578,7 @@
           </div>
         </div>
         <!-- 필터 입력창 영역 -->
-        <div id="fixed-filter-box" class="bg-gray-100 px-4 pt-2 pb-4">
+        <div id="fixed-filter-box2" class="bg-gray-100 px-4 pt-2 pb-4">
           <!-- 제목줄 -->
           <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
             <div class="w-[6rem] text-center">보증금</div>
@@ -554,13 +616,6 @@
               <div class="font-semibold mb-1">거래유형</div>
               <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
               <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
-            </div>
-
-            <!-- 공개여부 -->
-            <div>
-              <div class="font-semibold mb-1">공개여부</div>
-              <label class="block"><input type="checkbox" class="is-public-checkbox" value="공개" /> 공개</label>
-              <label class="block"><input type="checkbox" class="is-public-checkbox" value="비공개" /> 비공개</label>
             </div>
 
             <!-- 거래완료 -->
