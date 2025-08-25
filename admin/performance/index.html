@@ -166,7 +166,7 @@
     }
     })();
 
-    // 직원 데이터 로딩
+    // 직원 데이터 로딩 및 표시
     (async () => {
     const { data, error } = await supabase
         .from('staff_profiles')
@@ -181,7 +181,6 @@
     const container = document.getElementById('staff-list');
     const grouped = {};
 
-    // affiliation별로 그룹화 (재직자 / 퇴사자)
     data.forEach(({ name, affiliation, leave_date }) => {
         if (!grouped[affiliation]) {
         grouped[affiliation] = { active: [], inactive: [] };
@@ -193,19 +192,14 @@
         }
     });
 
-    // HTML 생성
     Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-        // 부서 헤더
+        // 지점 헤더
         const header = document.createElement('div');
-        header.className = 'grade-header flex justify-between items-center';
-
-        const title = document.createElement('span');
-        title.textContent = aff;
-        header.appendChild(title);
-
+        header.className = 'grade-header';
+        header.textContent = aff;
         container.appendChild(header);
 
-        // 재직자 목록
+        // 재직자 이름 표시
         active.forEach(name => {
         const nameDiv = document.createElement('div');
         nameDiv.className = 'name-item';
@@ -213,19 +207,20 @@
         container.appendChild(nameDiv);
         });
 
-        // ▼ 펼치기 버튼 (퇴사자 있을 때만 표시)
+        // 퇴사자 있으면 버튼 및 목록 추가
         if (inactive.length > 0) {
+        // ▼ 버튼
         const toggleBtn = document.createElement('button');
         toggleBtn.textContent = '▼ 퇴사자 보기';
-        toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2';
-        header.appendChild(toggleBtn);
+        toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
+        toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
 
+        // 토글할 퇴사자 div
         const collapseDiv = document.createElement('div');
         collapseDiv.className = 'pl-4 mt-1 hidden';
         collapseDiv.id = `inactive-group-${idx}`;
-        container.appendChild(collapseDiv);
 
-        // 퇴사자 목록 삽입
+        // 퇴사자 이름 삽입
         inactive.forEach(name => {
             const nameDiv = document.createElement('div');
             nameDiv.className = 'name-item text-gray-400 italic';
@@ -233,13 +228,17 @@
             collapseDiv.appendChild(nameDiv);
         });
 
-        // 토글 기능
+        // 버튼 클릭 시 토글
         let expanded = false;
         toggleBtn.addEventListener('click', () => {
             expanded = !expanded;
             collapseDiv.classList.toggle('hidden', !expanded);
             toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
         });
+
+        // 버튼과 접힌 div 추가 (재직자 다음에)
+        container.appendChild(toggleBtn);
+        container.appendChild(collapseDiv);
         }
     });
     })();
