@@ -1105,120 +1105,56 @@
 
     function renderMatchedListings() {
         if (!Array.isArray(matchedListingsCache)) return;
+
         const end = matchedListingsPage * PAGE_SIZE;
+        const listingsToShow = matchedListingsCache.slice(0, end);
 
-        const sorted = [...matchedListingsCache].sort((a, b) => {
-            // 1. floor (숫자 비교, 지하층도 숫자로 비교)
-            const floorA = Number(a.floor) || 0;
-            const floorB = Number(b.floor) || 0;
-            if (floorA !== floorB) return floorA - floorB;
-
-            // 2. unit_info (문자열 비교, 없으면 '' 처리)
-            const unitA = a.unit_info ? a.unit_info.toString() : '~';  // 없는 건 맨 뒤로
-            const unitB = b.unit_info ? b.unit_info.toString() : '~';
-            if (unitA !== unitB) return unitA.localeCompare(unitB, 'ko');
-
-            // 3. listing_title (문자열 비교)
-            const titleA = (a.listing_title || '').toString();
-            const titleB = (b.listing_title || '').toString();
-            return titleA.localeCompare(titleB, 'ko');
-        });
-
-        const listingsToShow = sorted.slice(0, end);          
-
-        infoContent.innerHTML = listingsToShow.map((l, idx, arr) => {
-            const statusRaw = l.transaction_status || '-';
-            const status = statusRaw.trim().split(' ')[0];
-            let bgStyle = 'background-color: #d1d5db; color: #37373d;';
-            if (status === '진행중') bgStyle = 'background-color: #d9fae6; color: #00b74a;';
-            else if (status === '계약완료') bgStyle = 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;';
-
-            const isActive = String(window.currentDetailListingId).trim() === String(l.listing_id).trim();
+        infoContent.innerHTML = listingsToShow.map(l => {
+            const isActive = String(window.currentDetailListingId) === String(l.listing_id);
             const highlightStyle = isActive ? 'background-color: rgba(243,244,246);' : '';
             const logo = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/baikuk-simbol.png';
 
-            // 🔑 바로 이전 매물과 floor 비교
-            const prev = arr[idx - 1];
-            const prevFloor = prev ? Number(prev.floor) || 0 : null;
-            const currFloor = Number(l.floor) || 0;
-
-            // 층이 바뀌면 border 두껍게
-            const borderStyle = (idx > 0 && prevFloor !== currFloor)
-                ? 'border-b-4 border-gray-400'
-                : 'border-b border-gray-300';
-
             return `
-                <div class="mb-1 pb-1 ${borderStyle} text-left" style="${highlightStyle};">
-                    <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
-                        <div class="flex flex-row items-center gap-3">
-                            <div class="relative w-[140px] h-[100px]">
-                                <div class="absolute top-1 right-1 w-[57px] h-[22px] flex items-center justify-center text-xs px-1 rounded-md font-semibold z-10" style="${bgStyle}">${status}</div>
-                                <div 
-                                    class="absolute top-1 left-1 w-[53px] h-[22px] flex items-center justify-center text-[15px] px-1 rounded-md font-semibold z-10"
-                                    style="background-color: ${
-                                        (l.is_public || '').toString().trim().includes('비공개') 
-                                            ? '#d1d5db' 
-                                            : '#F2C130'
-                                    }; color: #37373d;">
-                                    ${l.listing_id}
-                                </div>
-                                <img id="thumb-${l.listing_id}" src="${logo}" alt="썸네일" class="thumb-img-contain rounded no-save" draggable="false" oncontextmenu="return false" />
-                            </div>                           
-                            <div class="flex-1 flex flex-col gap-1">                                   
-                                <div class="flex items-center gap-2">
-                                    <div class="flex flex-row items-center">
-                                        <div class="flex items-center gap-5 leading-[1.4]">
-                                            <strong class="text-[15px] text-gray-800 max-w-[280px]" title="${l.listing_title}">
-                                                ${l.listing_title.length > 40 ? l.listing_title.slice(0, 40) + '⋯' : l.listing_title}
-                                            </strong>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col gap-[2px] leading-[1.4]">
-                                    <div class="flex flex-row justify-between items-start">
-                                        <div class="flex items-start gap-2">
-                                            <div class="flex-1 text-left font-bold text-[rgb(80,152,233)] text-base">
-                                                ${l.deal_type} ${
-                                                    l.deal_type === "매매" ? ` ${formatKoreanMoney(l.sale_price)}` 
-                                                    : l.deal_type === "월세" ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}` 
-                                                    : ""
-                                                }
-                                            </div>
-                                        </div>                                        
-                                        <div class="text-right font-bold text-[rgb(248,63,87)] text-base whitespace-nowrap">
-                                            ${
-                                                l.deal_type?.includes("월세")
-                                                    ? (() => {
-                                                        const price = l.premium_price;
-                                                        if (parseFloat(price) === 0) return '무권리';
-                                                        if (!price || price === '-' || isNaN(price)) return '';
-                                                        if (parseFloat(price) > 0) return `${formatKoreanMoney(price)}`;
-                                                        return '';
-                                                    })()
-                                                    : l.deal_type?.includes("매매")
-                                                    ? `${l.roi ? (parseFloat(l.roi) * 100).toFixed(1) : '-'}%`
-                                                    : ''
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="flex-1 text-[16px]">
-                                        <strong class="font-semibold">${l.floor < 0 ? `B${Math.abs(l.floor)}` : `${l.floor}`}</strong>/${l.total_floors}층
-                                        <strong class="font-semibold">${Number(l.area_py).toFixed(0)}</strong>평
-                                        <strong class="font-semibold">${(Number(l.monthly_rent)/Number(l.area_py)).toFixed(1)}</strong>만
-                                    </div>
-                                </div>
-                            </div>
+            <div class="mb-1 pb-1 border-b border-gray-300 text-left" style="${highlightStyle}">
+                <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition p-2">
+                <div class="flex flex-row items-center gap-3">
+                    <div class="relative w-[150px] h-[120px] flex-shrink-0 thumb-box overflow-hidden rounded border">
+                        <div class="absolute top-1 left-1 w-[53px] h-[22px] flex items-center justify-center text-[15px] px-1 rounded-md font-semibold z-10"
+                            style="background-color:#F2C130;color:#37373d;">
+                            ${l.listing_id}
+                        </div>
+                        <img id="thumb-${l.listing_id}" src="${logo}" alt="썸네일"
+                            class="thumb-img-contain rounded no-save" draggable="false" oncontextmenu="return false" />
+                        </div>
+                        <div class="flex-1 flex flex-col gap-1">
+                        <div class="font-bold text-[rgb(80,152,233)] text-base">
+                            ${l.deal_type} ${formatDealPrice(l)}
+                        </div>
+                        <div class="text-sm">
+                            전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                            <strong class="font-semibold">${formatFloor(l.floor, l.total_floors)}</strong>
+                        </div>
+                        <div class="mt-1">
+                            <span class="inline-block text-[14px] text-gray-800 leading-snug">
+                            ${escapeHtml(l.title || '')}
+                            </span>
                         </div>
                     </div>
-                </div>`;
+                </div>
+                </div>
+            </div>`;
         }).join('');
 
-
-        // ▼ 새로 그려진 썸네일들에 대표사진 적용
         const ids = listingsToShow.map(l => l.listing_id);
+
+        // ① 캐시에 있는 썸네일 즉시 적용 (재렌더 순간 로고로 바뀌는 현상 방지)
         applyPrimaryThumbsFromCache(ids);
+
+        // ② 캐시에 없는 것만 비동기로 발급/적용
         loadPrimaryThumbsBatch(ids).catch(console.warn);
-    }  
+    }
+
+
 
     // --- Data Fetching and Filtering ---
     function getFilterValues() {

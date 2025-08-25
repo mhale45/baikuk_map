@@ -18,7 +18,6 @@
     }
     th.resizable {
       position: relative;
-
       min-width: 40px;
       white-space: nowrap;
     }
@@ -829,7 +828,7 @@
 
       // 🔧 Supabase Auth → 비번 재설정 메일 발송
       // Auth 설정의 Site URL / Redirect URL 허용 목록에 아래 redirectTo를 등록해 두세요.
-      const redirectTo = location.origin + 'https://baikuk-map.netlify.app/admin/reset/'; // 원하는 페이지로 교체 가능
+      const redirectTo = location.origin + '/index.html'; // 원하는 페이지로 교체 가능
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
       if (error) {
