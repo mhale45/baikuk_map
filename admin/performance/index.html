@@ -141,8 +141,8 @@
       <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
       <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
     </div>
-    <div id="customer-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
-      <div id="customer-list" class="overflow-y-auto">
+    <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <div id="staff-list" class="overflow-y-auto">
         <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
     </div>
@@ -157,6 +157,7 @@
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
+    window.supabase = supabase; // 전역으로 접근
 
     // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
     (async () => {
@@ -167,7 +168,42 @@
       }
     })();
 
-    window.supabase = supabase; // 전역으로 접근
+    // 직원 정보 로딩
+    (async () => {
+        const { data, error } = await supabase
+            .from('staff_profiles')
+            .select('name, affiliation')
+            .order('affiliation', { ascending: true });
+
+        if (error) {
+            console.error('직원 정보 가져오기 실패:', error);
+            return;
+        }
+
+        const container = document.getElementById('staff-list');
+        const grouped = {};
+
+        // affiliation 기준 그룹화
+        data.forEach(({ name, affiliation }) => {
+            if (!grouped[affiliation]) grouped[affiliation] = [];
+            grouped[affiliation].push(name);
+        });
+
+        // HTML 구성
+        Object.entries(grouped).forEach(([aff, names]) => {
+            const header = document.createElement('div');
+            header.className = 'grade-header';
+            header.textContent = aff;
+            container.appendChild(header);
+
+            names.forEach(name => {
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'name-item';
+                nameDiv.textContent = name;
+                container.appendChild(nameDiv);
+            });
+        });
+    })();
   </script>
   <script>
     // 스크립트 시작
