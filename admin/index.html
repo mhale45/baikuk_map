@@ -4785,11 +4785,11 @@
 
             // 층이 바뀌면 border 두껍게
             const borderStyle = (idx > 0 && prevFloor !== currFloor)
-                ? 'border-b-4 border-gray-400'
-                : 'border-b border-gray-300';
+                ? 'border-t-2 border-gray-400'
+                : 'border-t border-gray-300';
 
             return `
-                <div class="mb-1 pb-1 ${borderStyle} text-left" style="${highlightStyle};">
+                <div class="mt-1 pt-1 ${borderStyle} text-left" style="${highlightStyle};">
                     <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
                         <div class="flex flex-row items-center gap-3">
                             <div class="relative w-[140px] h-[100px]">
