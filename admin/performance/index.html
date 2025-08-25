@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>임대추천</title>
+  <title>매출</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
@@ -135,10 +135,10 @@
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
       <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
-      <a href="/admin/recommend_imDae/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
       <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
       <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
-      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a href="/admin/performance/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
       <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
     </div>
     <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
@@ -160,87 +160,87 @@
 
     // 로그인 세션 확인
     (async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data?.session) {
-        location.replace("/");
-    }
+        const { data } = await supabase.auth.getSession();
+        if (!data?.session) {
+            location.replace("/");
+        }
     })();
 
     // 직원 데이터 로딩 및 표시
     (async () => {
-    const { data, error } = await supabase
-        .from('staff_profiles')
-        .select('name, affiliation, leave_date')
-        .order('affiliation', { ascending: true });
+        const { data, error } = await supabase
+            .from('staff_profiles')
+            .select('name, affiliation, leave_date')
+            .order('affiliation', { ascending: true });
 
-    if (error) {
-        console.error('직원 정보 가져오기 실패:', error);
-        return;
-    }
-
-    const container = document.getElementById('staff-list');
-    const grouped = {};
-
-    data.forEach(({ name, affiliation, leave_date }) => {
-        if (!grouped[affiliation]) {
-        grouped[affiliation] = { active: [], inactive: [] };
+        if (error) {
+            console.error('직원 정보 가져오기 실패:', error);
+            return;
         }
-        if (leave_date === null) {
-        grouped[affiliation].active.push(name);
-        } else {
-        grouped[affiliation].inactive.push(name);
-        }
-    });
 
-    Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-        // 지점 헤더
-        const header = document.createElement('div');
-        header.className = 'grade-header';
-        header.textContent = aff;
-        container.appendChild(header);
+        const container = document.getElementById('staff-list');
+        const grouped = {};
 
-        // 재직자 이름 표시
-        active.forEach(name => {
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'name-item';
-        nameDiv.textContent = name;
-        container.appendChild(nameDiv);
+        data.forEach(({ name, affiliation, leave_date }) => {
+            if (!grouped[affiliation]) {
+            grouped[affiliation] = { active: [], inactive: [] };
+            }
+            if (leave_date === null) {
+            grouped[affiliation].active.push(name);
+            } else {
+            grouped[affiliation].inactive.push(name);
+            }
         });
 
-        // 퇴사자 있으면 버튼 및 목록 추가
-        if (inactive.length > 0) {
-        // ▼ 버튼
-        const toggleBtn = document.createElement('button');
-        toggleBtn.textContent = '▼ 퇴사자 보기';
-        toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
-        toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
+        Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+            // 지점 헤더
+            const header = document.createElement('div');
+            header.className = 'grade-header';
+            header.textContent = aff;
+            container.appendChild(header);
 
-        // 토글할 퇴사자 div
-        const collapseDiv = document.createElement('div');
-        collapseDiv.className = 'pl-4 mt-1 hidden';
-        collapseDiv.id = `inactive-group-${idx}`;
-
-        // 퇴사자 이름 삽입
-        inactive.forEach(name => {
+            // 재직자 이름 표시
+            active.forEach(name => {
             const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item text-gray-400 italic';
-            nameDiv.textContent = name + ' (퇴사)';
-            collapseDiv.appendChild(nameDiv);
-        });
+            nameDiv.className = 'name-item';
+            nameDiv.textContent = name;
+            container.appendChild(nameDiv);
+            });
 
-        // 버튼 클릭 시 토글
-        let expanded = false;
-        toggleBtn.addEventListener('click', () => {
-            expanded = !expanded;
-            collapseDiv.classList.toggle('hidden', !expanded);
-            toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
-        });
+            // 퇴사자 있으면 버튼 및 목록 추가
+            if (inactive.length > 0) {
+                // ▼ 버튼
+                const toggleBtn = document.createElement('button');
+                toggleBtn.textContent = '▼ 퇴사자 보기';
+                toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
+                toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
 
-        // 버튼과 접힌 div 추가 (재직자 다음에)
-        container.appendChild(toggleBtn);
-        container.appendChild(collapseDiv);
-        }
-    });
+                // 토글할 퇴사자 div
+                const collapseDiv = document.createElement('div');
+                collapseDiv.className = 'pl-4 mt-1 hidden';
+                collapseDiv.id = `inactive-group-${idx}`;
+
+                // 퇴사자 이름 삽입
+                inactive.forEach(name => {
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'name-item text-gray-400 italic';
+                    nameDiv.textContent = name + ' (퇴사)';
+                    collapseDiv.appendChild(nameDiv);
+                });
+
+                // 버튼 클릭 시 토글
+                let expanded = false;
+                toggleBtn.addEventListener('click', () => {
+                    expanded = !expanded;
+                    collapseDiv.classList.toggle('hidden', !expanded);
+                    toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
+                });
+
+                // 버튼과 접힌 div 추가 (재직자 다음에)
+                container.appendChild(toggleBtn);
+                container.appendChild(collapseDiv);
+            }
+        });
     })();
 
   </script>
