@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>매물장부</title>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .custom-scroll::-webkit-scrollbar {
+      width: 20px;
+      height: 20px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1;
+      border-radius: 6px;
+      border: 2px solid #f1f1f1;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background-color: #999;
+    }
+    th.resizable {
+      position: relative;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+    }
+    th.resizing {
+      cursor: col-resize;
+    }
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #d1d5db; /* gray-300 */
+      border-radius: 0.375rem; /* rounded-md */
+      padding: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 50;
+    }    
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const client = createClient(
+      'https://sfinbtiqlfnaaarziixu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+    );
+
+    const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
+    const filterInputs = [
+      { key: 'deposit_price', min: 'filter-deposit-min', max: 'filter-deposit-max' },
+      { key: 'monthly_rent', min: 'filter-rent-min', max: 'filter-rent-max' },
+      { key: 'premium_price', min: 'filter-premium-min', max: 'filter-premium-max' },
+      { key: 'area_py', min: 'filter-area-min', max: 'filter-area-max' },
+      { key: 'sale_price', min: 'filter-sale-min', max: 'filter-sale-max' },
+      { key: 'roi', min: 'filter-roi-min', max: 'filter-roi-max' }
+    ];
+
+    filterInputs.forEach(({ key, min, max }) => {
+      const minInput = document.getElementById(min);
+      const maxInput = document.getElementById(max);
+
+      const updateFilter = () => {
+        const minVal = parseFloat(minInput.value);
+        const maxVal = parseFloat(maxInput.value);
+        filterConditions[key] = {
+          min: isNaN(minVal) ? null : minVal,
+          max: isNaN(maxVal) ? null : maxVal
+        };
+        applyAllFilters?.();
+      };
+
+      minInput.addEventListener('blur', updateFilter);
+      maxInput.addEventListener('blur', updateFilter);
+    });
+    
+    let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
+    let filterConditions = {
+      premium_price: { min: null, max: null },
+      monthly_rent: { min: null, max: null },
+      area_py: { min: null, max: null },
+      sale_price: { min: null, max: null },
+      roi: { min: null, max: null }
+    };
+
+    // 정렬 관련 함수
+    function sortListingsDefault(list) {
+      return list.slice().sort((a, b) => {
+        const addrA = (a.full_address || '').trim();
+        const addrB = (b.full_address || '').trim();
+
+        if (addrA < addrB) return -1;
+        if (addrA > addrB) return 1;
+
+        const floorA = Number(a.floor) || 0;
+        const floorB = Number(b.floor) || 0;
+
+        if (floorA < floorB) return -1;
+        if (floorA > floorB) return 1;
+
+        const unitA = (a.unit_info || '').trim();
+        const unitB = (b.unit_info || '').trim();
+
+        if (unitA < unitB) return -1;
+        if (unitA > unitB) return 1;
+
+        return 0;
+      });
+    }
+    
+    async function fetchMoreListings() {
+      if (isLoading || !hasMore) return;
+      isLoading = true;
+
+      const { data: listingsData, error } = await client
+        .from('baikukdbtest').select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) return console.error('❌ 오류:', error);
+
+      const { data: buildingsData, error: buildingsError } = await client
+        .from('building_info').select('addr_compare, building_name');
+
+      if (buildingsError) return console.error('❌ building_info 오류:', buildingsError);
+
+      const buildingMap = new Map(buildingsData.map(b => [b.addr_compare, b.building_name]));
+      const enrichedListings = listingsData.map(listing => ({
+        ...listing,
+        building_name: buildingMap.get(listing.addr_compare) || '-'
+      }));
+
+      listings.push(...enrichedListings);
+      if (listingsData.length < limit) hasMore = false;
+      offset += listingsData.length;
+      renderListings(sortListingsDefault(enrichedListings));
+      isLoading = false;
+    }
+
+    // 필터 적용함수
+    function applyAllFilters(dataToFilter) {
+      const selectedDealTypes = getCheckedValues("deal-type-checkbox");
+      const selectedPublics = getCheckedValues("is-public-checkbox");
+      const selectedStatuses = getCheckedValues("transaction-status-checkbox");
+      const selectedCategories = getCheckedValues("category-checkbox");
+
+      const filtered = dataToFilter.filter(listing => {
+        const numericMatch = Object.entries(filterConditions).every(([key, { min, max }]) => {
+          const value = parseFloat(listing[key]);
+          if (isNaN(value)) return true;
+          if (min != null && value < min) return false;
+          if (max != null && value > max) return false;
+          return true;
+        });
+
+        const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
+        const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
+        const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(listing.transaction_status || '-');
+        const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(listing.category || '-');
+
+        return numericMatch && matchDealType && matchIsPublic && matchStatus && matchCategory;
+      });
+
+      return filtered;
+    }
+
+    // 카테고리 선택시 휠 없어지면 추가로 매물로딩 관련함수
+    function checkAndFetchIfNoScroll() {
+      const container = document.getElementById('table-container');
+      // 스크롤이 생기지 않을 경우 자동으로 fetchMoreListings 호출
+      if (container.scrollHeight <= container.clientHeight && hasMore) {
+        fetchMoreListings();
+      }
+    }
+
+    const headerRow = document.getElementById('header-row');
+
+    async function serverSearch(idTerm, titleTerm, addressTerm, buildingTerm) {
+      console.log("🔍 검색 실행됨:", { idTerm, titleTerm, addressTerm, buildingTerm });
+
+      listings = [];
+      offset = 0;
+      hasMore = false;
+
+      // Step 1: 건물명 → addr_compare 매핑
+      let matchedAddresses = [];
+      if (buildingTerm) {
+        const { data: matchedBuildings, error: buildingError } = await client
+          .from('building_info')
+          .select('addr_compare')
+          .ilike('building_name', `%${buildingTerm}%`);
+        if (buildingError) {
+          console.error('❌ building_name 검색 오류:', buildingError);
+          return;
+        }
+        matchedAddresses = matchedBuildings.map(b => b.addr_compare);
+      }
+
+      // Step 2: 매물 테이블 조건별 검색
+      let query = client.from('baikukdbtest').select('*').limit(1000);
+
+      if (idTerm && !isNaN(parseInt(idTerm))) {
+        query = query.eq('listing_id', parseInt(idTerm));
+      }
+      if (titleTerm) query = query.ilike('listing_title', `%${titleTerm}%`);
+      if (addressTerm) query = query.ilike('full_address', `%${addressTerm}%`);
+      if (buildingTerm && matchedAddresses.length > 0) {
+        query = query.in('addr_compare', matchedAddresses);
+      }
+
+      const { data: listingsData, error: listingsError } = await query;
+      if (listingsError) {
+        console.error('❌ 매물 검색 오류:', listingsError);
+        return;
+      }
+
+      // Step 3: building_name 병합
+      const { data: buildingsData, error: buildingsAllError } = await client
+        .from('building_info')
+        .select('addr_compare, building_name');
+      if (buildingsAllError) {
+        console.error('❌ 병합용 building_info 오류:', buildingsAllError);
+        return;
+      }
+
+      const buildingMap = new Map(buildingsData.map(b => [b.addr_compare, b.building_name]));
+      const enrichedData = listingsData.map(listing => ({
+        ...listing,
+        building_name: buildingMap.get(listing.addr_compare) || '-'
+      }));
+
+      listings = enrichedData;
+      document.getElementById('listings-body').innerHTML = '';
+      renderListings(sortListingsDefault(enrichedData));
+      return enrichedData;
+    }
+
+    function renderListings(data) {
+      const tbody = document.getElementById('listings-body');
+      data.forEach(listing => {
+        const row = document.createElement('tr');
+        row.dataset.listingId = listing.listing_id; // ✅ 클릭용 ID 저장
+        row.className = 'border-b border-gray-300 bg-white hover:bg-gray-50 cursor-pointer';
+
+        row.innerHTML = `
+          <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
+              target="_blank" rel="noopener"
+              onclick="event.stopPropagation();" class="hover:underline">
+              ${listing.listing_id}
+            </a>
+          </td>
+          <td class="p-2 text-base text-right whitespace-nowrap">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" ${listing.is_public ? 'checked' : ''} />
+              <span>${listing.is_public ? '공개' : '비공개'}</span>
+            </label>
+            <div style="
+              ${(listing.transaction_status || '').includes('진행중') 
+                ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
+                : (listing.transaction_status || '').includes('보류') 
+                  ? 'background-color: #d2f4ef; color: #00b0ad; font-weight: bold;' 
+                  : (listing.transaction_status || '').includes('계약완료') 
+                    ? 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;' 
+                    : 'background-color: #e5e7eb; color: #374151;'}
+              padding: 2px 8px; 
+              border-radius: 8px; 
+              display: inline-block;
+              font-size: 0.8rem;
+              text-align: center;
+              margin-top: 0.25rem;
+            ">
+              ${(listing.transaction_status || '').includes('진행중') 
+                ? '진행중' 
+                : (listing.transaction_status || '').includes('보류') 
+                  ? '보류' 
+                  : (listing.transaction_status || '').includes('계약완료') 
+                    ? '계약완료' 
+                    : '-'}
+            </div>
+          </td>
+          <td class="p-2 font-bold text-lg whitespace-normal break-words">
+            <a href="/?id=${encodeURIComponent(listing.listing_id)}"
+              target="_blank" rel="noopener"
+              onclick="event.stopPropagation();" class="hover:underline">
+              ${listing.listing_title || '-'}
+            </a>
+          </td>
+          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city}<br />${listing.district} ${listing.detail_address}</td>
+          <td class="p-2 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
+          <td class="p-2 text-base"><div id="scroll-cell-${listing.listing_id}" class="max-w-[6rem] overflow-x-auto whitespace-nowrap">${listing.unit_info || '-'}</div></td>
+          <td class="p-2 text-right text-base">${formatNumber(listing.floor)}층</td>
+          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.deposit_price)}</td>
+          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.monthly_rent)}</td>
+          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.premium_price)}</td>
+          <td class="p-2 text-right text-lg whitespace-nowrap">${listing.area_py != null ? Number(listing.area_py).toFixed(0) : '-'}평</td>
+          <td class="p-2 text-right text-base"><div>${listing.supply_area_m2 != null ? Number(listing.supply_area_m2).toFixed(2) : '-'}㎡</div><div>${listing.area_m2 != null ? Number(listing.area_m2).toFixed(2) : '-'}㎡</div></td>
+          <td class="p-2 text-right text-lg">${formatNumber(listing.sale_price)}</td>
+          <td class="p-2 text-right text-lg">${formatNumber(listing.total_deposit)}</td>
+          <td class="p-2 text-right text-lg">${formatNumber(listing.total_rent)}</td>
+          <td class="p-2 text-right text-lg">${listing.roi != null ? (Number(listing.roi) * 100).toFixed(1) + '%' : '-'}</td>
+          <td class="p-2">${listing.store_category || '-'}</td>`;
+        tbody.appendChild(row);
+
+        requestAnimationFrame(() => {
+          const scrollDiv = document.getElementById(`scroll-cell-${listing.listing_id}`);
+          if (scrollDiv) scrollDiv.scrollLeft = scrollDiv.scrollWidth;
+        });
+      });
+
+      // ✅ 렌더링 후, 스크롤 부족 시 자동 로딩
+      checkAndFetchIfNoScroll();
+    }
+
+    function setupScrollTrigger() {
+      const tableContainer = document.getElementById('table-container');
+      tableContainer.addEventListener('scroll', () => {
+        const nearBottom = tableContainer.scrollTop + tableContainer.clientHeight >= tableContainer.scrollHeight - 100;
+        if (nearBottom) fetchMoreListings();
+      });
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchMoreListings();
+      setupScrollTrigger();
+
+      // ✅ 필터 UI 초기값 설정
+      document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
+      document.querySelector('input.category-checkbox[value="상가"]').checked = true;
+
+      // 검색 입력 요소들
+      const searchButton = document.getElementById('search-button');
+      const idInput = document.getElementById('id-input');
+      const titleInput = document.getElementById('title-input');
+      const addressInput = document.getElementById('address-input');
+      const buildingInput = document.getElementById('building-input');
+
+      // ✅ 요소가 모두 있는 경우에만 이벤트 리스너 등록
+      if (searchButton && idInput && titleInput && addressInput && buildingInput) {
+        searchButton.addEventListener('click', async () => {
+          // ✅ 숫자 조건 최신화
+          filterInputs.forEach(({ key, min, max }) => {
+            const minVal = parseFloat(document.getElementById(min).value);
+            const maxVal = parseFloat(document.getElementById(max).value);
+            filterConditions[key] = {
+              min: isNaN(minVal) ? null : minVal,
+              max: isNaN(maxVal) ? null : maxVal
+            };
+          });
+
+          const idTerm = idInput.value.trim();
+          const titleTerm = titleInput.value.trim();
+          const addressTerm = addressInput.value.trim();
+          const buildingTerm = buildingInput.value.trim();
+
+          const baseFiltered = await serverSearch(idTerm, titleTerm, addressTerm, buildingTerm);
+          const finalFiltered = applyAllFilters(baseFiltered);
+
+          document.getElementById('listings-body').innerHTML = '';
+          renderListings(sortListingsDefault(finalFiltered));
+        });
+
+        // ✅ Enter 키 눌렀을 때 검색
+        [idInput, titleInput, addressInput, buildingInput].forEach(input => {
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchButton.click();
+          });
+        });
+      } else {
+        console.error('❌ 검색 입력 필드 중 하나 이상이 DOM에 없습니다.');
+      }
+
+      // ✅ 테이블 헤더 열 크기 조절
+      const table = document.querySelector('table');
+      if (table) {
+        const headers = table.querySelectorAll('th');
+        headers.forEach(th => {
+          th.classList.add('resizable');
+
+          const handle = document.createElement('div');
+          handle.classList.add('resize-handle');
+          th.appendChild(handle);
+
+          handle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            const startX = e.pageX;
+            const startWidth = th.offsetWidth;
+            th.classList.add('resizing');
+
+            const onMouseMove = e => {
+              th.style.width = `${startWidth + (e.pageX - startX)}px`;
+            };
+
+            const onMouseUp = () => {
+              th.classList.remove('resizing');
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+          });
+        });
+      }
+
+      // ✅ 행 클릭 → /<매물번호> 로 이동 (Ctrl/⌘-클릭 또는 휠클릭은 새 탭)
+      const tbody = document.getElementById('listings-body');
+
+      function goToListing(id) {
+        const href = `/?id=${encodeURIComponent(id)}`;
+        // 항상 새 탭
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
+
+      tbody.addEventListener('click', (e) => {
+        // 인터랙티브 요소 클릭 시엔 행 네비게이션 막기
+        if (e.target.closest('input, button, label, a, select, textarea')) return;
+
+        const tr = e.target.closest('tr[data-listing-id]');
+        if (!tr) return;
+
+        goToListing(tr.dataset.listingId);
+      });
+
+      // (선택) 중클릭 핸들러가 있다면, 아래처럼 인터랙티브 요소는 무시하도록 보정
+      tbody.addEventListener('auxclick', (e) => {
+        if (e.button !== 1) return;
+        if (e.target.closest('input, button, label, a, select, textarea')) return; // ✅ a에서의 중클릭 중복방지
+        const tr = e.target.closest('tr[data-listing-id]');
+        if (!tr) return;
+        goToListing(tr.dataset.listingId);
+      });
+    });
+
+    document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
+      const win = window.open(
+        '/admin?autoclick=open-listing',
+        '_blank',
+        'noopener,noreferrer'  // ← 크기 옵션 빼고 이것만 남기기
+      );
+    });
+
+    // 거래유형, 공개, 거래완료, 대분류 필터링 관련
+    function getSelectedValues(selectId) {
+      const select = document.getElementById(selectId);
+      return Array.from(select.selectedOptions).map(option => option.value);
+    }
+
+    const selectedDealTypes = getSelectedValues("deal-type"); // ['월세', '매매'] 등
+    const selectedPublics = getSelectedValues("is-public"); // ['공개']
+    const selectedStatuses = getSelectedValues("transaction-status"); // ['진행중', '보류']
+    const selectedCategory = getSelectedValues("category"); // 상가, 공장창고, 빌딩, 토지, 주택
+
+    const filteredListings = allListings.filter(listing => {
+      const matchDealType = selectedDealTypes.length === 0 || selectedDealTypes.includes(listing.deal_type);
+      const matchIsPublic = selectedPublics.length === 0 || selectedPublics.includes(listing.is_public ? '공개' : '비공개');
+      const matchStatus = selectedStatuses.length === 0 || selectedStatuses.some(status => (listing.transaction_status || '').includes(status));
+      const matchCategory = selectedCategory.length === 0 || selectedCategory.includes(listing.category);
+      return matchDealType && matchIsPublic && matchStatus && matchCategory;
+    });
+
+    document.getElementById("search-button").addEventListener("click", () => {
+      // 위에서 만든 filter 로직 실행 → 필터링된 결과 render
+      renderListings(sortListingsDefault(filteredListings)); // ← 이건 사용자 정의 함수
+    });
+
+    function getCheckedValues(className) {
+      return Array.from(document.querySelectorAll(`.${className}:checked`)).map(el => el.value);
+    }
+
+
+
+
+  </script>
+</head>
+<body class="h-screen w-screen">
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://github.com/mhale45/image/raw/main/map/%EB%B0%B1%EC%96%B5%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC%EC%82%AC%EB%AC%B4%EC%86%8C%20%EA%B8%80%EC%94%A8%EB%A7%8C.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()"/>
+  </div>
+  <div class="flex h-full">    
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+      <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/admin/listings/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
+      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
+      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+    </div>
+    <div class="w-[94%] flex flex-col bg-gray-50">
+      <div class="flex gap-4 items-start bg-gray-100"> <!-- 필터 영역 (상단 10%) -->
+        <div class="flex flex-col w-[37%] mt-2">
+            <button id="open-admin-listing-btn" class="text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded px-2 py-1 ml-auto mt-5">🏢 매물등록</button>        
+          <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2">
+            <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
+            <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
+            <input type="text" id="address-input" placeholder="주소" class="border px-1.5 py-1 rounded w-[23%]" />
+            <input type="text" id="building-input" placeholder="건물명" class="border px-1.5 py-1 rounded w-[22%]" />
+            <button id="search-button" class="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-600 w-[10%]">검색</button>
+          </div>
+        </div>
+        <!-- 필터 입력창 영역 -->
+        <div id="fixed-filter-box" class="bg-gray-100 px-4 pt-2 pb-4">
+          <!-- 제목줄 -->
+          <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
+            <div class="w-[6rem] text-center">보증금</div>
+            <div class="w-[5rem] text-center">월세</div>
+            <div class="w-[6rem] text-center">권리금</div>
+            <div class="w-[4rem] text-center">전용(평)</div>
+            <div class="w-[6rem] text-center">매매가</div>
+            <div class="w-[4rem] text-center">수익률</div>
+          </div>
+
+          <!-- 이상 입력창 -->
+          <div class="flex gap-4 mb-1">
+            <input id="filter-deposit-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-rent-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[5rem]" />
+            <input id="filter-premium-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-area-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-sale-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-roi-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+          </div>
+
+          <!-- 이하 입력창 -->
+          <div class="flex gap-4">
+            <input id="filter-deposit-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-rent-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[5rem]" />
+            <input id="filter-premium-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-area-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-sale-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-roi-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+          </div>
+        </div>
+          <!-- 필터 입력창 영역 -->
+          <div id="fixed-filter-box" class="h-[3.45rem] bg-gray-100 px-4 pt-2 pb-4 flex gap-7">
+            <!-- 거래유형 -->
+            <div>
+              <div class="font-semibold mb-1">거래유형</div>
+              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
+              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
+            </div>
+
+            <!-- 공개여부 -->
+            <div>
+              <div class="font-semibold mb-1">공개여부</div>
+              <label class="block"><input type="checkbox" class="is-public-checkbox" value="공개" /> 공개</label>
+              <label class="block"><input type="checkbox" class="is-public-checkbox" value="비공개" /> 비공개</label>
+            </div>
+
+            <!-- 거래완료 -->
+            <div>
+              <div class="font-semibold mb-1">거래상태</div>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="진행중" /> 진행중</label>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="보류" /> 보류</label>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="계약완료" /> 계약완료</label>
+            </div>
+
+            <!-- 대분류 -->
+            <div class="flex flex-col items-center">
+              <div class="font-semibold mb-1">대분류</div>
+              <div>
+                <div class="flex gap-2">
+                  <div>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="상가" /> 상가</label>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="빌딩" /> 빌딩</label>
+                  </div>
+                  <div>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="주택" /> 주택</label>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="토지" /> 토지</label>
+                  </div>
+                </div>
+                <label class="block"><input type="checkbox" class="category-checkbox" value="공장·창고" /> 공장·창고</label>
+              </div>
+            </div>
+          </div>
+      </div>
+      <div class="px-4 bg-gray-100">
+        <div class="px-4 py-4 bg-white border border-gray-300 rounded-md">
+          <div id="table-container" class="h-[83vh] overflow-y-auto custom-scroll bg-whiteborderrounded-md">
+            <table class="w-full table-fixed text-sm text-left bg-white">
+              <thead class="bg-gray-100 sticky top-0 z-10">
+                <tr id="header-row">
+                  <th class="p-2 border-r text-sm text-center w-[4.54rem]">매물번호</th>
+                  <th class="p-2 border-r text-sm text-center w-[5rem]">상태</th>
+                  <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div></th>
+                  <th class="p-2 border-r text-sm text-center w-[10.5rem]">주소</th>
+                  <th class="p-2 border-r text-sm text-center w-[9rem]">건물정보</th>
+                  <th class="p-2 border-r text-sm text-center">호수</th>
+                  <th class="p-2 border-r text-sm text-center w-[3rem]">층</th>
+                  <th class="p-2 border-r text-sm text-center">보증금</th>
+                  <th class="p-2 border-r text-sm text-center">월세</th>
+                  <th class="p-2 border-r text-sm text-center">권리금</th>
+                  <th class="p-2 border-r text-sm text-center min-w-[4.5rem]">전용(평)</th>
+                  <th class="p-2 border-r text-sm text-center w-[6.5rem]">공급/전용(㎡)</th>
+                  <th class="p-2 border-r text-sm text-center">매매가</th>
+                  <th class="p-2 border-r text-sm text-center min-w-[1rem]">총보증금</th>
+                  <th class="p-2 border-r text-sm text-center">총월세</th>
+                  <th class="p-2 border-r text-sm text-center">수익률</th>
+                  <th class="p-2 border-r text-sm text-center">상가타입</th>
+                </tr>
+              </thead>
+              <tbody id="listings-body" class="bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

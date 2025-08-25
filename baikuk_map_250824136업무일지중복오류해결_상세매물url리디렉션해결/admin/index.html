@@ -17,6 +17,22 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js"></script>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script> 
+        window.REQUIRE_AUTH = true;   // admin은 항상 인증 필요
+        window.LOGIN_PAGE = 'index.html';
+        const BUCKET = 'listing-images'; //이미지 관련 변수
+        window.BUCKET = 'listing-images'; // 버킷명
+        window.BUCKET_IS_PUBLIC = false;  // 버킷이 Public이면 true (Private면 false)
+        // 페이지네이션/좌측 목록 캐시 (초기값)
+        let matchedListingsCache = [];
+        let matchedListingsPage = 0;
+        let _prewarmDoneOnce = false; //이미지 캐싱 관련 변수
+        let lastPrewarmHash = null;  // 이전에 예열한 ID들 해시 저장
+        let _imgReqToken = 0;
+        // 전역 상태: 필드별 선택값 (예: { direction: ['남','서'], building_usage: ['제1종 근린생활시설'] })
+        const selectFilterState = {}; 
+        selectFilterState['transaction_status'] = ['진행중'];
+    </script>
     <style>
         .image-wm { position: relative; overflow: hidden; }
         .thumb-box { background:#f3f4f6; overflow:hidden; }
@@ -28,6 +44,7 @@
         #image-viewer-slot:empty { display: none; }
         #img-list .group:hover img { outline: 2px dashed rgba(0,0,0,0.15); } /* 선택모드에서 hover 시 구분감 */
     </style>
+
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
@@ -42,79 +59,72 @@
         // ✅ 이후 코드는 client로만 사용(혼용 방지)
         const client = window.supabase;
         window.client = client;
-    </script>
-    <script> 
-        // 전역 설정
-        window.REQUIRE_AUTH = true;
-        window.LOGIN_PAGE = 'index.html';
-        window.BUCKET = 'listing-images';
-        window.BUCKET_IS_PUBLIC = false;
-
-        let matchedListingsCache = [];
-        let matchedListingsPage = 0;
-        let _prewarmDoneOnce = false;
-        let lastPrewarmHash = null;
-        let _imgReqToken = 0;
-
-        // 다중선택 초기값
-        const selectFilterState = {};
-        selectFilterState['transaction_status'] = ['진행중'];
-
-        // 배포 서브패스에서도 안전한 이동 유틸
+        
+        // ✅ 배포 서브패스에서도 안전한 이동 유틸
         const BASE = location.pathname.replace(/[^/]*$/, '');
         const here = (location.pathname.split('/').pop() || '/admin');
-
-        if (window.initializeApp) initializeApp();
 
         function go(page){
             const targetUrl = new URL(page.startsWith('/') ? page : BASE + page, location.origin);
             if (location.pathname === targetUrl.pathname && location.search === targetUrl.search) return;
             location.replace(targetUrl.href);
         }
-        window.go = go;
 
+        window.go = go; // (onclick 등에서 쓸 수 있게)
+
+        // 버튼 토글 유틸
         function toggleAuthButtons(has) {
             document.getElementById('logout-btn')?.classList.toggle('hidden', !has);
             document.getElementById('change-password-btn')?.classList.toggle('hidden', !has);
         }
 
+        // ── Auth 가드: 논블로킹 + 타임아웃 ──────────────────────────
+
+        // getSession이 지연돼도 화면이 멈추지 않도록 타임아웃 적용
         async function getSessionNonBlocking(timeoutMs = 1500) {
-            const TIMEOUT = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), timeoutMs));
+            const TIMEOUT = new Promise((resolve) =>
+                setTimeout(() => resolve('__TIMEOUT__'), timeoutMs)
+            );
             try {
                 const res = await Promise.race([
-                    client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
-                    TIMEOUT
-            ]);
-            return res; // null | session | '__TIMEOUT__'
+                client.auth.getSession().then(r => (r?.data?.session ?? null)).catch(() => null),
+                TIMEOUT
+                ]);
+                return res; // null | session | '__TIMEOUT__'
             } catch {
                 return null;
             }
         }
 
+        // 초기 1회: 세션 없으면 (관리영역이면) 루트로, 세션 있으면 버튼/뱃지 세팅
         async function runAdminGuardOnce() {
             const session = await getSessionNonBlocking(1500);
 
             if (session === '__TIMEOUT__') {
                 console.warn('[auth] getSession timeout → continue rendering and check later');
-                toggleAuthButtons(false);
+                toggleAuthButtons(false); // 일단 비로그인 UI로
                 return;
             }
 
             const isAuthed = !!session;
             toggleAuthButtons(isAuthed);
 
+            // /admin 하위 경로에서 비로그인 → 루트로
             if (!isAuthed && location.pathname.startsWith('/admin')) {
                 const url = new URL('/', location.origin);
+                // 쿼리스트링을 보존하고 싶으면 유지
                 if (location.search) url.search = location.search;
                 location.replace(url.href);
                 return;
             }
 
+            // 배지 렌더 (DOM 준비 후 1회)
             document.addEventListener('DOMContentLoaded', () => {
-            window.renderAffiliationBadge?.();
+                window.renderAffiliationBadge?.();
             });
         }
 
+        // 상태 변화: 로그아웃 시 (관리영역이면) 루트로, 로그인 시 UI/뱃지 갱신
         client.auth.onAuthStateChange((_evt, session) => {
             const isAuthed = !!session;
             toggleAuthButtons(isAuthed);
@@ -129,8 +139,16 @@
             window.renderAffiliationBadge?.();
         });
 
+        // 실행
         runAdminGuardOnce();
+
+        // 앱 초기화 (인증 등)
+        if (window.initializeApp) {
+            initializeApp();
+        }
+
     </script>
+
     <style>
         :root {
             --header-height: 3.5rem;
@@ -2421,17 +2439,11 @@
 
     function updateURLForListing(listingId, replace = false) {
         const url = new URL(location.href);
-
-        // ✅ /admin.html, /admin/index.html, /admin → 전부 /admin/ 으로 통일
-        if (!url.pathname.startsWith('/admin')) {
-            url.pathname = '/admin/';
-        } else if (url.pathname === '/admin.html' || url.pathname === '/admin/index.html') {
+        if (url.pathname !== '/admin/' && url.pathname !== '/admin') { // ✅ 항상 /admin 으로 경로 고정 (쿼리는 아래에서 세팅)
             url.pathname = '/admin/';
         }
-
         if (listingId) url.searchParams.set('id', String(listingId));
         else url.searchParams.delete('id');
-
         try {
             history[replace ? 'replaceState' : 'pushState']({}, '', url);
         } catch (_) {}
@@ -2958,8 +2970,7 @@
         return workLogs.map(log => {
             const date = new Date(log.Registration_date).toLocaleString("ko-KR");
             return `
-                <div class="border rounded px-3 py-0 mb-0 text-sm bg-white"
-                    style="border-color: #F2C130; border-width: 0.25rem;">
+                <div class="border border-gray-300 rounded px-3 py-0 mb-0 text-sm bg-white">
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-semibold text-gray-800">📌 ${log.type}</span>
                         <span class="text-gray-500 text-xs">${date}</span>
@@ -3113,7 +3124,6 @@
             ownerphonenumber: getVal('ownerphonenumber'),
             ownergender: getVal('ownergender'),
             store_category: getVal('store_category') || original.store_category || '-',
-            is_public: document.getElementById('is_public')?.checked ? '공개' : '비공개',
         };
 
         // 1. baikukdbtest 업데이트
@@ -3498,7 +3508,7 @@
                                     const price = listing.premium_price;
                                     if (parseFloat(price) === 0) return '무권리';
                                     if (!price || price === '-' || isNaN(price)) return '';
-                                    if (parseFloat(price) > 0) return `${formatKoreanMoney(price)}`;
+                                    if (parseFloat(price) > 0) return `권 ${formatKoreanMoney(price)}`;
                                     return '';
                                 })()
                                 : listing.deal_type?.includes("매매")
@@ -4641,7 +4651,6 @@
         window.location.replace(location.origin);
     }
 
-
     function getFilterValues() {
         const values = {};
         filterDefs.forEach(def => {
@@ -4748,49 +4757,21 @@
     function renderMatchedListings() {
         if (!Array.isArray(matchedListingsCache)) return;
         const end = matchedListingsPage * PAGE_SIZE;
+        const listingsToShow = matchedListingsCache.slice(0, end);             
 
-        const sorted = [...matchedListingsCache].sort((a, b) => {
-            // 1. floor (숫자 비교, 지하층도 숫자로 비교)
-            const floorA = Number(a.floor) || 0;
-            const floorB = Number(b.floor) || 0;
-            if (floorA !== floorB) return floorA - floorB;
-
-            // 2. unit_info (문자열 비교, 없으면 '' 처리)
-            const unitA = a.unit_info ? a.unit_info.toString() : '~';  // 없는 건 맨 뒤로
-            const unitB = b.unit_info ? b.unit_info.toString() : '~';
-            if (unitA !== unitB) return unitA.localeCompare(unitB, 'ko');
-
-            // 3. listing_title (문자열 비교)
-            const titleA = (a.listing_title || '').toString();
-            const titleB = (b.listing_title || '').toString();
-            return titleA.localeCompare(titleB, 'ko');
-        });
-
-        const listingsToShow = sorted.slice(0, end);          
-
-        infoContent.innerHTML = listingsToShow.map((l, idx, arr) => {
+        infoContent.innerHTML = listingsToShow.map(l => {
             const statusRaw = l.transaction_status || '-';
             const status = statusRaw.trim().split(' ')[0];
             let bgStyle = 'background-color: #d1d5db; color: #37373d;';
             if (status === '진행중') bgStyle = 'background-color: #d9fae6; color: #00b74a;';
             else if (status === '계약완료') bgStyle = 'background-color: rgba(255,237,237); color: rgba(247,63,87); font-weight: 900;';
-
+            
             const isActive = String(window.currentDetailListingId).trim() === String(l.listing_id).trim();
             const highlightStyle = isActive ? 'background-color: rgba(243,244,246);' : '';
             const logo = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/baikuk-simbol.png';
 
-            // 🔑 바로 이전 매물과 floor 비교
-            const prev = arr[idx - 1];
-            const prevFloor = prev ? Number(prev.floor) || 0 : null;
-            const currFloor = Number(l.floor) || 0;
-
-            // 층이 바뀌면 border 두껍게
-            const borderStyle = (idx > 0 && prevFloor !== currFloor)
-                ? 'border-b-4 border-gray-400'
-                : 'border-b border-gray-300';
-
             return `
-                <div class="mb-1 pb-1 ${borderStyle} text-left" style="${highlightStyle};">
+                <div class="mb-1 pb-1 border-b border-gray-300 text-left" style="${highlightStyle};">
                     <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition">
                         <div class="flex flex-row items-center gap-3">
                             <div class="relative w-[140px] h-[100px]">
@@ -4810,9 +4791,7 @@
                                 <div class="flex items-center gap-2">
                                     <div class="flex flex-row items-center">
                                         <div class="flex items-center gap-5 leading-[1.4]">
-                                            <strong class="text-[15px] text-gray-800 max-w-[280px]" title="${l.listing_title}">
-                                                ${l.listing_title.length > 40 ? l.listing_title.slice(0, 40) + '⋯' : l.listing_title}
-                                            </strong>
+                                            <strong class="text-[15px] text-gray-800 max-w-[280px]" title="${l.listing_title}">${l.listing_title.length > 40 ? l.listing_title.slice(0, 40) + '⋯' : l.listing_title}</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -4820,11 +4799,7 @@
                                     <div class="flex flex-row justify-between items-start">
                                         <div class="flex items-start gap-2">
                                             <div class="flex-1 text-left font-bold text-[rgb(80,152,233)] text-base">
-                                                ${l.deal_type} ${
-                                                    l.deal_type === "매매" ? ` ${formatKoreanMoney(l.sale_price)}` 
-                                                    : l.deal_type === "월세" ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}` 
-                                                    : ""
-                                                }
+                                                ${l.deal_type} ${l.deal_type === "매매" ? ` ${formatKoreanMoney(l.sale_price)}` : l.deal_type === "월세" ? ` ${formatKoreanMoney(l.deposit_price)} / ${formatKoreanMoney(l.monthly_rent)}` : ""}
                                             </div>
                                         </div>                                        
                                         <div class="text-right font-bold text-[rgb(248,63,87)] text-base whitespace-nowrap">
@@ -4834,7 +4809,7 @@
                                                         const price = l.premium_price;
                                                         if (parseFloat(price) === 0) return '무권리';
                                                         if (!price || price === '-' || isNaN(price)) return '';
-                                                        if (parseFloat(price) > 0) return `${formatKoreanMoney(price)}`;
+                                                        if (parseFloat(price) > 0) return `권 ${formatKoreanMoney(price)}`;
                                                         return '';
                                                     })()
                                                     : l.deal_type?.includes("매매")
@@ -4842,6 +4817,7 @@
                                                     : ''
                                             }
                                         </div>
+
                                     </div>
                                     <div class="flex-1 text-[16px]">
                                         <strong class="font-semibold">${l.floor < 0 ? `B${Math.abs(l.floor)}` : `${l.floor}`}</strong>/${l.total_floors}층
@@ -4854,7 +4830,6 @@
                     </div>
                 </div>`;
         }).join('');
-
 
         // ▼ 새로 그려진 썸네일들에 대표사진 적용
         const ids = listingsToShow.map(l => l.listing_id);
@@ -4908,7 +4883,7 @@
             // 1. 주요 매물 데이터 조회
             const { data: listings, error: listingError } = await client
                 .from(tableToQuery)
-                .select('listing_id, lat, lng, listing_title, deal_type, deposit_price, monthly_rent, sale_price, total_deposit, total_rent, premium_price, roi, floor, unit_info, total_floors, area_py, supply_area_py, area_m2, supply_area_m2, category, transaction_status, is_public, province, city, district, detail_address, addr_compare, primary_image_path')
+                .select('listing_id, lat, lng, listing_title, deal_type, deposit_price, monthly_rent, sale_price, total_deposit, total_rent, premium_price, roi, floor, total_floors, area_py, supply_area_py, area_m2, supply_area_m2, category, transaction_status, is_public, province, city, district, detail_address, addr_compare, primary_image_path')
                 .gte('lat', sw.getLat()).lte('lat', ne.getLat())
                 .gte('lng', sw.getLng()).lte('lng', ne.getLng());
 
