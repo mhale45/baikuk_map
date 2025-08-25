@@ -2958,8 +2958,7 @@
         return workLogs.map(log => {
             const date = new Date(log.Registration_date).toLocaleString("ko-KR");
             return `
-                <div class="border rounded px-3 py-0 mb-0 text-sm bg-white"
-                    style="border-color: #F2C130; border-width: 0.25rem;">
+                <div class="border border-gray-300 rounded px-3 py-0 mb-0 text-sm bg-white">
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-semibold text-gray-800">📌 ${log.type}</span>
                         <span class="text-gray-500 text-xs">${date}</span>
@@ -4786,7 +4785,7 @@
 
             // 층이 바뀌면 border 두껍게
             const borderStyle = (idx > 0 && prevFloor !== currFloor)
-                ? 'border-b-4 border-gray-400'
+                ? 'border-b-2 border-gray-400'
                 : 'border-b border-gray-300';
 
             return `
