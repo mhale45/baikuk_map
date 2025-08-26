@@ -318,17 +318,17 @@
           <div class="flex items-center">
             <h3 class="text-base font-semibold text-gray-700 mr-10">분배</h3>
             <span class="text-sm text-gray-600 mr-2">물건분: 매도인 수수료의</span>
-            <input id="f_seller_distribution_rate" type="number" step="any" class="border rounded px-3 py-2 w-[6rem]">
+            <input id="f_seller_distribution_rate" type="number" step="any" value="30" class="border rounded px-3 py-2 w-[6rem]">
             <span class="text-sm text-gray-600">%</span>
           </div>
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">클로징 매출</span>
-              <input id="f_buyer_performance" type="text" step="any" class="border rounded px-3 py-2">
+              <div id="f_buyer_performance" type="text" step="any" class="border rounded px-3 py-2"></div>
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">물건 매출</span>
-              <input id="f_seller_performance" type="text" step="any" class="border rounded px-3 py-2">
+              <div id="f_seller_performance" type="text" step="any" class="border rounded px-3 py-2"></div>
             </label>
             <label class="flex flex-col gap-1 mr-20">
               <span class="text-sm text-gray-600">거래관련 사용비용</span>
@@ -451,6 +451,52 @@
                 container.appendChild(collapseDiv);
             }
         });
+    })();
+
+    // 직원은 분배율 만지지 못하게
+    (async () => {
+      // 1) 사용자 정보
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes?.user;
+
+      // 2) 메타데이터에서 권한 확인
+      let role = user?.user_metadata?.role || user?.app_metadata?.role || null;
+
+      // 3) 메타데이터에 role이 없으면 profiles에서 시도 (컬럼명/키는 환경에 맞게 조정)
+      if (!role && user?.id) {
+        const { data: prof } = await supabase
+          .from('staff_profiles')
+          .select('role')                // ← staff_profiles에 role 컬럼이 있을 때만 동작
+          .eq('auth_user_id', user.id)   // ← 사용자-프로필 매핑 키(환경에 맞게 수정)
+          .maybeSingle();
+        role = prof?.role || null;
+      }
+
+      // 전역 보관
+      window.__userRole = role;
+      window.__isStaff = role === '직원';
+
+      // 4) 직원이면 분배율 입력 잠금
+      const distEl = document.getElementById('f_seller_distribution_rate');
+      if (distEl) {
+        if (window.__isStaff) {
+          if (!distEl.value) distEl.value = 30;      // 초기값 보장
+          distEl.readOnly = true;                    // 타이핑 방지
+          distEl.classList.add('bg-gray-100', 'cursor-not-allowed');
+          // 붙여넣기/키입력 등 모든 입력 차단
+          ['keydown','beforeinput','paste','drop'].forEach(ev =>
+            distEl.addEventListener(ev, e => e.preventDefault())
+          );
+          // 혹시 프로그램적으로 바꿔도 즉시 되돌림
+          distEl.addEventListener('input', () => { distEl.value = 30; });
+          // 안내 토스트 (선택)
+          distEl.title = '직원 권한은 분배율을 변경할 수 없습니다.';
+        } else {
+          // 관리자/매니저 등은 자유롭게 수정 가능
+          distEl.readOnly = false;
+          distEl.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+      }
     })();
 
     window.supabase = supabase;
@@ -654,10 +700,14 @@
     document.getElementById('save-sales')?.addEventListener('click', async () => {
       try {
         // supabase 클라이언트는 type="module" 블록에서 생성됨.
-        // 여기서는 window.supabase 로 노출해둘게.
-        if (!window.supabase) {
-          showToast('Supabase 클라이언트를 찾을 수 없습니다.');
-          return;
+        if (!window.supabase) { showToast('Supabase 클라이언트를 찾을 수 없습니다.'); return; }
+
+        // 저장 직전 분배율 보정 (직원은 30 고정)
+        const distEl = document.getElementById('f_seller_distribution_rate');
+        if (window.__isStaff && distEl) {
+          distEl.value = 30;
+          // 수수료/매출 값도 30 기준으로 재계산
+          if (typeof calculateFees === 'function') calculateFees();
         }
 
         const payload = collectPerformancePayload();
@@ -1063,9 +1113,6 @@
       const buyerFeeEl = document.getElementById("f_buyer_fee");
       const sellerFeeEl = document.getElementById("f_seller_fee");
       const distRateEl  = document.getElementById("f_seller_distribution_rate");
-
-      // 분배율(무조건 30)
-      distRateEl.value = 30;
 
       // 수수료 값 입력 (콤마)
       buyerFeeEl.value  = formatNumberWithCommas(Math.round(fee));
