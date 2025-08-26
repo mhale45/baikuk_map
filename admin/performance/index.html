@@ -811,9 +811,8 @@
           if (!retry.data) { showToast('해당 매물번호를 찾을 수 없습니다.'); return; }
 
           const row = retry.data;
-          Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
-            if (col in row) setInputValue(inputId, row[col]);
-          });
+          fillFormFromRow(row);
+          calculateFees();
 
           // 선택값과 무관하게 드롭다운을 강제로 맞춤
           initSalesLocationSelects({
@@ -831,6 +830,7 @@
 
       // 2) 정상 채움
       fillFormFromRow(data);
+      calculateFees();
 
       // 선택값과 상관없이 드롭다운을 해당 값으로 재구성+선택
       initSalesLocationSelects({
