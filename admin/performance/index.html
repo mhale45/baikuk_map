@@ -260,7 +260,7 @@
               <span class="text-sm text-gray-600">중도금1 (금액)</span>
               <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
-            <label class="flex flex-col gap-1 mr-3">
+            <label class="flex flex-col gap-1 mr-5">
               <span class="text-sm text-gray-600">1차 입금일</span>
               <input id="f_interim_payment1_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
@@ -268,7 +268,7 @@
               <span class="text-sm text-gray-600">중도금2 (금액)</span>
               <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
-            <label class="flex flex-col gap-1 mr-3">
+            <label class="flex flex-col gap-1 mr-5">
               <span class="text-sm text-gray-600">2차 입금일</span>
               <input id="f_interim_payment2_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
@@ -324,19 +324,18 @@
               <input id="f_seller_performance" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">결재 상태 (status)</span>
+              <span class="text-sm text-gray-600">결재 상태</span>
               <input id="f_status" type="text" class="border rounded px-3 py-2" placeholder="예: 결재중/완료 등">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">비용</span>
               <input id="f_expense" type="number" step="any" class="border rounded px-3 py-2">
             </label>
-
-            <label class="col-span-3 flex flex-col gap-1">
-              <span class="text-sm text-gray-600">특약사항 (special_contract)</span>
-              <textarea id="f_special_contract" rows="3" class="border rounded px-3 py-2"></textarea>
-            </label>
           </div>
+          <label class="col-span-3 flex flex-col gap-1">
+            <span class="text-sm text-gray-600">특약사항 (special_contract)</span>
+            <textarea id="f_special_contract" rows="3" class="border rounded px-3 py-2 w-[30rem] overflow-hidden resize-none"></textarea>
+          </label>
         </section>
 
         <!-- 기여도 -->
