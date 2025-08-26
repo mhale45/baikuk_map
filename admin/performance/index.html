@@ -606,14 +606,14 @@
 
         balance_date: dateOrNull(document.getElementById('f_balance_date')?.value),
 
-        deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value),
-        monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value),
-        sale_price: numOrNull(document.getElementById('f_sale_price')?.value),
+        deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value)*10000,
+        monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value)*10000,
+        sale_price: numOrNull(document.getElementById('f_sale_price')?.value)*10000,
         area_py: numOrNull(document.getElementById('f_area_py')?.value),
         unit_info: (document.getElementById('f_unit_info')?.value ?? '').trim() || null,
         floor: intOrNull(document.getElementById('f_floor')?.value),
 
-        premium_price: numOrNull(document.getElementById('f_premium_price')?.value),
+        premium_price: numOrNull(document.getElementById('f_premium_price')?.value)*10000,
         expense: numOrNull(document.getElementById('f_expense')?.value),
 
         buyer_fee: numOrNull(document.getElementById('f_buyer_fee')?.value),
