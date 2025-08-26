@@ -169,34 +169,40 @@
         <!-- 기본정보 -->
         <section class="space-y-3">
           <h3 class="text-base font-semibold text-gray-700">기본 정보</h3>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매물번호 (listing_id)</span>
-              <input id="f_listing_id" type="number" step="1" class="border rounded px-3 py-2">
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">거래유형 (deal_type)</span>
-              <input id="f_deal_type" type="text" class="border rounded px-3 py-2" placeholder="월세/전세/매매 등">
+              <span class="text-sm text-gray-600">매물번호</span>
+              <input id="f_listing_id" type="number" step="1" class="border rounded px-3 py-2 w-[2rem]">
             </label>
             <label class="col-span-2 flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매물명 (listing_title)</span>
+              <span class="text-sm text-gray-600">매물명</span>
               <input id="f_listing_title" type="text" class="border rounded px-3 py-2">
             </label>
+          </div>
+          <div class="flex gap-3">  
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">시/도 (province)</span>
+              <span class="text-sm text-gray-600">시/도</span>
               <input id="f_province" type="text" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">시/군/구 (city)</span>
+              <span class="text-sm text-gray-600">시/군/구</span>
               <input id="f_city" type="text" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">읍/면/동 (district)</span>
+              <span class="text-sm text-gray-600">읍/면/동</span>
               <input id="f_district" type="text" class="border rounded px-3 py-2">
             </label>
             <label class="col-span-2 flex flex-col gap-1">
-              <span class="text-sm text-gray-600">번지 (detail_address)</span>
+              <span class="text-sm text-gray-600">번지</span>
               <input id="f_detail_address" type="text" class="border rounded px-3 py-2">
+            </label>            
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">층</span>
+              <input id="f_floor" type="number" step="1" class="border rounded px-3 py-2">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">호수</span>
+              <input id="f_unit_info" type="text" class="border rounded px-3 py-2">
             </label>
           </div>
         </section>
@@ -206,11 +212,11 @@
           <h3 class="text-base font-semibold text-gray-700">계약/정산</h3>
           <div class="grid grid-cols-3 gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">계약일 (contract_date)</span>
+              <span class="text-sm text-gray-600">계약일</span>
               <input id="f_contract_date" type="date" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">잔금일 (balance_date)</span>
+              <span class="text-sm text-gray-600">잔금일</span>
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2">
             </label>
           </div>
@@ -233,7 +239,17 @@
         <!-- 금액/면적/층/호수 -->
         <section class="space-y-3">
           <h3 class="text-base font-semibold text-gray-700">물건 정보/금액</h3>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="flex gap-3">
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">거래유형</span>
+              <input id="f_deal_type" type="text" class="border rounded px-3 py-2" placeholder="월세/전세/매매 등">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">매매가</span>
+              <input id="f_sale_price" type="number" step="any" class="border rounded px-3 py-2">
+            </label>
+          </div>
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">보증금</span>
               <input id="f_deposit_price" type="number" step="any" class="border rounded px-3 py-2">
@@ -243,20 +259,12 @@
               <input id="f_monthly_rent" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매매가</span>
-              <input id="f_sale_price" type="number" step="any" class="border rounded px-3 py-2">
+              <span class="text-sm text-gray-600">권리금</span>
+              <input id="f_premium_price" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">면적(평)</span>
               <input id="f_area_py" type="number" step="any" class="border rounded px-3 py-2">
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">호수 (unit_info)</span>
-              <input id="f_unit_info" type="text" class="border rounded px-3 py-2">
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">층</span>
-              <input id="f_floor" type="number" step="1" class="border rounded px-3 py-2">
             </label>
           </div>
         </section>
@@ -264,17 +272,7 @@
         <!-- 수수료/세금/매출/비고 -->
         <section class="space-y-3">
           <h3 class="text-base font-semibold text-gray-700">정산/세금/매출</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">권리금</span>
-              <input id="f_premium_price" type="number" step="any" class="border rounded px-3 py-2">
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">비용</span>
-              <input id="f_expense" type="number" step="any" class="border rounded px-3 py-2">
-            </label>
-            <div></div>
-
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매수인 수수료</span>
               <input id="f_buyer_fee" type="number" step="any" class="border rounded px-3 py-2">
@@ -287,7 +285,8 @@
               <span class="text-sm text-gray-600">매수인 세금계산서 발행일</span>
               <input id="f_buyer_tax_date" type="date" class="border rounded px-3 py-2">
             </label>
-
+          </div>
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매도인 수수료</span>
               <input id="f_seller_fee" type="number" step="any" class="border rounded px-3 py-2">
@@ -300,7 +299,8 @@
               <span class="text-sm text-gray-600">매도인 세금계산서 발행일</span>
               <input id="f_seller_tax_date" type="date" class="border rounded px-3 py-2">
             </label>
-
+          </div>
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매수인 매출</span>
               <input id="f_buyer_performance" type="number" step="any" class="border rounded px-3 py-2">
@@ -312,6 +312,10 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">결재 상태 (status)</span>
               <input id="f_status" type="text" class="border rounded px-3 py-2" placeholder="예: 결재중/완료 등">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">비용</span>
+              <input id="f_expense" type="number" step="any" class="border rounded px-3 py-2">
             </label>
 
             <label class="col-span-3 flex flex-col gap-1">
