@@ -641,6 +641,15 @@
       };
     }
 
+    function resetForm() {
+      document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
+        .forEach(el => {
+          if (el.id === 'f_seller_distribution_rate') { el.value = 30; return; }
+          if (el.tagName === 'SELECT') el.value = '';
+          else el.value = '';
+        });
+    }
+
     // ===== 저장 처리 =====
     document.getElementById('save-sales')?.addEventListener('click', async () => {
       try {
@@ -761,18 +770,28 @@
       }
     }
 
+    const MONEY_FIELD_IDS = new Set([
+      "f_sale_price","f_deposit_price","f_monthly_rent","f_premium_price",
+      "f_buyer_fee","f_buyer_tax","f_seller_fee","f_seller_tax",
+      "f_buyer_performance","f_seller_performance","f_expense"
+    ]);
+
     function fillFormFromRow(row) {
       Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
         let val = row?.[col] ?? '';
-        
-        // 🔽 금액 관련 필드만 10,000 곱하기
+
+        // 10,000 배 변환 (만원 → 원)
         if (["deposit_price","monthly_rent","sale_price","premium_price"].includes(col)) {
-          if (val != null && val !== '') {
-            val = Number(val) * 10000;
-          }
+          if (val != null && val !== '') val = Number(val) * 10000;
         }
 
         setInputValue(inputId, val);
+
+        // 💡 금액 필드는 바로 콤마로 보이도록
+        if (MONEY_FIELD_IDS.has(inputId)) {
+          const el = document.getElementById(inputId);
+          if (el) el.value = formatNumberWithCommas(el.value);
+        }
       });
     }
 
@@ -1000,6 +1019,28 @@
       };
     }
 
+    function recalcPerformanceFromFees() {
+      const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
+      const sellerFee = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
+      const distRate  = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
+
+      const sellerPerformance = sellerFee * distRate * 0.01;
+      const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
+
+      document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
+      document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
+    }
+
+    // 수수료 필드 변경 시 매출만 갱신
+    ["f_buyer_fee","f_seller_fee"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input",  recalcPerformanceFromFees);
+        el.addEventListener("change", recalcPerformanceFromFees);
+      }
+    });
+
+
     // ===== 수수료 + 매출 자동 계산 =====
     function calculateFees() {
       const dealType = document.getElementById("f_deal_type")?.value;
@@ -1016,24 +1057,19 @@
         return; // 거래유형 없으면 계산 안함
       }
 
-      // ===== 수수료 계산 =====
-      let fee = 0;
-      if (기준금액 >= 50000000) {
-        fee = 기준금액 * 0.009;
-      } else {
-        fee = 기준금액 * 0.007;
-      }
+      // ===== 수수료 계산 (5천만 기준 0.9% / 0.7%) =====
+      const fee = 기준금액 >= 50_000_000 ? 기준금액 * 0.009 : 기준금액 * 0.007;
 
-      // 수수료 값 채우기
       const buyerFeeEl = document.getElementById("f_buyer_fee");
       const sellerFeeEl = document.getElementById("f_seller_fee");
-      const distRateEl = document.getElementById("f_seller_distribution_rate");
+      const distRateEl  = document.getElementById("f_seller_distribution_rate");
 
-      buyerFeeEl.value = Math.round(fee).toLocaleString("ko-KR");
-      sellerFeeEl.value = Math.round(fee).toLocaleString("ko-KR");
-
-      // 매도인 분배율 무조건 30
+      // 분배율(무조건 30)
       distRateEl.value = 30;
+
+      // 수수료 값 입력 (콤마)
+      buyerFeeEl.value  = formatNumberWithCommas(Math.round(fee));
+      sellerFeeEl.value = formatNumberWithCommas(Math.round(fee));
 
       // ===== 매출 계산 =====
       const buyerFee = numOrNull(buyerFeeEl.value) || 0;
@@ -1041,10 +1077,10 @@
       const distRate = numOrNull(distRateEl.value) || 0;
 
       const sellerPerformance = sellerFee * distRate * 0.01;
-      const buyerPerformance = (buyerFee + sellerFee) - sellerPerformance;
+      const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
 
-      document.getElementById("f_seller_performance").value = Math.round(sellerPerformance).toLocaleString("ko-KR");
-      document.getElementById("f_buyer_performance").value = Math.round(buyerPerformance).toLocaleString("ko-KR");
+      document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
+      document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
     }
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
@@ -1055,6 +1091,8 @@
         el.addEventListener("change", calculateFees);
       }
     });
+    document.getElementById("f_seller_distribution_rate")?.addEventListener("input",  calculateFees);
+    document.getElementById("f_seller_distribution_rate")?.addEventListener("change", calculateFees);
 
     // ===== 숫자 입력에 콤마 표시 =====
     function formatNumberWithCommas(value) {
