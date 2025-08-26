@@ -172,7 +172,7 @@
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매물번호</span>
-              <input id="f_listing_id" type="number" step="1" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_listing_id" type="number" step="1" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="col-span-2 flex flex-col gap-1">
               <span class="text-sm text-gray-600">매물명</span>
@@ -211,7 +211,7 @@
 
         <!-- 금액/면적/층/호수 -->
         <section class="space-y-3">
-          <h3 class="text-base font-semibold text-gray-700">물건 정보/금액</h3>
+          <h3 class="text-base font-semibold text-gray-700">금액</h3>
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">거래유형</span>
@@ -246,7 +246,7 @@
 
         <!-- 날짜 / 중도금 -->
         <section class="space-y-3">
-          <h3 class="text-base font-semibold text-gray-700">계약/정산</h3>
+          <h3 class="text-base font-semibold text-gray-700">일정</h3>
           <div class="flex gap-3 justify-start">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">계약일</span>
@@ -285,7 +285,7 @@
 
         <!-- 수수료/세금/매출/비고 -->
         <section class="space-y-3">
-          <h3 class="text-base font-semibold text-gray-700">정산/세금/매출</h3>
+          <h3 class="text-base font-semibold text-gray-700">매출</h3>
           <div class="flex gap-3 mr-8">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매수인 수수료</span>
@@ -295,7 +295,7 @@
               <span class="text-sm text-gray-600">매수인 세금계산서</span>
               <input id="f_buyer_tax" type="number" step="any" class="border rounded px-3 py-2">
             </label>
-            <label class="flex flex-col gap-1 mr-10">
+            <label class="flex flex-col gap-1 mr-20">
               <span class="text-sm text-gray-600">매수인 세금계산서 발행일</span>
               <input id="f_buyer_tax_date" type="date" class="border rounded px-3 py-2">
             </label>
@@ -321,7 +321,7 @@
               <span class="text-sm text-gray-600">매도인 매출</span>
               <input id="f_seller_performance" type="number" step="any" class="border rounded px-3 py-2">
             </label>
-            <label class="flex flex-col gap-1 mr-10">
+            <label class="flex flex-col gap-1 mr-20">
               <span class="text-sm text-gray-600">거래관련 사용비용</span>
               <input id="f_expense" type="number" step="any" class="border rounded px-3 py-2">
             </label>
@@ -334,11 +334,9 @@
               <input id="f_seller_weight" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
           </div>
-          <label class="col-span-3 flex flex-col gap-1">
-            <span class="text-sm text-gray-600">특약사항</span>
-            <textarea id="f_special_contract" rows="3" class="border rounded px-3 py-2 w-[70rem] overflow-hidden resize-none"></textarea>
-          </label>
         </section>
+        <h3 class="text-base font-semibold text-gray-700">특약사항</h3>
+          <textarea id="f_special_contract" rows="3" class="border rounded px-3 py-2 w-[70rem] overflow-hidden resize-none"></textarea>
 
       </div>
 
