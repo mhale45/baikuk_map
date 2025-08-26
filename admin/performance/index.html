@@ -338,7 +338,11 @@
             </div>
           </section>
           <section class="space-y-3">
-            <div id="select_staff" class="flex items-center"></div>
+            <div id="f_manager" class="flex items-center">
+              <select id="select_staff" class="border rounded px-3 py-2 w-[16rem]">
+                <option value="">직원 선택</option>
+              </select>
+            </div>
             <div class="flex gap-3">
               <label class="flex flex-col gap-1">
                 <span class="text-sm text-gray-600">클로징 기여도 (%)</span>
@@ -503,103 +507,6 @@
           distEl.readOnly = false;
           distEl.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
-      }
-    })();
-
-    // ===== 직원 select 박스 구성 =====
-    (async function setupStaffSelectBoxes() {
-      await waitForSupabase();
-      const supa = window.supabase;
-
-      const { data: sessionRes } = await supa.auth.getUser();
-      const userId = sessionRes?.user?.id;
-      if (!userId) return;
-
-      const { data: staffList, error } = await supa
-        .from('staff_profiles')
-        .select('name, affiliation, auth_user_id, leave_date')
-        .order('affiliation', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (error || !staffList) {
-        console.error("직원 목록 불러오기 실패:", error);
-        return;
-      }
-
-      const myProfile = staffList.find(p => p.auth_user_id === userId);
-      const myAff = myProfile?.affiliation;
-      const activeStaff = staffList.filter(p => !p.leave_date);
-
-      const grouped = {};
-      for (const person of activeStaff) {
-        if (!grouped[person.affiliation]) grouped[person.affiliation] = [];
-        grouped[person.affiliation].push(person.name);
-      }
-
-      const sortedAffiliations = [
-        ...(myAff && grouped[myAff] ? [myAff] : []),
-        ...Object.keys(grouped).filter(a => a !== myAff)
-      ];
-
-      const buyerSelect = document.createElement('select');
-      buyerSelect.id = 'f_buyer_staff';
-      buyerSelect.className = 'border rounded px-3 py-2 w-[10rem]';
-
-      const sellerSelect = document.createElement('select');
-      sellerSelect.id = 'f_seller_staff';
-      sellerSelect.className = 'border rounded px-3 py-2 w-[10rem]';
-
-      const makeDefaultOption = () => {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = '선택';
-        return opt;
-      };
-
-      buyerSelect.appendChild(makeDefaultOption());
-      sellerSelect.appendChild(makeDefaultOption());
-
-      for (const aff of sortedAffiliations) {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = aff;
-
-        for (const name of grouped[aff]) {
-          const option = document.createElement('option');
-          option.value = name;
-          option.textContent = name;
-          optgroup.appendChild(option);
-        }
-
-        buyerSelect.appendChild(optgroup.cloneNode(true));
-        sellerSelect.appendChild(optgroup.cloneNode(true));
-      }
-
-      // label + select를 감싸는 컨테이너 div
-      const container = document.createElement('div');
-      container.id = 'select_staff';
-      container.className = 'flex gap-3';
-
-      const buyerLabel = document.createElement('label');
-      buyerLabel.className = 'flex flex-col gap-1';
-      buyerLabel.innerHTML = `<span class="text-sm text-gray-600">클로징 담당자</span>`;
-      buyerLabel.appendChild(buyerSelect);
-
-      const sellerLabel = document.createElement('label');
-      sellerLabel.className = 'flex flex-col gap-1';
-      sellerLabel.innerHTML = `<span class="text-sm text-gray-600">매물확보 담당자</span>`;
-      sellerLabel.appendChild(sellerSelect);
-
-      container.appendChild(buyerLabel);
-      container.appendChild(sellerLabel);
-
-      const insertTarget = document.querySelector('.flex.items-center .flex.gap-3');
-      if (insertTarget) {
-        insertTarget.appendChild(container);
-      }
-
-      const target = document.querySelector('.flex.items-center');
-      if (target) {
-        target.appendChild(container);
       }
     })();
 
@@ -881,6 +788,87 @@
         }
       } catch {}
     })();
+
+    // ===== f_manager에 select box 구성 =====
+    document.addEventListener("supabase-ready", async () => {
+      const supabase = window.supabase;
+
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const user = sessionRes?.session?.user;
+
+      if (!user?.id) return;
+
+      // 로그인 유저 정보
+      const { data: myProfile, error: myErr } = await supabase
+        .from("staff_profiles")
+        .select("affiliation")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (myErr || !myProfile) {
+        console.error("로그인 유저 소속 조회 실패", myErr);
+        return;
+      }
+
+      const myAffiliation = myProfile.affiliation;
+
+      // 모든 재직자 불러오기
+      const { data: allStaff, error } = await supabase
+        .from("staff_profiles")
+        .select("id, name, affiliation")
+        .is("leave_date", null)
+        .order("affiliation", { ascending: true });
+
+      if (error || !allStaff) {
+        console.error("직원 목록 불러오기 실패", error);
+        return;
+      }
+
+      // 소속 기준 분류
+      const grouped = {};
+      for (const row of allStaff) {
+        const { id, name, affiliation } = row;
+        if (!grouped[affiliation]) grouped[affiliation] = [];
+        grouped[affiliation].push({ id, name });
+      }
+
+      const select = document.createElement("select");
+      select.id = "select_staff";
+      select.className = "border rounded px-3 py-2 w-[16rem]";
+      select.innerHTML = `<option value="">직원 선택</option>`;
+
+      // 1. 본인 소속 먼저 추가
+      if (grouped[myAffiliation]) {
+        const optGroup = document.createElement("optgroup");
+        optGroup.label = myAffiliation;
+        grouped[myAffiliation].forEach(({ id, name }) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = name;
+          optGroup.appendChild(opt);
+        });
+        select.appendChild(optGroup);
+        delete grouped[myAffiliation]; // 중복 방지
+      }
+
+      // 2. 나머지 소속 추가 (정렬 포함)
+      Object.entries(grouped)
+        .sort(([a], [b]) => a.localeCompare(b, "ko"))
+        .forEach(([aff, list]) => {
+          const optGroup = document.createElement("optgroup");
+          optGroup.label = aff;
+          list.forEach(({ id, name }) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = name;
+            optGroup.appendChild(opt);
+          });
+          select.appendChild(optGroup);
+        });
+
+      document.getElementById("f_manager")?.appendChild(select);
+    });
+
 
     // 매물번호 입력시 정보 자동으로 채우기
     // ====== 매물번호로 자동 채우기 (public_baikuk_view 버전) ======
