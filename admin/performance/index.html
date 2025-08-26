@@ -702,19 +702,69 @@
       if (!listingId || Number.isNaN(n)) { showToast('유효한 매물번호를 입력하세요.'); return; }
 
       const selectCols = Object.keys(FIELD_MAP).join(', ');
-      const { data, error } = await window.supabase
+
+      // 1) 우선 지정 컬럼으로 조회
+      let { data, error } = await window.supabase
         .from('public_baikuk_view')
         .select(selectCols)
         .eq('listing_id', n)
         .maybeSingle();
 
-      if (error) { console.error(error); showToast('매물 조회 실패: ' + (error.message || '')); return; }
-      if (!data) { showToast('해당 매물번호를 찾을 수 없습니다.'); return; }
+      // 2) 에러 처리
+      if (error) {
+        console.error('[매물 조회 1차 실패]', { code: error.code, details: error.details, message: error.message });
+        const msg = (error.message || '').toLowerCase();
 
+        // 컬럼 없음 → 전체(*)로 재조회 후 교차 매핑
+        if (msg.includes('does not exist') || msg.includes('column')) {
+          const retry = await window.supabase
+            .from('public_baikuk_view')
+            .select('*')
+            .eq('listing_id', n)
+            .maybeSingle();
+
+          if (retry.error) {
+            console.error('[매물 조회 2차(*) 실패]', { code: retry.error.code, details: retry.error.details, message: retry.error.message });
+            showToast('매물 조회 실패: ' + (retry.error.message || ''));
+            return;
+          }
+          if (!retry.data) {
+            showToast('해당 매물번호를 찾을 수 없습니다.');
+            return;
+          }
+
+          // 뷰에 실제 존재하는 것만 채우기
+          const row = retry.data;
+          Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
+            if (col in row) setInputValue(inputId, row[col]);
+          });
+
+          console.warn('[참고] public_baikuk_view 컬럼 목록(일부):', Object.keys(row));
+          showToast('매물 정보 자동 채움 완료(교차 매핑)', { ok: true });
+          return;
+        }
+
+        // relation 자체가 없음 (뷰명/스키마 문제)
+        if (msg.includes('relation') && msg.includes('does not exist')) {
+          showToast('뷰를 찾을 수 없습니다. public 스키마의 public_baikuk_view를 확인하세요.');
+          return;
+        }
+
+        // 그 외 에러
+        showToast('매물 조회 실패: ' + (error.message || ''));
+        return;
+      }
+
+      // 3) 데이터 없음
+      if (!data) {
+        showToast('해당 매물번호를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 4) 정상 채움
       fillFormFromRow(data);
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
-
 
     // 4) 디바운스 & 이벤트 바인딩
     function debounce(fn, ms=300) {
