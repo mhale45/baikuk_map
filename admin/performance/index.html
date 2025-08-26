@@ -592,6 +592,11 @@
       container.appendChild(buyerLabel);
       container.appendChild(sellerLabel);
 
+      const insertTarget = document.querySelector('.flex.items-center .flex.gap-3');
+      if (insertTarget) {
+        insertTarget.appendChild(container);
+      }
+
       const target = document.querySelector('.flex.items-center');
       if (target) {
         target.appendChild(container);
