@@ -148,7 +148,6 @@
     </div>
     <div class="w-[84%] flex flex-col bg-gray-100">
       <div class="sticky top-0 z-20 bg-gray-100/80 backdrop-blur px-4 py-3 flex items-center justify-between border-b border-gray-200">
-        <div class="text-xl font-bold">매출</div>
         <div class="flex items-center gap-2">
           <button id="open-sales-drawer" class="px-4 py-2 rounded-lg bg-[#5098e9] text-white font-semibold hover:brightness-95 active:brightness-90">
             매출등록
@@ -641,6 +640,88 @@
         }
       } catch {}
     })();
+
+    // 매물번호 입력시 정보 자동으로 채우기
+    // ====== 매물번호로 자동 채우기 (public_baikuk_view 버전) ======
+
+    // 1) 폼 필드 매핑 (view에 있는 컬럼만)
+    const FIELD_MAP = {
+      deal_type:       'f_deal_type',
+      listing_title:   'f_listing_title',
+      province:        'f_province',
+      city:            'f_city',
+      district:        'f_district',
+      deposit_price:   'f_deposit_price',
+      monthly_rent:    'f_monthly_rent',
+      sale_price:      'f_sale_price',
+      area_py:         'f_area_py',
+      floor:           'f_floor',
+      // detail_address, unit_info, premium_price는 view에 없으므로 제외
+    };
+
+    // 2) 값 채우기 헬퍼
+    function setInputValue(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = (value === null || value === undefined) ? '' : value;
+    }
+    function fillFormFromRow(row) {
+      Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
+        setInputValue(inputId, row?.[col] ?? '');
+      });
+    }
+
+    // 3) 조회 함수
+    async function fetchListingAndFill(listingId) {
+      if (!window.supabase) {
+        showToast('Supabase 초기화 오류');
+        return;
+      }
+      const n = Number(listingId);
+      if (!listingId || Number.isNaN(n)) {
+        showToast('유효한 매물번호를 입력하세요.');
+        return;
+      }
+
+      const selectCols = Object.keys(FIELD_MAP).join(', ');
+      const { data, error } = await window.supabase
+        .from('public_baikuk_view')
+        .select(selectCols)
+        .eq('listing_id', n)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        showToast('매물 조회 실패: ' + (error.message || ''));
+        return;
+      }
+      if (!data) {
+        showToast('해당 매물번호를 찾을 수 없습니다.');
+        return;
+      }
+
+      fillFormFromRow(data);
+      showToast('매물 정보 자동 채움 완료', { ok: true });
+    }
+
+    // 4) 디바운스 & 이벤트 바인딩
+    function debounce(fn, ms=300) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    const listingIdEl = document.getElementById('f_listing_id');
+    if (listingIdEl) {
+      const debounced = debounce(() => fetchListingAndFill(listingIdEl.value), 400);
+      listingIdEl.addEventListener('input', debounced);
+      listingIdEl.addEventListener('change', () => fetchListingAndFill(listingIdEl.value));
+      listingIdEl.addEventListener('blur',   () => fetchListingAndFill(listingIdEl.value));
+      listingIdEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          fetchListingAndFill(listingIdEl.value);
+        }
+      });
+    }
   </script>
 
 </body>
