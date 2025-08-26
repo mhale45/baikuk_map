@@ -606,14 +606,14 @@
 
         balance_date: dateOrNull(document.getElementById('f_balance_date')?.value),
 
-        deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value)*10000,
-        monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value)*10000,
-        sale_price: numOrNull(document.getElementById('f_sale_price')?.value)*10000,
+        deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value),
+        monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value),
+        sale_price: numOrNull(document.getElementById('f_sale_price')?.value),
         area_py: numOrNull(document.getElementById('f_area_py')?.value),
         unit_info: (document.getElementById('f_unit_info')?.value ?? '').trim() || null,
         floor: intOrNull(document.getElementById('f_floor')?.value),
 
-        premium_price: numOrNull(document.getElementById('f_premium_price')?.value)*10000,
+        premium_price: numOrNull(document.getElementById('f_premium_price')?.value),
         expense: numOrNull(document.getElementById('f_expense')?.value),
 
         buyer_fee: numOrNull(document.getElementById('f_buyer_fee')?.value),
@@ -763,7 +763,16 @@
 
     function fillFormFromRow(row) {
       Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
-        setInputValue(inputId, row?.[col] ?? '');
+        let val = row?.[col] ?? '';
+        
+        // 🔽 금액 관련 필드만 10,000 곱하기
+        if (["deposit_price","monthly_rent","sale_price","premium_price"].includes(col)) {
+          if (val != null && val !== '') {
+            val = Number(val) * 10000;
+          }
+        }
+
+        setInputValue(inputId, val);
       });
     }
 
