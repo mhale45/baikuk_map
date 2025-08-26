@@ -161,6 +161,7 @@
       <!-- 헤더 -->
       <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-lg font-bold">매출 등록</h2>
+        <button id="f_status" class="px-4 py-2 rounded-lg border hover:bg-gray-100">매출확정</button>
         <button id="close-sales-drawer" class="px-3 py-1 rounded hover:bg-gray-100">✕</button>
       </div>
 
@@ -221,28 +222,22 @@
                 <option value="매매">매매</option>
               </select>
             </label>
-            <div id="sale-fields" class="hidden">
-              <label class="flex flex-col gap-1">
-                <span class="text-sm text-gray-600">매매가</span>
-                <input id="f_sale_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
-              </label>
-            </div>
-
-            <!-- 월세 관련 -->
-            <div id="rent-fields" class="flex gap-3 hidden">
-              <label class="flex flex-col gap-1">
-                <span class="text-sm text-gray-600">보증금</span>
-                <input id="f_deposit_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
-              </label>
-              <label class="flex flex-col gap-1">
-                <span class="text-sm text-gray-600">월세</span>
-                <input id="f_monthly_rent" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
-              </label>
-              <label class="flex flex-col gap-1">
-                <span class="text-sm text-gray-600">권리금</span>
-                <input id="f_premium_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
-              </label>
-            </div>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">매매가</span>
+              <input id="f_sale_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">보증금</span>
+              <input id="f_deposit_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">월세</span>
+              <input id="f_monthly_rent" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-gray-600">권리금</span>
+              <input id="f_premium_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+            </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">면적(평)</span>
               <input id="f_area_py" type="number" step="any" class="border rounded px-3 py-2 w-[7rem]">
@@ -348,7 +343,6 @@
 
       <!-- 푸터 -->
       <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-2">
-        <button id="f_status" class="px-4 py-2 rounded-lg border hover:bg-gray-100">결재요청</button>
         <button id="save-sales" class="px-5 py-2 rounded-lg bg-[#00b74a] text-white font-semibold hover:brightness-95 active:brightness-80">저장</button>
       </div>
     </div>
@@ -623,7 +617,6 @@
         seller_performance: numOrNull(document.getElementById('f_seller_performance')?.value),
         buyer_performance: numOrNull(document.getElementById('f_buyer_performance')?.value),
 
-        status: (document.getElementById('f_status')?.value ?? '').trim() || null,
         special_contract: (document.getElementById('f_special_contract')?.value ?? '').trim() || null,
       };
     }
@@ -988,30 +981,6 @@
       };
     }
     // 주소 선택 관련 함수들
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const dealTypeEl = document.getElementById("f_deal_type");
-      const saleFields = document.getElementById("sale-fields");
-      const rentFields = document.getElementById("rent-fields");
-
-      function updateDealFields() {
-        const val = dealTypeEl.value;
-        if (val === "월세") {
-          rentFields.classList.remove("hidden");
-          saleFields.classList.add("hidden");
-        } else if (val === "매매") {
-          saleFields.classList.remove("hidden");
-          rentFields.classList.add("hidden");
-        } else {
-          // 선택 없음 → 전부 숨김
-          saleFields.classList.add("hidden");
-          rentFields.classList.add("hidden");
-        }
-      }
-
-      dealTypeEl.addEventListener("change", updateDealFields);
-      updateDealFields(); // 초기 호출
-    });
 
   </script>
 
