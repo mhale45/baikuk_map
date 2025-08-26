@@ -202,7 +202,11 @@
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">호수</span>
-              <input id="f_unit_info" type="text" class="border rounded px-3 py-2 !w-[7rem]">
+              <input id="f_unit_info"
+                type="text"
+                class="border rounded px-3 py-2 !w-auto min-w-[6ch] max-w-[40ch]"
+                data-autowidth
+                placeholder="호수">
             </label>
           </div>
         </section>
@@ -344,11 +348,11 @@
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">클로징 기여도</span>
-              <input id="f_buyer_weight" type="number" step="any" class="border rounded px-3 py-2 w-[12rem]">
+              <input id="f_buyer_weight" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매물확보 기여도</span>
-              <input id="f_seller_weight" type="number" step="any" class="border rounded px-3 py-2 w-[12rem]">
+              <input id="f_seller_weight" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
           </div>
         </section>
