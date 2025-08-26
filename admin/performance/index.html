@@ -204,7 +204,7 @@
               <span class="text-sm text-gray-600">호수</span>
               <input id="f_unit_info"
                 type="text"
-                class="border rounded px-3 py-2 !w-auto min-w-[6ch] max-w-[40ch]"
+                class="border rounded px-3 py-2 !w-auto min-w-[6ch] max-w-[40rem]"
                 data-autowidth
                 placeholder="호수">
             </label>
@@ -467,6 +467,26 @@
   <script>
     // 스크립트 추가
     let _pcdCache = null;
+
+    // 호수 오토 리사이즈
+    function autosizeInputByCh(el, { min=6, max=40 } = {}) {
+      if (!el) return;
+      if (el._autowidthInit) { apply(); return; }  // 중복 바인딩 방지
+
+      function apply() {
+        const len = Math.max(min, Math.min((el.value || el.placeholder || '').length, max));
+        el.style.width = `${len}ch`;
+      }
+      el.addEventListener('input', apply);
+      el.addEventListener('change', apply);
+      el._autowidthInit = true;
+      apply();
+    }
+
+    // 초기화: 페이지 로드 후
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('input[data-autowidth]').forEach(el => autosizeInputByCh(el));
+    });
 
     // 특약사항 오토 리사이즈 함수 + 바인딩
     function enableAutoGrowTextArea(el) {
@@ -755,20 +775,23 @@
     function setInputValue(id, value) {
       const el = document.getElementById(id);
       if (!el) return;
-      const v = (value === null || value === undefined) ? '' : String(value);
+      const v = (value == null) ? '' : String(value);
 
       if (el.tagName === 'SELECT') {
         const exists = Array.from(el.options).some(o => o.value === v);
-        // 옵션에 없지만 값이 있고, 자동채움으로 들어온 경우 → 동적 추가
         if (v && !exists) {
           const opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = v;
+          opt.value = v; opt.textContent = v;
           el.appendChild(opt);
         }
-        el.value = v; // 선택
+        el.value = v;
       } else {
         el.value = v;
+      }
+
+      // 🔽 호수 자동폭 갱신
+      if (id === 'f_unit_info' && el.hasAttribute('data-autowidth')) {
+        autosizeInputByCh(el);
       }
     }
 
