@@ -1042,6 +1042,52 @@
       }
     });
 
+    // ===== 숫자 입력에 콤마 표시 =====
+    function formatNumberWithCommas(value) {
+      if (value === null || value === undefined || value === '') return '';
+      const num = Number(String(value).replace(/,/g, ''));
+      return Number.isFinite(num) ? num.toLocaleString('ko-KR') : value;
+    }
+
+    function attachCommaFormatter(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      // 입력할 때마다 숫자 변환 + 콤마 표시
+      el.addEventListener("input", () => {
+        const cursor = el.selectionStart;
+        const raw = el.value.replace(/,/g, '');
+        if (!raw) { el.value = ''; return; }
+        const num = Number(raw);
+        if (!isNaN(num)) {
+          el.value = formatNumberWithCommas(num);
+          // 커서 위치 보정 (선택사항)
+          el.setSelectionRange(cursor, cursor);
+        }
+      });
+
+      // 포커스 잃었을 때도 포맷 적용
+      el.addEventListener("blur", () => {
+        el.value = formatNumberWithCommas(el.value);
+      });
+    }
+
+    // ===== 포맷 적용할 필드들 =====
+    [
+      "f_sale_price",
+      "f_deposit_price",
+      "f_monthly_rent",
+      "f_premium_price",
+      "f_buyer_fee",
+      "f_buyer_tax",
+      "f_seller_fee",
+      "f_seller_tax",
+      "f_buyer_performance",
+      "f_seller_performance",
+      "f_expense"
+    ].forEach(attachCommaFormatter);
+
+
   </script>
 
 </body>
