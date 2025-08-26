@@ -792,31 +792,35 @@
     async function fetchAllPCD(batchSize = 1000) {
       if (_pcdCache) return _pcdCache;
 
-      // supabase 준비 보장
       await waitForSupabase();
       const supa = window.supabase;
-      if (!supa) throw new Error('Supabase not ready');
 
       let from = 0;
-      let all = [];
+      const all = [];
 
       while (true) {
-        const to = from + batchSize - 1; // range는 양끝 포함
+        const to = from + batchSize - 1;  // range는 양끝 포함
         const { data, error } = await supa
-          .from('province_city_district')
+          .from('province_city_district')             // ✅ 테이블
           .select('province, city, district')
-          .order('province', { ascending: true })
+          .order('province', { ascending: true })     // ✅ 페이지 간 정렬 고정
           .order('city', { ascending: true })
           .order('district', { ascending: true })
           .range(from, to);
 
         if (error) throw error;
 
-        all = all.concat(data || []);
-        if (!data || data.length < batchSize) break; // 마지막 페이지
-        from += batchSize;
+        const chunk = data || [];
+        all.push(...chunk);
+
+        // ✅ 더 이상 받아올 게 없으면 종료
+        if (chunk.length === 0) break;
+
+        // 다음 페이지로 이동 (실제 받은 개수만큼 전진)
+        from += chunk.length;
       }
 
+      console.log('[PCD] loaded rows:', all.length);
       _pcdCache = all;
       return all;
     }
@@ -869,7 +873,7 @@
       let rows = [];
       try {
         if (typeof fetchAllPCD !== 'function') throw new Error('fetchAllPCD가 정의되어 있지 않음');
-        rows = await fetchAllPCD(2000); // 필요시 상한 조정
+        rows = await fetchAllPCD();
       } catch (e) {
         console.error('지역 데이터 로드 실패:', e);
         // 실패 시에도 현재 선택값만이라도 보이도록
