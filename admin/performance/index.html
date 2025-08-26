@@ -222,24 +222,24 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금1</span>
-              <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2">
+              <span class="text-sm text-gray-600">중도금1 (금액)</span>
+              <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">1차 입금일</span>
               <input id="f_interim_payment1_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금2</span>
-              <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2">
+              <span class="text-sm text-gray-600">중도금2 (금액)</span>
+              <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">2차 입금일</span>
               <input id="f_interim_payment2_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금3</span>
-              <input id="f_interim_payment3" type="number" step="any" class="border rounded px-3 py-2">
+              <span class="text-sm text-gray-600">중도금3 (금액)</span>
+              <input id="f_interim_payment3" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">3차 입금일</span>
@@ -254,7 +254,11 @@
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">거래유형</span>
-              <input id="f_deal_type" type="text" class="border rounded px-3 py-2" placeholder="월세/전세/매매 등">
+              <select id="f_deal_type" class="border rounded px-3 py-2">
+                <option value="">거래유형 선택</option>
+                <option value="월세">월세</option>
+                <option value="매매">매매</option>
+              </select>
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">매매가</span>
@@ -713,8 +717,23 @@
     function setInputValue(id, value) {
       const el = document.getElementById(id);
       if (!el) return;
-      el.value = (value === null || value === undefined) ? '' : value;
+      const v = (value === null || value === undefined) ? '' : String(value);
+
+      if (el.tagName === 'SELECT') {
+        const exists = Array.from(el.options).some(o => o.value === v);
+        // 옵션에 없지만 값이 있고, 자동채움으로 들어온 경우 → 동적 추가
+        if (v && !exists) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          el.appendChild(opt);
+        }
+        el.value = v; // 선택
+      } else {
+        el.value = v;
+      }
     }
+
     function fillFormFromRow(row) {
       Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
         setInputValue(inputId, row?.[col] ?? '');
