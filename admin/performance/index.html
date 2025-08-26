@@ -328,9 +328,6 @@
               <input id="f_seller_performance" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">결재 상태</span>
-            </label>
-            <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">비용</span>
               <input id="f_expense" type="number" step="any" class="border rounded px-3 py-2">
             </label>
@@ -346,11 +343,11 @@
           <h3 class="text-base font-semibold text-gray-700">기여도</h3>
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">클로징 기여도</span>
+              <span class="text-sm text-gray-600">클로징 기여도 (%)</span>
               <input id="f_buyer_weight" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매물확보 기여도</span>
+              <span class="text-sm text-gray-600">매물확보 기여도 (%)</span>
               <input id="f_seller_weight" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
           </div>
@@ -591,31 +588,6 @@
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
     overlay?.addEventListener('click', closeDrawer);
 
-    // ===== 폼 초기화 =====
-    function resetForm() {
-      const ids = [
-        'f_listing_id','f_deal_type','f_listing_title','f_province','f_city','f_district','f_detail_address',
-        'f_contract_date',
-        'f_interim_payment1','f_interim_payment2','f_interim_payment3',
-        'f_interim_payment1_date','f_interim_payment2_date','f_interim_payment3_date', // ← 추가
-        'f_balance_date',
-        'f_deposit_price','f_monthly_rent','f_sale_price','f_area_py','f_unit_info','f_floor','f_memo',
-        'f_premium_price','f_expense',
-        'f_buyer_fee','f_buyer_tax','f_buyer_tax_date','f_seller_fee','f_seller_tax','f_seller_tax_date',
-        'f_seller_performance','f_buyer_performance','f_status','f_special_contract',
-        'f_buyer_weight','f_seller_weight'
-      ];
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      initSalesLocationSelects();
-      const ta = document.getElementById('f_special_contract');
-      if (ta) { ta.style.height = 'auto'; } // 값 비운 후 높이 초기화
-    }
-
-    document.getElementById('reset-sales-form')?.addEventListener('click', resetForm);
-
     // ===== 입력값 수집 =====
     function collectPerformancePayload() {
       return {
@@ -666,8 +638,8 @@
     }
 
     function collectAllocationPayload(performance_id) {
-      const buyer_weight = numOrNull(document.getElementById('f_buyer_weight')?.value);
-      const seller_weight = numOrNull(document.getElementById('f_seller_weight')?.value);
+      const buyer_weight = numOrNull(document.getElementById('f_buyer_weight')?.value)*0.01;
+      const seller_weight = numOrNull(document.getElementById('f_seller_weight')?.value)*0.01;
       return {
         performance_id,
         buyer_weight,
