@@ -338,9 +338,7 @@
             </div>
           </section>
           <section class="space-y-3">
-            <div class="flex items-center">
-              
-            </div>
+            <div id="select_staff" class="flex items-center"></div>
             <div class="flex gap-3">
               <label class="flex flex-col gap-1">
                 <span class="text-sm text-gray-600">클로징 기여도 (%)</span>
@@ -513,12 +511,10 @@
       await waitForSupabase();
       const supa = window.supabase;
 
-      // 현재 로그인 유저
       const { data: sessionRes } = await supa.auth.getUser();
       const userId = sessionRes?.user?.id;
       if (!userId) return;
 
-      // 전체 직원 불러오기
       const { data: staffList, error } = await supa
         .from('staff_profiles')
         .select('name, affiliation, auth_user_id, leave_date')
@@ -530,27 +526,21 @@
         return;
       }
 
-      // 로그인 유저의 소속 지점 파악
       const myProfile = staffList.find(p => p.auth_user_id === userId);
       const myAff = myProfile?.affiliation;
-
-      // 퇴사자 제외
       const activeStaff = staffList.filter(p => !p.leave_date);
 
-      // 지점별로 직원 정리
       const grouped = {};
       for (const person of activeStaff) {
         if (!grouped[person.affiliation]) grouped[person.affiliation] = [];
         grouped[person.affiliation].push(person.name);
       }
 
-      // 소속 지점 우선 정렬
       const sortedAffiliations = [
         ...(myAff && grouped[myAff] ? [myAff] : []),
         ...Object.keys(grouped).filter(a => a !== myAff)
       ];
 
-      // select 요소 찾기
       const buyerSelect = document.createElement('select');
       buyerSelect.id = 'f_buyer_staff';
       buyerSelect.className = 'border rounded px-3 py-2 w-[10rem]';
@@ -559,7 +549,6 @@
       sellerSelect.id = 'f_seller_staff';
       sellerSelect.className = 'border rounded px-3 py-2 w-[10rem]';
 
-      // 기본 선택 옵션
       const makeDefaultOption = () => {
         const opt = document.createElement('option');
         opt.value = '';
@@ -581,28 +570,31 @@
           optgroup.appendChild(option);
         }
 
-        // 동일한 optgroup을 두 select 모두에 추가
         buyerSelect.appendChild(optgroup.cloneNode(true));
         sellerSelect.appendChild(optgroup.cloneNode(true));
       }
 
-      // DOM 삽입 위치
-      const section = document.querySelector('section .flex.gap-3');
-      if (section) {
-        // 클로징
-        const buyerLabel = document.createElement('label');
-        buyerLabel.className = 'flex flex-col gap-1';
-        buyerLabel.innerHTML = `<span class="text-sm text-gray-600">클로징 담당자</span>`;
-        buyerLabel.appendChild(buyerSelect);
+      // label + select를 감싸는 컨테이너 div
+      const container = document.createElement('div');
+      container.id = 'select_staff';
+      container.className = 'flex gap-3';
 
-        // 매물확보
-        const sellerLabel = document.createElement('label');
-        sellerLabel.className = 'flex flex-col gap-1';
-        sellerLabel.innerHTML = `<span class="text-sm text-gray-600">매물확보 담당자</span>`;
-        sellerLabel.appendChild(sellerSelect);
+      const buyerLabel = document.createElement('label');
+      buyerLabel.className = 'flex flex-col gap-1';
+      buyerLabel.innerHTML = `<span class="text-sm text-gray-600">클로징 담당자</span>`;
+      buyerLabel.appendChild(buyerSelect);
 
-        section.appendChild(buyerLabel);
-        section.appendChild(sellerLabel);
+      const sellerLabel = document.createElement('label');
+      sellerLabel.className = 'flex flex-col gap-1';
+      sellerLabel.innerHTML = `<span class="text-sm text-gray-600">매물확보 담당자</span>`;
+      sellerLabel.appendChild(sellerSelect);
+
+      container.appendChild(buyerLabel);
+      container.appendChild(sellerLabel);
+
+      const target = document.querySelector('.flex.items-center');
+      if (target) {
+        target.appendChild(container);
       }
     })();
 
