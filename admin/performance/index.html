@@ -159,9 +159,9 @@
     <div id="sales-drawer"
         class="fixed inset-y-0 right-0 w-[90rem] bg-white shadow-2xl border-l border-gray-200 translate-x-full transition-transform duration-300 ease-out z-[1000] flex flex-col">
       <!-- 헤더 -->
-      <div class="px-5 py-4 border-b border-gray-200 flex">
+      <div class="px-5 py-4 border-b border-gray-200 flex items-center">
         <h2 class="text-lg font-bold">매출 등록</h2>
-        <button id="f_status" class="ml-[20rem] px-4 py-2 rounded-lg border hover:bg-gray-100">매출확정</button>
+        <button id="f_status" class="ml-[10rem] px-4 py-2 rounded-lg border hover:bg-gray-100">매출확정</button>
         <button id="close-sales-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
       </div>
 
@@ -177,7 +177,7 @@
             </label>
             <label class="col-span-2 flex flex-col gap-1">
               <span class="text-sm text-gray-600">매물명</span>
-              <input id="f_listing_title" type="text" class="border rounded px-3 py-2 w-[20rem]">
+              <input id="f_listing_title" type="text" class="border rounded px-3 py-2 w-[20rem] mr-3">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">시/도</span>
@@ -222,7 +222,7 @@
                 <option value="매매">매매</option>
               </select>
             </label>
-            <label class="flex flex-col gap-1">
+            <label class="flex flex-col gap-1 mr-5">
               <span class="text-sm text-gray-600">매매가</span>
               <input id="f_sale_price" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
@@ -323,11 +323,11 @@
           </div>
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매수인 매출</span>
+              <span class="text-sm text-gray-600">클로징 매출</span>
               <input id="f_buyer_performance" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매도인 매출</span>
+              <span class="text-sm text-gray-600">물건 매출</span>
               <input id="f_seller_performance" type="number" step="any" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1 mr-20">
@@ -991,6 +991,47 @@
       };
     }
     // 주소 선택 관련 함수들
+
+    // 수수료 계산하는 로직
+    // ===== 수수료 자동 계산 =====
+    function calculateFees() {
+      const dealType = document.getElementById("f_deal_type")?.value;
+      const salePrice = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
+      const deposit = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
+      const monthlyRent = numOrNull(document.getElementById("f_monthly_rent")?.value) || 0;
+
+      let 기준금액 = 0;
+      if (dealType === "매매") {
+        기준금액 = salePrice;
+      } else if (dealType === "월세") {
+        기준금액 = monthlyRent * 100 + deposit;
+      } else {
+        return; // 거래유형 없으면 계산 안함
+      }
+
+      let fee = 0;
+      if (기준금액 >= 50000000) {
+        fee = 기준금액 * 0.009;
+      } else {
+        fee = 기준금액 * 0.007;
+      }
+
+      // 수수료 값 채우기
+      document.getElementById("f_buyer_fee").value = Math.round(fee);
+      document.getElementById("f_seller_fee").value = Math.round(fee);
+
+      // 매도인 분배율 무조건 30
+      document.getElementById("f_seller_distribution_rate").value = 30;
+    }
+
+    // 이벤트 바인딩 (값이 변할 때마다 자동계산)
+    ["f_deal_type","f_sale_price","f_deposit_price","f_monthly_rent"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", calculateFees);
+        el.addEventListener("change", calculateFees);
+      }
+    });
 
   </script>
 
