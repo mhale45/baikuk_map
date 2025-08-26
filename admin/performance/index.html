@@ -318,7 +318,7 @@
           <div class="flex items-center">
             <h3 class="text-base font-semibold text-gray-700 mr-10">분배</h3>
             <span class="text-sm text-gray-600 mr-2">물건분: 매도인 수수료의</span>
-            <input id="f_seller_distribution_rate" type="number" step="any" class="border rounded px-3 py-2 w-[3rem]">
+            <input id="f_seller_distribution_rate" type="number" step="any" class="border rounded px-3 py-2 w-[6rem]">
             <span class="text-sm text-gray-600">%</span>
           </div>
           <div class="flex gap-3">
@@ -999,10 +999,8 @@
         fillSelect(districtEl, d2, '');
       };
     }
-    // 주소 선택 관련 함수들
 
-    // 수수료 계산하는 로직
-    // ===== 수수료 자동 계산 =====
+    // ===== 수수료 + 매출 자동 계산 =====
     function calculateFees() {
       const dealType = document.getElementById("f_deal_type")?.value;
       const salePrice = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
@@ -1018,6 +1016,7 @@
         return; // 거래유형 없으면 계산 안함
       }
 
+      // ===== 수수료 계산 =====
       let fee = 0;
       if (기준금액 >= 50000000) {
         fee = 기준금액 * 0.009;
@@ -1026,11 +1025,26 @@
       }
 
       // 수수료 값 채우기
-      document.getElementById("f_buyer_fee").value = Math.round(fee);
-      document.getElementById("f_seller_fee").value = Math.round(fee);
+      const buyerFeeEl = document.getElementById("f_buyer_fee");
+      const sellerFeeEl = document.getElementById("f_seller_fee");
+      const distRateEl = document.getElementById("f_seller_distribution_rate");
+
+      buyerFeeEl.value = Math.round(fee).toLocaleString("ko-KR");
+      sellerFeeEl.value = Math.round(fee).toLocaleString("ko-KR");
 
       // 매도인 분배율 무조건 30
-      document.getElementById("f_seller_distribution_rate").value = 30;
+      distRateEl.value = 30;
+
+      // ===== 매출 계산 =====
+      const buyerFee = numOrNull(buyerFeeEl.value) || 0;
+      const sellerFee = numOrNull(sellerFeeEl.value) || 0;
+      const distRate = numOrNull(distRateEl.value) || 0;
+
+      const sellerPerformance = sellerFee * distRate * 0.01;
+      const buyerPerformance = (buyerFee + sellerFee) - sellerPerformance;
+
+      document.getElementById("f_seller_performance").value = Math.round(sellerPerformance).toLocaleString("ko-KR");
+      document.getElementById("f_buyer_performance").value = Math.round(buyerPerformance).toLocaleString("ko-KR");
     }
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
