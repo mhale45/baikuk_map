@@ -464,6 +464,41 @@
     // 스크립트 추가
     let _pcdCache = null;
 
+    // 특약사항 오토 리사이즈 함수 + 바인딩
+    function enableAutoGrowTextArea(el) {
+      if (!el) return;
+      const grow = () => {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      };
+      // 입력/붙여넣기/값 변경 시 늘어나게
+      el.addEventListener('input', grow);
+      el.addEventListener('change', grow);
+      // 처음 로드될 때도 한 번 맞춤
+      requestAnimationFrame(grow);
+      // 레이아웃/폭이 바뀔 때 재계산(선택)
+      window.addEventListener('resize', grow);
+    }
+
+    // 페이지 로드 후 바로 활성화
+    document.addEventListener('DOMContentLoaded', () => {
+      enableAutoGrowTextArea(document.getElementById('f_special_contract'));
+    });
+
+    // 드로어 열릴 때(보이기 시작할 때) 다시 한 번 맞추면 깔끔
+    const _openDrawerOrig = openDrawer;
+    openDrawer = function () {
+      _openDrawerOrig();
+      requestAnimationFrame(() => {
+        const ta = document.getElementById('f_special_contract');
+        if (ta) {
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        }
+      });
+    };
+
+
     // --- supabase 준비 대기 ---
     function waitForSupabase(timeoutMs = 5000) {
       const start = Date.now();
@@ -551,6 +586,8 @@
         if (el) el.value = '';
       });
       initSalesLocationSelects();
+      const ta = document.getElementById('f_special_contract');
+      if (ta) { ta.style.height = 'auto'; } // 값 비운 후 높이 초기화
     }
 
     document.getElementById('reset-sales-form')?.addEventListener('click', resetForm);
