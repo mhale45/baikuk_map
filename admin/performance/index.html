@@ -198,11 +198,11 @@
             </label>            
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">층</span>
-              <input id="f_floor" type="number" step="1" class="border rounded px-3 py-2 !w-[3rem]">
+              <input id="f_floor" type="number" step="1" class="border rounded px-3 py-2 !w-[5rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">호수</span>
-              <input id="f_unit_info" type="text" class="border rounded px-3 py-2 !w-[5rem]">
+              <input id="f_unit_info" type="text" class="border rounded px-3 py-2 !w-[7rem]">
             </label>
           </div>
         </section>
@@ -247,7 +247,7 @@
         <!-- 날짜 / 중도금 -->
         <section class="space-y-3">
           <h3 class="text-base font-semibold text-gray-700">계약/정산</h3>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="flex gap-3 justify-start">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">계약일</span>
               <input id="f_contract_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
@@ -257,7 +257,7 @@
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
           </div>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="flex gap-3">
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금1 (금액)</span>
               <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
