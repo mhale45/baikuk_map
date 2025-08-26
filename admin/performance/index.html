@@ -182,15 +182,15 @@
           <div class="flex gap-3">  
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">시/도</span>
-              <select id="f_province" type="text" class="border rounded px-3 py-2"></select>
+              <select id="f_province" class="border rounded px-3 py-2"></select>
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">시/군/구</span>
-              <select id="f_city" type="text" class="border rounded px-3 py-2"></select>
+              <select id="f_city" class="border rounded px-3 py-2"></select>
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">읍/면/동</span>
-              <select id="f_district" type="text" class="border rounded px-3 py-2"></select>
+              <select id="f_district" class="border rounded px-3 py-2"></select>
             </label>
             <label class="col-span-2 flex flex-col gap-1">
               <span class="text-sm text-gray-600">번지</span>
@@ -448,6 +448,9 @@
     document.dispatchEvent(new Event('supabase-ready'));
   </script>
   <script>
+    // 스크립트 추가
+    let _pcdCache = null;
+
     // --- supabase 준비 대기 ---
     function waitForSupabase(timeoutMs = 5000) {
       const start = Date.now();
@@ -704,9 +707,6 @@
       try { await waitForSupabase(); } 
       catch { showToast('Supabase 초기화 지연'); return; }
 
-      const n = Number(listingId);
-      if (!listingId || Number.isNaN(n)) { showToast('유효한 매물번호를 입력하세요.'); return; }
-
       const selectCols = Object.keys(FIELD_MAP).join(', ');
 
       // 1) 우선 지정 컬럼으로 조회
@@ -756,14 +756,6 @@
           return;
         }
 
-        // 그 외 에러
-        showToast('매물 조회 실패: ' + (error.message || ''));
-        return;
-      }
-
-      // 3) 데이터 없음
-      if (!data) {
-        showToast('해당 매물번호를 찾을 수 없습니다.');
         return;
       }
 
@@ -800,25 +792,29 @@
     async function fetchAllPCD(batchSize = 1000) {
       if (_pcdCache) return _pcdCache;
 
+      // supabase 준비 보장
+      await waitForSupabase();
+      const supa = window.supabase;
+      if (!supa) throw new Error('Supabase not ready');
+
       let from = 0;
       let all = [];
 
       while (true) {
-          const to = from + batchSize - 1; // range는 양끝 포함
-          const { data, error } = await client
+        const to = from + batchSize - 1; // range는 양끝 포함
+        const { data, error } = await supa
           .from('province_city_district')
           .select('province, city, district')
-          // 페이지 간 정렬 일관성을 위해 고정 정렬 권장
           .order('province', { ascending: true })
           .order('city', { ascending: true })
           .order('district', { ascending: true })
           .range(from, to);
 
-          if (error) throw error;
+        if (error) throw error;
 
-          all = all.concat(data || []);
-          if (!data || data.length < batchSize) break; // 마지막 페이지
-          from += batchSize;
+        all = all.concat(data || []);
+        if (!data || data.length < batchSize) break; // 마지막 페이지
+        from += batchSize;
       }
 
       _pcdCache = all;
