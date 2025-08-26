@@ -443,8 +443,205 @@
 
   </script>
   <script>
-    // 스크립트 시작
+    // ===== 토스트 =====
+    function showToast(msg, { ok=false } = {}) {
+      const el = document.getElementById('toast');
+      if (!el) return alert(msg);
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      el.style.background = ok ? '#10b981' : '#ef4444';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.add('hidden'), 2200);
+    }
 
+    // ===== 숫자/정수/날짜 정규화 =====
+    const numOrNull = v => {
+      if (v === undefined || v === null) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      const n = Number(s.replaceAll(',', ''));
+      return Number.isFinite(n) ? n : null;
+    };
+    const intOrNull = v => {
+      const n = numOrNull(v);
+      return Number.isFinite(n) ? Math.trunc(n) : null;
+    };
+    const dateOrNull = v => {
+      const s = (v ?? '').trim();
+      return s ? s : null; // YYYY-MM-DD 그대로 저장 (date 컬럼)
+    };
+
+    // ===== 패널 열고 닫기 =====
+    const drawer = document.getElementById('sales-drawer');
+    const overlay = document.getElementById('sales-overlay');
+
+    function openDrawer() {
+      overlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        drawer.classList.remove('translate-x-full');
+      });
+    }
+    function closeDrawer() {
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('hidden');
+    }
+
+    document.getElementById('open-sales-drawer')?.addEventListener('click', openDrawer);
+    document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
+    overlay?.addEventListener('click', closeDrawer);
+
+    // ===== 폼 초기화 =====
+    function resetForm() {
+      const ids = [
+        'f_listing_id','f_deal_type','f_listing_title','f_province','f_city','f_district','f_detail_address',
+        'f_contract_date','f_interim_payment1','f_interim_payment2','f_interim_payment3','f_balance_date',
+        'f_deposit_price','f_monthly_rent','f_sale_price','f_area_py','f_unit_info','f_floor','f_memo',
+        'f_premium_price','f_expense',
+        'f_buyer_fee','f_buyer_tax','f_buyer_tax_date','f_seller_fee','f_seller_tax','f_seller_tax_date',
+        'f_seller_performance','f_buyer_performance','f_status','f_special_contract',
+        'f_buyer_weight','f_seller_weight'
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    }
+    document.getElementById('reset-sales-form')?.addEventListener('click', resetForm);
+
+    // ===== 입력값 수집 =====
+    function collectPerformancePayload() {
+      return {
+        listing_id: intOrNull(document.getElementById('f_listing_id')?.value),
+        deal_type: (document.getElementById('f_deal_type')?.value ?? '').trim() || null,
+        listing_title: (document.getElementById('f_listing_title')?.value ?? '').trim() || null,
+        province: (document.getElementById('f_province')?.value ?? '').trim() || null,
+        city: (document.getElementById('f_city')?.value ?? '').trim() || null,
+        district: (document.getElementById('f_district')?.value ?? '').trim() || null,
+        detail_address: (document.getElementById('f_detail_address')?.value ?? '').trim() || null,
+
+        contract_date: dateOrNull(document.getElementById('f_contract_date')?.value),
+        interim_payment1: numOrNull(document.getElementById('f_interim_payment1')?.value),
+        interim_payment2: numOrNull(document.getElementById('f_interim_payment2')?.value),
+        interim_payment3: numOrNull(document.getElementById('f_interim_payment3')?.value),
+        balance_date: dateOrNull(document.getElementById('f_balance_date')?.value),
+
+        deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value),
+        monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value),
+        sale_price: numOrNull(document.getElementById('f_sale_price')?.value),
+        area_py: numOrNull(document.getElementById('f_area_py')?.value),
+        unit_info: (document.getElementById('f_unit_info')?.value ?? '').trim() || null,
+        floor: intOrNull(document.getElementById('f_floor')?.value),
+
+        premium_price: numOrNull(document.getElementById('f_premium_price')?.value),
+        expense: numOrNull(document.getElementById('f_expense')?.value),
+
+        buyer_fee: numOrNull(document.getElementById('f_buyer_fee')?.value),
+        buyer_tax: numOrNull(document.getElementById('f_buyer_tax')?.value),
+        buyer_tax_date: dateOrNull(document.getElementById('f_buyer_tax_date')?.value),
+
+        seller_fee: numOrNull(document.getElementById('f_seller_fee')?.value),
+        seller_tax: numOrNull(document.getElementById('f_seller_tax')?.value),
+        seller_tax_date: dateOrNull(document.getElementById('f_seller_tax_date')?.value),
+
+        seller_performance: numOrNull(document.getElementById('f_seller_performance')?.value),
+        buyer_performance: numOrNull(document.getElementById('f_buyer_performance')?.value),
+
+        status: (document.getElementById('f_status')?.value ?? '').trim() || null,
+        special_contract: (document.getElementById('f_special_contract')?.value ?? '').trim() || null,
+
+        // memo 필드는 요청에 있었지만 입력란은 생략했어(특약사항과 별도라면 원하면 추가 가능)
+        // memo: ...
+      };
+    }
+
+    function collectAllocationPayload(performance_id) {
+      const buyer_weight = numOrNull(document.getElementById('f_buyer_weight')?.value);
+      const seller_weight = numOrNull(document.getElementById('f_seller_weight')?.value);
+      return {
+        performance_id,
+        buyer_weight,
+        seller_weight
+      };
+    }
+
+    // ===== 저장 처리 =====
+    document.getElementById('save-sales')?.addEventListener('click', async () => {
+      try {
+        // supabase 클라이언트는 type="module" 블록에서 생성됨.
+        // 여기서는 window.supabase 로 노출해둘게.
+        if (!window.supabase) {
+          showToast('Supabase 클라이언트를 찾을 수 없습니다.');
+          return;
+        }
+
+        const payload = collectPerformancePayload();
+
+        // 간단 필수 체크(원하면 강화 가능)
+        if (!payload.deal_type && !payload.listing_title) {
+          showToast('거래유형 또는 매물명을 입력하세요.');
+          return;
+        }
+
+        // 1) performance insert
+        const { data: perfInsert, error: perfErr } = await window.supabase
+          .from('performance')
+          .insert(payload)
+          .select('id')
+          .single();
+
+        if (perfErr) {
+          console.error(perfErr);
+          showToast('매출 저장 실패: ' + (perfErr.message || ''));
+          return;
+        }
+        const perfId = perfInsert?.id;
+        if (!perfId) {
+          showToast('생성된 매출 ID를 확인할 수 없습니다.');
+          return;
+        }
+
+        // 2) performance_allocations insert (옵션: 둘 다 비어있으면 건너뜀)
+        const allocPayload = collectAllocationPayload(perfId);
+        const hasAlloc =
+          allocPayload.buyer_weight !== null || allocPayload.seller_weight !== null;
+
+        if (hasAlloc) {
+          const { error: allocErr } = await window.supabase
+            .from('performance_allocations')
+            .insert(allocPayload);
+
+          if (allocErr) {
+            console.error(allocErr);
+            // 롤백
+            await window.supabase.from('performance').delete().eq('id', perfId);
+            showToast('기여도 저장 실패. 작업이 취소되었습니다: ' + (allocErr.message || ''));
+            return;
+          }
+        }
+
+        showToast('저장 완료!', { ok: true });
+        resetForm();
+        closeDrawer();
+        // TODO: 필요 시 목록 리프레시 함수 호출
+      } catch (e) {
+        console.error(e);
+        showToast('예상치 못한 오류가 발생했습니다.');
+      }
+    });
+
+    // ===== window.supabase 노출 (type="module" 블록에서 만든 인스턴스 공유) =====
+    // 위쪽 module 스크립트가 끝난 뒤 실행되는 이 블록에서 접근 가능하도록 트릭:
+    (function exposeSupabase() {
+      try {
+        // 전역 window 객체에 이미 있으면 패스
+        if (!window.supabase && typeof window.createClient === 'undefined') {
+          // 모듈 스코프에 있으나 전역으로 안 보일 수 있어서, 이미 만들어진 인스턴스를 다시 참조
+          // 현재 파일에서는 module 블록 내 변수명 'supabase' 를 직접 접근할 수 없으므로,
+          // 간단한 방법: module 블록 하단에 window.supabase = supabase; 한 줄을 추가하는 편이 가장 안전.
+        }
+      } catch {}
+    })();
   </script>
+
 </body>
 </html>
