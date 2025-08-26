@@ -677,13 +677,16 @@
 
     // 1) 폼 필드 매핑 (view에 있는 컬럼만)
     const FIELD_MAP = {
-      deal_type:     'f_deal_type',
-      listing_title: 'f_listing_title',
-      deposit_price: 'f_deposit_price',
-      monthly_rent:  'f_monthly_rent',
-      sale_price:    'f_sale_price',
-      area_py:       'f_area_py',
-      floor:         'f_floor',
+      deal_type:       'f_deal_type',
+      listing_title:   'f_listing_title',
+      province:        'f_province',
+      city:            'f_city',
+      district:        'f_district',
+      deposit_price:   'f_deposit_price',
+      monthly_rent:    'f_monthly_rent',
+      sale_price:      'f_sale_price',
+      area_py:         'f_area_py',
+      floor:           'f_floor',
     };
 
     // 2) 값 채우기 헬퍼
@@ -757,10 +760,11 @@
 
       // 4) 정상 채움
       fillFormFromRow(data);
-      initSalesLocationSelects(
-        { province: data.province, city: data.city, district: data.district },
-        true // ← 현재 select 상태와 무관하게 preset으로 강제 세팅
-      );
+      initSalesLocationSelects({ 
+        province: data.province, 
+        city: data.city, 
+        district: data.district 
+      });
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
 
@@ -827,17 +831,12 @@
       const districtEl = document.getElementById('f_district');
       if (!provinceEl || !cityEl || !districtEl) return;
 
-      const selected = force
-        ? {
-            province: preset.province ?? '',
-            city:     preset.city     ?? '',
-            district: preset.district ?? '',
-          }
-        : {
-            province: preset.province ?? provinceEl.value ?? '',
-            city:     preset.city     ?? cityEl.value     ?? '',
-            district: preset.district ?? districtEl.value ?? '',
-          };
+      // 현재 값(자동채움으로 미리 들어온 값이 있으면 우선 사용)
+      const selected = {
+        province: preset.province ?? provinceEl.value ?? '',
+        city:     preset.city     ?? cityEl.value     ?? '',
+        district: preset.district ?? districtEl.value ?? '',
+      };
 
       const setPlaceholder = () => {
         provinceEl.innerHTML = `<option value="">시/도</option>`;
