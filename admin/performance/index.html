@@ -829,10 +829,10 @@
         grouped[affiliation].push({ id, name });
       }
 
-      const select = document.createElement("select");
-      select.id = "select_staff";
-      select.className = "border rounded px-3 py-2 w-[16rem]";
-      select.innerHTML = `<option value="">직원 선택</option>`;
+      const select = document.getElementById("select_staff");
+      if (!select) return;
+      select.innerHTML = `<option value="">직원 선택</option>`; // 초기화
+
 
       // 1. 본인 소속 먼저 추가
       if (grouped[myAffiliation]) {
@@ -862,10 +862,7 @@
           });
           select.appendChild(optGroup);
         });
-
-      document.getElementById("f_manager")?.appendChild(select);
     });
-
 
     // 매물번호 입력시 정보 자동으로 채우기
     // ====== 매물번호로 자동 채우기 (public_baikuk_view 버전) ======
