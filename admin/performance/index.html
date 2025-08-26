@@ -797,6 +797,34 @@
     }
 
     // 주소 선택 관련 함수들
+    async function fetchAllPCD(batchSize = 1000) {
+      if (_pcdCache) return _pcdCache;
+
+      let from = 0;
+      let all = [];
+
+      while (true) {
+          const to = from + batchSize - 1; // range는 양끝 포함
+          const { data, error } = await client
+          .from('province_city_district')
+          .select('province, city, district')
+          // 페이지 간 정렬 일관성을 위해 고정 정렬 권장
+          .order('province', { ascending: true })
+          .order('city', { ascending: true })
+          .order('district', { ascending: true })
+          .range(from, to);
+
+          if (error) throw error;
+
+          all = all.concat(data || []);
+          if (!data || data.length < batchSize) break; // 마지막 페이지
+          from += batchSize;
+      }
+
+      _pcdCache = all;
+      return all;
+    }
+
     // ===== 지역(시/도-시/군/구-읍/면/동) 의존형 드롭다운 (sales 폼용) =====
     async function initSalesLocationSelects(preset = {}) {
       const provinceEl = document.getElementById('f_province');
