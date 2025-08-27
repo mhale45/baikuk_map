@@ -154,6 +154,48 @@
           </button>
         </div>
       </div>
+      <section class="p-5">
+        <h3 class="text-base font-semibold text-gray-700 mb-3">매출 조회</h3>
+        <div class="overflow-x-auto">
+          <table id="performance-table" class="table-auto border-collapse w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border px-2 py-1">매물번호</th>
+                <th class="border px-2 py-1">매물명</th>
+                <th class="border px-2 py-1">시/도</th>
+                <th class="border px-2 py-1">시/군/구</th>
+                <th class="border px-2 py-1">읍/면/동</th>
+                <th class="border px-2 py-1">번지</th>
+                <th class="border px-2 py-1">층</th>
+                <th class="border px-2 py-1">호수</th>
+                <th class="border px-2 py-1">거래유형</th>
+                <th class="border px-2 py-1">매매가</th>
+                <th class="border px-2 py-1">보증금</th>
+                <th class="border px-2 py-1">월세</th>
+                <th class="border px-2 py-1">권리금</th>
+                <th class="border px-2 py-1">면적</th>
+                <th class="border px-2 py-1">계약일</th>
+                <th class="border px-2 py-1">잔금일</th>
+                <th class="border px-2 py-1">매수인 수수료</th>
+                <th class="border px-2 py-1">매수인 세금계산서</th>
+                <th class="border px-2 py-1">매수인 세금 발행일</th>
+                <th class="border px-2 py-1">매도인 수수료</th>
+                <th class="border px-2 py-1">매도인 세금계산서</th>
+                <th class="border px-2 py-1">매도인 세금 발행일</th>
+                <th class="border px-2 py-1">클로징 매출</th>
+                <th class="border px-2 py-1">물건 매출</th>
+                <th class="border px-2 py-1">거래관련 사용비용</th>
+                <th class="border px-2 py-1">직원이름</th>
+                <th class="border px-2 py-1">클로징</th>
+                <th class="border px-2 py-1">매물확보</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 데이터 행이 JS로 채워질 자리 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
     <!-- 오른쪽 슬라이드 패널 -->
     <div id="sales-drawer"
@@ -567,6 +609,92 @@
     // 스크립트 추가
     let _pcdCache = null;
 
+    // 
+    async function loadPerformanceTable() {
+      try {
+        await waitForSupabase();
+        const { data, error } = await window.supabase
+          .from('performance')
+          .select(`
+            id, listing_id, listing_title, province, city, district, detail_address,
+            floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+            contract_date, balance_date,
+            buyer_fee, buyer_tax, buyer_tax_date,
+            seller_fee, seller_tax, seller_tax_date,
+            buyer_performance, seller_performance, expense,
+            performance_allocations(staff_profiles(name), buyer_weight, seller_weight)
+          `)
+          .order('contract_date', { ascending: false });
+
+        if (error) {
+          console.error('테이블 조회 실패:', error);
+          showToast('조회 실패: ' + error.message);
+          return;
+        }
+
+        const tbody = document.querySelector('#performance-table tbody');
+        tbody.innerHTML = '';
+
+        data.forEach(row => {
+          // 직원 정보 (allocations)
+          const staffInfos = (row.performance_allocations || []).map(a => {
+            const name = a.staff_profiles?.name || '-';
+            return {
+              name,
+              buyer: (a.buyer_weight * 100).toFixed(0) + '%',
+              seller: (a.seller_weight * 100).toFixed(0) + '%'
+            };
+          });
+
+          // 직원 한 명씩 행 추가
+          if (staffInfos.length === 0) {
+            staffInfos.push({ name: '-', buyer: '-', seller: '-' });
+          }
+
+          staffInfos.forEach(st => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="border px-2 py-1">${row.listing_id ?? ''}</td>
+              <td class="border px-2 py-1">${row.listing_title ?? ''}</td>
+              <td class="border px-2 py-1">${row.province ?? ''}</td>
+              <td class="border px-2 py-1">${row.city ?? ''}</td>
+              <td class="border px-2 py-1">${row.district ?? ''}</td>
+              <td class="border px-2 py-1">${row.detail_address ?? ''}</td>
+              <td class="border px-2 py-1">${row.floor ?? ''}</td>
+              <td class="border px-2 py-1">${row.unit_info ?? ''}</td>
+              <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.sale_price) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.deposit_price) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.monthly_rent) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.premium_price) ?? ''}</td>
+              <td class="border px-2 py-1">${row.area_py ?? ''}</td>
+              <td class="border px-2 py-1">${row.contract_date ?? ''}</td>
+              <td class="border px-2 py-1">${row.balance_date ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_fee) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_tax) ?? ''}</td>
+              <td class="border px-2 py-1">${row.buyer_tax_date ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_fee) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_tax) ?? ''}</td>
+              <td class="border px-2 py-1">${row.seller_tax_date ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_performance) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_performance) ?? ''}</td>
+              <td class="border px-2 py-1">${formatNumberWithCommas(row.expense) ?? ''}</td>
+              <td class="border px-2 py-1">${st.name}</td>
+              <td class="border px-2 py-1">${st.buyer}</td>
+              <td class="border px-2 py-1">${st.seller}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        showToast('예상치 못한 오류');
+      }
+    }
+
+    // 페이지 로드 시 자동 실행
+    document.addEventListener("DOMContentLoaded", loadPerformanceTable);
+
     // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 - 비교 전에 trim
     function updateHighlight() {
       const dealTypeEl = document.getElementById("f_deal_type");
@@ -909,6 +1037,8 @@
         console.error(e);
         showToast('예상치 못한 오류가 발생했습니다.');
       }
+      
+      loadPerformanceTable();
     });
 
     // ===== window.supabase 노출 (type="module" 블록에서 만든 인스턴스 공유) =====
@@ -969,7 +1099,7 @@
 
       const select = document.getElementById("select_staff1");
       if (!select) return;
-      select.innerHTML = `<option value="">직원 선택</option>`; // 초기화
+      select.innerHTML = `<option value="">-- 직원 선택 --</option>`; // 초기화
 
 
       // 1. 본인 소속 먼저 추가
