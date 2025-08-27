@@ -1103,9 +1103,9 @@
     }
 
     // ===== 저장 처리 =====
-    document.getElementById('save-sales')?.addEventListener('click', async () => {
-      e.preventDefault();
-      if (__saving) return;     // 이미 저장 중이면 무시
+    document.getElementById('save-sales')?.addEventListener('click', async (evt) => {
+      // evt.preventDefault(); // 버튼이 type="button"이라면 필요 없음
+      if (__saving) return;
       __saving = true;
       try {
         if (!window.supabase) { showToast('Supabase 클라이언트를 찾을 수 없습니다.'); return; }
@@ -1120,7 +1120,6 @@
         if (!validateTotalWeight()) return;
 
         const payload = collectPerformancePayload();
-
         if (!payload.deal_type && !payload.listing_title) {
           showToast('거래유형 또는 매물명을 입력하세요.');
           return;
@@ -1136,7 +1135,6 @@
             .eq('id', perfId);
           if (upErr) { console.error(upErr); showToast('매출 수정 실패: ' + (upErr.message || '')); return; }
 
-          // 분배는 간단히 전체 삭제 후 재삽입
           await window.supabase.from('performance_allocations').delete().eq('performance_id', perfId);
           const allocPayloads = collectAllocationPayload(perfId);
           if (allocPayloads.length > 0) {
@@ -1179,9 +1177,11 @@
         resetForm();
         closeDrawer();
         loadPerformanceTable();
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error(err);
         showToast('예상치 못한 오류가 발생했습니다.');
+      } finally {
+        __saving = false; // ✅ 어떤 경우에도 플래그 복구
       }
     });
 
