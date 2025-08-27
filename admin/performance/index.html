@@ -622,7 +622,10 @@
             buyer_fee, buyer_tax, buyer_tax_date,
             seller_fee, seller_tax, seller_tax_date,
             buyer_performance, seller_performance, expense,
-            performance_allocations(staff_profiles(name), buyer_weight, seller_weight)
+            performance_allocations!performance_allocations_performance_id_fkey (
+              buyer_weight, seller_weight,
+              staff_profiles!performance_allocations_staff_id_fkey ( name )
+            )
           `)
           .order('contract_date', { ascending: false });
 
@@ -1037,7 +1040,7 @@
         console.error(e);
         showToast('예상치 못한 오류가 발생했습니다.');
       }
-      
+
       loadPerformanceTable();
     });
 
@@ -1550,7 +1553,6 @@
       "f_seller_performance",
       "f_expense"
     ].forEach(attachCommaFormatter);
-
 
   </script>
 
