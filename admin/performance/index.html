@@ -1133,6 +1133,9 @@
 
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
+    
+    // ✅ 거래유형에 맞춰 라벨/색 즉시 갱신
+    if (typeof updateHighlight === "function") updateHighlight();
 
     // 4) 디바운스 & 이벤트 바인딩
     function debounce(fn, ms=300) {
