@@ -290,12 +290,12 @@
               <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금2 (금액)</span>
+              <span class="text-sm text-gray-600">중도금2</span>
               <input id="f_interim_payment2_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
               <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금3 (금액)</span>
+              <span class="text-sm text-gray-600">중도금3</span>
               <input id="f_interim_payment3_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
               <input id="f_interim_payment3" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
@@ -592,6 +592,23 @@
     let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let __saving = false; // 중복 저장 방지 플래그
     let STAFF_NAME_BY_ID = new Map();
+
+    function calculateDownPaymentAndBalance() {
+      const deposit = numOrNull(document.getElementById('f_deposit_price')?.value) || 0;
+
+      // 계약금 = 보증금의 10%
+      const downPayment = Math.round(deposit * 0.1);
+      document.getElementById('f_down_payment').value = formatNumberWithCommas(downPayment);
+
+      // 중도금
+      const i1 = numOrNull(document.getElementById('f_interim_payment1')?.value) || 0;
+      const i2 = numOrNull(document.getElementById('f_interim_payment2')?.value) || 0;
+      const i3 = numOrNull(document.getElementById('f_interim_payment3')?.value) || 0;
+
+      // 잔금 = 보증금 - (계약금 + 중도금1~3)
+      const balance = deposit - (downPayment + i1 + i2 + i3);
+      document.getElementById('f_balance').value = formatNumberWithCommas(Math.max(balance, 0));
+    }
 
     async function ensureStaffNameMap() {
       if (STAFF_NAME_BY_ID.size > 0) return;
@@ -976,6 +993,14 @@
     document.addEventListener("DOMContentLoaded", () => {
       updateHighlight();
       document.getElementById("f_deal_type")?.addEventListener("change", updateHighlight);
+
+      ["f_deposit_price", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("input", calculateDownPaymentAndBalance);
+          el.addEventListener("change", calculateDownPaymentAndBalance);
+        }
+      });
     });
 
     // 드로어 열릴 때(보이기 시작할 때) 다시 한 번 맞추면 깔끔
