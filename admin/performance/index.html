@@ -180,19 +180,19 @@
               <input id="f_listing_title" type="text" class="border rounded px-3 py-2 w-[20rem] mr-3">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">시/도</span>
+              <span class="text-sm text-red-600">시/도*</span>
               <select id="f_province" class="border rounded px-3 py-2"></select>
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">시/군/구</span>
+              <span class="text-sm text-red-600">시/군/구*</span>
               <select id="f_city" class="border rounded px-3 py-2"></select>
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">읍/면/동</span>
+              <span class="text-sm text-red-600">읍/면/동*</span>
               <select id="f_district" class="border rounded px-3 py-2"></select>
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">번지</span>
+              <span class="text-sm text-red-600">번지*</span>
               <input id="f_detail_address" type="text" class="border rounded px-3 py-2 !w-[7rem]">
             </label>            
             <label class="flex flex-col gap-1">
@@ -215,7 +215,7 @@
           <h3 class="text-base font-semibold text-gray-700">금액</h3>
           <div class="flex gap-3">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">거래유형</span>
+              <span class="text-sm text-red-600">거래유형*</span>
               <select id="f_deal_type" class="border rounded px-3 py-2">
                 <option value="">거래유형 선택</option>
                 <option value="월세">월세</option>
@@ -250,11 +250,11 @@
           <h3 class="text-base font-semibold text-gray-700">일정</h3>
           <div class="flex gap-3 justify-start">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">계약일</span>
+              <span class="text-sm text-red-600">계약일*</span>
               <input id="f_contract_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1 mr-8">
-              <span class="text-sm text-gray-600">잔금일</span>
+              <span class="text-sm text-red-600">잔금일*</span>
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
@@ -649,6 +649,35 @@
     // 페이지 로드 후 바로 활성화
     document.addEventListener('DOMContentLoaded', () => {
       enableAutoGrowTextArea(document.getElementById('f_special_contract'));
+    });
+
+    // 매출등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 표시
+    document.addEventListener("DOMContentLoaded", () => {
+      const dealTypeEl   = document.getElementById("f_deal_type");
+      const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
+      const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
+      const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
+
+      function updateHighlight() {
+        // 기본값으로 되돌리기
+        if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
+        if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
+        if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
+
+        // 조건별 강조 + * 붙이기
+        if (dealTypeEl.value === "월세") {
+          if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
+          if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
+        } else if (dealTypeEl.value === "매매") {
+          if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
+        }
+      }
+
+      // 처음 1회 적용
+      updateHighlight();
+
+      // 값 바뀔 때마다 적용
+      dealTypeEl.addEventListener("change", updateHighlight);
     });
 
     // 드로어 열릴 때(보이기 시작할 때) 다시 한 번 맞추면 깔끔
