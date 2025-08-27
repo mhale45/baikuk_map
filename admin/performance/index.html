@@ -163,8 +163,7 @@
                 <th class="border px-2 py-1 min-w-[3rem]">매물명</th>
                 <th class="border px-2 py-1 min-w-[3rem]">주소</th>
                 <th class="border px-2 py-1 min-w-[3rem]">구분</th>
-                <th class="border px-2 py-1 min-w-[3rem]">가격</th>
-                <th class="border px-2 py-1 min-w-[4rem]">권리금</th>
+                <th class="border px-2 py-1 min-w-[4rem]">가격</th>
                 <th class="border px-2 py-1 min-w-[3rem]">면적</th>
                 <th class="border px-2 py-1 min-w-[9rem]">계약일/잔금일</th>
                 <th class="border px-2 py-1 min-w-[3rem]">매수인</th>
@@ -651,17 +650,17 @@
 
     function buildPriceBlock(row) {
       const parts = [];
+      const pushIf = (label, v) => {
+        const n = Number(v || 0);
+        if (n > 0) parts.push(`${label} ${formatNumberWithCommas(n)}`);
+      };
 
-      const sale = Number(row.sale_price) || 0;
-      if (sale > 0) parts.push(`매매가 ${formatNumberWithCommas(sale)}`);
+      pushIf('매매가',  row.sale_price);
+      pushIf('보증금',  row.deposit_price);
+      pushIf('월세',    row.monthly_rent);
+      pushIf('권리금',  row.premium_price);
 
-      const deposit = Number(row.deposit_price) || 0;
-      if (deposit > 0) parts.push(`${formatNumberWithCommas(deposit)}`);
-
-      const monthly = Number(row.monthly_rent) || 0;
-      if (monthly > 0) parts.push(`${formatNumberWithCommas(monthly)}`);
-
-      return parts.join('<br>'); // 줄바꿈
+      return parts.join('<br>'); // 줄바꿈으로 구분
     }
 
     // 헬퍼: 면적 소수점 1자리
@@ -722,7 +721,6 @@
               <td class="border px-2 py-1">${addr}</td>
               <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
               <td class="border px-2 py-1">${buildPriceBlock(row)}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.premium_price) ?? ''}</td>
               <td class="border px-2 py-1">${areaDisp}</td>
               <td class="border px-2 py-1">${buildDateBlock(row)}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_fee) ?? ''}</td>
