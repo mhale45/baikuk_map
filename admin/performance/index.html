@@ -604,15 +604,23 @@
 
     // 헬퍼: 주소 합치기 (공백으로 연결, 빈 값은 자동 제거)
     function buildAddress(row) {
+      const floor = row.floor != null && row.floor !== ''
+        ? `${row.floor}층`
+        : '';
+      const unit = row.unit_info != null && row.unit_info !== ''
+        ? `${row.unit_info}호`
+        : '';
+
       const parts = [
         row.province,
         row.city,
         row.district,
         row.detail_address, // 번지
-        row.floor,          // 층
-        row.unit_info       // 호수
+        floor,
+        unit
       ].map(v => (v == null ? '' : String(v).trim()))
       .filter(Boolean);
+
       return parts.join(' ');
     }
 
