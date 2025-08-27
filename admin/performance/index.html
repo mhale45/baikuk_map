@@ -337,7 +337,7 @@
               </label>
             </div>
           </section>
-          <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div class="grid grid-cols-4 gap-x-6 gap-y-4">
             <template id="allocation-template">
               <div class="flex flex-col gap-2">
                 <select class="border rounded px-3 py-2 staff-select"></select>
@@ -616,7 +616,7 @@
     // 초기화: 페이지 로드 후
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('input[data-autowidth]').forEach(el => autosizeInputByCh(el));
-      const container = document.querySelector(".grid.grid-cols-2");
+      const container = document.querySelector(".grid.grid-cols-4");
       const template = document.getElementById("allocation-template");
 
       for (let i = 1; i <= 4; i++) {
