@@ -602,7 +602,7 @@
     let _pcdCache = null;
 
     function buildListingTitle(row) {
-      const id = row.listing_id ? String(row.listing_id).trim() : '';
+      const id = row.listing_id ? `[${String(row.listing_id).trim()}]` : '';
       const title = row.listing_title ? String(row.listing_title).trim() : '';
       return [id, title].filter(Boolean).join(' ');
     }
