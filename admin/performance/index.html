@@ -403,193 +403,129 @@
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
   </div>  
   <script type="module">
+    // sales-module.js
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const supabase = createClient(
-        'https://sfinbtiqlfnaaarziixu.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+      'https://sfinbtiqlfnaaarziixu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
-    // 로그인 세션 확인
+    window.supabase = supabase;
+    document.dispatchEvent(new Event('supabase-ready'));
+
     (async () => {
-        const { data } = await supabase.auth.getSession();
-        if (!data?.session) {
-            location.replace("/");
-        }
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) location.replace("/");
     })();
 
-    // 직원 데이터 로딩 및 표시
+    function groupStaffByAffiliation(data) {
+      const grouped = {};
+      data.forEach(({ name, affiliation, leave_date, id }) => {
+        if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
+        const entry = { name, id };
+        if (!leave_date) grouped[affiliation].active.push(entry);
+        else grouped[affiliation].inactive.push(entry);
+      });
+      return grouped;
+    }
+
+    function createOption(value, text) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = text;
+      return opt;
+    }
+
     (async () => {
-        const { data, error } = await supabase
-            .from('staff_profiles')
-            .select('name, affiliation, leave_date')
-            .order('affiliation', { ascending: true });
+      const { data, error } = await supabase.from('staff_profiles').select('name, affiliation, leave_date, id').order('affiliation');
+      if (error) return console.error('직원 정보 실패:', error);
 
-        if (error) {
-            console.error('직원 정보 가져오기 실패:', error);
-            return;
-        }
+      const grouped = groupStaffByAffiliation(data);
+      const container = document.getElementById('staff-list');
 
-        const container = document.getElementById('staff-list');
-        const grouped = {};
+      Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+        const header = document.createElement('div');
+        header.className = 'grade-header';
+        header.textContent = aff;
+        container.appendChild(header);
 
-        data.forEach(({ name, affiliation, leave_date }) => {
-            if (!grouped[affiliation]) {
-            grouped[affiliation] = { active: [], inactive: [] };
-            }
-            if (leave_date === null) {
-            grouped[affiliation].active.push(name);
-            } else {
-            grouped[affiliation].inactive.push(name);
-            }
-        });
-
-        Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-          // 지점 헤더
-          const header = document.createElement('div');
-          header.className = 'grade-header';
-          header.textContent = aff;
-          container.appendChild(header);
-
-          // 재직자 이름 표시
-          active.forEach(name => {
+        active.forEach(({ name }) => {
           const nameDiv = document.createElement('div');
           nameDiv.className = 'name-item';
           nameDiv.textContent = name;
           container.appendChild(nameDiv);
+        });
+
+        if (inactive.length > 0) {
+          const toggleBtn = document.createElement('button');
+          toggleBtn.textContent = '▼ 퇴사자 보기';
+          toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
+
+          const collapseDiv = document.createElement('div');
+          collapseDiv.className = 'pl-4 mt-1 hidden';
+          collapseDiv.id = `inactive-group-${idx}`;
+
+          inactive.forEach(({ name }) => {
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'name-item text-gray-400 italic';
+            nameDiv.textContent = name + ' (퇴사)';
+            collapseDiv.appendChild(nameDiv);
           });
 
-          // 퇴사자 있으면 버튼 및 목록 추가
-          if (inactive.length > 0) {
-              // ▼ 버튼
-              const toggleBtn = document.createElement('button');
-              toggleBtn.textContent = '▼ 퇴사자 보기';
-              toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
-              toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
+          toggleBtn.onclick = () => {
+            const expanded = collapseDiv.classList.toggle('hidden');
+            toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
+          };
 
-              // 토글할 퇴사자 div
-              const collapseDiv = document.createElement('div');
-              collapseDiv.className = 'pl-4 mt-1 hidden';
-              collapseDiv.id = `inactive-group-${idx}`;
-
-              // 퇴사자 이름 삽입
-              inactive.forEach(name => {
-                  const nameDiv = document.createElement('div');
-                  nameDiv.className = 'name-item text-gray-400 italic';
-                  nameDiv.textContent = name + ' (퇴사)';
-                  collapseDiv.appendChild(nameDiv);
-              });
-
-              // 버튼 클릭 시 토글
-              let expanded = false;
-              toggleBtn.addEventListener('click', () => {
-                  expanded = !expanded;
-                  collapseDiv.classList.toggle('hidden', !expanded);
-                  toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
-              });
-
-              // 버튼과 접힌 div 추가 (재직자 다음에)
-              container.appendChild(toggleBtn);
-              container.appendChild(collapseDiv);
-          }
-        });
-    })();
-
-    // 분배 입력용 select box에 직원 옵션 채우기
-    (async () => {
-      const { data, error } = await supabase
-        .from('staff_profiles')
-        .select('id, name, affiliation, leave_date')
-        .order('affiliation', { ascending: true });
-
-      if (error) {
-        console.error('직원 목록 불러오기 실패:', error);
-        return;
-      }
-
-      // 재직자만 필터링
-      const activeStaff = data.filter(staff => staff.leave_date === null);
-
-      // affiliation(지점)별로 그룹화
-      const grouped = {};
-      activeStaff.forEach(({ id, name, affiliation }) => {
-        if (!grouped[affiliation]) grouped[affiliation] = [];
-        grouped[affiliation].push({ id, name });
+          container.appendChild(toggleBtn);
+          container.appendChild(collapseDiv);
+        }
       });
 
-      // select_staff1~4에 동일하게 옵션 삽입
       for (let i = 1; i <= 4; i++) {
         const select = document.getElementById(`select_staff${i}`);
         if (!select) continue;
+        select.appendChild(createOption('', '-- 직원 선택 --'));
 
-        // 기본 안내 옵션
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '-- 직원 선택 --';
-        select.appendChild(defaultOption);
-
-        // 지점별 optgroup 삽입
-        Object.entries(grouped).forEach(([affiliation, staffList]) => {
+        Object.entries(grouped).forEach(([aff, { active }]) => {
           const group = document.createElement('optgroup');
-          group.label = affiliation;
-
-          staffList.forEach(({ id, name }) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = name;
-            group.appendChild(option);
-          });
-
+          group.label = aff;
+          active.forEach(({ id, name }) => group.appendChild(createOption(id, name)));
           select.appendChild(group);
         });
       }
     })();
 
-    // 직원은 분배율 만지지 못하게
     (async () => {
-      // 1) 사용자 정보
       const { data: userRes } = await supabase.auth.getUser();
       const user = userRes?.user;
+      let role = user?.user_metadata?.role || user?.app_metadata?.role;
 
-      // 2) 메타데이터에서 권한 확인
-      let role = user?.user_metadata?.role || user?.app_metadata?.role || null;
-
-      // 3) 메타데이터에 role이 없으면 profiles에서 시도 (컬럼명/키는 환경에 맞게 조정)
       if (!role && user?.id) {
-        const { data: prof } = await supabase
-          .from('staff_profiles')
-          .select('role')                // ← staff_profiles에 role 컬럼이 있을 때만 동작
-          .eq('auth_user_id', user.id)   // ← 사용자-프로필 매핑 키(환경에 맞게 수정)
-          .maybeSingle();
-        role = prof?.role || null;
+        const { data: prof } = await supabase.from('staff_profiles').select('role').eq('auth_user_id', user.id).maybeSingle();
+        role = prof?.role;
       }
 
-      // 전역 보관
       window.__userRole = role;
       window.__isStaff = role === '직원';
 
-      // 4) 직원이면 분배율 입력 잠금
       const distEl = document.getElementById('f_seller_distribution_rate');
       if (distEl) {
         if (window.__isStaff) {
-          if (!distEl.value) distEl.value = 30;      // 초기값 보장
-          distEl.readOnly = true;                    // 타이핑 방지
+          distEl.value ||= 30;
+          distEl.readOnly = true;
           distEl.classList.add('bg-gray-100', 'cursor-not-allowed');
-          // 붙여넣기/키입력 등 모든 입력 차단
-          ['keydown','beforeinput','paste','drop'].forEach(ev =>
-            distEl.addEventListener(ev, e => e.preventDefault())
-          );
-          // 혹시 프로그램적으로 바꿔도 즉시 되돌림
-          distEl.addEventListener('input', () => { distEl.value = 30; });
-          // 안내 토스트 (선택)
+          ['keydown','beforeinput','paste','drop'].forEach(ev => distEl.addEventListener(ev, e => e.preventDefault()));
+          distEl.addEventListener('input', () => distEl.value = 30);
           distEl.title = '직원 권한은 분배율을 변경할 수 없습니다.';
         } else {
-          // 관리자/매니저 등은 자유롭게 수정 가능
           distEl.readOnly = false;
           distEl.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
       }
     })();
+
 
     window.supabase = supabase;
     document.dispatchEvent(new Event('supabase-ready'));
