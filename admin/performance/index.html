@@ -1405,10 +1405,10 @@
     ]);
 
     function fillFormFromRow(row) {
-      Object.entries(FIELD_MAP).forEach(([inputId, col]) => {
+      Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
         let val = row?.[col] ?? '';
 
-        // 10,000배 변환 (만원 → 원)
+        // 10,000 배 변환 (만원 → 원)
         if (["deposit_price","monthly_rent","sale_price","premium_price"].includes(col)) {
           if (val != null && val !== '') val = Number(val) * 10000;
         }
