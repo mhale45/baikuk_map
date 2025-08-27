@@ -380,7 +380,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" class="border rounded px-2 py-1 w-[7rem]">
+                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
                 </label>
               </div>
             </template>
@@ -1072,12 +1072,26 @@
     const _openDrawerOrig = openDrawer;
     openDrawer = function () {
       _openDrawerOrig();
+
       requestAnimationFrame(() => {
         const ta = document.getElementById('f_special_contract');
         if (ta) {
           ta.style.height = 'auto';
           ta.style.height = ta.scrollHeight + 'px';
         }
+
+        // 🔧 자동계산 바인딩 보장 (드로어 열릴 때마다)
+        ["f_buyer_performance", "f_seller_performance"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && !el._listenerAttached) {
+            el.addEventListener("input", () => {
+              document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
+                input.dispatchEvent(new Event("input"));
+              });
+            });
+            el._listenerAttached = true;
+          }
+        });
       });
     };
 
