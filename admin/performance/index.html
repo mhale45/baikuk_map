@@ -306,7 +306,7 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-red-600">잔금일*</span>
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_balance" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_balance" type="text" step="any" readonly class="border rounded px-3 py-2 w-[10rem]">
             </label>
           </div>
         </section>
@@ -999,7 +999,7 @@
       updateHighlight();
       document.getElementById("f_deal_type")?.addEventListener("change", updateHighlight);
 
-      ["f_deposit_price", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
+      ["f_deposit_price", "f_down_payment", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.addEventListener("input", calculateDownPaymentAndBalance);
