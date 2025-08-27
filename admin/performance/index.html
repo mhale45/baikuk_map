@@ -414,53 +414,53 @@
         });
 
         Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-            // 지점 헤더
-            const header = document.createElement('div');
-            header.className = 'grade-header';
-            header.textContent = aff;
-            container.appendChild(header);
+          // 지점 헤더
+          const header = document.createElement('div');
+          header.className = 'grade-header';
+          header.textContent = aff;
+          container.appendChild(header);
 
-            // 재직자 이름 표시
-            active.forEach(name => {
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item';
-            nameDiv.textContent = name;
-            container.appendChild(nameDiv);
-            });
+          // 재직자 이름 표시
+          active.forEach(name => {
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'name-item';
+          nameDiv.textContent = name;
+          container.appendChild(nameDiv);
+          });
 
-            // 퇴사자 있으면 버튼 및 목록 추가
-            if (inactive.length > 0) {
-                // ▼ 버튼
-                const toggleBtn = document.createElement('button');
-                toggleBtn.textContent = '▼ 퇴사자 보기';
-                toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
-                toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
+          // 퇴사자 있으면 버튼 및 목록 추가
+          if (inactive.length > 0) {
+              // ▼ 버튼
+              const toggleBtn = document.createElement('button');
+              toggleBtn.textContent = '▼ 퇴사자 보기';
+              toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
+              toggleBtn.style.marginLeft = '1rem'; // 들여쓰기 약간
 
-                // 토글할 퇴사자 div
-                const collapseDiv = document.createElement('div');
-                collapseDiv.className = 'pl-4 mt-1 hidden';
-                collapseDiv.id = `inactive-group-${idx}`;
+              // 토글할 퇴사자 div
+              const collapseDiv = document.createElement('div');
+              collapseDiv.className = 'pl-4 mt-1 hidden';
+              collapseDiv.id = `inactive-group-${idx}`;
 
-                // 퇴사자 이름 삽입
-                inactive.forEach(name => {
-                    const nameDiv = document.createElement('div');
-                    nameDiv.className = 'name-item text-gray-400 italic';
-                    nameDiv.textContent = name + ' (퇴사)';
-                    collapseDiv.appendChild(nameDiv);
-                });
+              // 퇴사자 이름 삽입
+              inactive.forEach(name => {
+                  const nameDiv = document.createElement('div');
+                  nameDiv.className = 'name-item text-gray-400 italic';
+                  nameDiv.textContent = name + ' (퇴사)';
+                  collapseDiv.appendChild(nameDiv);
+              });
 
-                // 버튼 클릭 시 토글
-                let expanded = false;
-                toggleBtn.addEventListener('click', () => {
-                    expanded = !expanded;
-                    collapseDiv.classList.toggle('hidden', !expanded);
-                    toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
-                });
+              // 버튼 클릭 시 토글
+              let expanded = false;
+              toggleBtn.addEventListener('click', () => {
+                  expanded = !expanded;
+                  collapseDiv.classList.toggle('hidden', !expanded);
+                  toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
+              });
 
-                // 버튼과 접힌 div 추가 (재직자 다음에)
-                container.appendChild(toggleBtn);
-                container.appendChild(collapseDiv);
-            }
+              // 버튼과 접힌 div 추가 (재직자 다음에)
+              container.appendChild(toggleBtn);
+              container.appendChild(collapseDiv);
+          }
         });
     })();
 
@@ -568,28 +568,29 @@
     let _pcdCache = null;
 
     // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게
-    function updateHighlight() {
-      const dealTypeEl   = document.getElementById("f_deal_type");
-      const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
-      const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
-      const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
+    function updatePriceLabels() {
+      const dealTypeEl    = document.getElementById("f_deal_type");
+      const saleSpan      = document.querySelector("#f_sale_price")?.previousElementSibling;
+      const depositSpan   = document.querySelector("#f_deposit_price")?.previousElementSibling;
+      const monthlySpan   = document.querySelector("#f_monthly_rent")?.previousElementSibling;
 
       if (!dealTypeEl) return;
 
-      // 기본값으로 리셋
-      if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
-      if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
-      if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
+      // 1) 기본값으로 리셋
+      if (saleSpan)    { saleSpan.textContent = "매매가"; saleSpan.classList.remove("text-red-600"); saleSpan.classList.add("text-gray-600"); }
+      if (depositSpan) { depositSpan.textContent = "보증금"; depositSpan.classList.remove("text-red-600"); depositSpan.classList.add("text-gray-600"); }
+      if (monthlySpan) { monthlySpan.textContent = "월세";   monthlySpan.classList.remove("text-red-600"); monthlySpan.classList.add("text-gray-600"); }
 
-      // 조건별 강조
+      // 2) 거래유형별 강조 + * 표시
       if (dealTypeEl.value === "월세") {
-        if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
-        if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
+        if (depositSpan) { depositSpan.textContent = "보증금*"; depositSpan.classList.replace("text-gray-600","text-red-600"); }
+        if (monthlySpan) { monthlySpan.textContent = "월세*";   monthlySpan.classList.replace("text-gray-600","text-red-600"); }
       } else if (dealTypeEl.value === "매매") {
-        if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
+        if (saleSpan) { saleSpan.textContent = "매매가*"; saleSpan.classList.replace("text-gray-600","text-red-600"); }
       }
     }
 
+    window.updatePriceLabels = updatePriceLabels;
     // 전역 노출
     window.updateHighlight = updateHighlight;
 
@@ -1131,6 +1132,7 @@
       if (typeof updateHighlight === "function") {
         updateHighlight();
       }
+      if (typeof window.updatePriceLabels === "function") window.updatePriceLabels();
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
 
