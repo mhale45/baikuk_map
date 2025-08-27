@@ -1365,7 +1365,6 @@
       sale_price:      'f_sale_price',
       area_py:         'f_area_py',
       floor:           'f_floor',
-      // detail_address, unit_info, premium_price는 view에 없으므로 제외
     };
 
     // 2) 값 채우기 헬퍼 - select에 넣을 때 trim
@@ -1406,10 +1405,10 @@
     ]);
 
     function fillFormFromRow(row) {
-      Object.entries(FIELD_MAP).forEach(([col, inputId]) => {
+      Object.entries(FIELD_MAP).forEach(([inputId, col]) => {
         let val = row?.[col] ?? '';
 
-        // 10,000 배 변환 (만원 → 원)
+        // 10,000배 변환 (만원 → 원)
         if (["deposit_price","monthly_rent","sale_price","premium_price"].includes(col)) {
           if (val != null && val !== '') val = Number(val) * 10000;
         }
