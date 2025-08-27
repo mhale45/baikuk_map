@@ -1143,24 +1143,34 @@
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
     
-    // 4) 디바운스 & 이벤트 바인딩
-    function debounce(fn, ms=300) {
-      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-    }
+    // 4) 매물번호 입력 필드 바인딩 (blur 시 1회성 조회)
+    (function bindListingIdOnBlur() {
+      const listingIdEl = document.getElementById('f_listing_id');
+      if (!listingIdEl) return;
 
-    const listingIdEl = document.getElementById('f_listing_id');
-    if (listingIdEl) {
-      const debounced = debounce(() => fetchListingAndFill(listingIdEl.value), 400);
-      listingIdEl.addEventListener('input', debounced);
-      listingIdEl.addEventListener('change', () => fetchListingAndFill(listingIdEl.value));
-      listingIdEl.addEventListener('blur',   () => fetchListingAndFill(listingIdEl.value));
-      listingIdEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          fetchListingAndFill(listingIdEl.value);
-        }
+      let lastFetched = null; // 마지막으로 조회한 값 저장
+
+      listingIdEl.addEventListener('blur', () => {
+        const val = (listingIdEl.value || '').trim();
+        if (!val) return;
+
+        // 이전에 같은 값으로 조회했다면 패스
+        if (val === lastFetched) return;
+
+        fetchListingAndFill(val);
+        lastFetched = val;
       });
-    }
+
+      // 선택: 드로어 닫힐 때 lastFetched 초기화
+      const drawer = document.getElementById('sales-drawer');
+      if (drawer) {
+        drawer.addEventListener('transitionend', () => {
+          if (drawer.classList.contains('translate-x-full')) {
+            lastFetched = null;
+          }
+        });
+      }
+    })();
 
     // 주소 선택 관련 함수들
     async function fetchAllPCD(batchSize = 1000) {
