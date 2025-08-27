@@ -567,29 +567,28 @@
     // 스크립트 추가
     let _pcdCache = null;
 
-    // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게
+    // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 - 비교 전에 trim
     function updateHighlight() {
       const dealTypeEl   = document.getElementById("f_deal_type");
       const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
       const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
       const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
-
       if (!dealTypeEl) return;
 
-      // 기본값으로 리셋
+      const type = (dealTypeEl.value || '').trim(); // ✅
+
+      // reset
       if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
       if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
       if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
 
-      // 조건별 강조
-      if (dealTypeEl.value === "월세") {
+      if (type === "월세") {
         if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
         if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
-      } else if (dealTypeEl.value === "매매") {
+      } else if (type === "매매") {
         if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
       }
     }
-
     // 전역 노출
     window.updateHighlight = updateHighlight;
 
@@ -1018,11 +1017,12 @@
       // detail_address, unit_info, premium_price는 view에 없으므로 제외
     };
 
-    // 2) 값 채우기 헬퍼
+    // 2) 값 채우기 헬퍼 - select에 넣을 때 trim
     function setInputValue(id, value) {
       const el = document.getElementById(id);
       if (!el) return;
-      const v = (value == null) ? '' : String(value);
+      const vRaw = (value == null) ? '' : String(value);
+      const v = vRaw.trim(); // ✅ 공백 제거
 
       if (el.tagName === 'SELECT') {
         const exists = Array.from(el.options).some(o => o.value === v);
@@ -1033,10 +1033,9 @@
         }
         el.value = v;
       } else {
-        el.value = v;
+        el.value = vRaw;
       }
 
-      // 🔽 호수 자동폭 갱신
       if (id === 'f_unit_info' && el.hasAttribute('data-autowidth')) {
         autosizeInputByCh(el);
       }
@@ -1134,9 +1133,6 @@
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
     
-    // ✅ 거래유형에 맞춰 라벨/색 즉시 갱신
-    if (typeof updateHighlight === "function") updateHighlight();
-
     // 4) 디바운스 & 이벤트 바인딩
     function debounce(fn, ms=300) {
       let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
