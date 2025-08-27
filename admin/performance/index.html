@@ -380,7 +380,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
+                  <input id="f_total_performance" type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
                 </label>
               </div>
             </template>
@@ -1739,13 +1739,22 @@
     function recalcPerformanceFromFees() {
       const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
       const sellerFee = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
-      const distRate  = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
+      const distRate = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
 
       const sellerPerformance = sellerFee * distRate * 0.01;
-      const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
+      const buyerPerformance = (buyerFee + sellerFee) - sellerPerformance;
 
       document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
-      document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
+      document.getElementById("f_buyer_performance").value = formatNumberWithCommas(Math.round(buyerPerformance));
+
+      // === ✅ 새로 추가하는 계산식 ===
+      const buyerWeight = numOrNull(document.getElementById("f_buyer_weight")?.value) || 0;
+      const totalPerformance = buyerPerformance * buyerWeight * 0.01 + sellerPerformance * 0.01;
+      
+      const totalPerformanceEl = document.getElementById("f_total_performance");
+      if (totalPerformanceEl) {
+        totalPerformanceEl.value = formatNumberWithCommas(Math.round(totalPerformance));
+      }
     }
 
     // 수수료 필드 변경 시 매출만 갱신
