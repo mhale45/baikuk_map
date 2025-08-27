@@ -162,12 +162,7 @@
               <tr>
                 <th class="border px-2 py-1">매물번호</th>
                 <th class="border px-2 py-1">매물명</th>
-                <th class="border px-2 py-1">시/도</th>
-                <th class="border px-2 py-1">시/군/구</th>
-                <th class="border px-2 py-1">읍/면/동</th>
-                <th class="border px-2 py-1">번지</th>
-                <th class="border px-2 py-1">층</th>
-                <th class="border px-2 py-1">호수</th>
+                <th class="border px-2 py-1">주소</th>
                 <th class="border px-2 py-1">거래유형</th>
                 <th class="border px-2 py-1">매매가</th>
                 <th class="border px-2 py-1">보증금</th>
@@ -182,8 +177,6 @@
                 <th class="border px-2 py-1">매도인 수수료</th>
                 <th class="border px-2 py-1">매도인 세금계산서</th>
                 <th class="border px-2 py-1">매도인 세금 발행일</th>
-                <th class="border px-2 py-1">클로징 매출</th>
-                <th class="border px-2 py-1">물건 매출</th>
                 <th class="border px-2 py-1">거래관련 사용비용</th>
                 <th class="border px-2 py-1">직원이름</th>
                 <th class="border px-2 py-1">클로징</th>
@@ -609,13 +602,30 @@
     // 스크립트 추가
     let _pcdCache = null;
 
-    // 
+    // 헬퍼: 주소 합치기 (공백으로 연결, 빈 값은 자동 제거)
+    function buildAddress(row) {
+      const parts = [
+        row.province,
+        row.city,
+        row.district,
+        row.detail_address, // 번지
+        row.floor,          // 층
+        row.unit_info       // 호수
+      ].map(v => (v == null ? '' : String(v).trim()))
+      .filter(Boolean);
+      return parts.join(' ');
+    }
+
+    // 헬퍼: 면적 소수점 1자리
+    function formatArea1(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n.toFixed(1) : '';
+    }
+
     async function loadPerformanceTable() {
       try {
         await waitForSupabase();
-
-        // 1) 성능(매출)만 먼저 조회
-        const { data: perfRows, error: perfErr } = await window.supabase
+        const { data, error } = await window.supabase
           .from('performance')
           .select(`
             id, listing_id, listing_title, province, city, district, detail_address,
@@ -623,63 +633,52 @@
             contract_date, balance_date,
             buyer_fee, buyer_tax, buyer_tax_date,
             seller_fee, seller_tax, seller_tax_date,
-            buyer_performance, seller_performance, expense
+            expense,
+            performance_allocations!performance_allocations_performance_id_fkey (
+              buyer_weight, seller_weight,
+              staff_profiles!performance_allocations_staff_id_fkey ( name )
+            )
           `)
           .order('contract_date', { ascending: false });
 
-        if (perfErr) { showToast('조회 실패: ' + perfErr.message); return; }
-
-        const ids = (perfRows ?? []).map(r => r.id);
-        let allocByPerfId = new Map();
-
-        if (ids.length) {
-          // 2) 성능 ID들로 할당(기여도) 조회
-          const { data: allocRows, error: allocErr } = await window.supabase
-            .from('performance_allocations')
-            .select(`performance_id, buyer_weight, seller_weight, staff_profiles(name)`)
-            .in('performance_id', ids);
-
-          if (allocErr) { showToast('기여도 조회 실패: ' + allocErr.message); return; }
-
-          // 3) performance_id 기준으로 그룹핑
-          allocByPerfId = allocRows.reduce((m, a) => {
-            const arr = m.get(a.performance_id) || [];
-            arr.push(a);
-            m.set(a.performance_id, arr);
-            return m;
-          }, new Map());
+        if (error) {
+          console.error('테이블 조회 실패:', error);
+          showToast('조회 실패: ' + error.message);
+          return;
         }
 
-        // 4) 표 렌더링
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
-        for (const row of (perfRows ?? [])) {
-          const allocs = allocByPerfId.get(row.id) ?? [];
-          const staffInfos = (allocs.length ? allocs : [{ staff_profiles: {name:'-'}, buyer_weight:null, seller_weight:null }])
-            .map(a => ({
-              name: a.staff_profiles?.name ?? '-',
-              buyer: a.buyer_weight != null ? (a.buyer_weight * 100).toFixed(0) + '%' : '-',
-              seller: a.seller_weight != null ? (a.seller_weight * 100).toFixed(0) + '%' : '-',
-            }));
+        data.forEach(row => {
+          const staffInfos = (row.performance_allocations || []).map(a => {
+            const name = a.staff_profiles?.name || '-';
+            return {
+              name,
+              buyer: (a.buyer_weight * 100).toFixed(0) + '%',
+              seller: (a.seller_weight * 100).toFixed(0) + '%'
+            };
+          });
+
+          if (staffInfos.length === 0) {
+            staffInfos.push({ name: '-', buyer: '-', seller: '-' });
+          }
+
+          const addr = buildAddress(row);          // ★ 주소 하나로
+          const areaDisp = formatArea1(row.area_py); // ★ 면적 1자리
 
           staffInfos.forEach(st => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td class="border px-2 py-1">${row.listing_id ?? ''}</td>
               <td class="border px-2 py-1">${row.listing_title ?? ''}</td>
-              <td class="border px-2 py-1">${row.province ?? ''}</td>
-              <td class="border px-2 py-1">${row.city ?? ''}</td>
-              <td class="border px-2 py-1">${row.district ?? ''}</td>
-              <td class="border px-2 py-1">${row.detail_address ?? ''}</td>
-              <td class="border px-2 py-1">${row.floor ?? ''}</td>
-              <td class="border px-2 py-1">${row.unit_info ?? ''}</td>
+              <td class="border px-2 py-1">${addr}</td>
               <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.sale_price) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.deposit_price) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.monthly_rent) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.premium_price) ?? ''}</td>
-              <td class="border px-2 py-1">${row.area_py ?? ''}</td>
+              <td class="border px-2 py-1">${areaDisp}</td>
               <td class="border px-2 py-1">${row.contract_date ?? ''}</td>
               <td class="border px-2 py-1">${row.balance_date ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_fee) ?? ''}</td>
@@ -688,8 +687,6 @@
               <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_fee) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_tax) ?? ''}</td>
               <td class="border px-2 py-1">${row.seller_tax_date ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_performance) ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_performance) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.expense) ?? ''}</td>
               <td class="border px-2 py-1">${st.name}</td>
               <td class="border px-2 py-1">${st.buyer}</td>
@@ -697,7 +694,7 @@
             `;
             tbody.appendChild(tr);
           });
-        }
+        });
       } catch (e) {
         console.error(e);
         showToast('예상치 못한 오류');
