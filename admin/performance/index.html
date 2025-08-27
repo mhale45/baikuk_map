@@ -468,34 +468,48 @@
     (async () => {
       const { data, error } = await supabase
         .from('staff_profiles')
-        .select('id, name, leave_date')
-        .order('name', { ascending: true });
+        .select('id, name, affiliation, leave_date')
+        .order('affiliation', { ascending: true });
 
       if (error) {
         console.error('직원 목록 불러오기 실패:', error);
         return;
       }
 
-      // leave_date가 null인 재직자만 필터링
+      // 재직자만 필터링
       const activeStaff = data.filter(staff => staff.leave_date === null);
 
-      // select 박스에 옵션 채우기
+      // affiliation(지점)별로 그룹화
+      const grouped = {};
+      activeStaff.forEach(({ id, name, affiliation }) => {
+        if (!grouped[affiliation]) grouped[affiliation] = [];
+        grouped[affiliation].push({ id, name });
+      });
+
+      // select_staff1~4에 동일하게 옵션 삽입
       for (let i = 1; i <= 4; i++) {
         const select = document.getElementById(`select_staff${i}`);
         if (!select) continue;
 
-        // 기본 옵션
+        // 기본 안내 옵션
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = '-- 직원 선택 --';
         select.appendChild(defaultOption);
 
-        // 직원 목록 추가
-        activeStaff.forEach(({ id, name }) => {
-          const option = document.createElement('option');
-          option.value = id;
-          option.textContent = name;
-          select.appendChild(option);
+        // 지점별 optgroup 삽입
+        Object.entries(grouped).forEach(([affiliation, staffList]) => {
+          const group = document.createElement('optgroup');
+          group.label = affiliation;
+
+          staffList.forEach(({ id, name }) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = name;
+            group.appendChild(option);
+          });
+
+          select.appendChild(group);
         });
       }
     })();
