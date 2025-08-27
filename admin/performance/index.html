@@ -380,7 +380,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
+                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem] performance-output">
                 </label>
               </div>
             </template>
@@ -611,14 +611,18 @@
       const select = root.querySelector("select");
       const buyerInput = root.querySelector(".buyer-weight");
       const sellerInput = root.querySelector(".seller-weight");
-      const resultInput = root.querySelectorAll("input")[3]; // 매출 input
+      const resultInput = root.querySelector(".performance-output"); // ← 안전하게 수정
+
+      if (!resultInput) {
+        console.warn("⚠️ performance-output input not found in allocation template.");
+        return root;
+      }
 
       // ID 설정
       select.id = `select_staff${index}`;
       buyerInput.id = `f_buyer_weight${index}`;
       sellerInput.id = `f_seller_weight${index}`;
 
-      // 자동 계산 함수
       function calculatePerformance() {
         const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
         const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
