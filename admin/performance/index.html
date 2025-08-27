@@ -598,6 +598,20 @@
     let _pcdCache = null;
     let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let __saving = false; // 중복 저장 방지 플래그
+    let STAFF_NAME_BY_ID = new Map();
+
+    async function ensureStaffNameMap() {
+      if (STAFF_NAME_BY_ID.size > 0) return;
+      await waitForSupabase();
+      const { data, error } = await window.supabase
+        .from('staff_profiles')
+        .select('id, name')
+        .is('leave_date', null);
+      if (!error && data) {
+        STAFF_NAME_BY_ID.clear();
+        data.forEach(({id, name}) => STAFF_NAME_BY_ID.set(id, name));
+      }
+    }
 
     async function populateAllStaffSelects(myAffiliation=null) {
       try {
@@ -610,13 +624,15 @@
 
         if (error) { console.error('직원 목록 불러오기 실패:', error); return; }
 
-        // 지점별 그룹화
+        // 이름맵 업데이트
+        STAFF_NAME_BY_ID.clear();
+        for (const r of data) STAFF_NAME_BY_ID.set(r.id, r.name);
+
+        // 지점별 그룹화 + select 채우기 (기존 로직 동일)
         const grouped = {};
         for (const { id, name, affiliation } of data) {
           (grouped[affiliation] ||= []).push({ id, name });
         }
-
-        // 내 소속을 맨 위로(알 수 없으면 그대로)
         const entries = Object.entries(grouped);
         const ordered = myAffiliation
           ? entries.sort(([a],[b]) => (a===myAffiliation?-1:b===myAffiliation?1:a.localeCompare(b,'ko')))
@@ -631,16 +647,13 @@
             group.label = aff;
             list.forEach(({id, name}) => {
               const opt = document.createElement('option');
-              opt.value = id;
-              opt.textContent = name;
+              opt.value = id; opt.textContent = name;
               group.appendChild(opt);
             });
             select.appendChild(group);
           }
         }
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) { console.error(e); }
     }
 
     // (선택) 내 소속 가져오기
@@ -732,6 +745,7 @@
     }
 
     async function loadPerformanceTable() {
+      await ensureStaffNameMap();
       try {
         await waitForSupabase();
         const { data, error } = await window.supabase
@@ -747,10 +761,12 @@
             seller_fee, seller_tax, seller_tax_date,
             expense,
             special_contract,
-            performance_allocations!performance_allocations_performance_id_fkey (
-              staff_id,
-              buyer_weight, seller_weight,
-              staff_profiles!performance_allocations_staff_id_fkey ( name )
+            performance_allocations(
+              staff_id1, staff_id2, staff_id3, staff_id4,
+              buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
+              seller_weight1, seller_weight2, seller_weight3, seller_weight4,
+              buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+              seller_amount1, seller_amount2, seller_amount3, seller_amount4
             )
           `)
           .order('contract_date', { ascending: false });
@@ -765,21 +781,30 @@
         tbody.innerHTML = '';
 
         data.forEach(row => {
-          const staffInfos = (row.performance_allocations || []).map(a => {
-            const name = a.staff_profiles?.name || '-';
-            return {
-              name,
-              buyer: (a.buyer_weight * 100).toFixed(0) + '%',
-              seller: (a.seller_weight * 100).toFixed(0) + '%'
-            };
-          });
+          // 관계가 1:1이라도 PostgREST가 배열로 줄 수 있으니 방어적으로 처리
+          const pa = Array.isArray(row.performance_allocations)
+            ? row.performance_allocations[0]
+            : row.performance_allocations;
 
-          if (staffInfos.length === 0) {
-            staffInfos.push({ name: '-', buyer: '-', seller: '-' });
+          const staffInfos = [];
+          if (pa) {
+            for (let i=1;i<=4;i++){
+              const sid = pa[`staff_id${i}`];
+              const bw  = pa[`buyer_weight${i}`];   // 0~1
+              const sw  = pa[`seller_weight${i}`];  // 0~1
+              if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                staffInfos.push({
+                  name: STAFF_NAME_BY_ID.get(sid) || '-',
+                  buyer: ((bw ?? 0) * 100).toFixed(0) + '%',
+                  seller: ((sw ?? 0) * 100).toFixed(0) + '%'
+                });
+              }
+            }
           }
+          if (staffInfos.length === 0) staffInfos.push({ name: '-', buyer: '-', seller: '-' });
 
-          const addr = buildAddress(row);          // ★ 주소 하나로
-          const areaDisp = formatArea1(row.area_py); // ★ 면적 1자리
+          const addr = buildAddress(row);
+          const areaDisp = formatArea1(row.area_py);
 
           staffInfos.forEach(st => {
             const tr = document.createElement('tr');
@@ -801,13 +826,13 @@
               <td class="border px-2 py-1">${st.buyer}</td>
               <td class="border px-2 py-1">${st.seller}</td>
             `;
-            tr.classList.add('cursor-pointer'); // 선택사항: 마우스 포인터
+            tr.classList.add('cursor-pointer');
             tr.addEventListener('click', () => {
-              currentPerformanceId = row.id;               // 수정 모드 진입
-              openDrawer();                                 // 드로어 열기
-              fillFormWithPerformance(row);                 // 기본/금액/일정 채우기
-              fillAllocations(row.performance_allocations || []); // 분배 채우기
-              updateHighlight();                            // 거래유형 라벨 색상 갱신
+              currentPerformanceId = row.id;
+              openDrawer();
+              fillFormWithPerformance(row);
+              fillAllocations(pa || null);  // ★ 여기!
+              updateHighlight();
             });
             tbody.appendChild(tr);
           });
@@ -1072,26 +1097,31 @@
       };
     }
 
-    function collectAllocationPayload(performance_id) {
-      const result = [];
+    // ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
+    function collectAllocationPayloadRow(performance_id) {
+      const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
+      const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
+
+      const row = { performance_id };
 
       for (let i = 1; i <= 4; i++) {
-        const staffId = document.getElementById(`select_staff${i}`)?.value;
-        const buyerWeight = numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) * 0.01 || 0;
-        const sellerWeight = numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) * 0.01 || 0;
+        const sid = document.getElementById(`select_staff${i}`)?.value || null;
+        const bwP = numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0;   // % 단위
+        const swP = numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) || 0;
 
-        if (staffId && (buyerWeight > 0 || sellerWeight > 0)) {
-          result.push({
-            performance_id,
-            staff_id: staffId,
-            buyer_weight: buyerWeight,
-            seller_weight: sellerWeight
-          });
-        }
+        const bw = bwP * 0.01; // 0~1
+        const sw = swP * 0.01;
+
+        row[`staff_id${i}`]       = sid || null;
+        row[`buyer_weight${i}`]   = sid ? bw : 0;
+        row[`seller_weight${i}`]  = sid ? sw : 0;
+        row[`buyer_amount${i}`]   = sid ? Math.round(buyerPerf  * bw) : 0;
+        row[`seller_amount${i}`]  = sid ? Math.round(sellerPerf * sw) : 0;
       }
 
-      return result;
+      return row;
     }
+
 
     function resetForm() {
       document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
@@ -1104,7 +1134,7 @@
 
     // ===== 저장 처리 =====
     document.getElementById('save-sales')?.addEventListener('click', async (evt) => {
-      // evt.preventDefault(); // 버튼이 type="button"이라면 필요 없음
+      // evt.preventDefault();  // type="button"이면 불필요
       if (__saving) return;
       __saving = true;
       try {
@@ -1133,15 +1163,21 @@
             .from('performance')
             .update(payload)
             .eq('id', perfId);
-          if (upErr) { console.error(upErr); showToast('매출 수정 실패: ' + (upErr.message || '')); return; }
+          if (upErr) { showToast('매출 수정 실패: ' + upErr.message); return; }
 
-          await window.supabase.from('performance_allocations').delete().eq('performance_id', perfId);
-          const allocPayloads = collectAllocationPayload(perfId);
-          if (allocPayloads.length > 0) {
-            const { error: allocErr } = await window.supabase
+          const allocRow = collectAllocationPayloadRow(perfId);
+          const anySelected = [1,2,3,4].some(i => !!allocRow[`staff_id${i}`]);
+          if (!anySelected) {
+            const { error: delErr } = await window.supabase
               .from('performance_allocations')
-              .insert(allocPayloads);
-            if (allocErr) { console.error(allocErr); showToast('기여도 저장 실패(수정).'); }
+              .delete()
+              .eq('performance_id', perfId);
+            if (delErr) { showToast('분배 삭제 실패: ' + delErr.message); return; }
+          } else {
+            const { error: upsertErr } = await window.supabase
+              .from('performance_allocations')
+              .upsert(allocRow, { onConflict: 'performance_id', ignoreDuplicates: false });
+            if (upsertErr) { showToast('분배 저장 실패: ' + upsertErr.message); return; }
           }
 
           showToast('수정 완료!', { ok: true });
@@ -1152,19 +1188,20 @@
             .insert(payload)
             .select('id')
             .single();
-          if (perfErr) { console.error(perfErr); showToast('매출 저장 실패: ' + (perfErr.message || '')); return; }
+          if (perfErr) { showToast('매출 저장 실패: ' + perfErr.message); return; }
 
           perfId = perfInsert?.id;
           if (!perfId) { showToast('생성된 매출 ID를 확인할 수 없습니다.'); return; }
 
-          const allocPayloads = collectAllocationPayload(perfId);
-          if (allocPayloads.length > 0) {
-            const { error: allocErr } = await window.supabase
+          const allocRow = collectAllocationPayloadRow(perfId);
+          const anySelected = [1,2,3,4].some(i => !!allocRow[`staff_id${i}`]);
+          if (anySelected) {
+            const { error: upsertErr } = await window.supabase
               .from('performance_allocations')
-              .insert(allocPayloads);
-            if (allocErr) {
-              await window.supabase.from('performance').delete().eq('id', perfId);
-              showToast('기여도 저장 실패. 작업이 취소되었습니다: ' + (allocErr.message || ''));
+              .upsert(allocRow, { onConflict: 'performance_id', ignoreDuplicates: false });
+            if (upsertErr) {
+              await window.supabase.from('performance').delete().eq('id', perfId); // 롤백
+              showToast('분배 저장 실패. 작업이 취소되었습니다: ' + upsertErr.message);
               return;
             }
           }
@@ -1172,7 +1209,6 @@
           showToast('저장 완료!', { ok: true });
         }
 
-        // 공통 마무리
         currentPerformanceId = null;
         resetForm();
         closeDrawer();
@@ -1181,7 +1217,7 @@
         console.error(err);
         showToast('예상치 못한 오류가 발생했습니다.');
       } finally {
-        __saving = false; // ✅ 어떤 경우에도 플래그 복구
+        __saving = false;
       }
     });
 
@@ -1754,9 +1790,9 @@
       setField('f_special_contract', row.special_contract);
     }
 
-    function fillAllocations(allocations = []) {
+    function fillAllocations(pa) {
       // 초기화
-      for (let i = 1; i <= 4; i++) {
+      for (let i=1;i<=4;i++){
         const sel = document.getElementById(`select_staff${i}`);
         const bw  = document.getElementById(`f_buyer_weight${i}`);
         const sw  = document.getElementById(`f_seller_weight${i}`);
@@ -1764,17 +1800,23 @@
         if (bw)  bw.value  = '';
         if (sw)  sw.value  = '';
       }
-      // 앞 4명까지만 채움
-      allocations.slice(0, 4).forEach((a, idx) => {
-        const i = idx + 1;
+      if (!pa) return;
+
+      for (let i=1;i<=4;i++){
         const sel = document.getElementById(`select_staff${i}`);
         const bw  = document.getElementById(`f_buyer_weight${i}`);
         const sw  = document.getElementById(`f_seller_weight${i}`);
-        if (sel) sel.value = a.staff_id ?? '';
-        if (bw)  bw.value  = a.buyer_weight  != null ? Math.round(a.buyer_weight  * 100) : '';
-        if (sw)  sw.value  = a.seller_weight != null ? Math.round(a.seller_weight * 100) : '';
-      });
+
+        const sid = pa[`staff_id${i}`];
+        const wB  = pa[`buyer_weight${i}`];
+        const wS  = pa[`seller_weight${i}`];
+
+        if (sel && sid) sel.value = sid;
+        if (bw && wB != null) bw.value = Math.round(wB * 100);
+        if (sw && wS != null) sw.value = Math.round(wS * 100);
+      }
     }
+
   </script>
 
 </body>
