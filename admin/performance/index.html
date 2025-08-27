@@ -596,6 +596,7 @@
   <script>
     // 스크립트 추가
     let _pcdCache = null;
+    let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
 
     function buildListingTitle(row) {
       const id = row.listing_id ? `[${String(row.listing_id).trim()}]` : '';
@@ -678,10 +679,15 @@
             id, listing_id, listing_title, province, city, district, detail_address,
             floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
             contract_date, balance_date,
+            interim_payment1, interim_payment1_date,
+            interim_payment2, interim_payment2_date,
+            interim_payment3, interim_payment3_date,
             buyer_fee, buyer_tax, buyer_tax_date,
             seller_fee, seller_tax, seller_tax_date,
             expense,
+            special_contract,
             performance_allocations!performance_allocations_performance_id_fkey (
+              staff_id,
               buyer_weight, seller_weight,
               staff_profiles!performance_allocations_staff_id_fkey ( name )
             )
@@ -734,6 +740,14 @@
               <td class="border px-2 py-1">${st.buyer}</td>
               <td class="border px-2 py-1">${st.seller}</td>
             `;
+            tr.classList.add('cursor-pointer'); // 선택사항: 마우스 포인터
+            tr.addEventListener('click', () => {
+              currentPerformanceId = row.id;               // 수정 모드 진입
+              openDrawer();                                 // 드로어 열기
+              fillFormWithPerformance(row);                 // 기본/금액/일정 채우기
+              fillAllocations(row.performance_allocations || []); // 분배 채우기
+              updateHighlight();                            // 거래유형 라벨 색상 갱신
+            });
             tbody.appendChild(tr);
           });
         });
@@ -939,6 +953,7 @@
     function closeDrawer() {
       drawer.classList.add('translate-x-full');
       overlay.classList.add('hidden');
+      currentPerformanceId = null;
     }
 
     document.getElementById('open-sales-drawer')?.addEventListener('click', openDrawer);
@@ -1026,70 +1041,81 @@
     // ===== 저장 처리 =====
     document.getElementById('save-sales')?.addEventListener('click', async () => {
       try {
-        // supabase 클라이언트는 type="module" 블록에서 생성됨.
         if (!window.supabase) { showToast('Supabase 클라이언트를 찾을 수 없습니다.'); return; }
 
-        // 저장 직전 분배율 보정 (직원은 30 고정)
+        // 직원은 분배율 30 고정
         const distEl = document.getElementById('f_seller_distribution_rate');
         if (window.__isStaff && distEl) {
           distEl.value = 30;
-          // 수수료/매출 값도 30 기준으로 재계산
           if (typeof calculateFees === 'function') calculateFees();
         }
 
-        if (!validateTotalWeight()) return; // 비율 잘못입력시 리턴
+        if (!validateTotalWeight()) return;
 
         const payload = collectPerformancePayload();
 
-        // 간단 필수 체크(원하면 강화 가능)
         if (!payload.deal_type && !payload.listing_title) {
           showToast('거래유형 또는 매물명을 입력하세요.');
           return;
         }
 
-        // 1) performance insert
-        const { data: perfInsert, error: perfErr } = await window.supabase
-          .from('performance')
-          .insert(payload)
-          .select('id')
-          .single();
+        let perfId = currentPerformanceId;
 
-        if (perfErr) {
-          console.error(perfErr);
-          showToast('매출 저장 실패: ' + (perfErr.message || ''));
-          return;
-        }
-        const perfId = perfInsert?.id;
-        if (!perfId) {
-          showToast('생성된 매출 ID를 확인할 수 없습니다.');
-          return;
-        }
+        if (perfId) {
+          // === UPDATE ===
+          const { error: upErr } = await window.supabase
+            .from('performance')
+            .update(payload)
+            .eq('id', perfId);
+          if (upErr) { console.error(upErr); showToast('매출 수정 실패: ' + (upErr.message || '')); return; }
 
-        // 2) performance_allocations insert (옵션: 둘 다 비어있으면 건너뜀)
-        const allocPayloads = collectAllocationPayload(perfId);
-        if (allocPayloads.length > 0) {
-          const { error: allocErr } = await window.supabase
-            .from('performance_allocations')
-            .insert(allocPayloads);
-
-          if (allocErr) {
-            await window.supabase.from('performance').delete().eq('id', perfId);
-            showToast('기여도 저장 실패. 작업이 취소되었습니다: ' + (allocErr.message || ''));
-            return;
+          // 분배는 간단히 전체 삭제 후 재삽입
+          await window.supabase.from('performance_allocations').delete().eq('performance_id', perfId);
+          const allocPayloads = collectAllocationPayload(perfId);
+          if (allocPayloads.length > 0) {
+            const { error: allocErr } = await window.supabase
+              .from('performance_allocations')
+              .insert(allocPayloads);
+            if (allocErr) { console.error(allocErr); showToast('기여도 저장 실패(수정).'); }
           }
+
+          showToast('수정 완료!', { ok: true });
+        } else {
+          // === INSERT ===
+          const { data: perfInsert, error: perfErr } = await window.supabase
+            .from('performance')
+            .insert(payload)
+            .select('id')
+            .single();
+          if (perfErr) { console.error(perfErr); showToast('매출 저장 실패: ' + (perfErr.message || '')); return; }
+
+          perfId = perfInsert?.id;
+          if (!perfId) { showToast('생성된 매출 ID를 확인할 수 없습니다.'); return; }
+
+          const allocPayloads = collectAllocationPayload(perfId);
+          if (allocPayloads.length > 0) {
+            const { error: allocErr } = await window.supabase
+              .from('performance_allocations')
+              .insert(allocPayloads);
+            if (allocErr) {
+              await window.supabase.from('performance').delete().eq('id', perfId);
+              showToast('기여도 저장 실패. 작업이 취소되었습니다: ' + (allocErr.message || ''));
+              return;
+            }
+          }
+
+          showToast('저장 완료!', { ok: true });
         }
 
-
-        showToast('저장 완료!', { ok: true });
+        // 공통 마무리
+        currentPerformanceId = null;
         resetForm();
         closeDrawer();
-        // TODO: 필요 시 목록 리프레시 함수 호출
+        loadPerformanceTable();
       } catch (e) {
         console.error(e);
         showToast('예상치 못한 오류가 발생했습니다.');
       }
-
-      loadPerformanceTable();
     });
 
     // ===== window.supabase 노출 (type="module" 블록에서 만든 인스턴스 공유) =====
@@ -1602,6 +1628,86 @@
       "f_expense"
     ].forEach(attachCommaFormatter);
 
+    // 매출내역 수정창에 띄우기
+    function setField(id, v, {comma=false} = {}) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (comma) {
+        el.value = formatNumberWithCommas(v ?? '');
+      } else {
+        el.value = (v ?? '') === null ? '' : String(v ?? '');
+      }
+      // select의 경우 값이 없으면 그대로(옵션은 init에서 채워짐)
+    }
+
+    function fillFormWithPerformance(row) {
+      // 기본 정보
+      setField('f_listing_id', row.listing_id);
+      setField('f_listing_title', row.listing_title);
+      // 지역 선택은 드롭다운 의존 → 값을 먼저 저장해두고 initSalesLocationSelects로 세팅
+      initSalesLocationSelects({
+        province: row.province, city: row.city, district: row.district
+      });
+      setField('f_detail_address', row.detail_address);
+      setField('f_floor', row.floor);
+      setField('f_unit_info', row.unit_info);
+
+      // 금액/면적/거래유형
+      setField('f_deal_type', row.deal_type);
+      // toLocale 콤마 표시
+      setField('f_sale_price', row.sale_price, {comma:true});
+      setField('f_deposit_price', row.deposit_price, {comma:true});
+      setField('f_monthly_rent', row.monthly_rent, {comma:true});
+      setField('f_premium_price', row.premium_price, {comma:true});
+      setField('f_area_py', row.area_py);
+
+      // 일정
+      setField('f_contract_date', row.contract_date);
+      setField('f_balance_date',  row.balance_date);
+      setField('f_interim_payment1', row.interim_payment1);
+      setField('f_interim_payment1_date', row.interim_payment1_date);
+      setField('f_interim_payment2', row.interim_payment2);
+      setField('f_interim_payment2_date', row.interim_payment2_date);
+      setField('f_interim_payment3', row.interim_payment3);
+      setField('f_interim_payment3_date', row.interim_payment3_date);
+
+      // 수수료/세금/매출
+      setField('f_buyer_fee', row.buyer_fee, {comma:true});
+      setField('f_buyer_tax', row.buyer_tax, {comma:true});
+      setField('f_buyer_tax_date', row.buyer_tax_date);
+      setField('f_seller_fee', row.seller_fee, {comma:true});
+      setField('f_seller_tax', row.seller_tax, {comma:true});
+      setField('f_seller_tax_date', row.seller_tax_date);
+
+      // 매출 자동계산 필드(표시만)
+      // 분배율은 현재 정책(직원은 30 고정)이 있으므로 값 그대로 두거나 필요 시 조정
+      recalcPerformanceFromFees();
+
+      // 특약사항
+      setField('f_special_contract', row.special_contract);
+    }
+
+    function fillAllocations(allocations = []) {
+      // 초기화
+      for (let i = 1; i <= 4; i++) {
+        const sel = document.getElementById(`select_staff${i}`);
+        const bw  = document.getElementById(`f_buyer_weight${i}`);
+        const sw  = document.getElementById(`f_seller_weight${i}`);
+        if (sel) sel.value = '';
+        if (bw)  bw.value  = '';
+        if (sw)  sw.value  = '';
+      }
+      // 앞 4명까지만 채움
+      allocations.slice(0, 4).forEach((a, idx) => {
+        const i = idx + 1;
+        const sel = document.getElementById(`select_staff${i}`);
+        const bw  = document.getElementById(`f_buyer_weight${i}`);
+        const sw  = document.getElementById(`f_seller_weight${i}`);
+        if (sel) sel.value = a.staff_id ?? '';
+        if (bw)  bw.value  = a.buyer_weight  != null ? Math.round(a.buyer_weight  * 100) : '';
+        if (sw)  sw.value  = a.seller_weight != null ? Math.round(a.seller_weight * 100) : '';
+      });
+    }
   </script>
 
 </body>
