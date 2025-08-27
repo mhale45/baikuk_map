@@ -613,7 +613,9 @@
     async function loadPerformanceTable() {
       try {
         await waitForSupabase();
-        const { data, error } = await window.supabase
+
+        // 1) 성능(매출)만 먼저 조회
+        const { data: perfRows, error: perfErr } = await window.supabase
           .from('performance')
           .select(`
             id, listing_id, listing_title, province, city, district, detail_address,
@@ -621,38 +623,45 @@
             contract_date, balance_date,
             buyer_fee, buyer_tax, buyer_tax_date,
             seller_fee, seller_tax, seller_tax_date,
-            buyer_performance, seller_performance, expense,
-            performance_allocations!performance_allocations_performance_id_fkey (
-              buyer_weight, seller_weight,
-              staff_profiles!performance_allocations_staff_id_fkey ( name )
-            )
+            buyer_performance, seller_performance, expense
           `)
           .order('contract_date', { ascending: false });
 
-        if (error) {
-          console.error('테이블 조회 실패:', error);
-          showToast('조회 실패: ' + error.message);
-          return;
+        if (perfErr) { showToast('조회 실패: ' + perfErr.message); return; }
+
+        const ids = (perfRows ?? []).map(r => r.id);
+        let allocByPerfId = new Map();
+
+        if (ids.length) {
+          // 2) 성능 ID들로 할당(기여도) 조회
+          const { data: allocRows, error: allocErr } = await window.supabase
+            .from('performance_allocations')
+            .select(`performance_id, buyer_weight, seller_weight, staff_profiles(name)`)
+            .in('performance_id', ids);
+
+          if (allocErr) { showToast('기여도 조회 실패: ' + allocErr.message); return; }
+
+          // 3) performance_id 기준으로 그룹핑
+          allocByPerfId = allocRows.reduce((m, a) => {
+            const arr = m.get(a.performance_id) || [];
+            arr.push(a);
+            m.set(a.performance_id, arr);
+            return m;
+          }, new Map());
         }
 
+        // 4) 표 렌더링
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
-        data.forEach(row => {
-          // 직원 정보 (allocations)
-          const staffInfos = (row.performance_allocations || []).map(a => {
-            const name = a.staff_profiles?.name || '-';
-            return {
-              name,
-              buyer: (a.buyer_weight * 100).toFixed(0) + '%',
-              seller: (a.seller_weight * 100).toFixed(0) + '%'
-            };
-          });
-
-          // 직원 한 명씩 행 추가
-          if (staffInfos.length === 0) {
-            staffInfos.push({ name: '-', buyer: '-', seller: '-' });
-          }
+        for (const row of (perfRows ?? [])) {
+          const allocs = allocByPerfId.get(row.id) ?? [];
+          const staffInfos = (allocs.length ? allocs : [{ staff_profiles: {name:'-'}, buyer_weight:null, seller_weight:null }])
+            .map(a => ({
+              name: a.staff_profiles?.name ?? '-',
+              buyer: a.buyer_weight != null ? (a.buyer_weight * 100).toFixed(0) + '%' : '-',
+              seller: a.seller_weight != null ? (a.seller_weight * 100).toFixed(0) + '%' : '-',
+            }));
 
           staffInfos.forEach(st => {
             const tr = document.createElement('tr');
@@ -688,7 +697,7 @@
             `;
             tbody.appendChild(tr);
           });
-        });
+        }
       } catch (e) {
         console.error(e);
         showToast('예상치 못한 오류');
