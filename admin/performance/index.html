@@ -1388,6 +1388,7 @@
           el.dispatchEvent(new Event('change', { bubbles: true })); // 바인딩된 핸들러 호출
           if (typeof updateHighlight === 'function') updateHighlight(); // 라벨 즉시 갱신
           if (typeof calculateFees === 'function') calculateFees();     // 수수료/매출 즉시 갱신
+          if (typeof calculateDownPaymentAndBalance === 'function') calculateDownPaymentAndBalance();
         }
       } else {
         el.value = vRaw;
@@ -1460,6 +1461,7 @@
           const row = retry.data;
           fillFormFromRow(row);
           calculateFees();
+          calculateDownPaymentAndBalance();
 
           // 선택값과 무관하게 드롭다운을 강제로 맞춤
           initSalesLocationSelects({
@@ -1478,6 +1480,7 @@
       // 2) 정상 채움
       fillFormFromRow(data);
       calculateFees();
+      calculateDownPaymentAndBalance();
 
       // 선택값과 상관없이 드롭다운을 해당 값으로 재구성+선택
       initSalesLocationSelects({
@@ -1486,7 +1489,6 @@
 
       // ✅ 거래유형에 맞춰 라벨/색 즉시 갱신
       if (typeof updateHighlight === "function") updateHighlight();
-      calculateDownPaymentAndBalance();
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
     
