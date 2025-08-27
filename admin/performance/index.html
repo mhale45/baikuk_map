@@ -164,7 +164,6 @@
                 <th class="border px-2 py-1">주소</th>
                 <th class="border px-2 py-1">거래유형</th>
                 <th class="border px-2 py-1">보증금 (매매가)</th>
-                <th class="border px-2 py-1">월세</th>
                 <th class="border px-2 py-1">권리금</th>
                 <th class="border px-2 py-1">면적</th>
                 <th class="border px-2 py-1">계약일</th>
@@ -635,10 +634,10 @@
       if (sale > 0) parts.push(`매매가 ${formatNumberWithCommas(sale)}`);
 
       const deposit = Number(row.deposit_price) || 0;
-      if (deposit > 0) parts.push(`보증금 ${formatNumberWithCommas(deposit)}`);
+      if (deposit > 0) parts.push(`${formatNumberWithCommas(deposit)}`);
 
       const monthly = Number(row.monthly_rent) || 0;
-      if (monthly > 0) parts.push(`월세 ${formatNumberWithCommas(monthly)}`);
+      if (monthly > 0) parts.push(`${formatNumberWithCommas(monthly)}`);
 
       return parts.join('<br>'); // 줄바꿈
     }
