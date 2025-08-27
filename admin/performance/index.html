@@ -1836,29 +1836,10 @@
     }
 
     function fillAllocations(pa) {
-      // 초기화
-      for (let i=1;i<=4;i++){
-        const sel = document.getElementById(`select_staff${i}`);
-        const bw  = document.getElementById(`f_buyer_weight${i}`);
-        const sw  = document.getElementById(`f_seller_weight${i}`);
-        if (sel) sel.value = '';
-        if (bw)  bw.value  = '';
-        if (sw)  sw.value  = '';
-      }
-      if (!pa) return;
-
-      for (let i=1;i<=4;i++){
-        const sel = document.getElementById(`select_staff${i}`);
-        const bw  = document.getElementById(`f_buyer_weight${i}`);
-        const sw  = document.getElementById(`f_seller_weight${i}`);
-
-        const sid = pa[`staff_id${i}`];
-        const wB  = pa[`buyer_weight${i}`];
-        const wS  = pa[`seller_weight${i}`];
-
-        if (sel && sid) sel.value = sid;
-        if (bw && wB != null) bw.value = Math.round(wB * 100);
-        if (sw && wS != null) sw.value = Math.round(wS * 100);
+      for (let i = 1; i <= 4; i++) {
+        setInputValue(`select_staff${i}`, pa?.[`staff_id${i}`] || '');
+        setInputValue(`f_buyer_weight${i}`, pa?.[`buyer_weight${i}`] != null ? Math.round(pa[`buyer_weight${i}`] * 100) : '');
+        setInputValue(`f_seller_weight${i}`, pa?.[`seller_weight${i}`] != null ? Math.round(pa[`seller_weight${i}`] * 100) : '');
       }
     }
 
