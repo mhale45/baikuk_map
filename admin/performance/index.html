@@ -282,6 +282,7 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-red-600">계약일*</span>
               <input id="f_contract_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_down_payment" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금1</span>
@@ -301,6 +302,7 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-red-600">잔금일*</span>
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_balance" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
           </div>
         </section>
@@ -1071,6 +1073,8 @@
 
         contract_date: dateOrNull(document.getElementById('f_contract_date')?.value),
 
+        down_payment: numOrNull(document.getElementById('f_down_payment')?.value),
+        balance: numOrNull(document.getElementById('f_balance')?.value),
         interim_payment1: numOrNull(document.getElementById('f_interim_payment1')?.value),
         interim_payment2: numOrNull(document.getElementById('f_interim_payment2')?.value),
         interim_payment3: numOrNull(document.getElementById('f_interim_payment3')?.value),
@@ -1731,6 +1735,8 @@
       "f_deposit_price",
       "f_monthly_rent",
       "f_premium_price",
+      "f_down_payment",
+      "f_balance",
       "f_buyer_fee",
       "f_buyer_tax",
       "f_seller_fee",
@@ -1774,6 +1780,8 @@
       setField('f_area_py', row.area_py);
 
       // 일정
+      setField('f_down_payment', row.down_payment, {comma:true});
+      setField('f_balance', row.balance, {comma:true});
       setField('f_contract_date', row.contract_date);
       setField('f_balance_date',  row.balance_date);
       setField('f_interim_payment1', row.interim_payment1);
