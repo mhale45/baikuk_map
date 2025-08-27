@@ -160,7 +160,6 @@
           <table id="performance-table" class="table-auto border-collapse w-full text-sm">
             <thead class="bg-gray-100">
               <tr>
-                <th class="border px-2 py-1">매물번호</th>
                 <th class="border px-2 py-1">매물명</th>
                 <th class="border px-2 py-1">주소</th>
                 <th class="border px-2 py-1">거래유형</th>
@@ -602,6 +601,12 @@
     // 스크립트 추가
     let _pcdCache = null;
 
+    function buildListingTitle(row) {
+      const id = row.listing_id ? String(row.listing_id).trim() : '';
+      const title = row.listing_title ? String(row.listing_title).trim() : '';
+      return [id, title].filter(Boolean).join(' ');
+    }
+
     // 헬퍼: 주소 합치기 (공백으로 연결, 빈 값은 자동 제거)
     function buildAddress(row) {
       const floor = row.floor != null && row.floor !== ''
@@ -678,8 +683,7 @@
           staffInfos.forEach(st => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td class="border px-2 py-1">${row.listing_id ?? ''}</td>
-              <td class="border px-2 py-1">${row.listing_title ?? ''}</td>
+              <td class="border px-2 py-1">${buildListingTitle(row)}</td>
               <td class="border px-2 py-1">${addr}</td>
               <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.sale_price) ?? ''}</td>
