@@ -786,56 +786,74 @@
             ? row.performance_allocations[0]
             : row.performance_allocations;
 
-          const staffInfos = [];
+          // 1) 직원/비율 텍스트를 한 셀용으로 준비
+          const names  = [];
+          const buyerP = [];
+          const sellerP= [];
           if (pa) {
-            for (let i=1;i<=4;i++){
+            for (let i = 1; i <= 4; i++) {
               const sid = pa[`staff_id${i}`];
               const bw  = pa[`buyer_weight${i}`];   // 0~1
               const sw  = pa[`seller_weight${i}`];  // 0~1
               if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                staffInfos.push({
-                  name: STAFF_NAME_BY_ID.get(sid) || '-',
-                  buyer: ((bw ?? 0) * 100).toFixed(0) + '%',
-                  seller: ((sw ?? 0) * 100).toFixed(0) + '%'
-                });
+                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
               }
             }
           }
-          if (staffInfos.length === 0) staffInfos.push({ name: '-', buyer: '-', seller: '-' });
+          if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); }
 
           const addr = buildAddress(row);
           const areaDisp = formatArea1(row.area_py);
 
-          staffInfos.forEach(st => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="border px-2 py-1">${buildListingTitle(row)}</td>
-              <td class="border px-2 py-1">${addr}</td>
-              <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
-              <td class="border px-2 py-1">${buildPriceBlock(row)}</td>
-              <td class="border px-2 py-1">${areaDisp}</td>
-              <td class="border px-2 py-1">${buildDateBlock(row)}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_fee) ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_tax) ?? ''}</td>
-              <td class="border px-2 py-1">${row.buyer_tax_date ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_fee) ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.seller_tax) ?? ''}</td>
-              <td class="border px-2 py-1">${row.seller_tax_date ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.expense) ?? ''}</td>
-              <td class="border px-2 py-1">${st.name}</td>
-              <td class="border px-2 py-1">${st.buyer}</td>
-              <td class="border px-2 py-1">${st.seller}</td>
-            `;
-            tr.classList.add('cursor-pointer');
-            tr.addEventListener('click', () => {
-              currentPerformanceId = row.id;
-              openDrawer();
-              fillFormWithPerformance(row);
-              fillAllocations(pa || null);  // ★ 여기!
-              updateHighlight();
-            });
-            tbody.appendChild(tr);
+          // 2) 한 행만 만들어서 넣기
+          const tr = document.createElement('tr');
+          tr.classList.add('cursor-pointer');
+
+          // 간단 헬퍼
+          const tdHTML = (html) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1';
+            td.innerHTML = html ?? '';
+            return td;
+          };
+          const tdMulti = (text) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
+            td.textContent = text ?? '';
+            return td;
+          };
+
+          // 컬럼 추가 (헤더 순서 그대로)
+          tr.appendChild(tdHTML(buildListingTitle(row)));
+          tr.appendChild(tdHTML(addr));
+          tr.appendChild(tdHTML(row.deal_type ?? ''));
+          tr.appendChild(tdHTML(buildPriceBlock(row)));
+          tr.appendChild(tdHTML(areaDisp));
+          tr.appendChild(tdHTML(buildDateBlock(row)));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+          tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+          tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+
+          // ★ 여기 3칸이 다중라인 셀
+          tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
+          tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
+          tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
+
+          tr.addEventListener('click', () => {
+            currentPerformanceId = row.id;
+            openDrawer();
+            fillFormWithPerformance(row);
+            fillAllocations(pa || null);
+            updateHighlight();
           });
+
+          tbody.appendChild(tr);
         });
       } catch (e) {
         console.error(e);
