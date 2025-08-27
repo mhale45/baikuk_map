@@ -1024,6 +1024,14 @@
           });
         });
       });
+
+      ["f_buyer_fee", "f_seller_fee"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("input", recalcPerformanceFromFees);
+          el.addEventListener("change", recalcPerformanceFromFees);
+        }
+      });
     });
 
 
@@ -1769,15 +1777,7 @@
       buyerFeeEl.value  = formatNumberWithCommas(Math.round(fee));
       sellerFeeEl.value = formatNumberWithCommas(Math.round(fee));
 
-      const buyerFee = numOrNull(buyerFeeEl.value) || 0;
-      const sellerFee = numOrNull(sellerFeeEl.value) || 0;
-      const distRate = numOrNull(distRateEl.value) || 0;
-
-      const sellerPerformance = sellerFee * distRate * 0.01;
-      const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
-
-      document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
-      document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
+      recalcPerformanceFromFees();
     }
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
