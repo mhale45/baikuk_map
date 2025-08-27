@@ -164,10 +164,9 @@
                 <th class="border px-2 py-1 min-w-[3rem]">주소</th>
                 <th class="border px-2 py-1 min-w-[3rem]">구분</th>
                 <th class="border px-2 py-1 min-w-[3rem]">가격</th>
-                <th class="border px-2 py-1 min-w-[3rem]">권리금</th>
+                <th class="border px-2 py-1 min-w-[5rem]">권리금</th>
                 <th class="border px-2 py-1 min-w-[3rem]">면적</th>
-                <th class="border px-2 py-1 min-w-[3rem]">계약일</th>
-                <th class="border px-2 py-1 min-w-[3rem]">잔금일</th>
+                <th class="border px-2 py-1 min-w-[3rem]">계약일/잔금일</th>
                 <th class="border px-2 py-1 min-w-[3rem]">매수인 수수료</th>
                 <th class="border px-2 py-1 min-w-[3rem]">매수인 세금계산서</th>
                 <th class="border px-2 py-1 min-w-[3rem]">매수인 세금 발행일</th>
@@ -290,7 +289,7 @@
               <input id="f_balance_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">중도금1 (금액)</span>
+              <span class="text-sm text-gray-600">중도금1</span>
               <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1 mr-8">
@@ -627,6 +626,29 @@
       return parts.join(' ');
     }
 
+    function buildDateBlock(row) {
+      const parts = [];
+
+      if (row.contract_date) parts.push(`계약 ${row.contract_date}`);
+      if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
+
+      // 중도금 1~3
+      if (row.interim_payment1_date) {
+        const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
+        parts.push(`중도금1 ${row.interim_payment1_date}${amt ? ' (' + amt + ')' : ''}`);
+      }
+      if (row.interim_payment2_date) {
+        const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
+        parts.push(`중도금2 ${row.interim_payment2_date}${amt ? ' (' + amt + ')' : ''}`);
+      }
+      if (row.interim_payment3_date) {
+        const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
+        parts.push(`중도금3 ${row.interim_payment3_date}${amt ? ' (' + amt + ')' : ''}`);
+      }
+
+      return parts.join('<br>'); // 줄바꿈
+    }
+
     function buildPriceBlock(row) {
       const parts = [];
 
@@ -702,8 +724,7 @@
               <td class="border px-2 py-1">${buildPriceBlock(row)}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.premium_price) ?? ''}</td>
               <td class="border px-2 py-1">${areaDisp}</td>
-              <td class="border px-2 py-1">${row.contract_date ?? ''}</td>
-              <td class="border px-2 py-1">${row.balance_date ?? ''}</td>
+              <td class="border px-2 py-1">${buildDateBlock(row)}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_fee) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.buyer_tax) ?? ''}</td>
               <td class="border px-2 py-1">${row.buyer_tax_date ?? ''}</td>
