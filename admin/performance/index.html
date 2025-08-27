@@ -289,7 +289,7 @@
           <h3 class="text-base font-semibold text-gray-700">매출</h3>
           <div class="flex gap-3 mr-8">
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매수인 수수료</span>
+              <span class="text-sm text-red-600">매수인 수수료*</span>
               <input id="f_buyer_fee" type="text" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
@@ -301,7 +301,7 @@
               <input id="f_buyer_tax_date" type="date" class="border rounded px-3 py-2">
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-sm text-gray-600">매도인 수수료</span>
+              <span class="text-sm text-red-600">매도인 수수료*</span>
               <input id="f_seller_fee" type="text" step="any" class="border rounded px-3 py-2 w-[8rem]">
             </label>
             <label class="flex flex-col gap-1">
@@ -567,6 +567,32 @@
     // 스크립트 추가
     let _pcdCache = null;
 
+    // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게
+    function updateHighlight() {
+      const dealTypeEl   = document.getElementById("f_deal_type");
+      const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
+      const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
+      const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
+
+      if (!dealTypeEl) return;
+
+      // 기본값으로 리셋
+      if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
+      if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
+      if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
+
+      // 조건별 강조
+      if (dealTypeEl.value === "월세") {
+        if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
+        if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
+      } else if (dealTypeEl.value === "매매") {
+        if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
+      }
+    }
+
+    // 전역 노출
+    window.updateHighlight = updateHighlight;
+
     // 분배비율 점검 함수
     function validateTotalWeight() {
       let totalBuyer = 0;
@@ -653,31 +679,8 @@
 
     // 매출등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 표시
     document.addEventListener("DOMContentLoaded", () => {
-      const dealTypeEl   = document.getElementById("f_deal_type");
-      const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
-      const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
-      const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
-
-      function updateHighlight() {
-        // 기본값으로 되돌리기
-        if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
-        if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
-        if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
-
-        // 조건별 강조 + * 붙이기
-        if (dealTypeEl.value === "월세") {
-          if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
-          if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
-        } else if (dealTypeEl.value === "매매") {
-          if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
-        }
-      }
-
-      // 처음 1회 적용
       updateHighlight();
-
-      // 값 바뀔 때마다 적용
-      dealTypeEl.addEventListener("change", updateHighlight);
+      document.getElementById("f_deal_type")?.addEventListener("change", updateHighlight);
     });
 
     // 드로어 열릴 때(보이기 시작할 때) 다시 한 번 맞추면 깔끔
@@ -1125,7 +1128,9 @@
       initSalesLocationSelects({
         province: data.province, city: data.city, district: data.district
       });
-
+      if (typeof updateHighlight === "function") {
+        updateHighlight();
+      }
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
 
