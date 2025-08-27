@@ -598,12 +598,13 @@
     let isDownPaymentAutoFilled = false;
     let STAFF_NAME_BY_ID = new Map();
 
-    function calculateDownPaymentAndBalance() {
+    function calculateDownPaymentAndBalance({ forceDownPaymentUpdate = false } = {}) {
       const deposit = numOrNull(document.getElementById('f_deposit_price')?.value) || 0;
 
-      // ✅ 계약금은 최초 1회 자동입력만
       const downPaymentInput = document.getElementById('f_down_payment');
-      if (!isDownPaymentAutoFilled && deposit > 0) {
+
+      // ✅ 계약금 자동계산 조건: 초기 1회 or 보증금 변경 시 강제 업데이트
+      if (!isDownPaymentAutoFilled || forceDownPaymentUpdate) {
         const downPayment = Math.round(deposit * 0.1);
         downPaymentInput.value = formatNumberWithCommas(downPayment);
         isDownPaymentAutoFilled = true;
@@ -1007,8 +1008,14 @@
       ["f_deposit_price", "f_down_payment", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          el.addEventListener("input", calculateDownPaymentAndBalance);
-          el.addEventListener("change", calculateDownPaymentAndBalance);
+          el.addEventListener("input", () => {
+            const isDeposit = id === "f_deposit_price";
+            calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
+          });
+          el.addEventListener("change", () => {
+            const isDeposit = id === "f_deposit_price";
+            calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
+          });
         }
       });
     });
