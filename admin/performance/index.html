@@ -1010,16 +1010,19 @@
       // ★ 내 소속 먼저 보이게
       const myAff = await getMyAffiliation();
       await populateAllStaffSelects(myAff);
-      
+
       ["f_buyer_performance", "f_seller_performance"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-          el.addEventListener("input", () => {
-            document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
-              input.dispatchEvent(new Event("input"));
-            });
-          });
+        if (!el) {
+          console.warn(`⚠️ ${id} 엘리먼트를 찾을 수 없습니다.`);
+          return;
         }
+
+        el.addEventListener("input", () => {
+          document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
+            input.dispatchEvent(new Event("input"));
+          });
+        });
       });
     });
 
