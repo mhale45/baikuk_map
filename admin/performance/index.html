@@ -602,26 +602,6 @@
     let isDownPaymentAutoFilled = false;
     let STAFF_NAME_BY_ID = new Map();
 
-    //매출변화 감지 --> 직원매출
-    function bindPerformanceChangeTriggers() {
-      const buyerPerf = document.getElementById("f_buyer_performance");
-      const sellerPerf = document.getElementById("f_seller_performance");
-
-      function triggerRecalc() {
-        document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
-          input.dispatchEvent(new Event("input")); // ⬅️ 각 직원 항목에 calculatePerformance 실행
-        });
-      }
-
-      if (buyerPerf) {
-        buyerPerf.addEventListener("input", triggerRecalc);
-      }
-      if (sellerPerf) {
-        sellerPerf.addEventListener("input", triggerRecalc);
-      }
-    }
-
-
     // 클로징, 매물확보 비율에 따라 직원 총 매출 자동계산
     function createAllocationItem(index) {
       const template = document.getElementById("allocation-template");
@@ -1116,8 +1096,7 @@
             el._listenerAttached = true;
           }
         });
-        
-        bindPerformanceChangeTriggers();
+        bindPerformanceAutoCalc();
       });
     };
 
@@ -1966,6 +1945,54 @@
       }
     }
 
+    function updatePerformanceValues() {
+      const deposit = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
+      const monthly = numOrNull(document.getElementById("f_monthly_rent")?.value) || 0;
+      const sale = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
+
+      const buyerFeeRate = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
+      const sellerFeeRate = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
+
+      let buyerPerformance = 0;
+      let sellerPerformance = 0;
+
+      if (sale > 0) {
+        buyerPerformance = Math.round(sale * buyerFeeRate * 0.01);
+        sellerPerformance = Math.round(sale * sellerFeeRate * 0.01);
+      } else {
+        const 기준금액 = deposit + (monthly * 100);
+        buyerPerformance = Math.round(기준금액 * buyerFeeRate * 0.01);
+        sellerPerformance = Math.round(기준금액 * sellerFeeRate * 0.01);
+      }
+
+      const buyerPerfEl = document.getElementById("f_buyer_performance");
+      const sellerPerfEl = document.getElementById("f_seller_performance");
+
+      if (buyerPerfEl) {
+        buyerPerfEl.value = buyerPerformance.toLocaleString();
+        buyerPerfEl.dispatchEvent(new Event("input")); // 🔥 여기서 직원 퍼포먼스 자동계산 유도
+      }
+      if (sellerPerfEl) {
+        sellerPerfEl.value = sellerPerformance.toLocaleString();
+        sellerPerfEl.dispatchEvent(new Event("input"));
+      }
+    }
+
+    function bindPerformanceAutoCalc() {
+      [
+        "f_deposit_price",
+        "f_monthly_rent",
+        "f_sale_price",
+        "f_buyer_fee",
+        "f_seller_fee"
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el._listenerAttached) {
+          el.addEventListener("input", updatePerformanceValues);
+          el._listenerAttached = true;
+        }
+      });
+    }
   </script>
 
 </body>
