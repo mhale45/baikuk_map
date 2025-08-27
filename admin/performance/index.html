@@ -696,7 +696,6 @@
       });
     };
 
-
     // --- supabase 준비 대기 ---
     function waitForSupabase(timeoutMs = 5000) {
       const start = Date.now();
@@ -1128,9 +1127,10 @@
       initSalesLocationSelects({
         province: data.province, city: data.city, district: data.district
       });
-      if (typeof updateHighlight === "function") {
-        updateHighlight();
-      }
+
+      // ✅ 거래유형에 맞춰 라벨/색 즉시 갱신
+      if (typeof updateHighlight === "function") updateHighlight();
+
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
 
