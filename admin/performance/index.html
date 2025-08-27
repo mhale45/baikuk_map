@@ -568,29 +568,28 @@
     let _pcdCache = null;
 
     // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게
-    function updatePriceLabels() {
-      const dealTypeEl    = document.getElementById("f_deal_type");
-      const saleSpan      = document.querySelector("#f_sale_price")?.previousElementSibling;
-      const depositSpan   = document.querySelector("#f_deposit_price")?.previousElementSibling;
-      const monthlySpan   = document.querySelector("#f_monthly_rent")?.previousElementSibling;
+    function updateHighlight() {
+      const dealTypeEl   = document.getElementById("f_deal_type");
+      const saleLabel    = document.querySelector("#f_sale_price")?.previousElementSibling;
+      const depositLabel = document.querySelector("#f_deposit_price")?.previousElementSibling;
+      const monthlyLabel = document.querySelector("#f_monthly_rent")?.previousElementSibling;
 
       if (!dealTypeEl) return;
 
-      // 1) 기본값으로 리셋
-      if (saleSpan)    { saleSpan.textContent = "매매가"; saleSpan.classList.remove("text-red-600"); saleSpan.classList.add("text-gray-600"); }
-      if (depositSpan) { depositSpan.textContent = "보증금"; depositSpan.classList.remove("text-red-600"); depositSpan.classList.add("text-gray-600"); }
-      if (monthlySpan) { monthlySpan.textContent = "월세";   monthlySpan.classList.remove("text-red-600"); monthlySpan.classList.add("text-gray-600"); }
+      // 기본값으로 리셋
+      if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
+      if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
+      if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
 
-      // 2) 거래유형별 강조 + * 표시
+      // 조건별 강조
       if (dealTypeEl.value === "월세") {
-        if (depositSpan) { depositSpan.textContent = "보증금*"; depositSpan.classList.replace("text-gray-600","text-red-600"); }
-        if (monthlySpan) { monthlySpan.textContent = "월세*";   monthlySpan.classList.replace("text-gray-600","text-red-600"); }
+        if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
+        if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
       } else if (dealTypeEl.value === "매매") {
-        if (saleSpan) { saleSpan.textContent = "매매가*"; saleSpan.classList.replace("text-gray-600","text-red-600"); }
+        if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
       }
     }
 
-    window.updatePriceLabels = updatePriceLabels;
     // 전역 노출
     window.updateHighlight = updateHighlight;
 
@@ -1132,7 +1131,6 @@
       if (typeof updateHighlight === "function") {
         updateHighlight();
       }
-      if (typeof window.updatePriceLabels === "function") window.updatePriceLabels();
       showToast('매물 정보 자동 채움 완료', { ok: true });
     }
 
