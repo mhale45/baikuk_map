@@ -163,8 +163,7 @@
                 <th class="border px-2 py-1">매물명</th>
                 <th class="border px-2 py-1">주소</th>
                 <th class="border px-2 py-1">거래유형</th>
-                <th class="border px-2 py-1">매매가</th>
-                <th class="border px-2 py-1">보증금</th>
+                <th class="border px-2 py-1">매매가 (보증금)</th>
                 <th class="border px-2 py-1">월세</th>
                 <th class="border px-2 py-1">권리금</th>
                 <th class="border px-2 py-1">면적</th>
@@ -629,6 +628,13 @@
       return parts.join(' ');
     }
 
+    function buildPrice(row) {
+      const sale = Number(row.sale_price) || 0;
+      const deposit = Number(row.deposit_price) || 0;
+      const bigger = Math.max(sale, deposit);
+      return bigger > 0 ? formatNumberWithCommas(bigger) : '';
+    }
+
     // 헬퍼: 면적 소수점 1자리
     function formatArea1(v) {
       const n = Number(v);
@@ -686,8 +692,7 @@
               <td class="border px-2 py-1">${buildListingTitle(row)}</td>
               <td class="border px-2 py-1">${addr}</td>
               <td class="border px-2 py-1">${row.deal_type ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.sale_price) ?? ''}</td>
-              <td class="border px-2 py-1">${formatNumberWithCommas(row.deposit_price) ?? ''}</td>
+              <td class="border px-2 py-1">${buildPrice(row)}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.monthly_rent) ?? ''}</td>
               <td class="border px-2 py-1">${formatNumberWithCommas(row.premium_price) ?? ''}</td>
               <td class="border px-2 py-1">${areaDisp}</td>
