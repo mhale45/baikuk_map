@@ -602,6 +602,26 @@
     let isDownPaymentAutoFilled = false;
     let STAFF_NAME_BY_ID = new Map();
 
+    //매출변화 감지 --> 직원매출
+    function bindPerformanceChangeTriggers() {
+      const buyerPerf = document.getElementById("f_buyer_performance");
+      const sellerPerf = document.getElementById("f_seller_performance");
+
+      function triggerRecalc() {
+        document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
+          input.dispatchEvent(new Event("input")); // ⬅️ 각 직원 항목에 calculatePerformance 실행
+        });
+      }
+
+      if (buyerPerf) {
+        buyerPerf.addEventListener("input", triggerRecalc);
+      }
+      if (sellerPerf) {
+        sellerPerf.addEventListener("input", triggerRecalc);
+      }
+    }
+
+
     // 클로징, 매물확보 비율에 따라 직원 총 매출 자동계산
     function createAllocationItem(index) {
       const template = document.getElementById("allocation-template");
@@ -1096,6 +1116,8 @@
             el._listenerAttached = true;
           }
         });
+        
+        bindPerformanceChangeTriggers();
       });
     };
 
