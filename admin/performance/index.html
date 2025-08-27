@@ -380,7 +380,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem] performance-output">
+                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
                 </label>
               </div>
             </template>
@@ -611,18 +611,14 @@
       const select = root.querySelector("select");
       const buyerInput = root.querySelector(".buyer-weight");
       const sellerInput = root.querySelector(".seller-weight");
-      const resultInput = root.querySelector(".performance-output"); // ← 안전하게 수정
-
-      if (!resultInput) {
-        console.warn("⚠️ performance-output input not found in allocation template.");
-        return root;
-      }
+      const resultInput = root.querySelectorAll("input")[3]; // 매출 input
 
       // ID 설정
       select.id = `select_staff${index}`;
       buyerInput.id = `f_buyer_weight${index}`;
       sellerInput.id = `f_seller_weight${index}`;
 
+      // 자동 계산 함수
       function calculatePerformance() {
         const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
         const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
@@ -1076,27 +1072,12 @@
     const _openDrawerOrig = openDrawer;
     openDrawer = function () {
       _openDrawerOrig();
-
       requestAnimationFrame(() => {
         const ta = document.getElementById('f_special_contract');
         if (ta) {
           ta.style.height = 'auto';
           ta.style.height = ta.scrollHeight + 'px';
         }
-
-        // 🔧 자동계산 바인딩 보장 (드로어 열릴 때마다)
-        ["f_buyer_performance", "f_seller_performance"].forEach(id => {
-          const el = document.getElementById(id);
-          if (el && !el._listenerAttached) {
-            el.addEventListener("input", () => {
-              document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
-                input.dispatchEvent(new Event("input"));
-              });
-            });
-            el._listenerAttached = true;
-          }
-        });
-        bindPerformanceAutoCalc();
       });
     };
 
@@ -1945,54 +1926,6 @@
       }
     }
 
-    function updatePerformanceValues() {
-      const deposit = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
-      const monthly = numOrNull(document.getElementById("f_monthly_rent")?.value) || 0;
-      const sale = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
-
-      const buyerFeeRate = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
-      const sellerFeeRate = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
-
-      let buyerPerformance = 0;
-      let sellerPerformance = 0;
-
-      if (sale > 0) {
-        buyerPerformance = Math.round(sale * buyerFeeRate * 0.01);
-        sellerPerformance = Math.round(sale * sellerFeeRate * 0.01);
-      } else {
-        const 기준금액 = deposit + (monthly * 100);
-        buyerPerformance = Math.round(기준금액 * buyerFeeRate * 0.01);
-        sellerPerformance = Math.round(기준금액 * sellerFeeRate * 0.01);
-      }
-
-      const buyerPerfEl = document.getElementById("f_buyer_performance");
-      const sellerPerfEl = document.getElementById("f_seller_performance");
-
-      if (buyerPerfEl) {
-        buyerPerfEl.value = buyerPerformance.toLocaleString();
-        buyerPerfEl.dispatchEvent(new Event("input")); // 🔥 여기서 직원 퍼포먼스 자동계산 유도
-      }
-      if (sellerPerfEl) {
-        sellerPerfEl.value = sellerPerformance.toLocaleString();
-        sellerPerfEl.dispatchEvent(new Event("input"));
-      }
-    }
-
-    function bindPerformanceAutoCalc() {
-      [
-        "f_deposit_price",
-        "f_monthly_rent",
-        "f_sale_price",
-        "f_buyer_fee",
-        "f_seller_fee"
-      ].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && !el._listenerAttached) {
-          el.addEventListener("input", updatePerformanceValues);
-          el._listenerAttached = true;
-        }
-      });
-    }
   </script>
 
 </body>
