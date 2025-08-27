@@ -30,6 +30,10 @@
       }
       #print-portal table { width: 100% !important; table-layout: fixed; border-collapse: collapse; }
       #print-portal th, #print-portal td { border: 1px solid #ccc; padding: 4px; font-size: 12px; text-align: center; }
+      #performance-table tbody tr:hover td {
+        background-color: #f3f4f6; /* Tailwind의 bg-gray-100 */
+        cursor: pointer;
+      }
       #print-portal thead { background: #f3f4f6; position: static !important; }
 
       /* 색/배경 출력 */
@@ -342,7 +346,7 @@
             <div class="flex items-center">
               <h3 class="text-base font-semibold text-gray-700 mr-10">분배</h3>
               <span class="text-sm text-gray-600 mr-2">물건분: 매도인 수수료의</span>
-              <input id="f_seller_distribution_rate" type="number" step="any" value="30" class="border rounded px-3 py-2 w-[6rem]">
+              <input id="f_seller_distribution_rate" type="number" step="any" value="30" class="border rounded px-2 py-1 w-[6rem]">
               <span class="text-sm text-gray-600">%</span>
             </div>
             <div class="flex gap-3">
@@ -363,7 +367,7 @@
           <div class="grid grid-cols-4 gap-x-6 gap-y-4">
             <template id="allocation-template">
               <div class="flex flex-col gap-2">
-                <select class="border rounded px-3 py-2 staff-select"></select>
+                <select class="border rounded px-3 py-1 staff-select"></select>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">클로징</span>
                   <input type="number" step="any" class="border rounded px-2 py-1 w-[5rem] buyer-weight">
@@ -1128,6 +1132,7 @@
         seller_tax: numOrNull(document.getElementById('f_seller_tax')?.value),
         seller_tax_date: dateOrNull(document.getElementById('f_seller_tax_date')?.value),
 
+        seller_distribution_rate: numOrNull(document.getElementById('f_seller_distribution_rate')?.value),
         seller_performance: numOrNull(document.getElementById('f_seller_performance')?.value),
         buyer_performance: numOrNull(document.getElementById('f_buyer_performance')?.value),
 
