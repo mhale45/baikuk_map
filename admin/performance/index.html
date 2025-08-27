@@ -464,6 +464,42 @@
         });
     })();
 
+    // 분배 입력용 select box에 직원 옵션 채우기
+    (async () => {
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('id, name, leave_date')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('직원 목록 불러오기 실패:', error);
+        return;
+      }
+
+      // leave_date가 null인 재직자만 필터링
+      const activeStaff = data.filter(staff => staff.leave_date === null);
+
+      // select 박스에 옵션 채우기
+      for (let i = 1; i <= 4; i++) {
+        const select = document.getElementById(`select_staff${i}`);
+        if (!select) continue;
+
+        // 기본 옵션
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- 직원 선택 --';
+        select.appendChild(defaultOption);
+
+        // 직원 목록 추가
+        activeStaff.forEach(({ id, name }) => {
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = name;
+          select.appendChild(option);
+        });
+      }
+    })();
+
     // 직원은 분배율 만지지 못하게
     (async () => {
       // 1) 사용자 정보
