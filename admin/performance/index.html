@@ -1315,34 +1315,26 @@
     });
 
 
-    // ===== 수수료 + 매출 자동 계산 =====
+    // ===== 수수료 + 매출 자동 계산 ===== trim 적용
     function calculateFees() {
-      const dealType = document.getElementById("f_deal_type")?.value;
-      const salePrice = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
-      const deposit = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
+      const type = (document.getElementById("f_deal_type")?.value || '').trim(); // ✅
+      const salePrice   = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
+      const deposit     = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
       const monthlyRent = numOrNull(document.getElementById("f_monthly_rent")?.value) || 0;
 
       let 기준금액 = 0;
-      if (dealType === "매매") {
-        기준금액 = salePrice;
-      } else if (dealType === "월세") {
-        기준금액 = monthlyRent * 100 + deposit;
-      } else {
-        return; // 거래유형 없으면 계산 안함
-      }
+      if (type === "매매") 기준금액 = salePrice;
+      else if (type === "월세") 기준금액 = monthlyRent * 100 + deposit;
+      else return;
 
-      // ===== 수수료 계산 (5천만 기준 0.9% / 0.7%) =====
       const fee = 기준금액 >= 50_000_000 ? 기준금액 * 0.009 : 기준금액 * 0.007;
-
       const buyerFeeEl = document.getElementById("f_buyer_fee");
       const sellerFeeEl = document.getElementById("f_seller_fee");
       const distRateEl  = document.getElementById("f_seller_distribution_rate");
 
-      // 수수료 값 입력 (콤마)
       buyerFeeEl.value  = formatNumberWithCommas(Math.round(fee));
       sellerFeeEl.value = formatNumberWithCommas(Math.round(fee));
 
-      // ===== 매출 계산 =====
       const buyerFee = numOrNull(buyerFeeEl.value) || 0;
       const sellerFee = numOrNull(sellerFeeEl.value) || 0;
       const distRate = numOrNull(distRateEl.value) || 0;
@@ -1353,6 +1345,7 @@
       document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
       document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
     }
+
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
     ["f_deal_type","f_sale_price","f_deposit_price","f_monthly_rent"].forEach(id => {
