@@ -1251,6 +1251,7 @@
         resetForm();
         closeDrawer();
         loadPerformanceTable();
+        calculateDownPaymentAndBalance();
       } catch (err) {
         console.error(err);
         showToast('예상치 못한 오류가 발생했습니다.');
