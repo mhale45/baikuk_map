@@ -171,7 +171,7 @@
 
         /* 로그인 직후에도 자동 이동 (혹시 모를 타이밍 이슈 대비) */
         client.auth.onAuthStateChange((_event, session) => {
-        if (session) location.replace('/admin' + location.search);
+            if (session) location.replace('/admin' + location.search);
         });
 
         let _imgReqToken = 0;
@@ -187,17 +187,17 @@
         const allCategories = ['상가', '공장·창고'];
 
         const filterDefs = [
-        { id: 'deposit',       label: '보증금',    width: 300 },
-        { id: 'rent',          label: '월세',      width: 280 },
-        { id: 'floor',         label: '층',        width: 280 },
-        { id: 'area_py',       label: '전용평수',   width: 280 },
-        { id: 'sale',          label: '매매가',     width: 300 },
-        { id: 'total_deposit', label: '총보증금',   width: 300 },
-        { id: 'total_rent',    label: '총월세',     width: 280 },
+            { id: 'deposit',       label: '보증금',    width: 300 },
+            { id: 'rent',          label: '월세',      width: 280 },
+            { id: 'floor',         label: '층',        width: 280 },
+            { id: 'area_py',       label: '전용평수',   width: 280 },
+            { id: 'sale',          label: '매매가',     width: 300 },
+            { id: 'total_deposit', label: '총보증금',   width: 300 },
+            { id: 'total_rent',    label: '총월세',     width: 280 },
         ];
         const filterUnits = {
-        floor: '층', sale: '만', deposit: '만', rent: '만',
-        total_deposit: '만', total_rent: '만', area_py: '평'
+            floor: '층', sale: '만', deposit: '만', rent: '만',
+            total_deposit: '만', total_rent: '만', area_py: '평'
         };
 
         /* --- State Variables --- */
@@ -686,12 +686,6 @@
         }
 
         /* 딥링크 유틸 */
-        function getListingIdFromURL() {
-        const sp = new URLSearchParams(location.search);
-        const qId = sp.get('id');
-        return qId && /^\d+$/.test(qId) ? qId : null;
-        }
-
         function updateURLForListing(listingId, replace=false) {
         const url = new URL(location.href);
         if (listingId) url.searchParams.set('id', String(listingId));
