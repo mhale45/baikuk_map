@@ -7,7 +7,81 @@ import { initImageViewerFast } from '../images/viewer.js';
 import { applyPrimaryThumbsFromCache, loadPrimaryThumbsBatch } from '../images/primary-thumbs.js';
 import { state } from '../data/listings-service.js';
 
-/** 내부 유틸: 활성 리스트 아이템 하이라이트 */
+/* ───────── 유틸: 표시/포맷 ───────── */
+
+// 소수 첫째자리
+function oneDecimal(v) {
+  if (v === null || v === undefined || v === '') return '';
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(1) : '';
+}
+
+// 만 단위 포맷(간단 버전)
+function fmtMan(v) {
+  if (v === null || v === undefined || v === '') return '';
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString('ko-KR') : String(v);
+}
+
+// ㎡ → 평
+function toPyeong(m2) {
+  if (m2 === null || m2 === undefined || m2 === '') return '';
+  const n = Number(m2);
+  if (!Number.isFinite(n)) return '';
+  return Math.round(n * 0.3025 * 10) / 10;
+}
+
+// 설명문 생성 (staff 내선은 있으면 사용, 없으면 빈 문자열)
+function buildListingDescBlock(listing) {
+  const listingId   = listing.listing_id ?? listing.id ?? '';
+  const deposit     = fmtMan(listing.deposit_price);
+  const monthly     = fmtMan(listing.monthly_rent);
+  const areaPy      = oneDecimal(listing.area_py ?? toPyeong(listing.area_m2));
+  const loc = [
+    listing.province, listing.city, listing.district,
+    listing.detail_address, listing.building_name
+  ].filter(Boolean).join(' ');
+  const buildingUsage   = listing.building_usage ?? '';
+  const restroom        = listing.restroom ?? '';
+  const storeTypeDetail = listing.store_type_detail ?? '';
+  const title           = listing.title ?? '';
+
+  // 선택적 글로벌/모듈 함수 지원
+  const staffExt = typeof globalThis.getExtensionFromAgentName === 'function'
+    ? globalThis.getExtensionFromAgentName(listing)
+    : '';
+
+  const lines = [
+    '┎  네이버에 "백억지도"를 검색하세요',
+    '│  모든 매물을 확인할 수 있습니다',
+    '└  www.백억지도.com',
+    '',
+    `🌈 백억 매물번호 :  ${listingId}`,
+    '위 매물번호 알려주시면 빠르게 상담진행 가능합니다!',
+    '',
+    '🌈 매물 정보 요약',
+    `- 금액 : 보증금 ${deposit} 만 / 월세 ${monthly}만 /  권리(전화문의)`,
+    `- 면적 : 약 ${areaPy}평`,
+    `- 위치 : ${loc}`,
+    `- 용도 : ${buildingUsage}`,
+    `- 방 : 건축물현황도상 방없음`,
+    `- 화장실 : ${restroom}`,
+    `- 추천업종 : ${storeTypeDetail}`,
+    `- 특징 : ${title}`,
+    '',
+    '🌈 백억 부동산의 약속',
+    '- 신속, 정확, 정직한 중개, 신뢰있는 중개, 허위 매물 ZERO',
+    '- 업종과 조건(위치, 면적, 보증금, 임대료, 권리금)에 맞는 최적화 매물을 찾아 드립니다.',
+    '- 고객님의 입장에서 보증금과 임대료, 권리금 최대한 조율 해 드립니다.',
+    '- 고객님 한분 한분의 인연을 소중하게 생각합니다.',
+    '',
+    `📞 친절한 상담 ${staffExt}`
+  ];
+
+  return lines.map(escapeHtml).join('\n'); // HTML 주입 시 XSS 방지
+}
+
+/* ───────── 리스트 하이라이트 ───────── */
 function highlightActive(listingId) {
   const root = document.getElementById('info-content');
   if (!root) return;
@@ -17,7 +91,7 @@ function highlightActive(listingId) {
   });
 }
 
-/** 매칭된 목록 렌더 */
+/* ───────── 목록 렌더 ───────── */
 export function renderMatchedListings() {
   const end = state.page * (CONFIG?.UI?.PAGE_SIZE || 15);
   const list = (state.matched || []).slice(0, end);
@@ -65,7 +139,7 @@ export function renderMatchedListings() {
   loadPrimaryThumbsBatch(ids).catch(() => {});
 }
 
-/** 상세 패널 열기 */
+/* ───────── 상세 열기 ───────── */
 export function showDetailPanel(listingId) {
   const l = state.allListings?.[String(listingId)];
   if (!l) return;
@@ -74,10 +148,9 @@ export function showDetailPanel(listingId) {
   const detailContent = document.getElementById('detail-content');
   if (!detailPanel || !detailContent) return;
 
-  // 선택 상태 보관(원하면 listings-service의 state에 필드 추가)
   state.currentDetailId = String(listingId);
 
-  // 상세 상단 요약 + 이미지 뷰 슬롯
+  // 상단 요약 + 이미지 뷰 슬롯 + 설명문(요청하신 블록 복원)
   detailContent.innerHTML = `
     <div class="sticky top-0 z-10 bg-white shadow-md p-2 rounded cursor-pointer whitespace-normal">
       <div class="flex items-start gap-2">
@@ -96,6 +169,12 @@ export function showDetailPanel(listingId) {
     </div>
 
     <div id="image-viewer-slot" class="bg-white"></div>
+
+    <div class="mb-2 px-4 pt-2">
+      <span class="text-base font-medium whitespace-pre-line leading-relaxed md:leading-7">
+        ${buildListingDescBlock(l)}
+      </span>
+    </div>
 
     <div class="px-4 pb-4">
       <table class="table-auto w-full text-sm border-t border-gray-300 mt-2">
@@ -145,17 +224,12 @@ export function showDetailPanel(listingId) {
   detailPanel.classList.remove('hidden');
   detailPanel.scrollTop = 0;
 
-  // URL에 반영 (뒤로가기 처리)
   updateURLForListing(listingId, true);
-
-  // 이미지 뷰어 초기화(두 장 미리보기 + 전체뷰)
   initImageViewerFast(String(listingId), l);
-
-  // 리스트에서도 현재 아이템 하이라이트
   highlightActive(String(listingId));
 }
 
-/** 상세 패널 닫기 */
+/* ───────── 상세 닫기 ───────── */
 export function hideDetailPanel() {
   const detailPanel = document.getElementById('detail-panel');
   if (detailPanel) detailPanel.classList.add('hidden');
@@ -165,7 +239,5 @@ export function hideDetailPanel() {
 
   state.currentDetailId = null;
   updateURLForListing(null);
-
-  // 하이라이트 해제
   highlightActive(null);
 }
