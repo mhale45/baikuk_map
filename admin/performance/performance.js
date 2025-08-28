@@ -332,3 +332,37 @@ export function collectPerformancePayload() {
     special_contract: (document.getElementById('f_special_contract')?.value ?? '').trim() || null,
     };
 }
+
+// ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
+export function collectAllocationPayloadRow(performance_id) {
+    const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
+    const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
+
+    const row = { performance_id };
+
+    for (let i = 1; i <= 4; i++) {
+    const sid = document.getElementById(`select_staff${i}`)?.value || null;
+    const bwP = numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0;   // % 단위
+    const swP = numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) || 0;
+
+    const bw = bwP * 0.01; // 0~1
+    const sw = swP * 0.01;
+
+    row[`staff_id${i}`]       = sid || null;
+    row[`buyer_weight${i}`]   = sid ? bw : 0;
+    row[`seller_weight${i}`]  = sid ? sw : 0;
+    row[`buyer_amount${i}`]   = sid ? Math.round(buyerPerf  * bw) : 0;
+    row[`seller_amount${i}`]  = sid ? Math.round(sellerPerf * sw) : 0;
+    }
+
+    return row;
+}
+
+export function resetForm() {
+    document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
+    .forEach(el => {
+        if (el.id === 'f_seller_distribution_rate') { el.value = 30; return; }
+        if (el.tagName === 'SELECT') el.value = '';
+        else el.value = '';
+    });
+}
