@@ -121,37 +121,6 @@ export async function populateAllStaffSelects(myAffiliation=null) {
     } catch (e) { console.error(e); }
 }
 
-// - select + buyer/seller weight 입력 필드와 성과 자동계산 기능 포함
-export function createAllocationItem(index) {
-  const template = document.getElementById("allocation-template");
-  const clone = template.content.cloneNode(true);
-  const root = clone.querySelector("div");
-
-  const select = root.querySelector("select");
-  const buyerInput = root.querySelector(".buyer-weight");
-  const sellerInput = root.querySelector(".seller-weight");
-  const resultInput = root.querySelectorAll("input")[3];
-
-  select.id = `select_staff${index}`;
-  buyerInput.id = `f_buyer_weight${index}`;
-  sellerInput.id = `f_seller_weight${index}`;
-
-  function calculatePerformance() {
-    const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
-    const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
-
-    const bw = parseFloat(buyerInput.value) || 0;
-    const sw = parseFloat(sellerInput.value) || 0;
-
-    const result = (buyerPerf * bw * 0.01) + (sellerPerf * sw * 0.01);
-    resultInput.value = Math.round(result);
-  }
-
-  buyerInput.addEventListener('input', calculatePerformance);
-  sellerInput.addEventListener('input', calculatePerformance);
-
-  return root;
-}
 
 /**
  * 계약금, 중도금, 잔금 계산 로직
