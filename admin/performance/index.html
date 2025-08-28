@@ -665,7 +665,7 @@
             fillAllocations(pa || null);
             updateHighlight();
             });
-
+            window.triggerAllocationRecalc?.();
             tbody.appendChild(tr);
         });
         } catch (e) {
@@ -1289,15 +1289,22 @@
     }
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
+    const calcFeesAndTrigger = () => {
+      calculateFees();               // 수수료 → (클로징/매물)매출 갱신
+      window.triggerAllocationRecalc?.(); // 직원별 기여매출까지 갱신
+    };
+
     ["f_deal_type","f_sale_price","f_deposit_price","f_monthly_rent"].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener("input", calculateFees);
-        el.addEventListener("change", calculateFees);
+        el.addEventListener("input",  calcFeesAndTrigger);
+        el.addEventListener("change", calcFeesAndTrigger);
       }
     });
-    document.getElementById("f_seller_distribution_rate")?.addEventListener("input",  calculateFees);
-    document.getElementById("f_seller_distribution_rate")?.addEventListener("change", calculateFees);
+
+    const distEl2 = document.getElementById("f_seller_distribution_rate");
+    distEl2?.addEventListener("input",  calcFeesAndTrigger);
+    distEl2?.addEventListener("change", calcFeesAndTrigger);
 
     function attachCommaFormatter(id) {
       const el = document.getElementById(id);
