@@ -558,7 +558,8 @@
         await ensureStaffNameMap();
         try {
         await waitForSupabase();
-        const { data, error } = await window.supabase
+        // 1) 성능(부모)만 먼저 조회 — 조인 없이
+        const { data: perfRows, error: perfErr } = await window.supabase
           .from('performance')
           .select(`
             id,listing_id,listing_title,province,city,district,detail_address,
@@ -571,22 +572,41 @@
             buyer_fee,buyer_tax,buyer_tax_date,
             seller_fee,seller_tax,seller_tax_date,
             expense,
-            special_contract,
-            performance_allocations(
+            special_contract
+          `)
+          .order('contract_date', { ascending: false });
+
+        if (perfErr) {
+          console.error('performance 조회 실패:', perfErr);
+          showToastGreenRed('조회 실패: ' + (perfErr.message || JSON.stringify(perfErr)));
+          return;
+        }
+
+        // 2) 자식(performance_allocations) 별도 조회 → Map으로 합치기
+        const ids = perfRows.map(r => r.id).filter(Boolean);
+        let allocByPerfId = new Map();
+
+        if (ids.length > 0) {
+          const { data: allocRows, error: allocErr } = await window.supabase
+            .from('performance_allocations')
+            .select(`
+              performance_id,
               staff_id1,staff_id2,staff_id3,staff_id4,
               buyer_weight1,buyer_weight2,buyer_weight3,buyer_weight4,
               seller_weight1,seller_weight2,seller_weight3,seller_weight4,
               buyer_amount1,buyer_amount2,buyer_amount3,buyer_amount4,
               seller_amount1,seller_amount2,seller_amount3,seller_amount4,
               involvement_sales1,involvement_sales2,involvement_sales3,involvement_sales4
-            )
-          `)
-          .order('contract_date', { ascending: false });
+            `)
+            .in('performance_id', ids);
 
-        if (error) {
-            console.error('테이블 조회 실패:', error);
-            showToastGreenRed('조회 실패: ' + error.message || JSON.stringify(error));
-            return;
+          if (allocErr) {
+            console.error('alloc 조회 실패:', allocErr);
+            // alloc이 없어도 부모 표시는 가능하니 토스트만 알림
+            showToastGreenRed('분배 조회 실패: ' + (allocErr.message || JSON.stringify(allocErr)));
+          } else {
+            for (const row of allocRows) allocByPerfId.set(row.performance_id, row);
+          }
         }
 
         const tbody = document.querySelector('#performance-table tbody');
