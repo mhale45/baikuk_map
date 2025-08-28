@@ -8,6 +8,125 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 export const STAFF_NAME_BY_ID = new Map();
 
 
+export async function loadPerformanceTable() {
+    await ensureStaffNameMap();
+    try {
+    await waitForSupabase();
+    const { data, error } = await window.supabase
+        .from('performance')
+        .select(`
+        id, listing_id, listing_title, province, city, district, detail_address,
+        floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+        contract_date, balance_date,
+        down_payment, balance,
+        interim_payment1, interim_payment1_date,
+        interim_payment2, interim_payment2_date,
+        interim_payment3, interim_payment3_date,
+        buyer_fee, buyer_tax, buyer_tax_date,
+        seller_fee, seller_tax, seller_tax_date,
+        expense,
+        special_contract,
+        performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
+            staff_id1, staff_id2, staff_id3, staff_id4,
+            buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
+            seller_weight1, seller_weight2, seller_weight3, seller_weight4,
+            buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+            seller_amount1, seller_amount2, seller_amount3, seller_amount4
+        )
+        `)
+        .order('contract_date', { ascending: false });
+
+    if (error) {
+        console.error('테이블 조회 실패:', error);
+        showToast('조회 실패: ' + error.message);
+        return;
+    }
+
+    const tbody = document.querySelector('#performance-table tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(row => {
+        // 관계가 1:1이라도 PostgREST가 배열로 줄 수 있으니 방어적으로 처리
+        const pa = Array.isArray(row.performance_allocations)
+        ? row.performance_allocations[0]
+        : row.performance_allocations;
+
+        // 1) 직원/비율 텍스트를 한 셀용으로 준비
+        const names  = [];
+        const buyerP = [];
+        const sellerP= [];
+        if (pa) {
+        for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            const bw  = pa[`buyer_weight${i}`];   // 0~1
+            const sw  = pa[`seller_weight${i}`];  // 0~1
+            if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+            names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+            buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+            sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+            }
+        }
+        }
+        if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); }
+
+        const addr = buildAddress(row);
+        const areaDisp = formatArea1(row.area_py);
+
+        // 2) 한 행만 만들어서 넣기
+        const tr = document.createElement('tr');
+        tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
+
+        // 간단 헬퍼
+        const tdHTML = (html) => {
+        const td = document.createElement('td');
+        td.className = 'border px-2 py-1';
+        td.innerHTML = html ?? '';
+        return td;
+        };
+        const tdMulti = (text) => {
+        const td = document.createElement('td');
+        td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
+        td.textContent = text ?? '';
+        return td;
+        };
+
+        // 컬럼 추가 (헤더 순서 그대로)
+        tr.appendChild(tdHTML(buildListingTitle(row)));
+        tr.appendChild(tdHTML(addr));
+        tr.appendChild(tdHTML(row.deal_type ?? ''));
+        tr.appendChild(tdHTML(buildPriceBlock(row)));
+        tr.appendChild(tdHTML(areaDisp));
+        tr.appendChild(tdHTML(buildDateBlock(row)));
+        tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+        tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+        tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+        tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+        tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+        tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+        tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+
+        // ★ 여기 3칸이 다중라인 셀
+        tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
+        tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
+        tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
+
+        tr.addEventListener('click', () => {
+        currentPerformanceId = row.id;
+        isDownPaymentAutoFilled = false;
+        openDrawer();
+        fillFormWithPerformance(row);
+        fillAllocations(pa || null);
+        updateHighlight();
+        });
+
+        tbody.appendChild(tr);
+    });
+    } catch (e) {
+    console.error(e);
+    showToast('예상치 못한 오류');
+    }
+}
+
 export function buildPriceBlock(row) {
     const parts = [];
     const pushIf = (label, v) => {
