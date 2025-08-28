@@ -751,22 +751,16 @@
       updateHighlight();
       document.getElementById("f_deal_type")?.addEventListener("change", updateHighlight);
 
-      [
-        "f_deposit_price", "f_down_payment",
-        "f_interim_payment1", "f_interim_payment2", "f_interim_payment3",
-        "f_buyer_performance", "f_seller_performance"
-      ].forEach(id => {
+      ["f_deposit_price", "f_down_payment", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.addEventListener("input", () => {
             const isDeposit = id === "f_deposit_price";
             calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
-            if (el.value) el.value = formatNumberWithCommas(numOrNull(el.value) || 0);
           });
           el.addEventListener("change", () => {
             const isDeposit = id === "f_deposit_price";
             calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
-            if (el.value) el.value = formatNumberWithCommas(numOrNull(el.value) || 0);
           });
         }
       });
