@@ -375,7 +375,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
+                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[7rem] bg-gray-50 text-gray-500">
                 </label>
               </div>
             </template>
@@ -601,16 +601,16 @@
             const buyerP = [];
             const sellerP= [];
             if (pa) {
-            for (let i = 1; i <= 4; i++) {
-                const sid = pa[`staff_id${i}`];
-                const bw  = pa[`buyer_weight${i}`];   // 0~1
-                const sw  = pa[`seller_weight${i}`];  // 0~1
-                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
-                }
-            }
+              for (let i = 1; i <= 4; i++) {
+                  const sid = pa[`staff_id${i}`];
+                  const bw  = pa[`buyer_weight${i}`];   // 0~1
+                  const sw  = pa[`seller_weight${i}`];  // 0~1
+                  if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+                  }
+              }
             }
             if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); }
 
@@ -623,16 +623,16 @@
 
             // 간단 헬퍼
             const tdHTML = (html) => {
-            const td = document.createElement('td');
-            td.className = 'border px-2 py-1';
-            td.innerHTML = html ?? '';
-            return td;
+              const td = document.createElement('td');
+              td.className = 'border px-2 py-1';
+              td.innerHTML = html ?? '';
+              return td;
             };
             const tdMulti = (text) => {
-            const td = document.createElement('td');
-            td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
-            td.textContent = text ?? '';
-            return td;
+              const td = document.createElement('td');
+              td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
+              td.textContent = text ?? '';
+              return td;
             };
 
             // 컬럼 추가 (헤더 순서 그대로)
@@ -1393,14 +1393,39 @@
       setField('f_special_contract', row.special_contract);
     }
 
+    // ✅ 분배 드로어 채우기: staff/weights + 합계 매출(involvement_sales) 표시
     function fillAllocations(pa) {
       for (let i = 1; i <= 4; i++) {
-        setInputValue(`select_staff${i}`, pa?.[`staff_id${i}`] || '');
-        setInputValue(`f_buyer_weight${i}`, pa?.[`buyer_weight${i}`] != null ? Math.round(pa[`buyer_weight${i}`] * 100) : '');
-        setInputValue(`f_seller_weight${i}`, pa?.[`seller_weight${i}`] != null ? Math.round(pa[`seller_weight${i}`] * 100) : '');
-      }
-    }
+        const select = document.getElementById(`select_staff${i}`);
+        const buyerInput = document.getElementById(`f_buyer_weight${i}`);
+        const sellerInput = document.getElementById(`f_seller_weight${i}`);
+        const sumInput = document.getElementById(`f_involvement_sales${i}`);
 
+        if (!select || !buyerInput || !sellerInput || !sumInput) continue;
+
+        const sid = pa?.[`staff_id${i}`] ?? '';
+        const bw  = (pa?.[`buyer_weight${i}`] ?? 0) * 100;  // 0~1 -> %
+        const sw  = (pa?.[`seller_weight${i}`] ?? 0) * 100; // 0~1 -> %
+
+        select.value = sid || '';
+        buyerInput.value = bw || '';
+        sellerInput.value = sw || '';
+
+        const savedSum = pa?.[`involvement_sales${i}`];
+        if (typeof savedSum === 'number' && !Number.isNaN(savedSum)) {
+          sumInput.value = formatNumberWithCommas(Math.round(savedSum));
+        } else {
+          // 저장값 없으면 현재 가중치로 즉시 계산해서 표시(UX 차원)
+          const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
+          const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
+          const result = (buyerPerf * (bw * 0.01)) + (sellerPerf * (sw * 0.01));
+          sumInput.value = formatNumberWithCommas(Math.round(result));
+        }
+      }
+
+      // 가중치 변경 리스너가 이미 있어서, 아래 트리거로 동기화
+      window.triggerAllocationRecalc?.();
+    }
   </script>
 </body>
 </html>

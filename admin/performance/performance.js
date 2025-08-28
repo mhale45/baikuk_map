@@ -136,6 +136,7 @@ export function createAllocationItem(index) {
     select.id = `select_staff${index}`;
     buyerInput.id = `f_buyer_weight${index}`;
     sellerInput.id = `f_seller_weight${index}`;
+    resultInput.id = `f_involvement_sales${index}`;
 
     function calculatePerformance() {
     const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
@@ -335,28 +336,33 @@ export function collectPerformancePayload() {
 }
 
 // ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
+// ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
 export function collectAllocationPayloadRow(performance_id) {
-    const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
-    const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
+  const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
+  const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
 
-    const row = { performance_id };
+  const row = { performance_id };
 
-    for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 4; i++) {
     const sid = document.getElementById(`select_staff${i}`)?.value || null;
-    const bwP = numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0;   // % 단위
+    const bwP = numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0; // % 단위
     const swP = numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) || 0;
 
     const bw = bwP * 0.01; // 0~1
     const sw = swP * 0.01;
 
+    // 저장값 세팅
     row[`staff_id${i}`]       = sid || null;
     row[`buyer_weight${i}`]   = sid ? bw : 0;
     row[`seller_weight${i}`]  = sid ? sw : 0;
     row[`buyer_amount${i}`]   = sid ? Math.round(buyerPerf  * bw) : 0;
     row[`seller_amount${i}`]  = sid ? Math.round(sellerPerf * sw) : 0;
-    }
 
-    return row;
+    // ✅ 합계(직원 총 매출) = 클로징 금액 + 매물확보 금액
+    row[`involvement_sales${i}`] = sid ? (enteredSum ?? calcSum) : 0;
+  }
+
+  return row;
 }
 
 export function resetForm() {
