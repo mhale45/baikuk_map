@@ -9,6 +9,13 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
+/**
+ * 직원 선택 박스(select)들을 Supabase에서 불러온 직원 데이터로 채움
+ * @param {string|null} myAffiliation - 내 소속(있으면 해당 소속이 맨 위로 정렬됨)
+ * @example
+ * await populateAllStaffSelects("강남지점");
+ * // -> select_staff1~4 박스가 직원명으로 채워짐
+ */
 export async function populateAllStaffSelects(myAffiliation=null) {
     try {
         await waitForSupabase();
@@ -52,6 +59,7 @@ export async function populateAllStaffSelects(myAffiliation=null) {
     } catch (e) { console.error(e); }
 }
 
+// - select + buyer/seller weight 입력 필드와 성과 자동계산 기능 포함
 export function createAllocationItem(index) {
   const template = document.getElementById("allocation-template");
   const clone = template.content.cloneNode(true);
@@ -83,6 +91,16 @@ export function createAllocationItem(index) {
   return root;
 }
 
+/**
+ * 계약금, 중도금, 잔금 계산 로직
+ * - 계약금은 기본적으로 보증금의 10%
+ * - 자동으로 balance(잔금) 필드 업데이트
+ * @param {object} opts
+ * @param {boolean} [opts.forceDownPaymentUpdate=false] 강제 계약금 재계산 여부
+ * @example
+ * calculateDownPaymentAndBalance();
+ * // -> f_balance input 값이 업데이트됨
+ */
 export function calculateDownPaymentAndBalance({ forceDownPaymentUpdate = false } = {}) {
   const deposit = numOrNull(document.getElementById('f_deposit_price')?.value) || 0;
   const downPaymentInput = document.getElementById('f_down_payment');
@@ -102,6 +120,12 @@ export function calculateDownPaymentAndBalance({ forceDownPaymentUpdate = false 
   document.getElementById('f_balance').value = formatNumberWithCommas(Math.max(balance, 0));
 }
 
+/**
+ * STAFF_NAME_BY_ID 맵이 비어있으면 Supabase에서 직원 목록을 불러 채움
+ * @example
+ * await ensureStaffNameMap();
+ * console.log(STAFF_NAME_BY_ID.get(123)); // "홍길동"
+ */
 export async function ensureStaffNameMap() {
   if (STAFF_NAME_BY_ID.size > 0) return;
   await waitForSupabase();
@@ -112,23 +136,6 @@ export async function ensureStaffNameMap() {
   if (!error && data) {
     STAFF_NAME_BY_ID.clear();
     data.forEach(({id, name}) => STAFF_NAME_BY_ID.set(id, name));
-  }
-}
-
-export async function getMyAffiliation() {
-  try {
-    await waitForSupabase();
-    const { data: sessionRes } = await window.supabase.auth.getSession();
-    const user = sessionRes?.session?.user;
-    if (!user?.id) return null;
-    const { data: prof } = await window.supabase
-      .from('staff_profiles')
-      .select('affiliation')
-      .eq('auth_user_id', user.id)
-      .maybeSingle();
-    return prof?.affiliation ?? null;
-  } catch {
-    return null;
   }
 }
 

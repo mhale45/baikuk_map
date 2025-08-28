@@ -543,13 +543,14 @@
 
     import { STAFF_NAME_BY_ID } from './performance.js';
     import { waitForSupabase } from '../../../modules/core/supabase.js';
+    import { getMyAffiliation } from '../../../modules/auth/profile.js';
+
     // 스크립트 추가
     let _pcdCache = null;
     let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
-
     
     
     function buildListingTitle(row) {
