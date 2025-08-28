@@ -372,6 +372,7 @@ export function collectAllocationPayloadRow(performance_id) {
   return row;
 }
 
+
 export function resetForm() {
     document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
     .forEach(el => {
