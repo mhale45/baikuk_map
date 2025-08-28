@@ -402,9 +402,10 @@
   <script type="module">    
     import { client } from '../../../modules/core/supabase.js';
     import { waitForSupabase } from '../../../modules/core/supabase.js';
+    import { buildListingTitle } from '../../../modules/data/listing.js';
+    import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
     import { STAFF_NAME_BY_ID } from './performance.js';
     import { getMyAffiliation } from '../../../modules/auth/profile.js';
-    import { buildListingTitle } from '../../../modules/data/listing.js';
 
 
     window.supabase = client;
@@ -544,29 +545,6 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-
-    // 헬퍼: 주소 합치기 (공백으로 연결, 빈 값은 자동 제거)
-    function buildAddress(row) {
-      const floor = row.floor != null && row.floor !== ''
-        ? `${row.floor}층`
-        : '';
-      const unit = row.unit_info != null && row.unit_info !== ''
-        ? `${row.unit_info}호`
-        : '';
-
-      const parts = [
-        row.province,
-        row.city,
-        row.district,
-        row.detail_address, // 번지
-        floor,
-        unit
-      ].map(v => (v == null ? '' : String(v).trim()))
-      .filter(Boolean);
-
-      return parts.join(' ');
-    }
-
     function buildDateBlock(row) {
       const parts = [];
 
