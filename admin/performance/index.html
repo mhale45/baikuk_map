@@ -526,13 +526,15 @@
     document.dispatchEvent(new Event('supabase-ready'));
     
     import {
-      formatNumberWithCommas,
       calculateFees,
+      recalcPerformanceFromFees
+    } from './sales-module.js';
+    import {
+      formatNumberWithCommas,
       numOrNull,
       intOrNull,
       dateOrNull,
-      recalcPerformanceFromFees
-    } from './sales-module.js';
+    } from './modules/core/format.js';
 
     // 스크립트 추가
     let _pcdCache = null;

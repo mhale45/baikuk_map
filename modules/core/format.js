@@ -23,3 +23,41 @@ export function formatFloor(floor, total_floors){
   const floorStr = floor < 0 ? `B${Math.abs(floor)}` : String(floor);
   return `${floorStr}${total_floors ? `/${total_floors}층` : ''}`;
 }
+/**
+ * ✅ 숫자/날짜 포맷 유틸 모음
+ * : 문자열 숫자 → 숫자 변환, 콤마 포맷, 날짜 문자열 처리 등
+ *
+ * 📌 사용 예시:
+ *   numOrNull("1,200") → 1200
+ *   intOrNull("1,234.56") → 1234
+ *   dateOrNull(" 2024-01-01 ") → "2024-01-01"
+ *   formatNumberWithCommas(1234567) → "1,234,567"
+ */
+
+// ✅ 숫자 문자열 → 숫자 (null 허용)
+export const numOrNull = (v) => {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const n = Number(s.replaceAll(',', ''));
+  return Number.isFinite(n) ? n : null;
+};
+
+// ✅ 숫자 문자열 → 정수 (소수점 버림)
+export const intOrNull = (v) => {
+  const n = numOrNull(v);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+};
+
+// ✅ 날짜 문자열이 공백이면 null 반환
+export const dateOrNull = (v) => {
+  const s = (v ?? '').trim();
+  return s ? s : null;
+};
+
+// ✅ 숫자에 천 단위 콤마 추가
+export const formatNumberWithCommas = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  const num = Number(String(value).replace(/,/g, ''));
+  return Number.isFinite(num) ? num.toLocaleString('ko-KR') : value;
+};
