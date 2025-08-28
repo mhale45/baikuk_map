@@ -385,3 +385,19 @@ export function validateTotalWeight() {
 
     return true;
 }
+
+// 특약사항 오토 리사이즈 함수 + 바인딩
+export function enableAutoGrowTextArea(el) {
+    if (!el) return;
+    const grow = () => {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+    };
+    // 입력/붙여넣기/값 변경 시 늘어나게
+    el.addEventListener('input', grow);
+    el.addEventListener('change', grow);
+    // 처음 로드될 때도 한 번 맞춤
+    requestAnimationFrame(grow);
+    // 레이아웃/폭이 바뀔 때 재계산(선택)
+    window.addEventListener('resize', grow);
+}
