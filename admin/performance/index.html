@@ -414,12 +414,12 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      initSalesLocationSelects, fetchListingAndFill, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      initSalesLocationSelects,fetchListingAndFill, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
     import {
-      attachCommaFormatter, formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
+      formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -1102,6 +1102,28 @@
     document.getElementById("f_seller_distribution_rate")?.addEventListener("input",  calculateFees);
     document.getElementById("f_seller_distribution_rate")?.addEventListener("change", calculateFees);
 
+    function attachCommaFormatter(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      // 입력할 때마다 숫자 변환 + 콤마 표시
+      el.addEventListener("input", () => {
+        const cursor = el.selectionStart;
+        const raw = el.value.replace(/,/g, '');
+        if (!raw) { el.value = ''; return; }
+        const num = Number(raw);
+        if (!isNaN(num)) {
+          el.value = formatNumberWithCommas(num);
+          // 커서 위치 보정 (선택사항)
+          el.setSelectionRange(cursor, cursor);
+        }
+      });
+
+      // 포커스 잃었을 때도 포맷 적용
+      el.addEventListener("blur", () => {
+        el.value = formatNumberWithCommas(el.value);
+      });
+    }
 
     // ===== 포맷 적용할 필드들 =====
     [
