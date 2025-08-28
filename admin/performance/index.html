@@ -400,15 +400,7 @@
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
   </div>  
   <script type="module">
-    import {
-      formatNumberWithCommas,
-      calculateFees,
-      numOrNull,
-      intOrNull,
-      dateOrNull,
-      recalcPerformanceFromFees
-    } from './sales-module.js';
-    import { createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, getMyAffiliation } from './performance-module.js';
+    // sales-module.js
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const supabase = createClient(
@@ -533,6 +525,14 @@
     window.supabase = supabase;
     document.dispatchEvent(new Event('supabase-ready'));
     
+    import {
+      formatNumberWithCommas,
+      calculateFees,
+      numOrNull,
+      intOrNull,
+      dateOrNull,
+      recalcPerformanceFromFees
+    } from './sales-module.js';
 
     // 스크립트 추가
     let _pcdCache = null;
@@ -543,6 +543,73 @@
     let currentCustomerId = null;
 
     // 클로징, 매물확보 비율에 따라 직원 총 매출 자동계산
+    function createAllocationItem(index) {
+      const template = document.getElementById("allocation-template");
+      const clone = template.content.cloneNode(true);
+      const root = clone.querySelector("div");
+
+      const select = root.querySelector("select");
+      const buyerInput = root.querySelector(".buyer-weight");
+      const sellerInput = root.querySelector(".seller-weight");
+      const resultInput = root.querySelectorAll("input")[3]; // 매출 input
+
+      // ID 설정
+      select.id = `select_staff${index}`;
+      buyerInput.id = `f_buyer_weight${index}`;
+      sellerInput.id = `f_seller_weight${index}`;
+
+      // 자동 계산 함수
+      function calculatePerformance() {
+        const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
+        const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
+
+        const bw = parseFloat(buyerInput.value) || 0;
+        const sw = parseFloat(sellerInput.value) || 0;
+
+        const result = (buyerPerf * bw * 0.01) + (sellerPerf * sw * 0.01);
+        resultInput.value = Math.round(result);
+      }
+
+      buyerInput.addEventListener('input', calculatePerformance);
+      sellerInput.addEventListener('input', calculatePerformance);
+
+      return root;
+    }
+
+    function calculateDownPaymentAndBalance({ forceDownPaymentUpdate = false } = {}) {
+      const deposit = numOrNull(document.getElementById('f_deposit_price')?.value) || 0;
+
+      const downPaymentInput = document.getElementById('f_down_payment');
+
+      // ✅ 계약금 자동계산 조건: 초기 1회 or 보증금 변경 시 강제 업데이트
+      if (!isDownPaymentAutoFilled || forceDownPaymentUpdate) {
+        const downPayment = Math.round(deposit * 0.1);
+        downPaymentInput.value = formatNumberWithCommas(downPayment);
+        isDownPaymentAutoFilled = true;
+      }
+
+      const downPayment = numOrNull(downPaymentInput?.value) || 0;
+      const i1 = numOrNull(document.getElementById('f_interim_payment1')?.value) || 0;
+      const i2 = numOrNull(document.getElementById('f_interim_payment2')?.value) || 0;
+      const i3 = numOrNull(document.getElementById('f_interim_payment3')?.value) || 0;
+
+      const balance = deposit - (downPayment + i1 + i2 + i3);
+      document.getElementById('f_balance').value = formatNumberWithCommas(Math.max(balance, 0));
+    }
+
+    async function ensureStaffNameMap() {
+      if (STAFF_NAME_BY_ID.size > 0) return;
+      await waitForSupabase();
+      const { data, error } = await window.supabase
+        .from('staff_profiles')
+        .select('id, name')
+        .is('leave_date', null);
+      if (!error && data) {
+        STAFF_NAME_BY_ID.clear();
+        data.forEach(({id, name}) => STAFF_NAME_BY_ID.set(id, name));
+      }
+    }
+
     async function populateAllStaffSelects(myAffiliation=null) {
       try {
         await waitForSupabase();
@@ -587,6 +654,21 @@
     }
 
     // (선택) 내 소속 가져오기
+    async function getMyAffiliation() {
+      try {
+        await waitForSupabase();
+        const { data: sessionRes } = await window.supabase.auth.getSession();
+        const user = sessionRes?.session?.user;
+        if (!user?.id) return null;
+        const { data: prof } = await window.supabase
+          .from('staff_profiles')
+          .select('affiliation')
+          .eq('auth_user_id', user.id)   // ← 위쪽 코드랑 키 통일! (user_id → auth_user_id)
+          .maybeSingle();
+        return prof?.affiliation ?? null;
+      } catch { return null; }
+    }
+    
     function buildListingTitle(row) {
       const id = row.listing_id ? `[${String(row.listing_id).trim()}]` : '';
       const title = row.listing_title ? String(row.listing_title).trim() : '';
@@ -1705,6 +1787,7 @@
         setInputValue(`f_seller_weight${i}`, pa?.[`seller_weight${i}`] != null ? Math.round(pa[`seller_weight${i}`] * 100) : '');
       }
     }
+
   </script>
 </body>
 </html>
