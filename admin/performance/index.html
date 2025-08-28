@@ -419,7 +419,7 @@
     window.updateHighlight = updateHighlight;
 
     import {
-      formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
+      attachCommaFormatter, formatIdsWithCommas, formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -719,6 +719,7 @@
           const handler = () => {
             recalcPerformanceFromFees();   // 클로징/매물 매출 갱신
             triggerAllocationRecalc();     // 직원별 기여 매출 갱신
+            formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
           };
           el.addEventListener("input", handler);
           el.addEventListener("change", handler);
@@ -731,6 +732,7 @@
         const handler = () => {
           recalcPerformanceFromFees();     // 분배율 변화 반영
           triggerAllocationRecalc();       // 직원별 기여 매출 갱신
+          formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
         };
         distEl.addEventListener("input", handler);
         distEl.addEventListener("change", handler);
@@ -1309,29 +1311,6 @@
     const distEl2 = document.getElementById("f_seller_distribution_rate");
     distEl2?.addEventListener("input",  calcFeesAndTrigger);
     distEl2?.addEventListener("change", calcFeesAndTrigger);
-
-    function attachCommaFormatter(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      // 입력할 때마다 숫자 변환 + 콤마 표시
-      el.addEventListener("input", () => {
-        const cursor = el.selectionStart;
-        const raw = el.value.replace(/,/g, '');
-        if (!raw) { el.value = ''; return; }
-        const num = Number(raw);
-        if (!isNaN(num)) {
-          el.value = formatNumberWithCommas(num);
-          // 커서 위치 보정 (선택사항)
-          el.setSelectionRange(cursor, cursor);
-        }
-      });
-
-      // 포커스 잃었을 때도 포맷 적용
-      el.addEventListener("blur", () => {
-        el.value = formatNumberWithCommas(el.value);
-      });
-    }
 
     // ===== 포맷 적용할 필드들 =====
     [

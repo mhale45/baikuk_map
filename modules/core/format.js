@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+//admin/modules/core/format.js
 
 export function formatKoreanMoney(value){
   if (value===undefined || value===null || value==='') return '-';
@@ -91,3 +91,13 @@ export const formatNumberWithCommas = (value) => {
   const num = Number(String(value).replace(/,/g, ''));
   return Number.isFinite(num) ? num.toLocaleString('ko-KR') : value;
 };
+
+// [ADD] 여러 input id의 현재 값을 강제로 콤마 포맷 (readonly 포함)
+export function formatIdsWithCommas(ids = []) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const n = Number(String(el.value ?? '').replace(/,/g, '')) || 0;
+    el.value = formatNumberWithCommas(n);
+  });
+}
