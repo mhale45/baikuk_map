@@ -1056,6 +1056,23 @@
       el._t = setTimeout(() => el.classList.add('hidden'), 2200);
     }
 
+    // ===== 숫자/정수/날짜 정규화 =====
+    const numOrNull = v => {
+      if (v === undefined || v === null) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      const n = Number(s.replaceAll(',', ''));
+      return Number.isFinite(n) ? n : null;
+    };
+    const intOrNull = v => {
+      const n = numOrNull(v);
+      return Number.isFinite(n) ? Math.trunc(n) : null;
+    };
+    const dateOrNull = v => {
+      const s = (v ?? '').trim();
+      return s ? s : null; // YYYY-MM-DD 그대로 저장 (date 컬럼)
+    };
+
     // ===== 패널 열고 닫기 =====
     const drawer = document.getElementById('sales-drawer');
     const overlay = document.getElementById('sales-overlay');
