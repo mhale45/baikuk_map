@@ -1,10 +1,10 @@
 // performance.js
 import {
-    formatNumberWithCommas,
-    numOrNull,
+    formatArea1, formatNumberWithCommas,numOrNull,
 } from '../../../modules/core/format.js';
+
 import { waitForSupabase } from '../../../modules/core/supabase.js';
-    import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
+import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
