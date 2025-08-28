@@ -699,6 +699,8 @@
           input.dispatchEvent(new Event("input", { bubbles: true }));
         });
       }
+      // ✅ 전역에서 쓸 수 있게 노출
+      window.triggerAllocationRecalc = triggerAllocationRecalc;
 
       // 4) (클로징/매물) 매출 값이 바뀌면 → 분배칸 다시 계산
       ["f_buyer_performance", "f_seller_performance"].forEach(id => {
@@ -1286,15 +1288,6 @@
         fillSelect(districtEl, d2, '');
       };
     }
-
-    // 수수료 필드 변경 시 매출만 갱신
-    ["f_buyer_fee","f_seller_fee"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener("input",  recalcPerformanceFromFees);
-        el.addEventListener("change", recalcPerformanceFromFees);
-      }
-    });
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
     ["f_deal_type","f_sale_price","f_deposit_price","f_monthly_rent"].forEach(id => {
