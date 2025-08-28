@@ -8,9 +8,6 @@
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    let currentCustomerId = null; // 전역 변수로 추가
-  </script>
   <style>
     /* === print 전용 설정 === */
     @media print {
@@ -525,18 +522,25 @@
         }
       }
     })();
-
-
     window.supabase = supabase;
     document.dispatchEvent(new Event('supabase-ready'));
   </script>
-  <script>
+  <script type="module">
+    import {
+      formatNumberWithCommas,
+      calculateFees,
+      numOrNull,
+      intOrNull,
+      dateOrNull,
+      recalcPerformanceFromFees
+    } from './sales-module.js';
     // 스크립트 추가
     let _pcdCache = null;
     let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
-    let STAFF_NAME_BY_ID = new Map();
+    let STAFF_NAME_BY_ID = new Map();    
+    let currentCustomerId = null;
 
     // 클로징, 매물확보 비율에 따라 직원 총 매출 자동계산
     function createAllocationItem(index) {
