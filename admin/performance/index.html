@@ -1056,23 +1056,6 @@
       el._t = setTimeout(() => el.classList.add('hidden'), 2200);
     }
 
-    // ===== 숫자/정수/날짜 정규화 =====
-    const numOrNull = v => {
-      if (v === undefined || v === null) return null;
-      const s = String(v).trim();
-      if (!s) return null;
-      const n = Number(s.replaceAll(',', ''));
-      return Number.isFinite(n) ? n : null;
-    };
-    const intOrNull = v => {
-      const n = numOrNull(v);
-      return Number.isFinite(n) ? Math.trunc(n) : null;
-    };
-    const dateOrNull = v => {
-      const s = (v ?? '').trim();
-      return s ? s : null; // YYYY-MM-DD 그대로 저장 (date 컬럼)
-    };
-
     // ===== 패널 열고 닫기 =====
     const drawer = document.getElementById('sales-drawer');
     const overlay = document.getElementById('sales-overlay');
@@ -1672,18 +1655,6 @@
       };
     }
 
-    function recalcPerformanceFromFees() {
-      const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
-      const sellerFee = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
-      const distRate  = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
-
-      const sellerPerformance = sellerFee * distRate * 0.01;
-      const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
-
-      document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
-      document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
-    }
-
     // 수수료 필드 변경 시 매출만 갱신
     ["f_buyer_fee","f_seller_fee"].forEach(id => {
       const el = document.getElementById(id);
@@ -1692,29 +1663,6 @@
         el.addEventListener("change", recalcPerformanceFromFees);
       }
     });
-
-    // ===== 수수료 + 매출 자동 계산 ===== trim 적용
-    function calculateFees() {
-      const type = (document.getElementById("f_deal_type")?.value || '').trim(); // ✅
-      const salePrice   = numOrNull(document.getElementById("f_sale_price")?.value) || 0;
-      const deposit     = numOrNull(document.getElementById("f_deposit_price")?.value) || 0;
-      const monthlyRent = numOrNull(document.getElementById("f_monthly_rent")?.value) || 0;
-
-      let 기준금액 = 0;
-      if (type === "매매") 기준금액 = salePrice;
-      else if (type === "월세") 기준금액 = monthlyRent * 100 + deposit;
-      else return;
-
-      const fee = 기준금액 >= 50_000_000 ? 기준금액 * 0.009 : 기준금액 * 0.007;
-      const buyerFeeEl = document.getElementById("f_buyer_fee");
-      const sellerFeeEl = document.getElementById("f_seller_fee");
-      const distRateEl  = document.getElementById("f_seller_distribution_rate");
-
-      buyerFeeEl.value  = formatNumberWithCommas(Math.round(fee));
-      sellerFeeEl.value = formatNumberWithCommas(Math.round(fee));
-
-      recalcPerformanceFromFees();
-    }
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
     ["f_deal_type","f_sale_price","f_deposit_price","f_monthly_rent"].forEach(id => {
@@ -1726,13 +1674,6 @@
     });
     document.getElementById("f_seller_distribution_rate")?.addEventListener("input",  calculateFees);
     document.getElementById("f_seller_distribution_rate")?.addEventListener("change", calculateFees);
-
-    // ===== 숫자 입력에 콤마 표시 =====
-    function formatNumberWithCommas(value) {
-      if (value === null || value === undefined || value === '') return '';
-      const num = Number(String(value).replace(/,/g, ''));
-      return Number.isFinite(num) ? num.toLocaleString('ko-KR') : value;
-    }
 
     function attachCommaFormatter(id) {
       const el = document.getElementById(id);
@@ -1844,6 +1785,6 @@
     }
 
   </script>
-
+  <script type="module" src="./sales-module.js"></script>
 </body>
 </html>
