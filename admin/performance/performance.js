@@ -282,3 +282,53 @@ export function enableAutoGrowTextArea(el) {
     // 레이아웃/폭이 바뀔 때 재계산(선택)
     window.addEventListener('resize', grow);
 }
+
+export function collectPerformancePayload() {
+    return {
+    listing_id: intOrNull(document.getElementById('f_listing_id')?.value),
+    deal_type: (document.getElementById('f_deal_type')?.value ?? '').trim() || null,
+    listing_title: (document.getElementById('f_listing_title')?.value ?? '').trim() || null,
+    province: (document.getElementById('f_province')?.value ?? '').trim() || null,
+    city: (document.getElementById('f_city')?.value ?? '').trim() || null,
+    district: (document.getElementById('f_district')?.value ?? '').trim() || null,
+    detail_address: (document.getElementById('f_detail_address')?.value ?? '').trim() || null,
+
+    contract_date: dateOrNull(document.getElementById('f_contract_date')?.value),
+
+    down_payment: numOrNull(document.getElementById('f_down_payment')?.value),
+    balance: numOrNull(document.getElementById('f_balance')?.value),
+    interim_payment1: numOrNull(document.getElementById('f_interim_payment1')?.value),
+    interim_payment2: numOrNull(document.getElementById('f_interim_payment2')?.value),
+    interim_payment3: numOrNull(document.getElementById('f_interim_payment3')?.value),
+    // ✅ 새로 추가된 날짜 3개
+    interim_payment1_date: dateOrNull(document.getElementById('f_interim_payment1_date')?.value),
+    interim_payment2_date: dateOrNull(document.getElementById('f_interim_payment2_date')?.value),
+    interim_payment3_date: dateOrNull(document.getElementById('f_interim_payment3_date')?.value),
+
+    balance_date: dateOrNull(document.getElementById('f_balance_date')?.value),
+
+    deposit_price: numOrNull(document.getElementById('f_deposit_price')?.value),
+    monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value),
+    sale_price: numOrNull(document.getElementById('f_sale_price')?.value),
+    area_py: numOrNull(document.getElementById('f_area_py')?.value),
+    unit_info: (document.getElementById('f_unit_info')?.value ?? '').trim() || null,
+    floor: intOrNull(document.getElementById('f_floor')?.value),
+
+    premium_price: numOrNull(document.getElementById('f_premium_price')?.value),
+    expense: numOrNull(document.getElementById('f_expense')?.value),
+
+    buyer_fee: numOrNull(document.getElementById('f_buyer_fee')?.value),
+    buyer_tax: numOrNull(document.getElementById('f_buyer_tax')?.value),
+    buyer_tax_date: dateOrNull(document.getElementById('f_buyer_tax_date')?.value),
+
+    seller_fee: numOrNull(document.getElementById('f_seller_fee')?.value),
+    seller_tax: numOrNull(document.getElementById('f_seller_tax')?.value),
+    seller_tax_date: dateOrNull(document.getElementById('f_seller_tax_date')?.value),
+
+    seller_distribution_rate: numOrNull(document.getElementById('f_seller_distribution_rate')?.value),
+    seller_performance: numOrNull(document.getElementById('f_seller_performance')?.value),
+    buyer_performance: numOrNull(document.getElementById('f_buyer_performance')?.value),
+
+    special_contract: (document.getElementById('f_special_contract')?.value ?? '').trim() || null,
+    };
+}
