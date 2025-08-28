@@ -131,8 +131,14 @@
         </div>
     </div>
     
+    // 스크립트
     <script type="module">
         import { login, logout, guardAuthOrRedirect, showLogin, hideLogin, showAuthRedirectMessage } from './modules/auth-module.js';
+        window.login = () => login(client);
+        window.logout = () => logout(client);
+        window.showLogin = showLogin;
+        window.hideLogin = hideLogin;
+
         // 고객뷰도 같은 버킷 사용 (Private)
         window.BUCKET_IS_PUBLIC = false;
 
