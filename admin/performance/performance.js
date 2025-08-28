@@ -5,6 +5,7 @@ import {
     intOrNull,
     dateOrNull,
 } from '../../../modules/core/format.js';
+import { STAFF_NAME_BY_ID } from '/index.html';
 
 export function createAllocationItem(index) {
   const template = document.getElementById("allocation-template");

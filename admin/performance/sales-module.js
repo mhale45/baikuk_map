@@ -1,13 +1,5 @@
 // sales-module.js
 
-
-// ✅ 콤마 포맷팅 함수
-export const formatNumberWithCommas = value => {
-  if (value === null || value === undefined || value === '') return '';
-  const num = Number(String(value).replace(/,/g, ''));
-  return Number.isFinite(num) ? num.toLocaleString('ko-KR') : value;
-};
-
 // ✅ 자동계산: 수수료 → 매출 계산
 export function recalcPerformanceFromFees() {
   const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
