@@ -288,17 +288,17 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금1</span>
               <input id="f_interim_payment1_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment1" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금2</span>
               <input id="f_interim_payment2_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment2" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금3</span>
               <input id="f_interim_payment3_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment3" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment3" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-red-600">잔금일*</span>
@@ -377,7 +377,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
+                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
                 </label>
               </div>
             </template>
@@ -419,7 +419,7 @@
     window.updateHighlight = updateHighlight;
 
     import {
-      formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
+      formatNumberWithCommas, attachCommaFormatter, formatIdsWithCommas, formatArea1, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -719,6 +719,7 @@
           const handler = () => {
             recalcPerformanceFromFees();   // 클로징/매물 매출 갱신
             triggerAllocationRecalc();     // 직원별 기여 매출 갱신
+            formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
           };
           el.addEventListener("input", handler);
           el.addEventListener("change", handler);
@@ -731,6 +732,7 @@
         const handler = () => {
           recalcPerformanceFromFees();     // 분배율 변화 반영
           triggerAllocationRecalc();       // 직원별 기여 매출 갱신
+          formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
         };
         distEl.addEventListener("input", handler);
         distEl.addEventListener("change", handler);
@@ -738,6 +740,7 @@
 
       // 7) 초기 1회 동기화
       triggerAllocationRecalc();
+      formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
     });
 
 
@@ -751,7 +754,11 @@
       updateHighlight();
       document.getElementById("f_deal_type")?.addEventListener("change", updateHighlight);
 
-      ["f_deposit_price", "f_down_payment", "f_interim_payment1", "f_interim_payment2", "f_interim_payment3"].forEach(id => {
+      [
+        "f_deposit_price", "f_down_payment",
+        "f_interim_payment1", "f_interim_payment2", "f_interim_payment3",
+        "f_buyer_performance", "f_seller_performance"
+      ].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.addEventListener("input", () => {
@@ -1306,29 +1313,6 @@
     distEl2?.addEventListener("input",  calcFeesAndTrigger);
     distEl2?.addEventListener("change", calcFeesAndTrigger);
 
-    function attachCommaFormatter(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      // 입력할 때마다 숫자 변환 + 콤마 표시
-      el.addEventListener("input", () => {
-        const cursor = el.selectionStart;
-        const raw = el.value.replace(/,/g, '');
-        if (!raw) { el.value = ''; return; }
-        const num = Number(raw);
-        if (!isNaN(num)) {
-          el.value = formatNumberWithCommas(num);
-          // 커서 위치 보정 (선택사항)
-          el.setSelectionRange(cursor, cursor);
-        }
-      });
-
-      // 포커스 잃었을 때도 포맷 적용
-      el.addEventListener("blur", () => {
-        el.value = formatNumberWithCommas(el.value);
-      });
-    }
-
     // ===== 포맷 적용할 필드들 =====
     [
       "f_sale_price",
@@ -1336,6 +1320,9 @@
       "f_monthly_rent",
       "f_premium_price",
       "f_down_payment",
+      "f_interim_payment1",
+      "f_interim_payment2",
+      "f_interim_payment3", 
       "f_balance",
       "f_buyer_fee",
       "f_buyer_tax",
@@ -1384,12 +1371,13 @@
       setField('f_balance', row.balance, {comma:true});
       setField('f_contract_date', row.contract_date);
       setField('f_balance_date',  row.balance_date);
-      setField('f_interim_payment1', row.interim_payment1);
+      setField('f_interim_payment1', row.interim_payment1, {comma:true});
       setField('f_interim_payment1_date', row.interim_payment1_date);
-      setField('f_interim_payment2', row.interim_payment2);
+      setField('f_interim_payment2', row.interim_payment2, {comma:true});
       setField('f_interim_payment2_date', row.interim_payment2_date);
-      setField('f_interim_payment3', row.interim_payment3);
+      setField('f_interim_payment3', row.interim_payment3, {comma:true});
       setField('f_interim_payment3_date', row.interim_payment3_date);
+
 
       // 수수료/세금/매출
       setField('f_buyer_fee', row.buyer_fee, {comma:true});

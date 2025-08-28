@@ -147,7 +147,7 @@
         <!-- 여기에 직원 이름들이 표시됩니다 -->
       </div>
     </div>
-    <div class="w-[84%] flex flex-col bg-gray-100">
+    <div class="w-[84%] flex flex-col bg-gray-100 overflow-x-auto">
       <div class="sticky top-0 z-20 bg-gray-100/80 backdrop-blur px-4 py-3 flex items-center justify-between border-b border-gray-200">
         <div class="flex items-center gap-2">
           <button id="open-sales-drawer" class="px-4 py-2 rounded-lg bg-[#5098e9] text-white font-semibold hover:brightness-110 active:brightness-90">
@@ -157,33 +157,31 @@
       </div>
       <section class="p-5">
         <h3 class="text-base font-semibold text-gray-700 mb-3">매출 조회</h3>
-        <div class="overflow-x-auto">
-          <table id="performance-table" class="table-auto border-collapse w-full text-sm">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="border px-2 py-1 min-w-[3rem]">매물명</th>
-                <th class="border px-2 py-1 min-w-[3rem]">주소</th>
-                <th class="border px-2 py-1 min-w-[3rem]">구분</th>
-                <th class="border px-2 py-1 min-w-[9rem]">가격</th>
-                <th class="border px-2 py-1 min-w-[3rem]">면적</th>
-                <th class="border px-2 py-1 min-w-[10rem]">계약일/잔금일</th>
-                <th class="border px-2 py-1 min-w-[3rem]">매수인</th>
-                <th class="border px-2 py-1 min-w-[6rem]">세금계산서</th>
-                <th class="border px-2 py-1 min-w-[4rem]">발행일</th>
-                <th class="border px-2 py-1 min-w-[3rem]">매도인</th>
-                <th class="border px-2 py-1 min-w-[6rem]">세금계산서</th>
-                <th class="border px-2 py-1 min-w-[4rem]">발행일</th>
-                <th class="border px-2 py-1 min-w-[5rem]">사용비용</th>
-                <th class="border px-2 py-1 min-w-[5rem]">직원이름</th>
-                <th class="border px-2 py-1 min-w-[5rem]">클로징</th>
-                <th class="border px-2 py-1 min-w-[5rem]">매물확보</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- 데이터 행이 JS로 채워질 자리 -->
-            </tbody>
-          </table>
-        </div>
+        <table id="performance-table" class="table-auto border-collapse w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-2 py-1 min-w-[3rem]">매물명</th>
+              <th class="border px-2 py-1 min-w-[3rem]">주소</th>
+              <th class="border px-2 py-1 min-w-[3rem]">구분</th>
+              <th class="border px-2 py-1 min-w-[9rem]">가격</th>
+              <th class="border px-2 py-1 min-w-[3rem]">면적</th>
+              <th class="border px-2 py-1 min-w-[10rem]">계약일/잔금일</th>
+              <th class="border px-2 py-1 min-w-[3rem]">매수인</th>
+              <th class="border px-2 py-1 min-w-[6rem]">세금계산서</th>
+              <th class="border px-2 py-1 min-w-[4rem]">발행일</th>
+              <th class="border px-2 py-1 min-w-[3rem]">매도인</th>
+              <th class="border px-2 py-1 min-w-[6rem]">세금계산서</th>
+              <th class="border px-2 py-1 min-w-[4rem]">발행일</th>
+              <th class="border px-2 py-1 min-w-[5rem]">사용비용</th>
+              <th class="border px-2 py-1 min-w-[5rem]">직원이름</th>
+              <th class="border px-2 py-1 min-w-[5rem]">클로징</th>
+              <th class="border px-2 py-1 min-w-[5rem]">매물확보</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 데이터 행이 JS로 채워질 자리 -->
+          </tbody>
+        </table>
       </section>
     </div>
     <!-- 오른쪽 슬라이드 패널 -->

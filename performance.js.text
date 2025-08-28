@@ -146,7 +146,7 @@ export function createAllocationItem(index) {
 
     const result = (buyerPerf * bw * 0.01) + (sellerPerf * sw * 0.01);
     if (!resultInput) return; // 안전 가드
-    resultInput.value = Math.round(result);
+        resultInput.value = formatNumberWithCommas(Math.round(result));
     }
 
     buyerInput.addEventListener('input', calculatePerformance);
