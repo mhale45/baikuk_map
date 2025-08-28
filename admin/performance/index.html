@@ -377,7 +377,7 @@
                 </label>
                 <label class="flex gap-1 items-center">
                   <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="number" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
+                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[7rem]">
                 </label>
               </div>
             </template>
@@ -419,7 +419,7 @@
     window.updateHighlight = updateHighlight;
 
     import {
-      attachCommaFormatter, formatIdsWithCommas, formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
+      formatNumberWithCommas, attachCommaFormatter, formatIdsWithCommas, formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -740,6 +740,7 @@
 
       // 7) 초기 1회 동기화
       triggerAllocationRecalc();
+      formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
     });
 
 
