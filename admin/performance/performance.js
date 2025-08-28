@@ -7,6 +7,22 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
+
+export function buildPriceBlock(row) {
+    const parts = [];
+    const pushIf = (label, v) => {
+    const n = Number(v || 0);
+    if (n > 0) parts.push(`${label} ${formatNumberWithCommas(n)}`);
+    };
+
+    pushIf('매매가',  row.sale_price);
+    pushIf('보증금',  row.deposit_price);
+    pushIf('월세',    row.monthly_rent);
+    pushIf('권리금',  row.premium_price);
+
+    return parts.join('<br>'); // 줄바꿈으로 구분
+}
+
 export function buildDateBlock(row) {
     const parts = [];
 

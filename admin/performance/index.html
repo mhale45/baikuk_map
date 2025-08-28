@@ -411,19 +411,10 @@
     document.dispatchEvent(new Event('supabase-ready'));
     
     import {
-      createAllocationItem,
-      calculateDownPaymentAndBalance,
-      ensureStaffNameMap,
-      calculateFees,
-      recalcPerformanceFromFees,
-      populateAllStaffSelects,
-      buildDateBlock
+      createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     import {
-      formatNumberWithCommas,
-      numOrNull,
-      intOrNull,
-      dateOrNull,
+      formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -545,21 +536,6 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-
-    function buildPriceBlock(row) {
-      const parts = [];
-      const pushIf = (label, v) => {
-        const n = Number(v || 0);
-        if (n > 0) parts.push(`${label} ${formatNumberWithCommas(n)}`);
-      };
-
-      pushIf('매매가',  row.sale_price);
-      pushIf('보증금',  row.deposit_price);
-      pushIf('월세',    row.monthly_rent);
-      pushIf('권리금',  row.premium_price);
-
-      return parts.join('<br>'); // 줄바꿈으로 구분
-    }
 
     // 헬퍼: 면적 소수점 1자리
     function formatArea1(v) {
