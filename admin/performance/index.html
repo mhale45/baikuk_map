@@ -611,9 +611,13 @@
                   const savedInv = pa?.[`involvement_sales${i}`];
                   const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
                   const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
-                  inv.push(formatNumberWithCommas(
-                    typeof savedInv === 'number' && !Number.isNaN(savedInv) ? savedInv : (buyerAmt + sellerAmt)
-                  ));
+                  inv.push(
+                    formatNumberWithCommas(
+                      typeof savedInv === 'number' && !Number.isNaN(savedInv)
+                        ? savedInv
+                        : (buyerAmt + sellerAmt)
+                    )
+                  );
 
                   if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
                     names.push(STAFF_NAME_BY_ID.get(sid) || '-');
