@@ -401,9 +401,7 @@
   </div>  
   <script type="module">
     // sales-module.js
-    import { supabase, ensureSession } from '/modules/data/supabaseClient.js';
-    await ensureSession();
-
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const supabase = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
