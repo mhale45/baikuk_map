@@ -537,6 +537,7 @@
     })();
     
     // 스크립트 추가
+    let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let _pcdCache = null;
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
