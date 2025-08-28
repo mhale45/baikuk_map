@@ -416,7 +416,7 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      openDrawer, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      enableAutoGrowTextArea, validateTotalWeight, updateHighlight, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -543,7 +543,14 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-    export function closeDrawer() {
+    function openDrawer() {
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+        drawer.classList.remove('translate-x-full');
+        });
+        initSalesLocationSelects();
+    }
+    function closeDrawer() {
         drawer.classList.add('translate-x-full');
         overlay.classList.add('hidden');
         currentPerformanceId = null;

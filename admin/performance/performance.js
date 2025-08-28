@@ -282,11 +282,3 @@ export function enableAutoGrowTextArea(el) {
     // 레이아웃/폭이 바뀔 때 재계산(선택)
     window.addEventListener('resize', grow);
 }
-
-export function openDrawer() {
-    overlay.classList.remove('hidden');
-    requestAnimationFrame(() => {
-    drawer.classList.remove('translate-x-full');
-    });
-    initSalesLocationSelects();
-}
