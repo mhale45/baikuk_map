@@ -106,7 +106,7 @@ async function boot(){
 // 전역 버튼 바인딩
 document.getElementById('logout-btn')?.addEventListener('click', ()=>logout());
 document.querySelector('img[alt="글씨로고"]')?.addEventListener('click', ()=>showLogin());
-document.getElementById('close-detail-btn').addEventListener('click', hideDetailPanel);
+document.getElementById('close-detail-btn')?.addEventListener('click', hideDetailPanel);
 
 
 boot();
