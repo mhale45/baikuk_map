@@ -5,14 +5,14 @@ import { CONFIG } from '../core/config.js';
 
 let _imgReqToken = 0;
 
-/** 워터마크 URL */
-export async function getWatermarkUrl(){
+/* ---------- 워터마크 PNG 경로 ---------- */
+export async function getWatermarkUrl() {
   const bucket = CONFIG.WM_BUCKET || CONFIG.BUCKET;
-  const prefix = (CONFIG.WM_PREFIX||'').replace(/^\/+|\/+$/g,'');
+  const prefix = (CONFIG.WM_PREFIX || '').replace(/^\/+|\/+$/g, '');
   const fname  = CONFIG.WM_FILE || 'baikuk-logo-warter-mark.png';
   const path   = prefix ? `${prefix}/${fname}` : fname;
 
-  if (CONFIG.WM_BUCKET_IS_PUBLIC !== false){
+  if (CONFIG.WM_BUCKET_IS_PUBLIC !== false) {
     const { data } = client.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
   } else {
@@ -21,53 +21,87 @@ export async function getWatermarkUrl(){
   }
 }
 
-/** 전체 외부 뷰어 (네가 쓰던 큰 템플릿을 그대로 넣어 사용) */
-export function openExternalViewer(items, startIndex = 0, pageTitle='이미지 보기', listingId='', watermarkUrl=''){
-  // ⚠️ 여기에 "네가 원래 쓰던 대형 HTML 템플릿"을 그대로 붙여 넣으세요.
-  // 아래는 안전한 기본 골격만 남겨둔 예시(요약). 실제 템플릿은 너의 기존 코드 사용 권장.
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+/* ---------- 팝업 라이트갤러리 (워터마크 포함) ---------- */
+export function openExternalViewer(items, startIndex = 0, pageTitle = '이미지 보기', listingId = '', watermarkUrl = '') {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+
   const html = `<!doctype html>
-<html lang="ko"><head><meta charset="utf-8" />
-<title>${esc(pageTitle)}</title><meta name="viewport" content="width=device-width,initial-scale=1" />
-<style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}img{max-width:100%}</style>
-</head><body>
-<div id="root"></div>
+<html lang="ko"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${esc(pageTitle)}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lightgallery.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-zoom.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-thumbnail.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery/css/lg-fullscreen.css">
+<style>
+  body{margin:0;background:#000;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;}
+  #gallery{padding:8px;}
+  .lg-wm-white{
+    position:fixed; inset:0; pointer-events:none; user-select:none;
+    opacity:.40; background:#fff; z-index:2147483647;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+  }
+  html, body {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .lg-outer img, .lg-thumb-outer img { -webkit-user-drag: none; }
+</style></head>
+<body><div id="gallery"></div>
 <script>
-const ITEMS = ${JSON.stringify(items)};
-let idx = ${Number(startIndex)||0};
-function render(){
-  const it = ITEMS[idx] || {};
-  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#000">'+
-    '<img src="'+(it.display||it.full||'')+'" style="max-height:100vh;object-fit:contain" />'+
-  '</div>';
+function loadScript(src){return new Promise(r=>{const s=document.createElement('script');s.src=src;s.onload=r;document.head.appendChild(s);});}
+window.__ITEMS__=${JSON.stringify(items)};
+window.__START__=${Number(startIndex)};
+window.__WM_URL__=${JSON.stringify(watermarkUrl||'')};
+
+const WM_RATIO_NORMAL=0.55, WM_RATIO_FS=2.2, WM_MIN=400, WM_MAX=6000;
+function isFS(){return !!(document.fullscreenElement||document.webkitFullscreenElement||document.querySelector('.lg-fullscreen-on'));}
+function addWM(){
+  let wm=document.querySelector('.lg-wm-white');
+  if(!wm){wm=document.createElement('div');wm.className='lg-wm-white';document.body.appendChild(wm);}
+  if(!window.__WM_URL__){wm.style.maskImage='none';wm.style.webkitMaskImage='none';return;}
+  const img=document.querySelector('.lg-current .lg-image');
+  let w=img?img.getBoundingClientRect().width:window.innerWidth;
+  const ratio=isFS()?WM_RATIO_FS:WM_RATIO_NORMAL;
+  const targetW=Math.max(WM_MIN,Math.min(w*ratio,WM_MAX));
+  wm.style.webkitMaskImage='url('+window.__WM_URL__+')';
+  wm.style.maskImage='url('+window.__WM_URL__+')';
+  wm.style.webkitMaskSize=targetW+'px auto';
+  wm.style.maskSize=targetW+'px auto';
 }
-render();
-window.addEventListener('keydown', (e)=>{
-  if(e.key==='ArrowRight'){ idx=Math.min(idx+1, ITEMS.length-1); render(); }
-  if(e.key==='ArrowLeft'){ idx=Math.max(idx-1, 0); render(); }
-});
-</script></body></html>`;
+(async()=>{
+  await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/lightgallery.umd.js');
+  await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js');
+  await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js');
+  await loadScript('https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js');
+  const dynamicEl=(window.__ITEMS__||[]).map(it=>({src:it.display,thumb:it.thumb,subHtml:it.caption}));
+  const index=Math.max(0,Math.min(window.__START__||0,Math.max(0,dynamicEl.length-1)));
+  const lg=lightGallery(document.getElementById('gallery'),{dynamic:true,dynamicEl,index,plugins:[lgZoom,lgThumbnail,lgFullscreen],download:false});
+  lg.openGallery(index);
+  const ensure=()=>requestAnimationFrame(addWM);
+  ensure();
+  ['lgAfterOpen','lgAfterSlide','lgResize','lgContainerResize','lgFullscreenChange'].forEach(ev=>lg.on(ev,ensure));
+  document.addEventListener('fullscreenchange',ensure); window.addEventListener('resize',ensure);
+})();
+<\/script></body></html>`;
+
   const blob = new Blob([html], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  const w = window.open(url, `img-${listingId||'viewer'}`, 'popup=yes,width=1280,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
-  if (!w){ alert('팝업이 차단되었습니다. 팝업을 허용해주세요.'); URL.revokeObjectURL(url); return; }
-  w.focus();
-  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, `img-${listingId||'viewer'}`, 'width=1280,height=800,resizable=yes,scrollbars=yes');
+  if(!w){ alert('팝업 차단을 해제해주세요'); URL.revokeObjectURL(url); return; }
+  w.focus(); setTimeout(()=>URL.revokeObjectURL(url), 10000);
 }
 
-/**
- * 상세 패널 내 2장 프리뷰 + 오버레이 워터마크 + 외부 전체뷰 연동
- * @param {string|number} listingId
- * @param {object} [listing] - 선택(페이지 타이틀 등에 쓸 수 있음)
- */
+/* ---------- 상세 패널: 2장 프리뷰 + 클릭시 외부뷰어 ---------- */
 export async function initImageViewerFast(listingId, listing){
   const slot = document.getElementById('image-viewer-slot');
   if (!slot || !listingId) return;
-
   const myToken = ++_imgReqToken;
   slot.innerHTML = '';
 
-  // 1) 이미지 목록 조회
+  // DB에서 이미지 목록
   const { data: rows, error } = await client
     .from('listing_images')
     .select('path, caption, order_index, is_primary')
@@ -76,84 +110,56 @@ export async function initImageViewerFast(listingId, listing){
     .order('is_primary',{ ascending:false })
     .order('order_index',{ ascending:true });
 
-  if (myToken !== _imgReqToken) return;
-  if (error || !rows?.length) return;
+  if (myToken !== _imgReqToken || error || !rows?.length) return;
 
-  // 2) 프리뷰 DOM 생성(2칸)
+  // 프리뷰 DOM
   const wrap = document.createElement('div');
-  wrap.className = 'bg-white';
+  wrap.className = 'flex gap-2';
   wrap.innerHTML = `
-    <div class="flex gap-2">
-      <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
-        <img id="image-viewer-main-0" class="thumb-img-cover cursor-pointer no-save" alt="" draggable="false" oncontextmenu="return false" />
-        <div id="wm-ov-0" class="wm-white" style="display:none"></div>
-      </div>
-      <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
-        <img id="image-viewer-main-1" class="thumb-img-cover cursor-pointer no-save hidden" alt="" draggable="false" oncontextmenu="return false" />
-        <div id="wm-ov-1" class="wm-white" style="display:none"></div>
-      </div>
+    <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
+      <img id="iv-main-0" class="thumb-img-cover cursor-pointer no-save" />
+      <div id="wm-ov-0" class="wm-white" style="display:none"></div>
     </div>
-  `;
+    <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
+      <img id="iv-main-1" class="thumb-img-cover cursor-pointer no-save hidden" />
+      <div id="wm-ov-1" class="wm-white" style="display:none"></div>
+    </div>`;
   slot.appendChild(wrap);
 
-  const img0 = wrap.querySelector('#image-viewer-main-0');
-  const img1 = wrap.querySelector('#image-viewer-main-1');
+  const img0 = wrap.querySelector('#iv-main-0');
+  const img1 = wrap.querySelector('#iv-main-1');
   const ov0  = wrap.querySelector('#wm-ov-0');
   const ov1  = wrap.querySelector('#wm-ov-1');
 
-  // 3) 첫 이미지 빠른 표시
+  // 첫 장 로드
   const first = rows[0];
-  const firstUrl = await signDisplay(first.path, 900).catch(()=> '');
-  if (myToken !== _imgReqToken) return;
-  if (!firstUrl) return;
-
-  img0.src = firstUrl;
-  try { if (img0.decode) await img0.decode(); } catch {}
-
-  // 워터마크 오버레이 (첫 장)
-  getWatermarkUrl().then(wm => {
-    if (myToken !== _imgReqToken) return;
-    if (!wm) return;
-    ov0.style.webkitMaskImage = `url('${wm}')`;
-    ov0.style.maskImage = `url('${wm}')`;
-    ov0.style.display = 'block';
+  img0.src = await signDisplay(first.path, 900).catch(()=> '');
+  getWatermarkUrl().then(wm=>{
+    if (myToken!==_imgReqToken||!wm) return;
+    ov0.style.maskImage=`url(${wm})`; ov0.style.webkitMaskImage=`url(${wm})`; ov0.style.display='block';
   });
 
-  // 4) 모든 항목 서명 URL 준비 (display/thumb/orig)
-  const items = await Promise.all(rows.map(async (r) => {
-    const [display, thumb, full] = await Promise.all([
-      signDisplay(r.path, 900).catch(()=> ''),
-      signThumb(r.path, 220).catch(()=> ''),
-      signOriginal(r.path).catch(()=> ''),
-    ]);
-    return { display, thumb, full, caption: r.caption || '' };
-  })).catch(()=> []);
+  // 전체 아이템 준비
+  const items = await Promise.all(rows.map(async (r)=>({
+    display: await signDisplay(r.path,900).catch(()=> ''),
+    thumb:   await signThumb(r.path,220).catch(()=> ''),
+    full:    await signOriginal(r.path).catch(()=> ''),
+    caption: r.caption||''
+  })));
 
-  if (myToken !== _imgReqToken) return;
-  if (!items.length) return;
-
-  // 5) 두 번째 프리뷰 표시 + 워터마크
-  if (rows[1] && img1) {
-    const url2 = items[1]?.display || '';
-    if (url2) {
-      img1.classList.remove('hidden');
-      img1.src = url2;
-      getWatermarkUrl().then(wm => {
-        if (myToken !== _imgReqToken) return;
-        if (wm) {
-          ov1.style.webkitMaskImage = `url('${wm}')`;
-          ov1.style.maskImage = `url('${wm}')`;
-          ov1.style.display = 'block';
-        }
-      });
-    }
+  // 두 번째 프리뷰
+  if (rows[1] && items[1]?.display){
+    img1.src = items[1].display;
+    img1.classList.remove('hidden');
+    getWatermarkUrl().then(wm=>{
+      if (myToken!==_imgReqToken||!wm) return;
+      ov1.style.maskImage=`url(${wm})`; ov1.style.webkitMaskImage=`url(${wm})`; ov1.style.display='block';
+    });
   }
 
-  // 6) 클릭 시 외부 뷰어로 전체 보기
-  const pageTitle = (listing?.listing_title || listing?.title || `매물 ${listingId} 이미지`).trim();
+  // 클릭 시 외부 뷰어
+  const title = (listing?.title || `매물 ${listingId} 이미지`);
   const wmUrl = await getWatermarkUrl().catch(()=> '');
-  const openAt = (i) => openExternalViewer(items, i, pageTitle, String(listingId), wmUrl);
-
-  img0.onclick = () => openAt(0);
-  if (!img1.classList.contains('hidden')) img1.onclick = () => openAt(1);
+  const openAt = i => openExternalViewer(items, i, title, String(listingId), wmUrl);
+  img0.onclick=()=>openAt(0); if(!img1.classList.contains('hidden')) img1.onclick=()=>openAt(1);
 }
