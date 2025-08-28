@@ -288,17 +288,17 @@
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금1</span>
               <input id="f_interim_payment1_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment1" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment1" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금2</span>
               <input id="f_interim_payment2_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment2" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment2" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-gray-600">중도금3</span>
               <input id="f_interim_payment3_date" type="date" class="border rounded px-3 py-2 w-[10rem]">
-              <input id="f_interim_payment3" type="number" step="any" class="border rounded px-3 py-2 w-[10rem]">
+              <input id="f_interim_payment3" type="text" step="any" class="border rounded px-3 py-2 w-[10rem]">
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-sm text-red-600">잔금일*</span>
@@ -761,12 +761,10 @@
           el.addEventListener("input", () => {
             const isDeposit = id === "f_deposit_price";
             calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
-            if (el.value) el.value = formatNumberWithCommas(numOrNull(el.value) || 0);
           });
           el.addEventListener("change", () => {
             const isDeposit = id === "f_deposit_price";
             calculateDownPaymentAndBalance({ forceDownPaymentUpdate: isDeposit });
-            if (el.value) el.value = formatNumberWithCommas(numOrNull(el.value) || 0);
           });
         }
       });
@@ -1390,12 +1388,13 @@
       setField('f_balance', row.balance, {comma:true});
       setField('f_contract_date', row.contract_date);
       setField('f_balance_date',  row.balance_date);
-      setField('f_interim_payment1', row.interim_payment1);
+      setField('f_interim_payment1', row.interim_payment1, {comma:true});
       setField('f_interim_payment1_date', row.interim_payment1_date);
-      setField('f_interim_payment2', row.interim_payment2);
+      setField('f_interim_payment2', row.interim_payment2, {comma:true});
       setField('f_interim_payment2_date', row.interim_payment2_date);
-      setField('f_interim_payment3', row.interim_payment3);
+      setField('f_interim_payment3', row.interim_payment3, {comma:true});
       setField('f_interim_payment3_date', row.interim_payment3_date);
+
 
       // 수수료/세금/매출
       setField('f_buyer_fee', row.buyer_fee, {comma:true});
