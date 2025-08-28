@@ -34,6 +34,30 @@ export function formatFloor(floor, total_floors){
  *   formatNumberWithCommas(1234567) → "1,234,567"
  */
 
+// 입력할 때 마다 숫자 콤마 변환
+export function attachCommaFormatter(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  // 입력할 때마다 숫자 변환 + 콤마 표시
+  el.addEventListener("input", () => {
+    const cursor = el.selectionStart;
+    const raw = el.value.replace(/,/g, '');
+    if (!raw) { el.value = ''; return; }
+    const num = Number(raw);
+    if (!isNaN(num)) {
+      el.value = formatNumberWithCommas(num);
+      // 커서 위치 보정 (선택사항)
+      el.setSelectionRange(cursor, cursor);
+    }
+  });
+
+  // 포커스 잃었을 때도 포맷 적용
+  el.addEventListener("blur", () => {
+    el.value = formatNumberWithCommas(el.value);
+  });
+}
+
 // 헬퍼: 면적 소수점 1자리
 export function formatArea1(v) {
   const n = Number(v);
