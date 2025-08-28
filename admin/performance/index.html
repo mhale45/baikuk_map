@@ -404,6 +404,8 @@
     import { waitForSupabase } from '../../../modules/core/supabase.js';
     import { STAFF_NAME_BY_ID } from './performance.js';
     import { getMyAffiliation } from '../../../modules/auth/profile.js';
+    import { buildListingTitle } from '../../../modules/data/listing.js';
+
 
     window.supabase = client;
     document.dispatchEvent(new Event('supabase-ready'));
@@ -542,12 +544,6 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-    
-    function buildListingTitle(row) {
-      const id = row.listing_id ? `[${String(row.listing_id).trim()}]` : '';
-      const title = row.listing_title ? String(row.listing_title).trim() : '';
-      return [id, title].filter(Boolean).join(' ');
-    }
 
     // 헬퍼: 주소 합치기 (공백으로 연결, 빈 값은 자동 제거)
     function buildAddress(row) {
