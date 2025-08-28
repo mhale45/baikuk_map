@@ -823,7 +823,23 @@
         });
         }
 
+        function renderDealAndCategoryButtons() {
+        const btnWrap = document.getElementById('btn-wrap');
+        btnWrap.innerHTML = '';
         
+        const createButton = (text, collection, clickHandler) => {
+            const btn = document.createElement('button');
+            const isActive = collection.includes(text);
+            btn.textContent = isActive ? '✓ ' + text : text;
+            btn.className = "px-3 py-2 rounded-full border text-[13px] font-medium transition";
+            btn.onclick = () => clickHandler(text);
+            applyButtonStyle(btn, isActive);
+            btnWrap.appendChild(btn);
+        };
+        
+        allDealTypes.forEach(type => createButton(type, selectedDealTypes, toggleDealType));
+        allCategories.forEach(cat => createButton(cat, selectedCategories, toggleCategory));
+        }
 
         function toggleDealType(type) {
         if (selectedDealTypes.includes(type)) {
@@ -887,83 +903,83 @@
 
         /* UI */
         async function showDetailPanel(listingId) {
-            window.currentDetailListingId = listingId;
-            renderMatchedListings?.();
+        window.currentDetailListingId = listingId;
+        renderMatchedListings?.();
 
-            const listing = allListings[String(listingId)];
-            if (!listing) return;
+        const listing = allListings[String(listingId)];
+        if (!listing) return;
 
-            detailContent.innerHTML = `
-                <div class="sticky top-0 z-10 bg-white shadow-md p-2 rounded cursor-pointer whitespace-normal">
-                <div class="flex items-start gap-2">
-                    <div class="w-[61px] h-[26px] flex justify-center items-center border-[2px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
-                    ${listing.listing_id}
-                    </div>
-                    <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-base translate-y-[3px] leading-tight">
-                    ${listing.deal_type} ${formatDealPrice(listing)}
-                    <span class="text-[13px] text-gray-700 ml-2">
-                        전용 <strong class="font-semibold">${Number(listing.area_py).toFixed(1)}</strong>평,
-                        <strong class="font-semibold">${formatFloor(listing.floor)}</strong>
-                    </span>
-                    </div>
+        detailContent.innerHTML = `
+            <div class="sticky top-0 z-10 bg-white shadow-md p-2 rounded cursor-pointer whitespace-normal">
+            <div class="flex items-start gap-2">
+                <div class="w-[61px] h-[26px] flex justify-center items-center border-[2px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
+                ${listing.listing_id}
                 </div>
-                <div class="text-base font-bold text-gray-900 mt-1">${(listing.title || '-')}
+                <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-base translate-y-[3px] leading-tight">
+                ${listing.deal_type} ${formatDealPrice(listing)}
+                <span class="text-[13px] text-gray-700 ml-2">
+                    전용 <strong class="font-semibold">${Number(listing.area_py).toFixed(1)}</strong>평,
+                    <strong class="font-semibold">${formatFloor(listing.floor)}</strong>
+                </span>
                 </div>
-                </div>
-                <div id="image-viewer-slot"></div>
-                <div class="mb-2 px-4 pt-2">
-                <span class="text-base font-medium whitespace-pre-line leading-relaxed md:leading-7">${buildListingDescBlock(listing)}</span>
-                </div>
-                <div class="px-4 pb-4">
-                <table class="table-auto w-full text-sm border-t border-gray-300 mt-2">
-                    <tbody>
-                    <tr class="border-b border-gray-300">
-                        <td class="w-[7.5rem] py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">소재지</td>
-                        <td class="py-2 text-gray-800 pl-3">${listing.province} ${listing.city} ${listing.district}</td>
-                    </tr>
-                    <tr class="border-b border-gray-300">
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">계약/전용면적</td>
-                        <td class="py-2 text-gray-800 pl-3 whitespace-nowrap">
-                        ${
-                            (!listing.supply_area_m2 || listing.supply_area_m2 === '-')
-                            ? `${listing.area_m2}㎡ / ${listing.area_m2}㎡`
-                            : `${listing.supply_area_m2}㎡ / ${listing.area_m2}㎡`
-                        }
-                        </td>
-                    </tr>
-                    <tr class="border-b border-gray-300">
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">해당층/총층</td>
-                        <td class="py-2 text-gray-800 pl-3">${listing.floor} / ${listing.total_floors}</td>
-                    </tr>
-                    <tr class="border-b border-gray-300">
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">입주가능일</td>
-                        <td class="py-2 text-gray-800 pl-3">즉시입주 협의가능</td>
-                    </tr>
-                    <tr class="border-b border-gray-300">
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">방향</td>
-                        <td class="py-2 text-gray-800 pl-3">${listing.direction ?? ''}</td>
-                    </tr>
-                    <tr class="border-b border-gray-300">
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">총주차대수</td>
-                        <td class="py-2 text-gray-800 pl-3">${listing.parking ?? ''}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">사용승인일</td>
-                        <td class="py-2 text-gray-800 pl-3">${listing.approved_date ?? ''}</td>
-                    </tr>
-                    </tbody>
-                </table>
-                </div>
-                <div id="branch-info-slot" class="px-4 pb-6 text-xs"></div>`;
+            </div>
+            <div class="text-base font-bold text-gray-900 mt-1">${(listing.title || '-')}
+            </div>
+            </div>
+            <div id="image-viewer-slot"></div>
+            <div class="mb-2 px-4 pt-2">
+            <span class="text-base font-medium whitespace-pre-line leading-relaxed md:leading-7">${buildListingDescBlock(listing)}</span>
+            </div>
+            <div class="px-4 pb-4">
+            <table class="table-auto w-full text-sm border-t border-gray-300 mt-2">
+                <tbody>
+                <tr class="border-b border-gray-300">
+                    <td class="w-[7.5rem] py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">소재지</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.province} ${listing.city} ${listing.district}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">계약/전용면적</td>
+                    <td class="py-2 text-gray-800 pl-3 whitespace-nowrap">
+                    ${
+                        (!listing.supply_area_m2 || listing.supply_area_m2 === '-')
+                        ? `${listing.area_m2}㎡ / ${listing.area_m2}㎡`
+                        : `${listing.supply_area_m2}㎡ / ${listing.area_m2}㎡`
+                    }
+                    </td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">해당층/총층</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.floor} / ${listing.total_floors}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">입주가능일</td>
+                    <td class="py-2 text-gray-800 pl-3">즉시입주 협의가능</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">방향</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.direction ?? ''}</td>
+                </tr>
+                <tr class="border-b border-gray-300">
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">총주차대수</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.parking ?? ''}</td>
+                </tr>
+                <tr>
+                    <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">사용승인일</td>
+                    <td class="py-2 text-gray-800 pl-3">${listing.approved_date ?? ''}</td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+            <div id="branch-info-slot" class="px-4 pb-6 text-xs"></div>`;
 
-            detailContent.scrollTop = 0;
-            detailPanel.classList.remove('hidden');
+        detailContent.scrollTop = 0;
+        detailPanel.classList.remove('hidden');
 
-            if (typeof initImageViewerFast === 'function') {
-                initImageViewerFast(listingId);
-            }
-            populateBranchInfoFor(listing);
-            updateURLForListing?.(listingId);
+        if (typeof initImageViewerFast === 'function') {
+            initImageViewerFast(listingId);
+        }
+        populateBranchInfoFor(listing);
+        updateURLForListing?.(listingId);
         }
 
         /* ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓  이 함수는 inline onclick에서 호출하므로 창 전역에 노출 */
@@ -995,7 +1011,53 @@
         infoPanel.scrollTop = 0;
         }
 
-    
+        function renderMatchedListings() {
+        if (!Array.isArray(matchedListingsCache)) return;
+
+        const end = matchedListingsPage * PAGE_SIZE;
+        const listingsToShow = matchedListingsCache.slice(0, end);
+
+        infoContent.innerHTML = listingsToShow.map(l => {
+            const isActive = String(window.currentDetailListingId) === String(l.listing_id);
+            const highlightStyle = isActive ? 'background-color: rgba(243,244,246);' : '';
+            const logo = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/baikuk-simbol.png';
+
+            return `
+            <div class="mb-1 pb-1 border-b border-gray-300 text-left" style="${highlightStyle}">
+                <div onclick="showDetailPanel(${l.listing_id})" class="cursor-pointer hover:bg-gray-100 transition p-2">
+                <div class="flex flex-row items-center gap-3">
+                    <div class="relative w-[150px] h-[120px] flex-shrink-0 thumb-box overflow-hidden rounded border">
+                    <div class="absolute top-1 left-1 w-[53px] h-[22px] flex items-center justify-center text-[15px] px-1 rounded-md font-semibold z-10"
+                        style="background-color:#F2C130;color:#37373d;">
+                        ${l.listing_id}
+                    </div>
+                    <img id="thumb-${l.listing_id}" src="${logo}" alt="썸네일"
+                        class="thumb-img-contain rounded no-save" draggable="false" oncontextmenu="return false" />
+                    </div>
+                    <div class="flex-1 flex flex-col gap-1">
+                    <div class="font-bold text-[rgb(80,152,233)] text-base">
+                        ${l.deal_type} ${formatDealPrice(l)}
+                    </div>
+                    <div class="text-sm">
+                        전용 <strong class="font-semibold">${Number(l.area_py).toFixed(1)}</strong>평,
+                        <strong class="font-semibold">${formatFloor(l.floor, l.total_floors)}</strong>
+                    </div>
+                    <div class="mt-1">
+                        <span class="inline-block text-[14px] text-gray-800 leading-snug">
+                        ${escapeHtml(l.title || '')}
+                        </span>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        const ids = listingsToShow.map(l => l.listing_id);
+        applyPrimaryThumbsFromCache(ids);
+        loadPrimaryThumbsBatch(ids).catch(console.warn);
+        }
+
         /* 데이터 필터 */
         function getFilterValues() {
         const values = {};
