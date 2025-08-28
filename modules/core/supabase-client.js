@@ -1,37 +1,47 @@
-// /modules/core/supabase-client.js
 import { createClient as _createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { CONFIG } from './config.js';
 
-// 보이지 않는 공백/제어문자 제거
-const sanitize = (s) =>
+// 기본 정리(제로폭, 제어문자, 공백 제거)
+const basicSanitize = (s) =>
   String(s ?? '')
     .normalize('NFKC')
     .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width
-    .replace(/[\r\n\t]/g, '')              // control chars
+    .replace(/[\r\n\t ]/g, '')             // controls + spaces
     .trim();
 
-// 헤더에 넣어도 안전한지 검사 (ISO-8859-1 범위 밖 문자가 있는지)
-const assertIso88591 = (s, label) => {
-  if (/[^\x00-\xFF]/.test(s)) {
-    throw new TypeError(`${label} has non ISO-8859-1 code point`);
-  }
-  if (/[\r\n]/.test(s)) {
-    throw new TypeError(`${label} contains newline`);
-  }
+// JWT/Anon Key 허용 문자만 남기기 (A-Z a-z 0-9 _ - .)
+const toJwtSafe = (s) => (String(s ?? '').match(/[A-Za-z0-9._-]+/g) || []).join('');
+
+// 문제 되는 문자들 출력용(디버그에만)
+const diffChars = (orig, cleaned) => {
+  const set = new Set(cleaned.split(''));
+  return [...orig].filter(ch => !set.has(ch));
 };
 
-// 입력 정리
-const RAW_URL = CONFIG?.SUPABASE_URL;
-const RAW_KEY = CONFIG?.SUPABASE_ANON_KEY;
+// 1) 원본
+const RAW_URL = CONFIG?.SUPABASE_URL ?? '';
+const RAW_KEY = CONFIG?.SUPABASE_ANON_KEY ?? '';
 
-const SUPABASE_URL = sanitize(RAW_URL);
-const SUPABASE_KEY = sanitize(RAW_KEY);
+// 2) 1차 정리
+let SUPABASE_URL = basicSanitize(RAW_URL);
+let SUPABASE_KEY = basicSanitize(RAW_KEY);
 
-// 검증 (문제 있으면 여기서 명확히 throw)
-assertIso88591(SUPABASE_URL, 'SUPABASE_URL');
-assertIso88591(SUPABASE_KEY, 'SUPABASE_ANON_KEY');
+// 3) KEY는 JWT-safe 문자만 유지(비ASCII/한글/따옴표 등 제거)
+const SAFE_KEY = toJwtSafe(SUPABASE_KEY);
+if (SAFE_KEY !== SUPABASE_KEY) {
+  try {
+    const removed = diffChars(SUPABASE_KEY, SAFE_KEY);
+    console.warn('[supabase-client] Anon key contained invalid chars and was cleaned. Removed:', removed);
+  } catch {}
+  SUPABASE_KEY = SAFE_KEY;
+}
 
-// 안전 클라이언트 생성
+// 4) URL은 공백/개행만 지웠으면 충분 (한글 도메인 쓰지 않음)
+if (!/^https?:\/\/[a-z0-9.-]+/i.test(SUPABASE_URL)) {
+  console.warn('[supabase-client] SUPABASE_URL looks unusual:', SUPABASE_URL);
+}
+
+// 5) 클라이언트 생성
 export const client = _createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // === 유틸 ===
