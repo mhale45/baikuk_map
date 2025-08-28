@@ -757,7 +757,13 @@
     const drawer = document.getElementById('sales-drawer');
     const overlay = document.getElementById('sales-overlay');
 
-    document.getElementById('open-sales-drawer')?.addEventListener('click', openDrawer);
+    // [CHANGE] 매출등록 버튼 클릭 시 무조건 폼 초기화 후 열기
+    document.getElementById('open-sales-drawer')?.addEventListener('click', () => {
+      currentPerformanceId = null;   // 기존 선택 매출 ID 제거
+      resetForm();                   // 폼 값 초기화 (performance.js에 이미 있음)
+      openDrawer();                  // 드로어 열기
+    });
+
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
     overlay?.addEventListener('click', closeDrawer);
 
