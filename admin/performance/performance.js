@@ -2,8 +2,6 @@
 import {
     formatNumberWithCommas,
     numOrNull,
-    intOrNull,
-    dateOrNull,
 } from '../../../modules/core/format.js';
 import { waitForSupabase } from '../../../modules/core/supabase.js';
 
