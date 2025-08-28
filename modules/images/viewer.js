@@ -31,8 +31,7 @@ export function openExternalViewer(items, startIndex = 0, pageTitle='이미지 �
 <title>${esc(pageTitle)}</title><meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}img{max-width:100%}</style>
 </head><body>
-<div id="root"></div>
-<script>
+<div id="root"></div><script>
 const ITEMS = ${JSON.stringify(items)};
 let idx = ${Number(startIndex)||0};
 function render(){
@@ -82,17 +81,14 @@ export async function initImageViewerFast(listingId, listing){
   // 2) 프리뷰 DOM 생성(2칸)
   const wrap = document.createElement('div');
   wrap.className = 'bg-white';
-  wrap.innerHTML = `
-    <div class="flex gap-2">
+  wrap.innerHTML = `<div class="flex gap-2">
       <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
         <img id="image-viewer-main-0" class="thumb-img-cover cursor-pointer no-save" alt="" draggable="false" oncontextmenu="return false" />
         <div id="wm-ov-0" class="wm-white" style="display:none"></div>
-      </div>
-      <div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
+      </div><div class="relative overflow-hidden w-1/2 h-[11rem] rounded bg-gray-100 thumb-box">
         <img id="image-viewer-main-1" class="thumb-img-cover cursor-pointer no-save hidden" alt="" draggable="false" oncontextmenu="return false" />
         <div id="wm-ov-1" class="wm-white" style="display:none"></div>
-      </div>
-    </div>
+      </div></div>
   `;
   slot.appendChild(wrap);
 
