@@ -238,23 +238,23 @@
 
         /* --- Initialization --- */
         map = new kakao.maps.Map(document.getElementById('map'), {
-            center: new kakao.maps.LatLng(37.7151, 126.7341),
-            level: 3
+        center: new kakao.maps.LatLng(37.7151, 126.7341),
+        level: 3
         });
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                pos => map.setCenter(new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude)),
-                err => console.log("위치 정보를 사용할 수 없습니다.", err)
-            );
+        navigator.geolocation.getCurrentPosition(
+            pos => map.setCenter(new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude)),
+            err => console.log("위치 정보를 사용할 수 없습니다.", err)
+        );
         }
 
         infoPanel.style.display = 'block';
 
         customImage = new kakao.maps.MarkerImage(
-            'https://raw.githubusercontent.com/mhale45/image/2d7ce4379b14d095d2f0b7f1d0057987548a37bf/2.png',
-            new kakao.maps.Size(36, 36),
-            { offset: new kakao.maps.Point(18, 36) }
+        'https://raw.githubusercontent.com/mhale45/image/2d7ce4379b14d095d2f0b7f1d0057987548a37bf/2.png',
+        new kakao.maps.Size(36, 36),
+        { offset: new kakao.maps.Point(18, 36) }
         );
 
         /* 세션/권한 가드 + 미통과 시 안내 후 리디렉트 */
@@ -294,14 +294,14 @@
 
         /* ---------- 유틸/헬퍼들 (원본 그대로) ---------- */
         function extractAgentKeys(listing) {
-            const ids = [listing.staff_profiles_id, listing.staff_id, listing.staffId, listing.agent_id, listing.agentId]
-                .filter(v => v !== null && v !== undefined)
-                .map(v => String(v));
-            const names = [listing.staff_name, listing.agent_name, listing.manager_name]
-                .filter(Boolean)
-                .map(n => String(n).trim())
-                .filter(n => n && n !== '-' && n !== '미지정');
-            return { ids, names };
+        const ids = [listing.staff_profiles_id, listing.staff_id, listing.staffId, listing.agent_id, listing.agentId]
+            .filter(v => v !== null && v !== undefined)
+            .map(v => String(v));
+        const names = [listing.staff_name, listing.agent_name, listing.manager_name]
+            .filter(Boolean)
+            .map(n => String(n).trim())
+            .filter(n => n && n !== '-' && n !== '미지정');
+        return { ids, names };
         }
 
         async function resolveListingAffiliation(listing) {
@@ -686,6 +686,12 @@
         }
 
         /* 딥링크 유틸 */
+        function getListingIdFromURL() {
+        const sp = new URLSearchParams(location.search);
+        const qId = sp.get('id');
+        return qId && /^\d+$/.test(qId) ? qId : null;
+        }
+
         function updateURLForListing(listingId, replace=false) {
         const url = new URL(location.href);
         if (listingId) url.searchParams.set('id', String(listingId));
@@ -753,7 +759,45 @@
         }
         }
 
-        
+        function renderFilterButtons() {
+        const wrap = document.getElementById('filter-btns-wrap');
+        wrap.innerHTML = '';
+
+        filterDefs.forEach(def => {
+            const box = document.createElement('div');
+            box.className = 'relative';
+            
+            const btn = document.createElement('button');
+            btn.id = `filter-btn-${def.id}`;
+            btn.className = "px-2 py-2 border border-gray-300 bg-white rounded-md shadow-sm text-[14px] text-gray-800 font-medium hover:bg-gray-100";
+            btn.dataset.defaultLabel = def.label + ' ▼';
+            btn.innerText = def.label + ' ▼';
+            btn.onclick = () => toggleFilterPanel(def.id);
+
+            const panel = document.createElement('div');
+            panel.id = `filter-panel-${def.id}`;
+            panel.className = 'hidden absolute left-0 mt-1 bg-white border rounded shadow z-50 p-3';
+            panel.style.width = `${def.width}px`;
+            panel.innerHTML = `
+            <div class="flex items-center gap-2">
+                <input id="${def.id}_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+                <span class="text-gray-500">~</span>
+                <input id="${def.id}_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+            </div>`;
+            
+            box.appendChild(btn);
+            box.appendChild(panel);
+            wrap.appendChild(box);
+
+            const updateAction = () => {
+            updateFilterButtonText(def.id);
+            updateFilteredListings();
+            };
+            panel.querySelector(`#${def.id}_min`).addEventListener('input', updateAction);
+            panel.querySelector(`#${def.id}_max`).addEventListener('input', updateAction);
+        });
+        }
+
         function createClusterer(gridSize) {
         if (clusterer) clusterer.clear();
         clusterer = new kakao.maps.MarkerClusterer({
