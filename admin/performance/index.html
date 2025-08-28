@@ -413,7 +413,7 @@
     document.dispatchEvent(new Event('supabase-ready'));
     
     import {
-      enableAutoGrowTextArea, STAFF_NAME_BY_ID, validateTotalWeight, updateHighlight, loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      openDrawer, closeDrawer, enableAutoGrowTextArea, STAFF_NAME_BY_ID, validateTotalWeight, updateHighlight, loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -623,18 +623,6 @@
     const drawer = document.getElementById('sales-drawer');
     const overlay = document.getElementById('sales-overlay');
 
-    function openDrawer() {
-      overlay.classList.remove('hidden');
-      requestAnimationFrame(() => {
-        drawer.classList.remove('translate-x-full');
-      });
-      initSalesLocationSelects();
-    }
-    function closeDrawer() {
-      drawer.classList.add('translate-x-full');
-      overlay.classList.add('hidden');
-      currentPerformanceId = null;
-    }
 
     document.getElementById('open-sales-drawer')?.addEventListener('click', openDrawer);
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
