@@ -1,23 +1,5 @@
 // sales-module.js
 
-// ✅ 모듈: 숫자 관련 유틸 함수
-export const numOrNull = v => {
-  if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  if (!s) return null;
-  const n = Number(s.replaceAll(',', ''));
-  return Number.isFinite(n) ? n : null;
-};
-
-export const intOrNull = v => {
-  const n = numOrNull(v);
-  return Number.isFinite(n) ? Math.trunc(n) : null;
-};
-
-export const dateOrNull = v => {
-  const s = (v ?? '').trim();
-  return s ? s : null;
-};
 
 // ✅ 콤마 포맷팅 함수
 export const formatNumberWithCommas = value => {
