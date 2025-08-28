@@ -1,7 +1,7 @@
 // 상수/환경
 export const CONFIG = {
   SUPABASE_URL: 'https://sfinbtiqlfnaaarziixu.supabase.co',
-  SUPABASE_ANON_KEY: '...여기에 기존 키...',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA',
   REQUIRE_AUTH: /\/admin(?:\/index\.html)?\/?$/.test(location.pathname),
 
   BUCKET: 'listing-images',
