@@ -680,40 +680,65 @@
 
     // 초기화: 페이지 로드 후
     document.addEventListener("DOMContentLoaded", async () => {
+      // 1) 자동폭 입력 & 분배 아이템 생성
       document.querySelectorAll('input[data-autowidth]').forEach(el => autosizeInputByCh(el));
       const container = document.querySelector(".grid.grid-cols-4");
-
       for (let i = 1; i <= 4; i++) {
-        const item = createAllocationItem(i); // ✅ 바뀐 부분
+        const item = createAllocationItem(i);
         container.appendChild(item);
       }
 
-      // ★ 내 소속 먼저 보이게
+      // 2) 내 소속 우선 직원 옵션 채우기
       const myAff = await getMyAffiliation();
       await populateAllStaffSelects(myAff);
 
+      // 3) 헬퍼: 분배칸(클로징/매물확보 %) 재계산 트리거
+      function triggerAllocationRecalc() {
+        document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
+          // createAllocationItem() 내부의 'input' 리스너가 계산을 수행함
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+
+      // 4) (클로징/매물) 매출 값이 바뀌면 → 분배칸 다시 계산
       ["f_buyer_performance", "f_seller_performance"].forEach(id => {
         const el = document.getElementById(id);
         if (!el) {
           console.warn(`⚠️ ${id} 엘리먼트를 찾을 수 없습니다.`);
           return;
         }
-
-        el.addEventListener("input", () => {
-          document.querySelectorAll(".buyer-weight, .seller-weight").forEach(input => {
-            input.dispatchEvent(new Event("input"));
-          });
-        });
+        el.addEventListener("input", triggerAllocationRecalc);
+        el.addEventListener("change", triggerAllocationRecalc);
       });
 
+      // 5) 수수료가 바뀌면 → (클로징/매물) 매출 재산출 → 분배칸 다시 계산
       ["f_buyer_fee", "f_seller_fee"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          el.addEventListener("input", recalcPerformanceFromFees);
-          el.addEventListener("change", recalcPerformanceFromFees);
+          const handler = () => {
+            recalcPerformanceFromFees();   // 클로징/매물 매출 갱신
+            triggerAllocationRecalc();     // 직원별 기여 매출 갱신
+          };
+          el.addEventListener("input", handler);
+          el.addEventListener("change", handler);
         }
       });
+
+      // 6) 물건분(분배율) 바뀌어도 동일하게 연쇄 갱신
+      const distEl = document.getElementById('f_seller_distribution_rate');
+      if (distEl) {
+        const handler = () => {
+          recalcPerformanceFromFees();     // 분배율 변화 반영
+          triggerAllocationRecalc();       // 직원별 기여 매출 갱신
+        };
+        distEl.addEventListener("input", handler);
+        distEl.addEventListener("change", handler);
+      }
+
+      // 7) 초기 1회 동기화
+      triggerAllocationRecalc();
     });
+
 
     // 페이지 로드 후 바로 활성화
     document.addEventListener('DOMContentLoaded', () => {
