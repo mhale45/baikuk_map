@@ -602,12 +602,22 @@
             const names  = [];
             const buyerP = [];
             const sellerP= [];
-            const inv = [];
+            const inv    = [];
+
             if (pa) {
               for (let i = 1; i <= 4; i++) {
-                  const sid = pa[`staff_id${i}`];
-                  const bw  = pa[`buyer_weight${i}`];   // 0~1
-                  const sw  = pa[`seller_weight${i}`];  // 0~1
+                const sid = pa[`staff_id${i}`];
+                const bw  = pa[`buyer_weight${i}`];   // 0~1
+                const sw  = pa[`seller_weight${i}`];  // 0~1
+
+                // ✔ 표시 기준: staff_id 있고 (bw>0 || sw>0) 인 경우만 라인 추가
+                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                  // 직원 이름 / 비율
+                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+
+                  // 관여매출(저장값 우선, 없으면 buyer+seller 합)
                   const savedInv = pa?.[`involvement_sales${i}`];
                   const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
                   const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
@@ -618,15 +628,14 @@
                         : (buyerAmt + sellerAmt)
                     )
                   );
-
-                  if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                    names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                    buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                    sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
-                  }
+                }
               }
             }
-            if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
+
+            // 직원 라인이 하나도 없으면 모두 '-'
+            if (names.length === 0) {
+              names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-');
+            }
 
             const addr = buildAddress(row);
             const areaDisp = formatArea1(row.area_py);
