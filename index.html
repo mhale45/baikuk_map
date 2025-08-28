@@ -82,7 +82,7 @@
 
         <button id="filter-btns-wrap" class="flex gap-1"></button>
 
-        <div style="flex:1"></div> <button id="logout-btn" onclick="logout()" class="hidden text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
+        <div style="flex:1"></div> <button id="logout-btn" class="hidden text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
             로그아웃
         </button>
     </header>
@@ -108,7 +108,7 @@
         <div id="info-content" class="text-xs text-gray-700"></div>
     </div>
     <div id="detail-panel" class="hidden" style="background-color: white;">
-        <button id="close-detail-btn" onclick="hideDetailPanel()" class="absolute top-2 right-4 w-8 h-8 bg-white text-gray-600 border border-gray-300 hover:border-black hover:text-black shadow-md flex items-center justify-center font-bold text-lg z-[1001]">
+        <button id="close-detail-btn" data-action="close-detail" class="absolute top-2 right-4 w-8 h-8 bg-white text-gray-600 border border-gray-300 hover:border-black hover:text-black shadow-md flex items-center justify-center font-bold text-lg z-[1001]">
             ✕
         </button>
         <div id="detail-content" class="text-gray-800 text-sm whitespace-pre-line overflow-y-auto h-full px-4 pb-4"></div>
@@ -1617,8 +1617,7 @@
             break;
         }
         }, 180_000);
-
     </script>
-
+    <script type="module" src="/modules/main.js"></script>
 </body>
 </html>
