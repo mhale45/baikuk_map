@@ -7,6 +7,29 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
+export function buildDateBlock(row) {
+    const parts = [];
+
+    if (row.contract_date) parts.push(`계약 ${row.contract_date}`);
+    if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
+
+    // 중도금 1~3
+    if (row.interim_payment1_date) {
+    const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
+    parts.push(`중도금1 ${row.interim_payment1_date}`);
+    }
+    if (row.interim_payment2_date) {
+    const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
+    parts.push(`중도금2 ${row.interim_payment2_date}`);
+    }
+    if (row.interim_payment3_date) {
+    const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
+    parts.push(`중도금3 ${row.interim_payment3_date}`);
+    }
+
+    return parts.join('<br>'); // 줄바꿈
+}
+
 /**
  * 직원 선택 박스(select)들을 Supabase에서 불러온 직원 데이터로 채움
  * @param {string|null} myAffiliation - 내 소속(있으면 해당 소속이 맨 위로 정렬됨)
