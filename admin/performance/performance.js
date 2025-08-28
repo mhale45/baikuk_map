@@ -335,8 +335,7 @@ export function collectPerformancePayload() {
     };
 }
 
-// ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
-// ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산
+// ✅ 새 함수: 단일 행(upsert) + 금액 자동 계산(입력값 우선)
 export function collectAllocationPayloadRow(performance_id) {
   const buyerPerf  = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
   const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
@@ -351,14 +350,22 @@ export function collectAllocationPayloadRow(performance_id) {
     const bw = bwP * 0.01; // 0~1
     const sw = swP * 0.01;
 
-    // 저장값 세팅
+    // 기본 금액(계산값)
+    const buyerAmt  = sid ? Math.round(buyerPerf  * bw) : 0;
+    const sellerAmt = sid ? Math.round(sellerPerf * sw) : 0;
+    const calcSum   = buyerAmt + sellerAmt;
+
+    // 🔸 합계 input(사용자 입력)을 우선 읽기
+    const sumInputEl = document.getElementById(`f_involvement_sales${i}`);
+    const enteredSum = numOrNull(sumInputEl?.value); // 콤마 제거 처리됨
+
     row[`staff_id${i}`]       = sid || null;
     row[`buyer_weight${i}`]   = sid ? bw : 0;
     row[`seller_weight${i}`]  = sid ? sw : 0;
-    row[`buyer_amount${i}`]   = sid ? Math.round(buyerPerf  * bw) : 0;
-    row[`seller_amount${i}`]  = sid ? Math.round(sellerPerf * sw) : 0;
+    row[`buyer_amount${i}`]   = buyerAmt;
+    row[`seller_amount${i}`]  = sellerAmt;
 
-    // ✅ 합계(직원 총 매출) = 클로징 금액 + 매물확보 금액
+    // ✅ 저장 우선순위: 입력값 > 계산값 (sid 없으면 0)
     row[`involvement_sales${i}`] = sid ? (enteredSum ?? calcSum) : 0;
   }
 
