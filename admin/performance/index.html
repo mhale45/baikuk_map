@@ -399,8 +399,7 @@
     <!-- 어두운 오버레이 -->
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
   </div>  
-  <script type="module">    
-    import { STAFF_NAME_BY_ID } from './performance.js';
+  <script type="module">
     import { client } from '../../../modules/core/supabase.js';
     import { waitForSupabase } from '../../../modules/core/supabase.js';
     import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
@@ -412,8 +411,10 @@
     document.dispatchEvent(new Event('supabase-ready'));
     
     import {
-      updateHighlight, loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      STAFF_NAME_BY_ID, validateTotalWeight, updateHighlight, loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
+    window.updateHighlight = updateHighlight;
+
     import {
       formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
@@ -540,40 +541,6 @@
     // 페이지 로드 시 자동 실행
     document.addEventListener("DOMContentLoaded", loadPerformanceTable);
 
-
-    // 전역 노출
-    window.updateHighlight = updateHighlight;
-
-    // 분배비율 점검 함수
-    function validateTotalWeight() {
-      let totalBuyer = 0;
-      let totalSeller = 0;
-
-      for (let i = 1; i <= 4; i++) {
-        totalBuyer += numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0;
-        totalSeller += numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) || 0;
-      }
-
-      const buyerOk = totalBuyer === 100;
-      const sellerOk = totalSeller === 100;
-
-      if (!buyerOk && !sellerOk) {
-        showToastGreenRed('클로징과 매물확보 비율의 합이 각각 100%이어야 합니다.');
-        return false;
-      }
-
-      if (!buyerOk) {
-        showToastGreenRed('클로징(매수) 비율의 합이 100%가 아닙니다.');
-        return false;
-      }
-
-      if (!sellerOk) {
-        showToastGreenRed('매물확보(매도) 비율의 합이 100%가 아닙니다.');
-        return false;
-      }
-
-      return true;
-    }
 
     // 호수 오토 리사이즈
     function autosizeInputByCh(el, { min=6, max=40 } = {}) {

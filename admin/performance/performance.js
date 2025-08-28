@@ -354,3 +354,34 @@ export function calculateFees() {
 
   recalcPerformanceFromFees();
 }
+
+// 분배비율 점검 함수
+export function validateTotalWeight() {
+    let totalBuyer = 0;
+    let totalSeller = 0;
+
+    for (let i = 1; i <= 4; i++) {
+    totalBuyer += numOrNull(document.getElementById(`f_buyer_weight${i}`)?.value) || 0;
+    totalSeller += numOrNull(document.getElementById(`f_seller_weight${i}`)?.value) || 0;
+    }
+
+    const buyerOk = totalBuyer === 100;
+    const sellerOk = totalSeller === 100;
+
+    if (!buyerOk && !sellerOk) {
+    showToastGreenRed('클로징과 매물확보 비율의 합이 각각 100%이어야 합니다.');
+    return false;
+    }
+
+    if (!buyerOk) {
+    showToastGreenRed('클로징(매수) 비율의 합이 100%가 아닙니다.');
+    return false;
+    }
+
+    if (!sellerOk) {
+    showToastGreenRed('매물확보(매도) 비율의 합이 100%가 아닙니다.');
+    return false;
+    }
+
+    return true;
+}
