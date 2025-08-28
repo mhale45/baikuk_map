@@ -414,7 +414,7 @@
       loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     import {
-      formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
+      formatArea1, formatNumberWithCommas, numOrNull, intOrNull, dateOrNull,
     } from '../../../modules/core/format.js';
 
     (async () => {
@@ -536,12 +536,6 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-
-    // 헬퍼: 면적 소수점 1자리
-    function formatArea1(v) {
-      const n = Number(v);
-      return Number.isFinite(n) ? n.toFixed(1) : '';
-    }
 
 
     // 페이지 로드 시 자동 실행

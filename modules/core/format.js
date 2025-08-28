@@ -34,6 +34,12 @@ export function formatFloor(floor, total_floors){
  *   formatNumberWithCommas(1234567) → "1,234,567"
  */
 
+// 헬퍼: 면적 소수점 1자리
+export function formatArea1(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(1) : '';
+}
+
 // ✅ 숫자 문자열 → 숫자 (null 허용)
 export const numOrNull = (v) => {
   if (v === undefined || v === null) return null;
