@@ -5,7 +5,7 @@ import {
     intOrNull,
     dateOrNull,
 } from '../../../modules/core/format.js';
-import { waitForSupabase } from '/modules/core/supabase.js';
+import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
