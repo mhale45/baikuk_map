@@ -131,15 +131,9 @@
         </div>
     </div>
     
-    // 스크립트
-    <script type="module">
-        import { login, logout, guardAuthOrRedirect, showLogin, hideLogin, showAuthRedirectMessage } from './modules/auth-module.js';
-        window.login = () => login(client);
-        window.logout = () => logout(client);
-        window.showLogin = showLogin;
-        window.hideLogin = hideLogin;
-
+    <script>
         // 고객뷰도 같은 버킷 사용 (Private)
+        window.BUCKET = 'listing-images';
         window.BUCKET_IS_PUBLIC = false;
 
         // 워터마크 파일(투명 PNG) 위치
@@ -157,7 +151,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
         window.client = client;
-        const BUCKET = 'listing-images';
+        const BUCKET = window.BUCKET || 'listing-images';
 
         // 접속 즉시 세션 확인 → 있으면 admin.html로 이동(쿼리스트링은 그대로 유지)
         (async function earlyRedirect() {
