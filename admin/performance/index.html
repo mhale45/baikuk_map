@@ -612,108 +612,106 @@
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
-        data.forEach(row => {
-            // 관계가 1:1이라도 PostgREST가 배열로 줄 수 있으니 방어적으로 처리
-            const pa = Array.isArray(row.performance_allocations)
-            ? row.performance_allocations[0]
-            : row.performance_allocations;
+        perfRows.forEach(row => {
+          // 2단계 조회로 가져온 분배 레코드 매핑 사용
+          const pa = allocByPerfId.get(row.id) || null;
 
-            // 1) 직원/비율 텍스트를 한 셀용으로 준비
-            const names  = [];
-            const buyerP = [];
-            const sellerP= [];
-            const inv    = [];
+          // 1) 직원/비율 텍스트를 한 셀용으로 준비
+          const names  = [];
+          const buyerP = [];
+          const sellerP= [];
+          const inv    = [];
 
-            if (pa) {
-              for (let i = 1; i <= 4; i++) {
-                const sid = pa[`staff_id${i}`];
-                const bw  = pa[`buyer_weight${i}`];   // 0~1
-                const sw  = pa[`seller_weight${i}`];  // 0~1
+          if (pa) {
+            for (let i = 1; i <= 4; i++) {
+              const sid = pa[`staff_id${i}`];
+              const bw  = pa[`buyer_weight${i}`];   // 0~1
+              const sw  = pa[`seller_weight${i}`];  // 0~1
 
-                // ✔ 표시 기준: staff_id 있고 (bw>0 || sw>0) 인 경우만 라인 추가
-                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                  // 직원 이름 / 비율
-                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+              // ✔ 표시 기준: staff_id 있고 (bw>0 || sw>0) 인 경우만 라인 추가
+              if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                // 직원 이름 / 비율
+                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
 
-                  // 관여매출(저장값 우선, 없으면 buyer+seller 합)
-                  const savedInv = pa?.[`involvement_sales${i}`];
-                  const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
-                  const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
-                  inv.push(
-                    formatNumberWithCommas(
-                      typeof savedInv === 'number' && !Number.isNaN(savedInv)
-                        ? savedInv
-                        : (buyerAmt + sellerAmt)
-                    )
-                  );
-                }
+                // 관여매출(저장값 우선, 없으면 buyer+seller 합)
+                const savedInv = pa?.[`involvement_sales${i}`];
+                const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
+                const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
+                inv.push(
+                  formatNumberWithCommas(
+                    typeof savedInv === 'number' && !Number.isNaN(savedInv)
+                      ? savedInv
+                      : (buyerAmt + sellerAmt)
+                  )
+                );
               }
             }
+          }
 
-            // 직원 라인이 하나도 없으면 모두 '-'
-            if (names.length === 0) {
-              names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-');
-            }
+          // 직원 라인이 하나도 없으면 모두 '-'
+          if (names.length === 0) {
+            names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-');
+          }
 
-            const addr = buildAddress(row);
-            const areaDisp = formatArea1(row.area_py);
+          const addr = buildAddress(row);
+          const areaDisp = formatArea1(row.area_py);
 
-            // 2) 한 행만 만들어서 넣기
-            const tr = document.createElement('tr');
-            tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
+          // 2) 한 행만 만들어서 넣기
+          const tr = document.createElement('tr');
+          tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
 
-            // 간단 헬퍼
-            const tdHTML = (html) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1';
-              td.innerHTML = html ?? '';
-              return td;
-            };
-            const tdMulti = (text) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
-              td.textContent = text ?? '';
-              return td;
-            };
+          // 간단 헬퍼
+          const tdHTML = (html) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1';
+            td.innerHTML = html ?? '';
+            return td;
+          };
+          const tdMulti = (text) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
+            td.textContent = text ?? '';
+            return td;
+          };
 
-            // 컬럼 추가 (헤더 순서 그대로)
-            tr.appendChild(tdHTML(buildListingTitle(row)));
-            tr.appendChild(tdHTML(addr));
-            tr.appendChild(tdHTML(row.deal_type ?? ''));
-            tr.appendChild(tdHTML(buildPriceBlock(row)));
-            tr.appendChild(tdHTML(areaDisp));
-            tr.appendChild(tdHTML(buildDateBlock(row)));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-            tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-            tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+          // 컬럼 추가 (헤더 순서 그대로)
+          tr.appendChild(tdHTML(buildListingTitle(row)));
+          tr.appendChild(tdHTML(addr));
+          tr.appendChild(tdHTML(row.deal_type ?? ''));
+          tr.appendChild(tdHTML(buildPriceBlock(row)));
+          tr.appendChild(tdHTML(areaDisp));
+          tr.appendChild(tdHTML(buildDateBlock(row)));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+          tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+          tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
 
-            // ★ 여기 3칸이 다중라인 셀
-            tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
-            tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
-            tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
-            tr.appendChild(tdMulti(inv.join('\n')));     // 관여매출
+          // ★ 여기 3칸이 다중라인 셀
+          tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
+          tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
+          tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
+          tr.appendChild(tdMulti(inv.join('\n')));     // 관여매출
 
-            tr.addEventListener('click', () => {
-            currentPerformanceId = row.id;
-            isDownPaymentAutoFilled = false;
-            openDrawer();
-            fillFormWithPerformance(row);
-            fillAllocations(pa || null);
-            updateHighlight();
-            });
-            window.triggerAllocationRecalc?.();
-            tbody.appendChild(tr);
-        });
-        } catch (e) {
-        console.error(e);
-        showToastGreenRed('예상치 못한 오류');
-        }
+          tr.addEventListener('click', () => {
+          currentPerformanceId = row.id;
+          isDownPaymentAutoFilled = false;
+          openDrawer();
+          fillFormWithPerformance(row);
+          fillAllocations(pa || null);
+          updateHighlight();
+          });
+          window.triggerAllocationRecalc?.();
+          tbody.appendChild(tr);
+      });
+      } catch (e) {
+      console.error(e);
+      showToastGreenRed('예상치 못한 오류');
+      }
     }
 
     // 페이지 로드 시 자동 실행
