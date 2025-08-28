@@ -754,6 +754,76 @@
         }
 
         
+        function createClusterer(gridSize) {
+        if (clusterer) clusterer.clear();
+        clusterer = new kakao.maps.MarkerClusterer({
+            map: map,
+            averageCenter: true,
+            minLevel: 1,
+            minClusterSize: 1,
+            disableClickZoom: true,
+            gridSize: gridSize,
+            styles: [{
+            width: '40px', height: '40px', background: HIGHLIGHT_COLOR,
+            border: '2px solid #F2C130', borderRadius: '50%',
+            color: '#fff', fontWeight: 'bold', textAlign: 'center', lineHeight: '40px'
+            }]
+        });
+
+        kakao.maps.event.addListener(clusterer, 'clusterclick', function(cluster) {
+            if (selectedClusterEl) {
+            selectedClusterEl.style.border = "none";
+            selectedClusterEl.style.borderRadius = "50%";
+            const prevInner = selectedClusterEl.querySelector('div');
+            if (prevInner) {
+                prevInner.style.background = HIGHLIGHT_COLOR;
+                prevInner.style.color = "#fff";
+            }
+            selectedClusterEl = null;
+            }
+
+            const clusterEl = cluster.getClusterMarker().getContent().parentNode;
+            if (clusterEl) {
+            clusterEl.style.background = "transparent";
+            clusterEl.style.border = "2px solid #F2C130";
+            clusterEl.style.borderRadius = "50%";
+
+            const inner = clusterEl.querySelector('div');
+            if (inner) {
+                inner.style.background = "#ffffff";
+                inner.style.color = "#F2C130";
+                inner.style.borderRadius = "50%";
+            }
+            selectedClusterEl = clusterEl;
+            }
+            const listings = cluster.getMarkers().map(mk => allListings[mk.listing_id]).filter(Boolean);
+            showListingsInPanel(listings);
+
+            prewarmDetailThumbs(listings.map(l => l.listing_id), {
+            perListing: 2,
+            displayWidth: 900,
+            timeout: 800,
+            maxListings: 60
+            }).catch(()=>{});
+        });
+        
+        kakao.maps.event.addListener(clusterer, 'clusterover', function(cluster) {
+            const el = cluster.getClusterMarker().getContent()?.parentNode;
+            if (el) {
+            el.style.border = '3px solid white';
+            el.style.borderRadius = '50%';
+            }
+        });
+
+        kakao.maps.event.addListener(clusterer, 'clusterout', function(cluster) {
+            const el = cluster.getClusterMarker().getContent()?.parentNode;
+            if (el) {
+            el.style.border = 'none';
+            }
+        });
+        }
+
+        
 
         function toggleDealType(type) {
         if (selectedDealTypes.includes(type)) {
@@ -816,6 +886,85 @@
         }
 
         /* UI */
+        async function showDetailPanel(listingId) {
+            window.currentDetailListingId = listingId;
+            renderMatchedListings?.();
+
+            const listing = allListings[String(listingId)];
+            if (!listing) return;
+
+            detailContent.innerHTML = `
+                <div class="sticky top-0 z-10 bg-white shadow-md p-2 rounded cursor-pointer whitespace-normal">
+                <div class="flex items-start gap-2">
+                    <div class="w-[61px] h-[26px] flex justify-center items-center border-[2px] border-[rgb(242,193,48)] text-[rgb(0,0,0)] px-1 py-0 rounded text-base font-bold">
+                    ${listing.listing_id}
+                    </div>
+                    <div class="flex-1 text-left font-semibold text-[rgb(80,152,233)] text-base translate-y-[3px] leading-tight">
+                    ${listing.deal_type} ${formatDealPrice(listing)}
+                    <span class="text-[13px] text-gray-700 ml-2">
+                        전용 <strong class="font-semibold">${Number(listing.area_py).toFixed(1)}</strong>평,
+                        <strong class="font-semibold">${formatFloor(listing.floor)}</strong>
+                    </span>
+                    </div>
+                </div>
+                <div class="text-base font-bold text-gray-900 mt-1">${(listing.title || '-')}
+                </div>
+                </div>
+                <div id="image-viewer-slot"></div>
+                <div class="mb-2 px-4 pt-2">
+                <span class="text-base font-medium whitespace-pre-line leading-relaxed md:leading-7">${buildListingDescBlock(listing)}</span>
+                </div>
+                <div class="px-4 pb-4">
+                <table class="table-auto w-full text-sm border-t border-gray-300 mt-2">
+                    <tbody>
+                    <tr class="border-b border-gray-300">
+                        <td class="w-[7.5rem] py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">소재지</td>
+                        <td class="py-2 text-gray-800 pl-3">${listing.province} ${listing.city} ${listing.district}</td>
+                    </tr>
+                    <tr class="border-b border-gray-300">
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">계약/전용면적</td>
+                        <td class="py-2 text-gray-800 pl-3 whitespace-nowrap">
+                        ${
+                            (!listing.supply_area_m2 || listing.supply_area_m2 === '-')
+                            ? `${listing.area_m2}㎡ / ${listing.area_m2}㎡`
+                            : `${listing.supply_area_m2}㎡ / ${listing.area_m2}㎡`
+                        }
+                        </td>
+                    </tr>
+                    <tr class="border-b border-gray-300">
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">해당층/총층</td>
+                        <td class="py-2 text-gray-800 pl-3">${listing.floor} / ${listing.total_floors}</td>
+                    </tr>
+                    <tr class="border-b border-gray-300">
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">입주가능일</td>
+                        <td class="py-2 text-gray-800 pl-3">즉시입주 협의가능</td>
+                    </tr>
+                    <tr class="border-b border-gray-300">
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">방향</td>
+                        <td class="py-2 text-gray-800 pl-3">${listing.direction ?? ''}</td>
+                    </tr>
+                    <tr class="border-b border-gray-300">
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">총주차대수</td>
+                        <td class="py-2 text-gray-800 pl-3">${listing.parking ?? ''}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 font-semibold text-gray-500 bg-gray-50 border-r border-gray-300 pl-3">사용승인일</td>
+                        <td class="py-2 text-gray-800 pl-3">${listing.approved_date ?? ''}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                </div>
+                <div id="branch-info-slot" class="px-4 pb-6 text-xs"></div>`;
+
+            detailContent.scrollTop = 0;
+            detailPanel.classList.remove('hidden');
+
+            if (typeof initImageViewerFast === 'function') {
+                initImageViewerFast(listingId);
+            }
+            populateBranchInfoFor(listing);
+            updateURLForListing?.(listingId);
+        }
 
         /* ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓  이 함수는 inline onclick에서 호출하므로 창 전역에 노출 */
         window.showDetailPanel = showDetailPanel;
@@ -1310,7 +1459,16 @@
         }
 
         /* 패널 닫기 (inline/외부에서 호출 가능하도록 window에 노출) */
-        
+        function hideDetailPanel() {
+        const detailPanel = document.getElementById('detail-panel');
+        detailPanel.classList.add('hidden');
+        window.currentDetailListingId = null;
+        renderMatchedListings();
+        document.querySelectorAll('[id^="filter-panel-"]').forEach(p => p.classList.add('hidden'));
+        const slot = document.getElementById('image-viewer-slot');
+        if (slot) slot.innerHTML = '';
+        updateURLForListing(null);
+        }
         window.hideDetailPanel = hideDetailPanel;
 
         /* 리디렉트 안내 메시지 */
