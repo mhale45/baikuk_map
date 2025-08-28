@@ -405,8 +405,23 @@
     import { STAFF_NAME_BY_ID } from './performance.js';
     import { getMyAffiliation } from '../../../modules/auth/profile.js';
 
-    window.supabase = supabase;
+    window.supabase = client;
     document.dispatchEvent(new Event('supabase-ready'));
+    
+    import {
+      createAllocationItem,
+      calculateDownPaymentAndBalance,
+      ensureStaffNameMap,
+      calculateFees,
+      recalcPerformanceFromFees,
+      populateAllStaffSelects
+    } from './performance.js';
+    import {
+      formatNumberWithCommas,
+      numOrNull,
+      intOrNull,
+      dateOrNull,
+    } from '../../../modules/core/format.js';
 
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -519,25 +534,7 @@
         }
       }
     })();
-    window.supabase = supabase;
-    document.dispatchEvent(new Event('supabase-ready'));
     
-    import {
-      createAllocationItem,
-      calculateDownPaymentAndBalance,
-      ensureStaffNameMap,
-      calculateFees,
-      recalcPerformanceFromFees,
-      populateAllStaffSelects
-    } from './performance.js';
-    import {
-      formatNumberWithCommas,
-      numOrNull,
-      intOrNull,
-      dateOrNull,
-    } from '../../../modules/core/format.js';
-
-
     // 스크립트 추가
     let _pcdCache = null;
     let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
