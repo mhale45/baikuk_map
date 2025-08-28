@@ -176,6 +176,7 @@
               <th class="border px-2 py-1 min-w-[5rem]">직원이름</th>
               <th class="border px-2 py-1 min-w-[5rem]">클로징</th>
               <th class="border px-2 py-1 min-w-[5rem]">매물확보</th>
+              <th class="border px-2 py-1 min-w-[6rem]">관여매출</th>
             </tr>
           </thead>
           <tbody>
@@ -601,19 +602,27 @@
             const names  = [];
             const buyerP = [];
             const sellerP= [];
+            const inv = [];
             if (pa) {
               for (let i = 1; i <= 4; i++) {
                   const sid = pa[`staff_id${i}`];
                   const bw  = pa[`buyer_weight${i}`];   // 0~1
                   const sw  = pa[`seller_weight${i}`];  // 0~1
+                  const savedInv = pa?.[`involvement_sales${i}`];
+                  const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
+                  const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
+                  inv.push(formatNumberWithCommas(
+                    typeof savedInv === 'number' && !Number.isNaN(savedInv) ? savedInv : (buyerAmt + sellerAmt)
+                  ));
+
                   if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+                    names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                    buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                    sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
                   }
               }
             }
-            if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); }
+            if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
 
             const addr = buildAddress(row);
             const areaDisp = formatArea1(row.area_py);
@@ -655,6 +664,7 @@
             tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
             tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
             tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
+            tr.appendChild(tdMulti(inv.join('\n')));     // 관여매출
 
             tr.addEventListener('click', () => {
             currentPerformanceId = row.id;
