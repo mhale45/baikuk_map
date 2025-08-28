@@ -9,6 +9,49 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
+export async function populateAllStaffSelects(myAffiliation=null) {
+    try {
+        await waitForSupabase();
+        const { data, error } = await window.supabase
+            .from('staff_profiles')
+            .select('id, name, affiliation')
+            .is('leave_date', null)
+            .order('affiliation', { ascending: true });
+
+        if (error) { console.error('직원 목록 불러오기 실패:', error); return; }
+
+        // 이름맵 업데이트
+        STAFF_NAME_BY_ID.clear();
+        for (const r of data) STAFF_NAME_BY_ID.set(r.id, r.name);
+
+        // 지점별 그룹화 + select 채우기 (기존 로직 동일)
+        const grouped = {};
+        for (const { id, name, affiliation } of data) {
+            (grouped[affiliation] ||= []).push({ id, name });
+        }
+        const entries = Object.entries(grouped);
+        const ordered = myAffiliation
+            ? entries.sort(([a],[b]) => (a===myAffiliation?-1:b===myAffiliation?1:a.localeCompare(b,'ko')))
+            : entries.sort(([a],[b]) => a.localeCompare(b,'ko'));
+
+        for (let i=1; i<=4; i++) {
+            const select = document.getElementById(`select_staff${i}`);
+            if (!select) continue;
+            select.innerHTML = `<option value="">-- 직원 선택 --</option>`;
+            for (const [aff, list] of ordered) {
+            const group = document.createElement('optgroup');
+            group.label = aff;
+            list.forEach(({id, name}) => {
+                const opt = document.createElement('option');
+                opt.value = id; opt.textContent = name;
+                group.appendChild(opt);
+            });
+            select.appendChild(group);
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
 export function createAllocationItem(index) {
   const template = document.getElementById("allocation-template");
   const clone = template.content.cloneNode(true);
