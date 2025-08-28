@@ -552,7 +552,8 @@
       const select = root.querySelector("select");
       const buyerInput = root.querySelector(".buyer-weight");
       const sellerInput = root.querySelector(".seller-weight");
-      const resultInput = root.querySelectorAll("input")[3];
+      const inputs = root.querySelectorAll("input");
+      const resultInput = inputs[inputs.length - 1];
 
       select.id = `select_staff${index}`;
       buyerInput.id = `f_buyer_weight${index}`;
@@ -566,6 +567,7 @@
         const sw = parseFloat(sellerInput.value) || 0;
 
         const result = (buyerPerf * bw * 0.01) + (sellerPerf * sw * 0.01);
+        if (!resultInput) return; // 안전 가드
         resultInput.value = Math.round(result);
       }
 
