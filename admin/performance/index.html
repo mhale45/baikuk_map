@@ -560,24 +560,25 @@
         const { data, error } = await window.supabase
             .from('performance')
             .select(`
-            id, listing_id, listing_title, province, city, district, detail_address,
-            floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
-            contract_date, balance_date,
-            down_payment, balance,
-            interim_payment1, interim_payment1_date,
-            interim_payment2, interim_payment2_date,
-            interim_payment3, interim_payment3_date,
-            buyer_fee, buyer_tax, buyer_tax_date,
-            seller_fee, seller_tax, seller_tax_date,
-            expense,
-            special_contract,
-            performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
+              id, listing_id, listing_title, province, city, district, detail_address,
+              floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+              contract_date, balance_date,
+              down_payment, balance,
+              interim_payment1, interim_payment1_date,
+              interim_payment2, interim_payment2_date,
+              interim_payment3, interim_payment3_date,
+              buyer_fee, buyer_tax, buyer_tax_date,
+              seller_fee, seller_tax, seller_tax_date,
+              expense,
+              special_contract,
+              performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
                 staff_id1, staff_id2, staff_id3, staff_id4,
                 buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
                 seller_weight1, seller_weight2, seller_weight3, seller_weight4,
                 buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
-                seller_amount1, seller_amount2, seller_amount3, seller_amount4
-            )
+                seller_amount1, seller_amount2, seller_amount3, seller_amount4,
+                involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
+              )
             `)
             .order('contract_date', { ascending: false });
 
