@@ -7,6 +7,7 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
 
 export const STAFF_NAME_BY_ID = new Map();
+export let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
 
 // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 - 비교 전에 trim
 export function updateHighlight() {

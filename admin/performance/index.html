@@ -413,6 +413,9 @@
     document.dispatchEvent(new Event('supabase-ready'));
     
     import {
+      STAFF_NAME_BY_ID, currentPerformanceId
+    } from './performance.js';
+    import {
       openDrawer, closeDrawer, enableAutoGrowTextArea, STAFF_NAME_BY_ID, validateTotalWeight, updateHighlight, loadPerformanceTable, createAllocationItem, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
@@ -535,7 +538,6 @@
     
     // 스크립트 추가
     let _pcdCache = null;
-    let currentPerformanceId = null;   // ← 추가: 열람/수정 중인 매출 ID
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
