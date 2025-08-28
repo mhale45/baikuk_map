@@ -1,16 +1,10 @@
-// performance-module.js
-
+// performance.js
 import {
-  formatNumberWithCommas,
-  numOrNull,
-  intOrNull,
-  dateOrNull,
-  recalcPerformanceFromFees,
-  calculateFees,
-  STAFF_NAME_BY_ID,
-  waitForSupabase,
-  showToast
-} from './sales-module.js';
+    formatNumberWithCommas,
+    numOrNull,
+    intOrNull,
+    dateOrNull,
+} from '../../../modules/core/format.js';
 
 export function createAllocationItem(index) {
   const template = document.getElementById("allocation-template");
