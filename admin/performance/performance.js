@@ -5,7 +5,7 @@ import {
     intOrNull,
     dateOrNull,
 } from '../../../modules/core/format.js';
-import { STAFF_NAME_BY_ID } from '/index.html';
+export const STAFF_NAME_BY_ID = new Map();
 
 export function createAllocationItem(index) {
   const template = document.getElementById("allocation-template");
