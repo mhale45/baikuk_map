@@ -8,6 +8,30 @@ import { buildListingTitle, buildAddress } from '../../../modules/data/listing.j
 
 export const STAFF_NAME_BY_ID = new Map();
 
+// 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 - 비교 전에 trim
+export function updateHighlight() {
+    const dealTypeEl = document.getElementById("f_deal_type");
+
+    // ✅ 더 견고한 라벨 선택
+    const saleLabel    = document.querySelector("#f_sale_price")?.closest("label")?.querySelector("span");
+    const depositLabel = document.querySelector("#f_deposit_price")?.closest("label")?.querySelector("span");
+    const monthlyLabel = document.querySelector("#f_monthly_rent")?.closest("label")?.querySelector("span");
+
+    if (!dealTypeEl) return;
+    const type = (dealTypeEl.value || '').trim();
+
+    // reset
+    if (saleLabel)    { saleLabel.textContent    = "매매가"; saleLabel.classList.remove("text-red-600"); saleLabel.classList.add("text-gray-600"); }
+    if (depositLabel) { depositLabel.textContent = "보증금"; depositLabel.classList.remove("text-red-600"); depositLabel.classList.add("text-gray-600"); }
+    if (monthlyLabel) { monthlyLabel.textContent = "월세";   monthlyLabel.classList.remove("text-red-600"); monthlyLabel.classList.add("text-gray-600"); }
+
+    if (type === "월세") {
+    if (depositLabel) { depositLabel.textContent = "보증금*"; depositLabel.classList.replace("text-gray-600","text-red-600"); }
+    if (monthlyLabel) { monthlyLabel.textContent = "월세*";   monthlyLabel.classList.replace("text-gray-600","text-red-600"); }
+    } else if (type === "매매") {
+    if (saleLabel) { saleLabel.textContent = "매매가*"; saleLabel.classList.replace("text-gray-600","text-red-600"); }
+    }
+}
 
 export async function loadPerformanceTable() {
     await ensureStaffNameMap();
