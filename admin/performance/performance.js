@@ -1,6 +1,6 @@
 // performance.js
 import {
-    formatArea1, intOrNull, formatNumberWithCommas,numOrNull,
+    formatArea1, intOrNull, dateOrNull, formatNumberWithCommas,numOrNull,
 } from '../../../modules/core/format.js';
 
 import { waitForSupabase } from '../../../modules/core/supabase.js';
