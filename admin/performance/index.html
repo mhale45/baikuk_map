@@ -540,18 +540,19 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-    // === [REPLACE] 내 권한/스태프ID 조회 유틸 (auth_user_id 기준) ===
+    // === [REPLACE] 내 권한/스태프ID/소속 조회 (user_id 기준) ===
     async function getMyAuthorityAndStaffId() {
       await waitForSupabase();
       const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
       if (sErr) throw sErr;
+
       const user = sessionRes?.session?.user;
       if (!user?.id) throw new Error('로그인이 필요합니다.');
 
-      // ✅ 스키마가 auth_user_id를 사용하므로 이것부터 조회
+      // 내 staff_profiles (id, authority, affiliation)
       const { data: staff, error: spErr } = await supabase
         .from('staff_profiles')
-        .select('id, authority')
+        .select('id, authority, affiliation')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -561,11 +562,12 @@
       const authority = staff.authority || '';
       const isStaff = authority === '직원';
 
-      // 전역 플래그 동기화(다른 로직과 일관)
+      // 전역 동기화
       window.__userRole = authority;
-      window.__isStaff = isStaff;
+      window.__isStaff  = isStaff;
 
-      return { authority, staffId: staff.id, userId: user.id, isStaff };
+      // affiliation 추가로 반환 (지점장 필터에 사용)
+      return { authority, isStaff, staffId: staff.id, affiliation: staff.affiliation, userId: user.id };
     }
 
     function openDrawer() {
@@ -581,21 +583,20 @@
         currentPerformanceId = null;
     }
 
-    // === [REPLACE] 권한별 필터 적용 로딩 함수 ===
+    // === [REPLACE] 권한별(직원/지점장/기타) 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
       await ensureStaffNameMap();
       try {
         await waitForSupabase();
 
-        // 1) 내 권한/스태프ID
-        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null, userId: null };
-        try {
-          me = await getMyAuthorityAndStaffId();  // 반드시 {staffId} 포함 (staff_profiles.id)
-        } catch (e) {
-          console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message);
-        }
+        // 1) 내 권한/스태프ID/소속
+        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null, userId: null, affiliation: null };
+        try { me = await getMyAuthorityAndStaffId(); }
+        catch (e) { console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message); }
 
-        // 2) select 구성: 직원이면 자식(performance_allocations)에 !inner 조인
+        const needInnerJoin = me?.isStaff || me?.authority === '지점장';
+
+        // 2) select 구성: 직원/지점장은 allocations를 !inner 로 조인해 필터 가능하게 함
         const selectBase = `
           id, listing_id, listing_title, province, city, district, detail_address,
           floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
@@ -608,7 +609,7 @@
           seller_fee, seller_tax, seller_tax_date,
           expense,
           special_contract,
-          performance_allocations:performance_allocations${me?.isStaff ? '!inner' : ''}(
+          performance_allocations:performance_allocations${needInnerJoin ? '!inner' : ''}(
             staff_id1, staff_id2, staff_id3, staff_id4,
             buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
             seller_weight1, seller_weight2, seller_weight3, seller_weight4,
@@ -623,25 +624,47 @@
           .select(selectBase)
           .order('contract_date', { ascending: false });
 
-        // 3) 직원이면: 자식 테이블에서 내 staffId 매칭 (★ staffId 사용, userId 아님)
+        // 3) 권한별 필터
         if (me?.isStaff && me?.staffId) {
-          const sid = me.staffId; // ← 여기!
+          // 직원: 본인 배정건만
+          const sid = me.staffId;
           query = query.or(
             `staff_id1.eq.${sid},staff_id2.eq.${sid},staff_id3.eq.${sid},staff_id4.eq.${sid}`,
-            { foreignTable: 'performance_allocations' } // ← 자식 테이블에 조건 적용
+            { foreignTable: 'performance_allocations' }
           );
+        } else if (me?.authority === '지점장' && me?.affiliation) {
+          // 지점장: 내 소속(affiliation) 모든 직원이 관여한 건
+          const { data: branchStaff, error: affErr } = await supabase
+            .from('staff_profiles')
+            .select('id')
+            .eq('affiliation', me.affiliation); // 퇴사자 포함/제외는 정책에 맞게 조정
+
+          if (affErr) {
+            console.warn('[지점장] 소속 직원 조회 실패:', affErr?.message);
+          } else {
+            let ids = (branchStaff || []).map(r => r.id).filter(v => v != null);
+            if (!ids.includes(me.staffId) && me.staffId) ids.push(me.staffId);
+            if (ids.length) {
+              // 숫자 id 가정 → 따옴표 불필요. (uuid라면 "uuid1","uuid2" 식으로 감싸야 함)
+              const idList = ids.join(',');
+              query = query.or(
+                `staff_id1.in.(${idList}),staff_id2.in.(${idList}),staff_id3.in.(${idList}),staff_id4.in.(${idList})`,
+                { foreignTable: 'performance_allocations' }
+              );
+            }
+          }
         }
+        // 그 외 권한(관리자 등)은 전체 보기
 
         // 4) 실행
         const { data, error } = await query;
-
         if (error) {
           console.error('테이블 조회 실패:', error);
           showToastGreenRed('조회 실패: ' + error.message);
           return;
         }
 
-        // 5) 렌더 (기존 로직 유지)
+        // 5) 렌더 (기존 그대로)
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
@@ -728,9 +751,7 @@
         console.error(e);
         showToastGreenRed('예상치 못한 오류');
       }
-    }
-
-
+    }    
 
     // 페이지 로드 시 자동 실행
     document.addEventListener("DOMContentLoaded", loadPerformanceTable);
