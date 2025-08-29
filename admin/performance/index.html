@@ -683,6 +683,36 @@
       }
     }
 
+    // === [ADD] 잔금일/확정 상태에 따른 행 배경색 적용 ===
+    // - 잔금일이 2일 초과로 남음: 옅은 초록(#f0fdf4)
+    // - 잔금일이 0~2일 이내: 더 짙은 초록(#bbf7d0)
+    // - 잔금일 지남 && 미확정(status=false): 빨강(#fecaca)
+    function applyRowStatusColor(tr, row) {
+      if (!row?.balance_date) return;
+
+      // YYYY-MM-DD → 로컬 자정 Date
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(row.balance_date);
+      if (!m) return;
+      const bd = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); // 잔금일 00:00
+
+      const now = new Date();
+      const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 오늘 00:00
+      const diffDays = Math.floor((bd - today0) / 86400000); // 잔금일까지 남은 '정수' 일수
+
+      // zebra-stripe(짝수행 회색)보다 우선 적용되도록 inline style 사용
+      if (diffDays > 2) {
+        tr.style.backgroundColor = '#f0fdf4'; // bg-green-50
+        tr.title = '잔금일이 아직 도래하지 않았습니다.';
+      } else if (diffDays >= 0) {
+        tr.style.backgroundColor = '#bbf7d0'; // bg-green-200
+        tr.title = '잔금일이 2일 이내로 남았습니다.';
+      } else if (!row.status) {
+        tr.style.backgroundColor = '#fecaca'; // bg-red-200
+        tr.title = '잔금일이 지났지만 매출이 확정되지 않았습니다.';
+      }
+    }
+
+
     // === 매출확정: status=true 업데이트 + 폼 잠금 ===
     document.getElementById('f_status')?.addEventListener('click', async () => {
       // 신규 작성 상태(아직 저장 전)면 확정 불가
@@ -950,6 +980,8 @@
           tr.appendChild(tdMulti(buyerP.join('\n')));
           tr.appendChild(tdMulti(sellerP.join('\n')));
           tr.appendChild(tdMulti(inv.join('\n')));
+
+          applyRowStatusColor(tr, row); //배경색 적용
 
           tr.addEventListener('click', () => {
             currentPerformanceId = row.id;
