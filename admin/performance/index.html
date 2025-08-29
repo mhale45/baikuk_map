@@ -511,7 +511,7 @@
 
       if (!role && user?.id) {
         const { data: prof } = await supabase.from('staff_profiles').select('role').eq('auth_user_id', user.id).maybeSingle();
-        role = prof?.role;
+        role = prof?.authority;
       }
 
       window.__userRole = role;
