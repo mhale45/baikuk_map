@@ -444,7 +444,7 @@
       return opt;
     }
 
-    // 직원 패널: 목록 렌더 + 권한별(직원/지점장/관리자) 클릭 허용 + 클릭 시 필터
+    // 직원/지점 패널: 목록 렌더 + 권한별 클릭 허용 + 클릭 시 필터
     (async () => {
       // 0) 내 권한/소속/내 스태프ID
       const me = await getMyAuthorityAndStaffId(); // { authority, isStaff, staffId, affiliation, userId }
@@ -474,29 +474,62 @@
       container.innerHTML = '';
 
       // 3) 권한별 클릭 가능 여부
-      const canClick = (emp) => {
+      const canClickStaff = (emp) => {
         if (me.authority === '관리자') return true;
         if (me.authority === '지점장') return emp.affiliation === me.affiliation;
         if (me.authority === '직원')   return String(emp.id) === String(me.staffId);
         return false;
       };
+      const canClickAff = (aff) => {
+        if (me.authority === '관리자') return true;
+        if (me.authority === '지점장') return aff === me.affiliation;
+        // 직원은 지점 전체 보기 금지
+        return false;
+      };
 
       // 4) 렌더
-      let firstClickableEl = null;
+      let firstClickableStaffEl = null;
 
       Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+        // --- 지점 헤더 (클릭 시 지점 전체 필터) ---
         const header = document.createElement('div');
-        header.className = 'grade-header';
+        header.className = 'grade-header select-none';
         header.textContent = aff;
+
+        if (canClickAff(aff)) {
+          header.classList.add('cursor-pointer', 'hover:bg-yellow-100');
+          header.title = '이 지점의 모든 매출 보기';
+          header.addEventListener('click', () => {
+            // 토글: 같은 지점을 다시 누르면 해제
+            if (__selectedAffiliation === aff) {
+              __selectedAffiliation = null;
+              header.classList.remove('ring-2', 'ring-yellow-400');
+            } else {
+              __selectedAffiliation = aff;
+              // 지점 필터를 켜면 직원 단일 선택은 해제
+              __selectedStaffId = null;
+              // 헤더 하이라이트 갱신
+              container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+              header.classList.add('ring-2', 'ring-yellow-400');
+              // 직원 선택 하이라이트 제거
+              container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
+            }
+            loadPerformanceTable();
+          });
+        } else {
+          header.classList.add('opacity-60');
+          header.title = '이 지점은 조회 권한이 없습니다.';
+        }
         container.appendChild(header);
 
+        // --- 직원 리스트 ---
         const makeName = (emp, { dim = false } = {}) => {
           const el = document.createElement('div');
           el.className = 'name-item';
           el.dataset.staffId = emp.id;
           el.textContent = dim ? `${emp.name} (퇴사)` : emp.name;
 
-          const allowed = canClick(emp);
+          const allowed = canClickStaff(emp);
           if (!allowed) {
             // 클릭 불가 표시
             el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
@@ -504,7 +537,7 @@
           } else {
             // 클릭 가능 표시
             el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
-            if (!firstClickableEl) firstClickableEl = el;
+            if (!firstClickableStaffEl) firstClickableStaffEl = el;
           }
           return el;
         };
@@ -531,11 +564,13 @@
         }
       });
 
-      // 5) 클릭 → 직원 선택/하이라이트 → 테이블 재조회
+      // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
       function setActiveStaff(staffId) {
-        __selectedStaffId = staffId; // 전역 상태에 저장
+        __selectedStaffId = staffId;
+        __selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
 
         // UI 하이라이트
+        container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
         container.querySelectorAll('.name-item').forEach(el => {
           if (el.dataset.disabled === '1') return;
           if (String(el.dataset.staffId) === String(staffId)) {
@@ -548,7 +583,6 @@
         // 테이블 갱신
         loadPerformanceTable();
       }
-
       container.addEventListener('click', (e) => {
         const el = e.target.closest('.name-item');
         if (!el || el.dataset.disabled === '1') return;
@@ -559,8 +593,8 @@
       if (me.isStaff && me.staffId) {
         setActiveStaff(me.staffId);
       } else {
-        // 지점장/관리자: 첫 클릭 가능한 항목을 자동 선택해주고 싶다면 주석 해제
-        // if (firstClickableEl) setActiveStaff(firstClickableEl.dataset.staffId);
+        // 지점장/관리자: 자동선택 없음 (원하면 주석 해제)
+        // if (firstClickableStaffEl) setActiveStaff(firstClickableStaffEl.dataset.staffId);
       }
     })();
 
@@ -601,6 +635,7 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
+    let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     
     // === [REPLACE] 내 권한/스태프ID/소속 조회 (user_id 기준) ===
     async function getMyAuthorityAndStaffId() {
@@ -645,7 +680,7 @@
         currentPerformanceId = null;
     }
 
-    // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원 필터 적용 로딩 함수 ===
+    // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
       await ensureStaffNameMap();
       try {
@@ -656,12 +691,22 @@
         try { me = await getMyAuthorityAndStaffId(); }
         catch (e) { console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message); }
 
-        // 선택된 직원(좌측 패널) - 직원은 무조건 자기 자신만
-        let selectedId = __selectedStaffId;
-        if (me?.isStaff) selectedId = me.staffId;
+        // 선택 상태
+        let selectedId  = __selectedStaffId;
+        let selectedAff = __selectedAffiliation;
 
-        // 2) select 구성: 특정 직원으로 필터할 땐 !inner 필요
-        const needInnerJoin = me?.isStaff || me?.authority === '지점장' || !!selectedId;
+        // 직원은 무조건 자기 자신만
+        if (me?.isStaff) {
+          selectedId  = me.staffId;
+          selectedAff = null;
+        }
+        // 지점장: 다른 지점 클릭 방지 (UI에서 막지만 이중 방어)
+        if (me?.authority === '지점장' && selectedAff && selectedAff !== me.affiliation) {
+          selectedAff = me.affiliation;
+        }
+
+        // 2) select 구성: 직원/지점으로 필터할 땐 !inner 필요
+        const needInnerJoin = me?.isStaff || me?.authority === '지점장' || !!selectedId || !!selectedAff;
 
         const selectBase = `
           id, listing_id, listing_title, province, city, district, detail_address,
@@ -703,7 +748,7 @@
           const { data: branchStaff, error: affErr } = await supabase
             .from('staff_profiles')
             .select('id')
-            .eq('affiliation', me.affiliation); // 퇴사자 포함 정책은 필요시 조정
+            .eq('affiliation', me.affiliation);
 
           if (!affErr && Array.isArray(branchStaff) && branchStaff.length) {
             const ids = branchStaff.map(r => r.id).filter(v => v != null);
@@ -716,7 +761,7 @@
           // 관리자 등은 전체
         }
 
-        // 4) 선택된 직원으로 추가 필터(관리자/지점장/직원 모두 허용 범위 안에서 좁히기)
+        // 4) 좌측 패널 “선택 직원”으로 추가 좁히기
         if (selectedId) {
           query = query.or(
             `staff_id1.eq.${selectedId},staff_id2.eq.${selectedId},staff_id3.eq.${selectedId},staff_id4.eq.${selectedId}`,
@@ -724,7 +769,25 @@
           );
         }
 
-        // 5) 실행
+        // 5) 좌측 패널 “선택 지점(affiliation)”으로 추가 좁히기
+        if (!selectedId && selectedAff) {
+          // 선택 직원이 없고 지점이 선택되었을 때만 적용
+          const { data: affStaff, error: selErr } = await supabase
+            .from('staff_profiles')
+            .select('id')
+            .eq('affiliation', selectedAff);
+
+          if (!selErr && Array.isArray(affStaff) && affStaff.length) {
+            const ids = affStaff.map(r => r.id).filter(v => v != null);
+            const idList = ids.join(',');
+            query = query.or(
+              `staff_id1.in.(${idList}),staff_id2.in.(${idList}),staff_id3.in.(${idList}),staff_id4.in.(${idList})`,
+              { foreignTable: 'performance_allocations' }
+            );
+          }
+        }
+
+        // 6) 실행
         const { data, error } = await query;
         if (error) {
           console.error('테이블 조회 실패:', error);
@@ -732,7 +795,7 @@
           return;
         }
 
-        // 6) 렌더 (기존 로직 유지)
+        // 7) 렌더 (기존 로직 유지)
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
@@ -820,7 +883,6 @@
         showToastGreenRed('예상치 못한 오류');
       }
     }
-
 
     // 페이지 로드 시 자동 실행
     document.addEventListener("DOMContentLoaded", loadPerformanceTable);
