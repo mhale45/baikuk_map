@@ -637,6 +637,53 @@
     let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
     let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     
+    // === [ADD] 폼 편집 가능/불가 토글 ===
+    function setFormEditable(enabled) {
+      const drawer = document.getElementById('sales-drawer');
+      if (!drawer) return;
+
+      // 입력계열
+      drawer.querySelectorAll('input, select, textarea').forEach(el => {
+        // 닫기 버튼 같은 건 제외
+        if (el.id === 'f_status') return; // 상태버튼은 아래에서 별도 처리
+        if (enabled) {
+          el.disabled = false;
+          el.readOnly = false;
+          el.classList.remove('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+        } else {
+          // select는 disabled, input/textarea는 readOnly + 비주얼
+          if (el.tagName === 'SELECT') el.disabled = true;
+          else el.readOnly = true;
+          el.classList.add('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+        }
+      });
+
+      // 저장 버튼
+      const saveBtn = document.getElementById('save-sales');
+      if (saveBtn) {
+        saveBtn.disabled = !enabled;
+        saveBtn.classList.toggle('opacity-50', !enabled);
+        saveBtn.classList.toggle('cursor-not-allowed', !enabled);
+      }
+
+      // 확정 버튼
+      const statusBtn = document.getElementById('f_status');
+      if (statusBtn) {
+        if (enabled) {
+          statusBtn.disabled = false;
+          statusBtn.textContent = '매출확정';
+          statusBtn.classList.remove('bg-gray-400');
+          statusBtn.classList.add('bg-red-500');
+        } else {
+          statusBtn.disabled = true;
+          statusBtn.textContent = '확정됨';
+          statusBtn.classList.remove('bg-red-500');
+          statusBtn.classList.add('bg-gray-400');
+        }
+      }
+    }
+
+
     // === [REPLACE] 내 권한/스태프ID/소속 조회 (user_id 기준) ===
     async function getMyAuthorityAndStaffId() {
       await waitForSupabase();
@@ -720,6 +767,7 @@
           seller_fee, seller_tax, seller_tax_date,
           expense,
           special_contract,
+          status,
           performance_allocations:performance_allocations${needInnerJoin ? '!inner' : ''}(
             staff_id1, staff_id2, staff_id3, staff_id4,
             buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
@@ -874,6 +922,9 @@
             fillFormWithPerformance(row);
             fillAllocations(pa || null);
             updateHighlight();
+            // ← [ADD] status에 따라 폼 잠금
+            const locked = !!row.status;
+            setFormEditable(!locked);
           });
           window.triggerAllocationRecalc?.();
           tbody.appendChild(tr);
@@ -1002,9 +1053,10 @@
 
     // [CHANGE] 매출등록 버튼 클릭 시 무조건 폼 초기화 후 열기
     document.getElementById('open-sales-drawer')?.addEventListener('click', () => {
-      currentPerformanceId = null;   // 기존 선택 매출 ID 제거
-      resetForm();                   // 폼 값 초기화 (performance.js에 이미 있음)
-      openDrawer();                  // 드로어 열기
+      currentPerformanceId = null;
+      resetForm();
+      openDrawer();
+      setFormEditable(true); // ← [ADD] 신규 작성은 항상 편집 가능
     });
 
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
@@ -1016,6 +1068,37 @@
     // ===== 저장 처리 =====
     document.getElementById('save-sales')?.addEventListener('click', async (evt) => {
       // evt.preventDefault();  // type="button"이면 불필요
+      // === [ADD] 매출확정: status=true로 업데이트하고 폼 잠금 ===
+      document.getElementById('f_status')?.addEventListener('click', async () => {
+        if (!currentPerformanceId) {
+          showToastGreenRed('먼저 매출을 저장한 뒤 확정할 수 있습니다.');
+          return;
+        }
+        if (!confirm('매출을 확정하면 수정할 수 없습니다. 진행하시겠습니까?')) return;
+
+        try {
+          const { error } = await window.supabase
+            .from('performance')
+            .update({ status: true })
+            .eq('id', currentPerformanceId);
+
+          if (error) {
+            showToastGreenRed('매출 확정 실패: ' + error.message);
+            return;
+          }
+
+          // 폼 잠금 & UI 반영
+          setFormEditable(false);
+          showToastGreenRed('매출이 확정되었습니다.', { ok: true });
+
+          // 목록도 상태 반영하도록 새로고침(선택 유지용이면 그대로 호출)
+          await loadPerformanceTable();
+        } catch (e) {
+          console.error(e);
+          showToastGreenRed('예상치 못한 오류가 발생했습니다.');
+        }
+      });
+
       if (__saving) return;
       __saving = true;
       try {
