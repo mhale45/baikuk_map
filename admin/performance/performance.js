@@ -451,3 +451,34 @@ export async function fetchListingAndFill(listingId) {
     if (typeof updateHighlight === "function") updateHighlight();
     showToastGreenRed('매물 정보 자동 채움 완료', { ok: true });
 }
+
+let _pcdCache = null;
+
+/** province_city_district 테이블 전체 로드 + 캐시 */
+export async function fetchAllPCD(batchSize = 1000) {
+  if (_pcdCache) return _pcdCache;
+
+  await waitForSupabase();
+  const supa = window.supabase;
+
+  let from = 0;
+  const all = [];
+  while (true) {
+    const to = from + batchSize - 1;
+    const { data, error } = await supa
+      .from('province_city_district')
+      .select('province, city, district')
+      .order('province', { ascending: true })
+      .order('city', { ascending: true })
+      .order('district', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    const chunk = data || [];
+    all.push(...chunk);
+    if (chunk.length === 0) break;
+    from += chunk.length;
+  }
+  _pcdCache = all;
+  return all;
+}
