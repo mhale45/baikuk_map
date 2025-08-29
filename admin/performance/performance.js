@@ -482,3 +482,108 @@ export async function fetchAllPCD(batchSize = 1000) {
   _pcdCache = all;
   return all;
 }
+
+
+// ===== 지역(시/도-시/군/구-읍/면/동) 의존형 드롭다운 (sales 폼용) =====
+export async function initSalesLocationSelects(preset = {}) {
+    const provinceEl = document.getElementById('f_province');
+    const cityEl     = document.getElementById('f_city');
+    const districtEl = document.getElementById('f_district');
+    if (!provinceEl || !cityEl || !districtEl) return;
+
+    // 현재 값(자동채움으로 미리 들어온 값이 있으면 우선 사용)
+    const selected = {
+    province: preset.province ?? provinceEl.value ?? '',
+    city:     preset.city     ?? cityEl.value     ?? '',
+    district: preset.district ?? districtEl.value ?? '',
+    };
+
+    const setPlaceholder = () => {
+    provinceEl.innerHTML = `<option value="">시/도</option>`;
+    cityEl.innerHTML     = `<option value="">시/군/구</option>`;
+    districtEl.innerHTML = `<option value="">읍/면/동</option>`;
+    };
+    setPlaceholder();
+
+    // 정렬/유틸
+    const collate = new Intl.Collator('ko-KR');
+    const uniq = arr => Array.from(new Set(arr));
+    const sortKo = arr => arr.sort((a,b)=>collate.compare(a,b));
+
+    const fillSelect = (selectEl, values, selectedVal) => {
+    // placeholder 유지 후 값 채우기
+    const ph = selectEl.querySelector('option[value=""]');
+    selectEl.innerHTML = '';
+    if (ph) selectEl.appendChild(ph);
+
+    let list = [...values];
+    if (selectedVal && !values.includes(selectedVal)) list = [selectedVal, ...values];
+
+    for (const v of list) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        if (selectedVal && v === selectedVal) opt.selected = true;
+        selectEl.appendChild(opt);
+    }
+    };
+
+    // 데이터 로드
+    let rows = [];
+    try {
+    if (typeof fetchAllPCD !== 'function') throw new Error('fetchAllPCD가 정의되어 있지 않음');
+    rows = await fetchAllPCD(); // 필요시 상한 조정
+    } catch (e) {
+    console.error('지역 데이터 로드 실패:', e);
+    // 실패 시에도 현재 선택값만이라도 보이도록
+    fillSelect(provinceEl, selected.province ? [selected.province] : [], selected.province);
+    fillSelect(cityEl,     selected.city     ? [selected.city]     : [], selected.city);
+    fillSelect(districtEl, selected.district ? [selected.district] : [], selected.district);
+    return;
+    }
+
+    // 맵 구성
+    const citiesByProv = new Map();            // province -> Set(cities)
+    const distsByProvCity = new Map();         // `${province}|${city}` -> Set(districts)
+    for (const { province, city, district } of rows) {
+    if (!province || !city || !district) continue;
+    if (!citiesByProv.has(province)) citiesByProv.set(province, new Set());
+    citiesByProv.get(province).add(city);
+
+    const key = `${province}|${city}`;
+    if (!distsByProvCity.has(key)) distsByProvCity.set(key, new Set());
+    distsByProvCity.get(key).add(district);
+    }
+
+    const provinces = sortKo(uniq(rows.map(r => r.province).filter(Boolean)));
+
+    // 1) province
+    fillSelect(provinceEl, provinces, selected.province);
+
+    // 2) city (province에 종속)
+    const selProvince = provinceEl.value || selected.province || '';
+    const cities = selProvince ? sortKo(uniq([...(citiesByProv.get(selProvince) || [])])) : [];
+    fillSelect(cityEl, cities, selected.city);
+
+    // 3) district (province+city에 종속)
+    const selCity = cityEl.value || selected.city || '';
+    const key = `${selProvince}|${selCity}`;
+    const districts = (selProvince && selCity) ? sortKo(uniq([...(distsByProvCity.get(key) || [])])) : [];
+    fillSelect(districtEl, districts, selected.district);
+
+    // 이벤트 바인딩
+    provinceEl.onchange = () => {
+    const p = provinceEl.value;
+    const cities2 = p ? sortKo(uniq([...(citiesByProv.get(p) || [])])) : [];
+    fillSelect(cityEl, cities2, '');
+    fillSelect(districtEl, [], '');
+    };
+
+    cityEl.onchange = () => {
+    const p = provinceEl.value;
+    const c = cityEl.value;
+    const k = `${p}|${c}`;
+    const d2 = (p && c) ? sortKo(uniq([...(distsByProvCity.get(k) || [])])) : [];
+    fillSelect(districtEl, d2, '');
+    };
+}
