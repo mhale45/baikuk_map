@@ -1388,8 +1388,25 @@
 
           const row = retry.data;
           fillFormFromRow(row);
+
+          // === [ADD] 계약금 자동 계산: 보증금의 10% ===
+          (() => {
+            const deposit = numOrNull(document.getElementById('f_deposit_price')?.value);
+            const dpEl = document.getElementById('f_down_payment');
+            if (dpEl) {
+              if (typeof deposit === 'number' && deposit > 0) {
+                const dp = Math.round(deposit * 0.10); // 10%
+                dpEl.value = formatNumberWithCommas(dp);
+                // (옵션) 자동채움 플래그 사용 중이면 켜두기
+                try { isDownPaymentAutoFilled = true; } catch {}
+              } else {
+                dpEl.value = '';
+              }
+            }
+          })();
+
           calculateFees();
-          calculateDownPaymentAndBalance();
+          calculateDownPaymentAndBalance({ forceDownPaymentUpdate: true });
 
           // 선택값과 무관하게 드롭다운을 강제로 맞춤
           initSalesLocationSelects({
@@ -1407,8 +1424,25 @@
 
       // 2) 정상 채움
       fillFormFromRow(data);
+
+      // === [ADD] 계약금 자동 계산: 보증금의 10% ===
+      (() => {
+        const deposit = numOrNull(document.getElementById('f_deposit_price')?.value);
+        const dpEl = document.getElementById('f_down_payment');
+        if (dpEl) {
+          if (typeof deposit === 'number' && deposit > 0) {
+            const dp = Math.round(deposit * 0.10); // 10%
+            dpEl.value = formatNumberWithCommas(dp);
+            // (옵션) 자동채움 플래그 사용 중이면 켜두기
+            try { isDownPaymentAutoFilled = true; } catch {}
+          } else {
+            dpEl.value = '';
+          }
+        }
+      })();
+
       calculateFees();
-      calculateDownPaymentAndBalance();
+      calculateDownPaymentAndBalance({ forceDownPaymentUpdate: true });
 
       // 선택값과 상관없이 드롭다운을 해당 값으로 재구성+선택
       initSalesLocationSelects({
