@@ -1064,67 +1064,84 @@
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
     overlay?.addEventListener('click', closeDrawer);
 
-    // ===== 입력값 수집 =====
-    
-
-    // ===== 저장 처리 =====
-    document.getElementById('save-sales')?.addEventListener('click', async (evt) => {
-      // evt.preventDefault();  // type="button"이면 불필요
-      // === [ADD] 매출확정: status=true로 업데이트하고 폼 잠금 ===
-      document.getElementById('f_status')?.addEventListener('click', async () => {
-        if (!currentPerformanceId) {
-          showToastGreenRed('먼저 매출을 저장한 뒤 확정할 수 있습니다.');
-          return;
-        }
-        if (!confirm('매출을 확정하면 수정할 수 없습니다. 진행하시겠습니까?')) return;
-
-        try {
-          const { error } = await window.supabase
-            .from('performance')
-            .update({ status: true })
-            .eq('id', currentPerformanceId);
-
-          if (error) {
-            showToastGreenRed('매출 확정 실패: ' + error.message);
-            return;
-          }
-
-          // 폼 잠금 & UI 반영
-          setFormEditable(false);
-          showToastGreenRed('매출이 확정되었습니다.', { ok: true });
-
-          // 목록도 상태 반영하도록 새로고침(선택 유지용이면 그대로 호출)
-          await loadPerformanceTable();
-        } catch (e) {
-          console.error(e);
-          showToastGreenRed('예상치 못한 오류가 발생했습니다.');
-        }
-      });
-
+    // === 저장 ===
+    document.getElementById('save-sales')?.addEventListener('click', async () => {
       if (__saving) return;
       __saving = true;
       try {
         if (!window.supabase) { showToastGreenRed('Supabase 클라이언트를 찾을 수 없습니다.'); return; }
 
-        // 직원은 분배율 30 고정
+        // 직원 권한은 분배율 30 고정
         const distEl = document.getElementById('f_seller_distribution_rate');
         if (window.__isStaff && distEl) {
           distEl.value = 30;
           if (typeof calculateFees === 'function') calculateFees();
         }
 
+        // (1) 가중치 합 검사
         if (!validateTotalWeight()) return;
 
-        const payload = collectPerformancePayload();
-        if (!payload.deal_type && !payload.listing_title) {
-          showToastGreenRed('거래유형 또는 매물명을 입력하세요.');
-          return;
+        // (2) 계산 최신화 (수수료→매출, 계약금/잔금)
+        try {
+          recalcPerformanceFromFees();
+          calculateDownPaymentAndBalance();
+        } catch {}
+
+        // (3) 필수값 검사
+        const get     = (id) => document.getElementById(id);
+        const textVal = (id) => (get(id)?.value ?? '').trim();
+        const numVal  = (id) => numOrNull(get(id)?.value);
+        const fail = (id, msg) => { 
+          showToastGreenRed(msg);
+          const el = get(id);
+          if (el) { el.focus(); el.classList.add('ring-2','ring-red-400'); setTimeout(()=>el.classList.remove('ring-2','ring-red-400'),1200); }
+          return true;
+        };
+
+        // 3-1) 공통 문자열
+        const textRequired = [
+          ['f_listing_title',  '매물명'],
+          ['f_province',       '시/도'],
+          ['f_city',           '시/군/구'],
+          ['f_district',       '읍/면/동'],
+          ['f_detail_address', '번지'],
+          ['f_deal_type',      '거래유형'],
+          ['f_contract_date',  '계약일'],
+          ['f_balance_date',   '잔금일'],
+        ];
+        for (const [id, label] of textRequired) {
+          if (!textVal(id)) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        let perfId = currentPerformanceId;
+        // 3-2) 거래유형별 금액
+        const dealType = textVal('f_deal_type');
+        if (dealType === '매매') {
+          if (numVal('f_sale_price') == null) { if (fail('f_sale_price', '매매가를 입력하세요.')) return; }
+        } else if (dealType === '월세') {
+          if (numVal('f_deposit_price') == null) { if (fail('f_deposit_price', '보증금을 입력하세요.')) return; }
+          if (numVal('f_monthly_rent') == null)  { if (fail('f_monthly_rent',  '월세를 입력하세요.')) return; }
+        }
 
+        // 3-3) 숫자 필수(계약금/잔금/수수료/매출)
+        const numericRequired = [
+          ['f_down_payment',        '계약금'],
+          ['f_balance',             '잔금'],
+          ['f_buyer_fee',           '매수인 수수료'],
+          ['f_seller_fee',          '매도인 수수료'],
+          ['f_buyer_performance',   '클로징 매출'],
+          ['f_seller_performance',  '물건 매출'],
+        ];
+        for (const [id, label] of numericRequired) {
+          if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
+        }
+
+        // (4) 페이로드 수집
+        const payload = collectPerformancePayload();
+
+        // (5) 저장/수정
+        let perfId = currentPerformanceId;
         if (perfId) {
-          // === UPDATE ===
+          // UPDATE
           const { error: upErr } = await window.supabase
             .from('performance')
             .update(payload)
@@ -1148,7 +1165,7 @@
 
           showToastGreenRed('수정 완료!', { ok: true });
         } else {
-          // === INSERT ===
+          // INSERT
           const { data: perfInsert, error: perfErr } = await window.supabase
             .from('performance')
             .insert(payload)
