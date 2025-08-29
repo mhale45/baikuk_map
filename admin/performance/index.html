@@ -449,13 +449,20 @@
       // 0) 내 권한/소속/내 스태프ID
       const me = await getMyAuthorityAndStaffId(); // { authority, isStaff, staffId, affiliation, userId }
 
-      // 1) 직원 데이터 로드 (재직/퇴사 포함)
-      const { data, error } = await supabase
+      // 1) 직원 데이터 로드 (권한별 재직자 필터)
+      let staffQuery = supabase
         .from('staff_profiles')
         .select('id, name, affiliation, leave_date')
         .order('affiliation', { ascending: true })
         .order('name', { ascending: true });
 
+      if (me.authority === '직원') {
+        // 직원 권한은 재직자만 보이도록
+        staffQuery = staffQuery.is('leave_date', null);
+      }
+
+      const { data, error } = await staffQuery;
+        
       if (error) {
         console.error('직원 정보 실패:', error);
         return;
@@ -543,7 +550,8 @@
         };
 
         active.forEach((emp) => container.appendChild(makeName(emp)));
-        if (inactive.length > 0) {
+        // --- 퇴사자 토글/목록 (관리자/지점장만 노출) ---
+        if (me.authority !== '직원' && inactive.length > 0) {
           const toggleBtn = document.createElement('button');
           toggleBtn.textContent = '▼ 퇴사자 보기';
           toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
@@ -552,7 +560,13 @@
           collapseDiv.className = 'pl-4 mt-1 hidden';
           collapseDiv.id = `inactive-group-${idx}`;
 
-          inactive.forEach((emp) => collapseDiv.appendChild(makeName(emp, { dim: true })));
+          inactive.forEach((emp) => {
+            const el = document.createElement('div');
+            el.className = 'name-item text-gray-400 italic';
+            el.dataset.staffId = emp.id;
+            el.textContent = `${emp.name} (퇴사)`;
+            collapseDiv.appendChild(el);
+          });
 
           toggleBtn.onclick = () => {
             const expanded = collapseDiv.classList.toggle('hidden');
@@ -562,6 +576,7 @@
           container.appendChild(toggleBtn);
           container.appendChild(collapseDiv);
         }
+
       });
 
       // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
