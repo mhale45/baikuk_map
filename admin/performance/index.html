@@ -551,7 +551,7 @@
       // ✅ 스키마가 auth_user_id를 사용하므로 이것부터 조회
       const { data: staff, error: spErr } = await supabase
         .from('staff_profiles')
-        .select('id, authority, authority')
+        .select('id, authority')
         .eq('user_id', user.id)
         .maybeSingle();
 
