@@ -52,21 +52,22 @@ export function buildDateBlock(row) {
     const parts = [];
 
     if (row.contract_date) parts.push(`계약 ${row.contract_date}`);
-    if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
 
     // 중도금 1~3
     if (row.interim_payment1_date) {
-    const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
-    parts.push(`중도금1 ${row.interim_payment1_date}`);
+        const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
+        parts.push(`중도금1 ${row.interim_payment1_date}`);
     }
     if (row.interim_payment2_date) {
-    const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
-    parts.push(`중도금2 ${row.interim_payment2_date}`);
+        const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
+        parts.push(`중도금2 ${row.interim_payment2_date}`);
     }
     if (row.interim_payment3_date) {
-    const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
-    parts.push(`중도금3 ${row.interim_payment3_date}`);
+        const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
+        parts.push(`중도금3 ${row.interim_payment3_date}`);
     }
+    
+    if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
 
     return parts.join('<br>'); // 줄바꿈
 }
@@ -371,6 +372,7 @@ export function collectAllocationPayloadRow(performance_id) {
 
   return row;
 }
+
 
 export function resetForm() {
     document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')

@@ -585,7 +585,7 @@
 
         if (error) {
             console.error('테이블 조회 실패:', error);
-            showToast('조회 실패: ' + error.message);
+            showToastGreenRed('조회 실패: ' + error.message);
             return;
         }
 
@@ -692,7 +692,7 @@
         });
         } catch (e) {
         console.error(e);
-        showToast('예상치 못한 오류');
+        showToastGreenRed('예상치 못한 오류');
         }
     }
 

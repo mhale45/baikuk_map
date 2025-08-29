@@ -540,6 +540,43 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
+    // === [ADD] 내 권한/스태프ID 조회 유틸 ===
+    async function getMyAuthorityAndStaffId() {
+      await waitForSupabase();
+      const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
+      if (sErr) throw sErr;
+      const user = sessionRes?.session?.user;
+      if (!user?.id) throw new Error('로그인이 필요합니다.');
+
+      // staff_profiles에서 우선 user_id로, 없으면 auth_user_id로 조회 (컬럼 혼재 대비)
+      let { data: staff, error: spErr } = await supabase
+        .from('staff_profiles')
+        .select('id, authority, role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if ((spErr || !staff) && !staff) {
+        const retry = await supabase
+          .from('staff_profiles')
+          .select('id, authority, role')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+        staff = retry.data ?? null;
+      }
+
+      if (!staff) throw new Error('staff_profiles에서 사용자 정보를 찾을 수 없습니다.');
+
+      // authority 우선, 없으면 role 사용 (기존 코드의 role 호환)
+      const authority = staff.authority || staff.role || window.__userRole || '';
+      const isStaff = authority === '직원';
+
+      // 전역 플래그도 동기화해 두면 기존 로직과 충돌 없음
+      window.__userRole = authority;
+      window.__isStaff = isStaff;
+
+      return { authority, staffId: staff.id, userId: user.id, isStaff };
+    }
+
 
     function openDrawer() {
         overlay.classList.remove('hidden');
@@ -554,147 +591,158 @@
         currentPerformanceId = null;
     }
 
+    // === [REPLACE] 권한별(직원: 본인 배정건만) 필터 적용된 테이블 로드 ===
     async function loadPerformanceTable() {
-        await ensureStaffNameMap();
-        try {
+      await ensureStaffNameMap();
+      try {
         await waitForSupabase();
-        const { data, error } = await window.supabase
-            .from('performance')
-            .select(`
-              id, listing_id, listing_title, province, city, district, detail_address,
-              floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
-              contract_date, balance_date,
-              down_payment, balance,
-              interim_payment1, interim_payment1_date,
-              interim_payment2, interim_payment2_date,
-              interim_payment3, interim_payment3_date,
-              buyer_fee, buyer_tax, buyer_tax_date,
-              seller_fee, seller_tax, seller_tax_date,
-              expense,
-              special_contract,
-              performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
-                staff_id1, staff_id2, staff_id3, staff_id4,
-                buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
-                seller_weight1, seller_weight2, seller_weight3, seller_weight4,
-                buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
-                seller_amount1, seller_amount2, seller_amount3, seller_amount4,
-                involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
-              )
-            `)
-            .order('contract_date', { ascending: false });
 
-        if (error) {
-            console.error('테이블 조회 실패:', error);
-            showToastGreenRed('조회 실패: ' + error.message);
-            return;
+        // 1) 내 권한/스태프ID
+        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null };
+        try {
+          // 최신 값 재확인 (authority/role 혼재 대비)
+          me = await getMyAuthorityAndStaffId();
+        } catch (e) {
+          console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message);
         }
 
+        // 2) 기본 쿼리 구성 (기존 select 그대로 유지)
+        let query = window.supabase
+          .from('performance')
+          .select(`
+            id, listing_id, listing_title, province, city, district, detail_address,
+            floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+            contract_date, balance_date,
+            down_payment, balance,
+            interim_payment1, interim_payment1_date,
+            interim_payment2, interim_payment2_date,
+            interim_payment3, interim_payment3_date,
+            buyer_fee, buyer_tax, buyer_tax_date,
+            seller_fee, seller_tax, seller_tax_date,
+            expense,
+            special_contract,
+            performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
+              staff_id1, staff_id2, staff_id3, staff_id4,
+              buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
+              seller_weight1, seller_weight2, seller_weight3, seller_weight4,
+              buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+              seller_amount1, seller_amount2, seller_amount3, seller_amount4,
+              involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
+            )
+          `)
+          .order('contract_date', { ascending: false });
+
+        // 3) 직원이라면: performance_allocations의 staff_id1~4 중 내 staffId가 하나라도 일치하는 건만
+        if (me?.isStaff && me?.staffId) {
+          // 관계명(alias) 'performance_allocations' 기준으로 or 필터 적용
+          // PostgREST 규칙: join된 테이블 컬럼에 필터할 때 "alias.column" 형태 사용 가능
+          const sid = me.userId;
+          query = query.or([
+            `performance_allocations.staff_id1.eq.${sid}`,
+            `performance_allocations.staff_id2.eq.${sid}`,
+            `performance_allocations.staff_id3.eq.${sid}`,
+            `performance_allocations.staff_id4.eq.${sid}`,
+          ].join(','));
+        }
+
+        // 4) 실행
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('테이블 조회 실패:', error);
+          showToastGreenRed('조회 실패: ' + error.message);
+          return;
+        }
+
+        // 5) 렌더 (기존 로직 유지)
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
-        data.forEach(row => {
-            // 관계가 1:1이라도 PostgREST가 배열로 줄 수 있으니 방어적으로 처리
-            const pa = Array.isArray(row.performance_allocations)
+        (data || []).forEach(row => {
+          const pa = Array.isArray(row.performance_allocations)
             ? row.performance_allocations[0]
             : row.performance_allocations;
 
-            // 1) 직원/비율 텍스트를 한 셀용으로 준비
-            const names  = [];
-            const buyerP = [];
-            const sellerP= [];
-            const inv    = [];
+          const names = [], buyerP = [], sellerP = [], inv = [];
+          if (pa) {
+            for (let i = 1; i <= 4; i++) {
+              const sid = pa[`staff_id${i}`];
+              const bw  = pa[`buyer_weight${i}`];
+              const sw  = pa[`seller_weight${i}`];
+              if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
 
-            if (pa) {
-              for (let i = 1; i <= 4; i++) {
-                const sid = pa[`staff_id${i}`];
-                const bw  = pa[`buyer_weight${i}`];   // 0~1
-                const sw  = pa[`seller_weight${i}`];  // 0~1
-
-                // ✔ 표시 기준: staff_id 있고 (bw>0 || sw>0) 인 경우만 라인 추가
-                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                  // 직원 이름 / 비율
-                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
-
-                  // 관여매출(저장값 우선, 없으면 buyer+seller 합)
-                  const savedInv = pa?.[`involvement_sales${i}`];
-                  const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
-                  const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
-                  inv.push(
-                    formatNumberWithCommas(
-                      typeof savedInv === 'number' && !Number.isNaN(savedInv)
-                        ? savedInv
-                        : (buyerAmt + sellerAmt)
-                    )
-                  );
-                }
+                const savedInv = pa?.[`involvement_sales${i}`];
+                const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
+                const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
+                inv.push(
+                  formatNumberWithCommas(
+                    typeof savedInv === 'number' && !Number.isNaN(savedInv)
+                      ? savedInv
+                      : (buyerAmt + sellerAmt)
+                  )
+                );
               }
             }
+          }
+          if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
 
-            // 직원 라인이 하나도 없으면 모두 '-'
-            if (names.length === 0) {
-              names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-');
-            }
+          const addr = buildAddress(row);
+          const areaDisp = formatArea1(row.area_py);
 
-            const addr = buildAddress(row);
-            const areaDisp = formatArea1(row.area_py);
+          const tr = document.createElement('tr');
+          tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
 
-            // 2) 한 행만 만들어서 넣기
-            const tr = document.createElement('tr');
-            tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
+          const tdHTML = (html) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1';
+            td.innerHTML = html ?? '';
+            return td;
+          };
+          const tdMulti = (text) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1 whitespace-pre-line';
+            td.textContent = text ?? '';
+            return td;
+          };
 
-            // 간단 헬퍼
-            const tdHTML = (html) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1';
-              td.innerHTML = html ?? '';
-              return td;
-            };
-            const tdMulti = (text) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
-              td.textContent = text ?? '';
-              return td;
-            };
+          tr.appendChild(tdHTML(buildListingTitle(row)));
+          tr.appendChild(tdHTML(addr));
+          tr.appendChild(tdHTML(row.deal_type ?? ''));
+          tr.appendChild(tdHTML(buildPriceBlock(row)));
+          tr.appendChild(tdHTML(areaDisp));
+          tr.appendChild(tdHTML(buildDateBlock(row)));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+          tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+          tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+          tr.appendChild(tdMulti(names.join('\n')));
+          tr.appendChild(tdMulti(buyerP.join('\n')));
+          tr.appendChild(tdMulti(sellerP.join('\n')));
+          tr.appendChild(tdMulti(inv.join('\n')));
 
-            // 컬럼 추가 (헤더 순서 그대로)
-            tr.appendChild(tdHTML(buildListingTitle(row)));
-            tr.appendChild(tdHTML(addr));
-            tr.appendChild(tdHTML(row.deal_type ?? ''));
-            tr.appendChild(tdHTML(buildPriceBlock(row)));
-            tr.appendChild(tdHTML(areaDisp));
-            tr.appendChild(tdHTML(buildDateBlock(row)));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-            tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-            tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
-
-            // ★ 여기 3칸이 다중라인 셀
-            tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
-            tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
-            tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
-            tr.appendChild(tdMulti(inv.join('\n')));     // 관여매출
-
-            tr.addEventListener('click', () => {
+          tr.addEventListener('click', () => {
             currentPerformanceId = row.id;
             isDownPaymentAutoFilled = false;
             openDrawer();
             fillFormWithPerformance(row);
             fillAllocations(pa || null);
             updateHighlight();
-            });
-            window.triggerAllocationRecalc?.();
-            tbody.appendChild(tr);
+          });
+          window.triggerAllocationRecalc?.();
+          tbody.appendChild(tr);
         });
-        } catch (e) {
+      } catch (e) {
         console.error(e);
         showToastGreenRed('예상치 못한 오류');
-        }
+      }
     }
+
 
     // 페이지 로드 시 자동 실행
     document.addEventListener("DOMContentLoaded", loadPerformanceTable);

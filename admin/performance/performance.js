@@ -5,6 +5,7 @@ import {
 
 import { waitForSupabase } from '../../../modules/core/supabase.js';
 import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
+import { client } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
@@ -55,16 +56,16 @@ export function buildDateBlock(row) {
 
     // 중도금 1~3
     if (row.interim_payment1_date) {
-    const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
-    parts.push(`중도금1 ${row.interim_payment1_date}`);
+        const amt = row.interim_payment1 ? formatNumberWithCommas(row.interim_payment1) : '';
+        parts.push(`중도금1 ${row.interim_payment1_date}`);
     }
     if (row.interim_payment2_date) {
-    const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
-    parts.push(`중도금2 ${row.interim_payment2_date}`);
+        const amt = row.interim_payment2 ? formatNumberWithCommas(row.interim_payment2) : '';
+        parts.push(`중도금2 ${row.interim_payment2_date}`);
     }
     if (row.interim_payment3_date) {
-    const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
-    parts.push(`중도금3 ${row.interim_payment3_date}`);
+        const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
+        parts.push(`중도금3 ${row.interim_payment3_date}`);
     }
     
     if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
