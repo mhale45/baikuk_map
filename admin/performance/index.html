@@ -582,58 +582,55 @@
         currentPerformanceId = null;
     }
 
-    // === [REPLACE] 권한별(직원: 본인 배정건만) 필터 적용된 테이블 로드 ===
+    // === [REPLACE] 권한별 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
       await ensureStaffNameMap();
       try {
         await waitForSupabase();
 
         // 1) 내 권한/스태프ID
-        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null };
+        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null, userId: null };
         try {
-          // 최신 값 재확인 (authority/role 혼재 대비)
-          me = await getMyAuthorityAndStaffId();
+          me = await getMyAuthorityAndStaffId();  // 반드시 {staffId} 포함 (staff_profiles.id)
         } catch (e) {
           console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message);
         }
 
-        // 2) 기본 쿼리 구성 (기존 select 그대로 유지)
+        // 2) select 구성: 직원이면 자식(performance_allocations)에 !inner 조인
+        const selectBase = `
+          id, listing_id, listing_title, province, city, district, detail_address,
+          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+          contract_date, balance_date,
+          down_payment, balance,
+          interim_payment1, interim_payment1_date,
+          interim_payment2, interim_payment2_date,
+          interim_payment3, interim_payment3_date,
+          buyer_fee, buyer_tax, buyer_tax_date,
+          seller_fee, seller_tax, seller_tax_date,
+          expense,
+          special_contract,
+          performance_allocations:performance_allocations${me?.isStaff ? '!inner' : ''}(
+            staff_id1, staff_id2, staff_id3, staff_id4,
+            buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
+            seller_weight1, seller_weight2, seller_weight3, seller_weight4,
+            buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+            seller_amount1, seller_amount2, seller_amount3, seller_amount4,
+            involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
+          )
+        `;
+
         let query = window.supabase
           .from('performance')
-          .select(`
-            id, listing_id, listing_title, province, city, district, detail_address,
-            floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
-            contract_date, balance_date,
-            down_payment, balance,
-            interim_payment1, interim_payment1_date,
-            interim_payment2, interim_payment2_date,
-            interim_payment3, interim_payment3_date,
-            buyer_fee, buyer_tax, buyer_tax_date,
-            seller_fee, seller_tax, seller_tax_date,
-            expense,
-            special_contract,
-            performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
-              staff_id1, staff_id2, staff_id3, staff_id4,
-              buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
-              seller_weight1, seller_weight2, seller_weight3, seller_weight4,
-              buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
-              seller_amount1, seller_amount2, seller_amount3, seller_amount4,
-              involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
-            )
-          `)
+          .select(selectBase)
           .order('contract_date', { ascending: false });
 
-        // 3) 직원이라면: performance_allocations의 staff_id1~4 중 내 staffId가 하나라도 일치하는 건만
+        // 3) 직원이면: 자식 테이블에서 내 staffId 매칭 (★ staffId 사용, userId 아님)
         if (me?.isStaff && me?.staffId) {
-          // 관계명(alias) 'performance_allocations' 기준으로 or 필터 적용
-          // PostgREST 규칙: join된 테이블 컬럼에 필터할 때 "alias.column" 형태 사용 가능
-          const sid = me.userId;
-          query = query.or([
-            `performance_allocations.staff_id1.eq.${sid}`,
-            `performance_allocations.staff_id2.eq.${sid}`,
-            `performance_allocations.staff_id3.eq.${sid}`,
-            `performance_allocations.staff_id4.eq.${sid}`,
-          ].join(','));
+          const sid = me.staffId; // ← 여기!
+          query = query.or(
+            `staff_id1.eq.${sid},staff_id2.eq.${sid},staff_id3.eq.${sid},staff_id4.eq.${sid}`,
+            { foreignTable: 'performance_allocations' } // ← 자식 테이블에 조건 적용
+          );
         }
 
         // 4) 실행
@@ -733,6 +730,7 @@
         showToastGreenRed('예상치 못한 오류');
       }
     }
+
 
 
     // 페이지 로드 시 자동 실행
