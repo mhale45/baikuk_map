@@ -975,11 +975,11 @@
       });
 
       // 5) 수수료가 바뀌면 → (클로징/매물) 매출 재산출 → 분배칸 다시 계산
-      ["f_buyer_fee", "f_seller_fee"].forEach(id => {
+      ["f_buyer_fee", "f_seller_fee", "f_expense"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           const handler = () => {
-            recalcPerformanceFromFees();   // 클로징/매물 매출 갱신
+            recalcPerformanceFromFees();   // 클로징/매물 매출 갱신 (비용 차감 포함)
             triggerAllocationRecalc();     // 직원별 기여 매출 갱신
             formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
           };

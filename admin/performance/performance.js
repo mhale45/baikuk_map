@@ -212,18 +212,38 @@ export async function ensureStaffNameMap() {
   }
 }
 
-// ✅ 자동계산: 수수료 → 매출 계산
+// ✅ 수수료 → (클로징/물건) 매출 재계산 + '거래관련 사용비용' 비율 차감 로직 반영
 export function recalcPerformanceFromFees() {
   const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
   const sellerFee = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
   const distRate  = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
+  const expense   = numOrNull(document.getElementById("f_expense")?.value) || 0;
 
-  const sellerPerformance = sellerFee * distRate * 0.01;
-  const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
+  // 1) 기존 규칙으로 '총 매출'을 클로징/물건으로 분배 (물건분 = 매도인 수수료 × distRate%)
+  const sellerPerfGross = sellerFee * (distRate * 0.01);
+  const buyerPerfGross  = (buyerFee + sellerFee) - sellerPerfGross;
 
+  // 2) '거래관련 사용비용' 분배 규칙
+  //    물건 매출 차감 몫 : sellerFee * 30%
+  //    클로징 매출 차감 몫: buyerFee + sellerFee * 70%
+  //    → 두 몫의 합은 (buyerFee + sellerFee)
+  const denom = buyerFee + sellerFee;
+  let expenseToSeller = 0;
+  let expenseToBuyer  = 0;
+  if (denom > 0 && expense > 0) {
+    expenseToSeller = expense * ((sellerFee * 0.30) / denom);
+    expenseToBuyer  = expense * ((buyerFee + sellerFee * 0.70) / denom);
+  }
+
+  // 3) 차감 적용 (음수 방지)
+  const sellerPerformance = Math.max(sellerPerfGross - expenseToSeller, 0);
+  const buyerPerformance  = Math.max(buyerPerfGross  - expenseToBuyer , 0);
+
+  // 4) 화면 반영
   document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
   document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
 }
+
 
 // ✅ 수수료 자동계산 (매매가/월세/보증금 기반)
 export function calculateFees() {
