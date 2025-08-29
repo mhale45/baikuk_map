@@ -551,14 +551,13 @@
       // ✅ 스키마가 auth_user_id를 사용하므로 이것부터 조회
       const { data: staff, error: spErr } = await supabase
         .from('staff_profiles')
-        .select('id, authority, role')
+        .select('id, authority, authority')
         .eq('auth_user_id', user.id)
         .maybeSingle();
 
       if (spErr) throw spErr;
       if (!staff) throw new Error('staff_profiles에서 사용자 정보를 찾을 수 없습니다.');
 
-      // authority 없으면 role 사용 (기존 코드 호환)
       const authority = staff.authority || '';
       const isStaff = authority === '직원';
 
