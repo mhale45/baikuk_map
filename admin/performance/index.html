@@ -540,7 +540,7 @@
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
     
-    // === [ADD] 내 권한/스태프ID 조회 유틸 ===
+    // === [REPLACE] 내 권한/스태프ID 조회 유틸 (auth_user_id 기준) ===
     async function getMyAuthorityAndStaffId() {
       await waitForSupabase();
       const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
@@ -548,35 +548,26 @@
       const user = sessionRes?.session?.user;
       if (!user?.id) throw new Error('로그인이 필요합니다.');
 
-      // staff_profiles에서 우선 user_id로, 없으면 auth_user_id로 조회 (컬럼 혼재 대비)
-      let { data: staff, error: spErr } = await supabase
+      // ✅ 스키마가 auth_user_id를 사용하므로 이것부터 조회
+      const { data: staff, error: spErr } = await supabase
         .from('staff_profiles')
         .select('id, authority, role')
-        .eq('user_id', user.id)
+        .eq('auth_user_id', user.id)
         .maybeSingle();
 
-      if ((spErr || !staff) && !staff) {
-        const retry = await supabase
-          .from('staff_profiles')
-          .select('id, authority, role')
-          .eq('auth_user_id', user.id)
-          .maybeSingle();
-        staff = retry.data ?? null;
-      }
-
+      if (spErr) throw spErr;
       if (!staff) throw new Error('staff_profiles에서 사용자 정보를 찾을 수 없습니다.');
 
-      // authority 우선, 없으면 role 사용 (기존 코드의 role 호환)
-      const authority = staff.authority || staff.role || window.__userRole || '';
+      // authority 없으면 role 사용 (기존 코드 호환)
+      const authority = staff.authority || staff.role || '';
       const isStaff = authority === '직원';
 
-      // 전역 플래그도 동기화해 두면 기존 로직과 충돌 없음
+      // 전역 플래그 동기화(다른 로직과 일관)
       window.__userRole = authority;
       window.__isStaff = isStaff;
 
       return { authority, staffId: staff.id, userId: user.id, isStaff };
     }
-
 
     function openDrawer() {
         overlay.classList.remove('hidden');
