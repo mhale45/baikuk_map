@@ -1003,8 +1003,34 @@
       }
     }
 
-    // 페이지 로드 시 자동 실행
-    document.addEventListener("DOMContentLoaded", loadPerformanceTable);
+    // 페이지 로드 시 자동 실행 (기본: '내가 관여한 매출'로 필터)
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const me = await getMyAuthorityAndStaffId(); // { staffId, authority, ... }
+        if (me?.staffId) {
+          // 어떤 권한이든 '내 스태프ID'로 먼저 필터링해서 내 관여 매출만 보이게
+          __selectedStaffId = me.staffId;
+        }
+      } catch (e) {
+        console.warn('기본 직원 선택 실패:', e?.message);
+      }
+      await loadPerformanceTable();
+
+      // (선택) 좌측 목록에서 내 이름 하이라이트
+      try {
+        const container = document.getElementById('staff-list');
+        if (container && __selectedStaffId != null) {
+          container.querySelectorAll('.name-item').forEach(el => {
+            if (String(el.dataset.staffId) === String(__selectedStaffId) && el.dataset.disabled !== '1') {
+              el.classList.add('bg-yellow-200');
+            } else {
+              el.classList.remove('bg-yellow-200');
+            }
+          });
+        }
+      } catch {}
+    });
+
 
     // 초기화: 페이지 로드 후
     document.addEventListener("DOMContentLoaded", async () => {
