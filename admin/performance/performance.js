@@ -52,7 +52,6 @@ export function buildDateBlock(row) {
     const parts = [];
 
     if (row.contract_date) parts.push(`계약 ${row.contract_date}`);
-    if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
 
     // 중도금 1~3
     if (row.interim_payment1_date) {
@@ -67,6 +66,8 @@ export function buildDateBlock(row) {
     const amt = row.interim_payment3 ? formatNumberWithCommas(row.interim_payment3) : '';
     parts.push(`중도금3 ${row.interim_payment3_date}`);
     }
+    
+    if (row.balance_date)  parts.push(`잔금 ${row.balance_date}`);
 
     return parts.join('<br>'); // 줄바꿈
 }
