@@ -140,6 +140,13 @@ export function createAllocationItem(index) {
     sellerInput.id = `f_seller_weight${index}`;
     resultInput.id = `f_involvement_sales${index}`;
 
+    // 🔒 결과 입력은 자동계산 전용(수정 불가 + 회색 스타일)
+    resultInput.readOnly = true;
+    resultInput.classList.add('bg-gray-50','text-gray-500');
+    ['keydown','beforeinput','paste','drop'].forEach(ev =>
+        resultInput.addEventListener(ev, e => e.preventDefault())
+    );
+
     function calculatePerformance() {
     const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
     const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
@@ -357,23 +364,41 @@ export function collectAllocationPayloadRow(performance_id) {
     const sellerAmt = sid ? Math.round(sellerPerf * sw) : 0;
     const calcSum   = buyerAmt + sellerAmt;
 
-    // 🔸 합계 input(사용자 입력)을 우선 읽기
-    const sumInputEl = document.getElementById(`f_involvement_sales${i}`);
-    const enteredSum = numOrNull(sumInputEl?.value); // 콤마 제거 처리됨
-
     row[`staff_id${i}`]       = sid || null;
     row[`buyer_weight${i}`]   = sid ? bw : 0;
     row[`seller_weight${i}`]  = sid ? sw : 0;
     row[`buyer_amount${i}`]   = buyerAmt;
     row[`seller_amount${i}`]  = sellerAmt;
 
-    // ✅ 저장 우선순위: 입력값 > 계산값 (sid 없으면 0)
-    row[`involvement_sales${i}`] = sid ? (enteredSum ?? calcSum) : 0;
+    // 🔒 합계 입력값은 무시하고 항상 계산값으로 저장
+    row[`involvement_sales${i}`] = sid ? calcSum : 0;
+
+    // 화면에도 계산값을 강제로 반영(콤마)
+    const sumInputEl = document.getElementById(`f_involvement_sales${i}`);
+    if (sumInputEl) sumInputEl.value = formatNumberWithCommas(Math.round(calcSum));
   }
 
   return row;
 }
 
+// === 자동계산 필드 잠금 ===
+export function enforceComputedReadOnly() {
+  const lock = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.readOnly = true;
+    el.classList.add('bg-gray-50','text-gray-500');
+    ['keydown','beforeinput','paste','drop'].forEach(ev =>
+      el.addEventListener(ev, e => e.preventDefault())
+    );
+  };
+
+  // 잔금 + 매출(클로징/물건)
+  ['f_balance','f_buyer_performance','f_seller_performance'].forEach(lock);
+
+  // 직원별 총매출
+  for (let i = 1; i <= 4; i++) lock(`f_involvement_sales${i}`);
+}
 
 export function resetForm() {
     document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
