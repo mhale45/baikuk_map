@@ -291,7 +291,7 @@
     const infoContent = document.getElementById('info-content');
     // 네이버 부동산(랜드) 버튼 아이콘 URL - Supabase의 이미지 URL로 교체하세요
     const LAND_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_land_icon3.png';
-    const NAVER_MAP_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_map_icon3.png';
+    const NAVER_MAP_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_map_icon.png';
 
     
     const filterDefs = [
@@ -4210,7 +4210,7 @@
                         'absolute','right-2','bottom-14','z-[101]',   // ← N 버튼보다 위쪽에 배치 (bottom-14)
                         'w-10','h-10','rounded-lg','shadow',
                         'flex','items-center','justify-center',
-                        'border','border-gray-300','bg-white','hover:bg-gray-100','transition'
+                        'border','border-gray-300','bg-white','hover:bg-gray-200','transition'
                     ].join(' ');
                     landBtn.title = '네이버 부동산 (오피스/상가)';
 
@@ -4246,7 +4246,7 @@
                         'w-10', 'h-10', 'rounded-lg', 'shadow',
                         'flex', 'items-center', 'justify-center',
                         'border', 'border-gray-300',
-                        'bg-white', 'hover:bg-gray-100',
+                        'bg-white', 'hover:bg-gray-200',
                         'transition'
                     ].join(' ');
                     mapBtn.title = '네이버 지도';
