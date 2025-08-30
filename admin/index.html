@@ -291,6 +291,7 @@
     const infoContent = document.getElementById('info-content');
     // 네이버 부동산(랜드) 버튼 아이콘 URL - Supabase의 이미지 URL로 교체하세요
     const LAND_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_land_icon.png';
+    const NAVER_MAP_ICON_URL = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/naver_map_icon.png';
 
     
     const filterDefs = [
@@ -2759,33 +2760,36 @@
         // 선택 상태 보장
         if (!Array.isArray(selectFilterState[field])) selectFilterState[field] = [];
 
-        // 버튼 생성 함수
-        const makeBtn = (text, value) => {
-            const isSelected = selectFilterState[field].includes(value);
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = isSelected ? '✓ ' + text : text;
-            btn.className = "px-3 py-2 rounded-full border border-gray-300 text-[13px] font-medium transition mr-0";
-            if (isSelected) {
-            Object.assign(btn.style, { 
-                backgroundColor: HIGHLIGHT_COLOR, 
-                color: HIGHLIGHT_TEXT_COLOR, 
-                fontWeight: 'bold', 
-                borderColor: "#eab308" 
-            });
-            } else {
-            Object.assign(btn.style, { 
-                backgroundColor: DEFAULT_BTN_BG, 
-                color: DEFAULT_BTN_TEXT, 
-                fontWeight: 'normal', 
-                borderColor: "#d1d5db" 
-            });
-            }
+        // 2) 기존 N 버튼 (아래쪽)
+        const btn = document.createElement('button');
+        btn.id = NAVER_BTN_ID;
+        btn.type = 'button';
+        btn.className = [
+            'absolute', 'right-2', 'bottom-2', 'z-[101]',
+            'w-10', 'h-10', 'rounded-lg', 'shadow',
+            'flex', 'items-center', 'justify-center',
+            'border', 'border-gray-300',
+            'bg-[#00de5a]', 'hover:bg-[#00b74a]',
+            'transition', 'text-white', 'font-black'
+        ].join(' ');
+        btn.title = '네이버지도';
 
-            btn.onclick = () => {
-            toggleSelectFilter(field, value);
-            };
-            return btn;
+        // 텍스트 대신 이미지 아이콘 사용
+        const img = document.createElement('img');
+        img.src = NAVER_MAP_ICON_URL;
+        img.alt = '네이버 지도 아이콘';
+        img.className = 'w-6 h-6'; // 필요 시 크기 조절
+
+        btn.appendChild(img);
+
+        // 클릭 이벤트
+        btn.onclick = () => {
+            const query = getFullAddressForListing(listing);
+            if (query) {
+                window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=18.00,0,0,0,dh`, '_blank');
+            } else {
+                window.open(`https://map.naver.com/v5/?c=${listing.lng},${listing.lat},18,0,0,0,d`, '_blank');
+            }
         };
 
         // 옵션 버튼들
