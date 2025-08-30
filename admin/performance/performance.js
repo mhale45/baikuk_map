@@ -868,3 +868,131 @@ export async function initSalesLocationSelects(preset = {}) {
     boot();
   }
 })();
+
+/* =========================
+ * 매출 합계 표시 유틸
+ * ========================= */
+
+/** "1,234,567원" / "1,234,567" / "1234567" → 1234567 숫자로 변환 */
+function parseKRWToNumber(text) {
+  if (text == null) return 0;
+  const cleaned = String(text).replace(/[^\d.-]/g, ""); // 숫자/마이너스/점 외 제거
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** 1234567 → "1,234,567원" */
+function formatKRW(n) {
+  try {
+    return new Intl.NumberFormat("ko-KR").format(Math.round(n)) + "원";
+  } catch {
+    return (Math.round(n) + "").replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "원";
+  }
+}
+
+/** 테이블에서 "매출" 열 인덱스 자동 탐색 (thead 기준) */
+function findSalesColIndex(table) {
+  if (!table || !table.tHead || !table.tHead.rows.length) return -1;
+  const ths = Array.from(table.tHead.rows[0].cells);
+  // 헤더 텍스트에 '매출' 또는 'Sales'가 들어있는 열을 찾음
+  return ths.findIndex(th => /매출|sales/i.test(th.textContent || ""));
+}
+
+/**
+ * 현재 테이블에서 "화면에 표시 중인(보이는)" 행들의 매출 합계를 계산하여
+ * #salesTotal 에 표시. (필터/검색/직원클릭/지점클릭 모두 반영)
+ *
+ * 요구사항: "지점 클릭 시 확정/미확정 상관없이" → 보이는 데이터가
+ * 그 기준(확정/미확정 포함)을 이미 반영하도록 테이블이 렌더링된다는
+ * 전제에서, "현재 표시 중인 행 전체"를 합산합니다.
+ */
+function updateSalesTotal() {
+  const totalEl = document.getElementById("salesTotal");
+  if (!totalEl) return; // HTML에 합계 엘리먼트가 없다면 종료
+
+  const table = document.getElementById("performanceTable") || document.querySelector("table#performanceTable, table.performance-table, table[data-role='performance']");
+  if (!table) {
+    totalEl.textContent = "합계: 0원";
+    return;
+  }
+
+  const salesCol = findSalesColIndex(table);
+  if (salesCol === -1) {
+    // 매출 열을 못 찾은 경우, 안전하게 0표시
+    totalEl.textContent = "합계: 0원";
+    return;
+  }
+
+  // tbody의 "현재 화면에 보이는" 행만 합산 (display:none 등으로 숨겨진 행 제외)
+  const rows = table.tBodies && table.tBodies[0] ? Array.from(table.tBodies[0].rows) : [];
+  let sum = 0;
+  for (const tr of rows) {
+    // offsetParent가 null이면 보이지 않는 상태(숨김)로 판단
+    if (tr.offsetParent === null) continue;
+    const cell = tr.cells[salesCol];
+    if (!cell) continue;
+    sum += parseKRWToNumber(cell.textContent);
+  }
+
+  totalEl.textContent = "합계: " + formatKRW(sum);
+}
+
+/* =========================
+ * 이벤트 연결 (렌더/필터/초기화 등 이후 합계 갱신)
+ * ========================= */
+
+/**
+ * 테이블이 다시 그려지거나(직원/지점 클릭, 기간 필터 변경 등)
+ * 검색/정렬/페이징이 적용될 때마다 합계를 다시 구해야 합니다.
+ * 아래는 대표적인 트리거에 연결하는 예시입니다.
+ * - 실제 프로젝트의 함수/이벤트명에 맞춰 hook 지점을 추가해주세요.
+ */
+(function wireSalesTotalUpdate() {
+  // 1) 페이지 최초 로드 후 한 번
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", updateSalesTotal, { once: true });
+  } else {
+    // 이미 로드된 상태
+    setTimeout(updateSalesTotal, 0);
+  }
+
+  // 2) 초기화 버튼 클릭 후 (테이블 리셋 직후 합계 재계산)
+  const resetBtn = document.getElementById("resetBtn") || document.querySelector("[data-role='reset'], button.reset, #resetFilters");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      // 테이블이 다시 렌더된 다음 합계를 구해야 하므로, 다음 tick에 실행
+      setTimeout(updateSalesTotal, 0);
+    });
+  }
+
+  // 3) 직원/지점 클릭(디리게이션) 시 합계 재계산
+  //   - 직원 링크: .employee-link
+  //   - 지점 링크: .branch-link
+  //   (프로젝트에서 실제 사용하는 셀렉터로 바꿔도 됩니다)
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!t) return;
+    if (t.closest(".employee-link") || t.closest(".branch-link")) {
+      setTimeout(updateSalesTotal, 0);
+    }
+  });
+
+  // 4) 기간 필터, 셀렉트박스, 검색창 변경 시 합계 재계산
+  const filterSelectors = [
+    "input[type='date']",
+    "input[type='text'].table-search",
+    "select",
+    "[data-role='filter']",
+  ];
+  document.addEventListener("change", (e) => {
+    if (!e.target) return;
+    if (filterSelectors.some(sel => e.target.matches(sel))) {
+      setTimeout(updateSalesTotal, 0);
+    }
+  });
+
+  // 5) 테이블 페이징/정렬 라이브러리를 쓰는 경우, 해당 이벤트에 hook
+  // 예) DataTables를 쓰는 경우:
+  //   $('#performanceTable').on('draw.dt', updateSalesTotal);
+  //   (바닐라만 쓰면 위 1)~4)로 충분한 경우가 많습니다)
+})();

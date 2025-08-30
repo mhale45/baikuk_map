@@ -13,6 +13,65 @@ export const STAFF_NAME_BY_ID = new Map();
 let __performanceAllRows = []; // 서버에서 받은 원본 전체 행들 보관
 let __renderPerformanceTable = null; // 기존 렌더 함수 참조 저장
 
+// [ADD] --- 날짜 기본값/적용 유틸 ---
+function getThisMonthRangeKST() {
+  // 로컬(브라우저) 타임존 기준으로 동작. 서비스가 KST라면 브라우저도 KST일 것이므로 무방.
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  // yyyy-mm-dd 포맷으로 변환
+  const pad = n => String(n).padStart(2, "0");
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  return { startStr: fmt(first), endStr: fmt(last) };
+}
+
+function applyFiltersOnce() {
+  // “적용” 버튼 클릭 트리거
+  const applyBtn = document.querySelector('#applyBtn, [data-role="apply"], button.apply, .btn-apply');
+  if (applyBtn) {
+    applyBtn.click();
+  }
+}
+
+function setDefaultPerformanceFilter() {
+  // 기준(Select), 시작일/종료일(Input) 셀렉터 – 아래 우선순위로 탐색
+  const criteriaEl = document.querySelector('#criteriaSelect, [name="criteria"], select.criteria, select[name="기준"]');
+  const startEl    = document.querySelector('#startDate, [name="startDate"], input.start-date, input[name="시작일"]');
+  const endEl      = document.querySelector('#endDate, [name="endDate"], input.end-date, input[name="종료일"]');
+
+  // 기준 = 잔금일
+  if (criteriaEl) {
+    // value가 "잔금일" 또는 "balanceDate" 등일 수 있으므로 텍스트/값 모두 대응
+    const targetValueCandidates = ["잔금일", "balanceDate", "BALANCE_DATE"];
+    const options = Array.from(criteriaEl.options || []);
+    const matchByValue = options.find(o => targetValueCandidates.includes(o.value));
+    const matchByText  = options.find(o => targetValueCandidates.includes(o.textContent?.trim()));
+    const toSelect = matchByValue || matchByText;
+    if (toSelect) criteriaEl.value = toSelect.value;
+    // change 이벤트 필요 시 디스패치
+    criteriaEl.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // 이번 달 1일 ~ 이번 달 말일
+  const { startStr, endStr } = getThisMonthRangeKST();
+  if (startEl) {
+    startEl.value = startStr;
+    startEl.dispatchEvent(new Event('input', { bubbles: true }));
+    startEl.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  if (endEl) {
+    endEl.value = endStr;
+    endEl.dispatchEvent(new Event('input', { bubbles: true }));
+    endEl.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // 적용 1회 실행
+  applyFiltersOnce();
+}
+// [ADD] --- // 끝 ---
+
 // [ADD] 날짜 파싱 유틸 (YYYY-MM-DD, ISO, etc. 안전 파싱)
 function parseDateSafe(val) {
   if (!val) return null;
@@ -700,3 +759,112 @@ export async function initSalesLocationSelects(preset = {}) {
     fillSelect(districtEl, d2, '');
     };
 }
+
+// === [자동 초기화 유틸] 이번 달 1일~말일 + 기준 '잔금일' + '적용' 자동 클릭 ===
+(function () {
+  // YYYY-MM-DD 포맷터
+  function fmt(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // 이번 달 날짜 범위 계산
+  function getThisMonthRange() {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: fmt(first), end: fmt(last) };
+  }
+
+  // 가장 가까운 필터 컨테이너 찾아주기
+  function nearestFilterContainer(fromEl) {
+    return (fromEl && (fromEl.closest('form, .filters, .search, .toolbar'))) || document;
+  }
+
+  // 버튼 찾기 (텍스트로 탐색)
+  function findButtonByText(root, text) {
+    const btns = root.querySelectorAll('button, input[type="button"], input[type="submit"], input[type="reset"]');
+    return Array.from(btns).find(b => {
+      const t = (b.innerText || b.value || '').trim();
+      return t === text;
+    });
+  }
+
+  // 옵션 텍스트로 select 값 설정
+  function setSelectByOptionText(selectEl, optionText) {
+    if (!selectEl) return false;
+    const opt = Array.from(selectEl.options).find(o => o.text.trim() === optionText);
+    if (!opt) return false;
+    selectEl.value = opt.value;
+    // change 이벤트 발생시켜 연동된 로직이 있으면 태움
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  // 기준을 '잔금일'로, 날짜를 이번 달 1~말일로, 적용 클릭
+  function applyInitialFilters() {
+    const { start, end } = getThisMonthRange();
+
+    // 1) '잔금일' 옵션을 가진 select 자동 선택
+    const criteriaSelect =
+      Array.from(document.querySelectorAll('select'))
+        .find(sel => Array.from(sel.options).some(o => o.text.trim() === '잔금일'));
+
+    if (criteriaSelect) {
+      setSelectByOptionText(criteriaSelect, '잔금일');
+    }
+
+    // 2) 기준 select와 같은 컨테이너(없으면 document)에서 date input 2개 채우기
+    const container = nearestFilterContainer(criteriaSelect);
+    const dateInputs = Array.from(container.querySelectorAll('input[type="date"]'));
+
+    if (dateInputs.length >= 2) {
+      // 통상적으로 [시작일, 종료일] 순서라고 가정
+      dateInputs[0].value = start;
+      dateInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+      dateInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+
+      dateInputs[1].value = end;
+      dateInputs[1].dispatchEvent(new Event('input', { bubbles: true }));
+      dateInputs[1].dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // 3) '적용' 버튼 자동 클릭
+    const applyBtn = findButtonByText(container, '적용') || findButtonByText(document, '적용');
+    if (applyBtn) {
+      applyBtn.click();
+    }
+  }
+
+  // '초기화' 버튼 클릭 시, 디폴트 동작 대신 위 로직 실행
+  function hookResetToInitial() {
+    const resetBtn =
+      findButtonByText(document, '초기화') ||
+      // 혹시 여러 개면 가장 가까운 걸 우선
+      Array.from(document.querySelectorAll('button, input[type="reset"]')).find(Boolean);
+
+    if (!resetBtn) return;
+
+    // 기존 핸들러가 있어도 가장 먼저 가로채기 위해 capture 사용
+    resetBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      applyInitialFilters();
+    }, { capture: true });
+  }
+
+  // 페이지 로드 시 1회 자동 적용 + 초기화 버튼 후킹
+  function boot() {
+    hookResetToInitial();
+    applyInitialFilters(); // 최초 로드 시도
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    // 이미 로드된 경우
+    boot();
+  }
+})();
