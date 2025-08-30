@@ -413,7 +413,7 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -444,27 +444,114 @@
       return opt;
     }
 
+    // 직원/지점 패널: 목록 렌더 + 권한별 클릭 허용 + 클릭 시 필터
     (async () => {
-      const { data, error } = await supabase.from('staff_profiles').select('name, affiliation, leave_date, id').order('affiliation');
-      if (error) return console.error('직원 정보 실패:', error);
+      // 0) 내 권한/소속/내 스태프ID
+      const me = await getMyAuthorityAndStaffId(); // { authority, isStaff, staffId, affiliation, userId }
 
-      const grouped = groupStaffByAffiliation(data);
+      // 1) 직원 데이터 로드 (권한별 재직자 필터)
+      let staffQuery = supabase
+        .from('staff_profiles')
+        .select('id, name, affiliation, leave_date')
+        .order('affiliation', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (me.authority === '직원') {
+        // 직원 권한은 재직자만 보이도록
+        staffQuery = staffQuery.is('leave_date', null);
+      }
+
+      const { data, error } = await staffQuery;
+        
+      if (error) {
+        console.error('직원 정보 실패:', error);
+        return;
+      }
+
+      // 2) 소속별 묶기
+      const grouped = {};
+      (data || []).forEach(({ id, name, affiliation, leave_date }) => {
+        if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
+        const entry = { id, name, affiliation, leave_date };
+        if (!leave_date) grouped[affiliation].active.push(entry);
+        else grouped[affiliation].inactive.push(entry);
+      });
+
       const container = document.getElementById('staff-list');
+      container.innerHTML = '';
+
+      // 3) 권한별 클릭 가능 여부
+      const canClickStaff = (emp) => {
+        if (me.authority === '관리자') return true;
+        if (me.authority === '지점장') return emp.affiliation === me.affiliation;
+        if (me.authority === '직원')   return String(emp.id) === String(me.staffId);
+        return false;
+      };
+      const canClickAff = (aff) => {
+        if (me.authority === '관리자') return true;
+        if (me.authority === '지점장') return aff === me.affiliation;
+        // 직원은 지점 전체 보기 금지
+        return false;
+      };
+
+      // 4) 렌더
+      let firstClickableStaffEl = null;
 
       Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+        // --- 지점 헤더 (클릭 시 지점 전체 필터) ---
         const header = document.createElement('div');
-        header.className = 'grade-header';
+        header.className = 'grade-header select-none';
         header.textContent = aff;
+
+        if (canClickAff(aff)) {
+          header.classList.add('cursor-pointer', 'hover:bg-yellow-100');
+          header.title = '이 지점의 모든 매출 보기';
+          header.addEventListener('click', () => {
+            // 토글: 같은 지점을 다시 누르면 해제
+            if (__selectedAffiliation === aff) {
+              __selectedAffiliation = null;
+              header.classList.remove('ring-2', 'ring-yellow-400');
+            } else {
+              __selectedAffiliation = aff;
+              // 지점 필터를 켜면 직원 단일 선택은 해제
+              __selectedStaffId = null;
+              // 헤더 하이라이트 갱신
+              container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+              header.classList.add('ring-2', 'ring-yellow-400');
+              // 직원 선택 하이라이트 제거
+              container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
+            }
+            loadPerformanceTable();
+          });
+        } else {
+          header.classList.add('opacity-60');
+          header.title = '이 지점은 조회 권한이 없습니다.';
+        }
         container.appendChild(header);
 
-        active.forEach(({ name }) => {
-          const nameDiv = document.createElement('div');
-          nameDiv.className = 'name-item';
-          nameDiv.textContent = name;
-          container.appendChild(nameDiv);
-        });
+        // --- 직원 리스트 ---
+        const makeName = (emp, { dim = false } = {}) => {
+          const el = document.createElement('div');
+          el.className = 'name-item';
+          el.dataset.staffId = emp.id;
+          el.textContent = dim ? `${emp.name} (퇴사)` : emp.name;
 
-        if (inactive.length > 0) {
+          const allowed = canClickStaff(emp);
+          if (!allowed) {
+            // 클릭 불가 표시
+            el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+            el.dataset.disabled = '1';
+          } else {
+            // 클릭 가능 표시
+            el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
+            if (!firstClickableStaffEl) firstClickableStaffEl = el;
+          }
+          return el;
+        };
+
+        active.forEach((emp) => container.appendChild(makeName(emp)));
+        // --- 퇴사자 토글/목록 (관리자/지점장만 노출) ---
+        if (me.authority !== '직원' && inactive.length > 0) {
           const toggleBtn = document.createElement('button');
           toggleBtn.textContent = '▼ 퇴사자 보기';
           toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
@@ -473,11 +560,12 @@
           collapseDiv.className = 'pl-4 mt-1 hidden';
           collapseDiv.id = `inactive-group-${idx}`;
 
-          inactive.forEach(({ name }) => {
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item text-gray-400 italic';
-            nameDiv.textContent = name + ' (퇴사)';
-            collapseDiv.appendChild(nameDiv);
+          inactive.forEach((emp) => {
+            const el = document.createElement('div');
+            el.className = 'name-item text-gray-400 italic';
+            el.dataset.staffId = emp.id;
+            el.textContent = `${emp.name} (퇴사)`;
+            collapseDiv.appendChild(el);
           });
 
           toggleBtn.onclick = () => {
@@ -488,21 +576,43 @@
           container.appendChild(toggleBtn);
           container.appendChild(collapseDiv);
         }
+
       });
 
-      for (let i = 1; i <= 4; i++) {
-        const select = document.getElementById(`select_staff${i}`);
-        if (!select) continue;
-        select.appendChild(createOption('', '-- 직원 선택 --'));
+      // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
+      function setActiveStaff(staffId) {
+        __selectedStaffId = staffId;
+        __selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
 
-        Object.entries(grouped).forEach(([aff, { active }]) => {
-          const group = document.createElement('optgroup');
-          group.label = aff;
-          active.forEach(({ id, name }) => group.appendChild(createOption(id, name)));
-          select.appendChild(group);
+        // UI 하이라이트
+        container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+        container.querySelectorAll('.name-item').forEach(el => {
+          if (el.dataset.disabled === '1') return;
+          if (String(el.dataset.staffId) === String(staffId)) {
+            el.classList.add('bg-yellow-200');
+          } else {
+            el.classList.remove('bg-yellow-200');
+          }
         });
+
+        // 테이블 갱신
+        loadPerformanceTable();
+      }
+      container.addEventListener('click', (e) => {
+        const el = e.target.closest('.name-item');
+        if (!el || el.dataset.disabled === '1') return;
+        setActiveStaff(el.dataset.staffId);
+      });
+
+      // 6) UX: 직원 권한이면 본인을 자동 선택
+      if (me.isStaff && me.staffId) {
+        setActiveStaff(me.staffId);
+      } else {
+        // 지점장/관리자: 자동선택 없음 (원하면 주석 해제)
+        // if (firstClickableStaffEl) setActiveStaff(firstClickableStaffEl.dataset.staffId);
       }
     })();
+
 
     (async () => {
       const { data: userRes } = await supabase.auth.getUser();
@@ -511,7 +621,7 @@
 
       if (!role && user?.id) {
         const { data: prof } = await supabase.from('staff_profiles').select('role').eq('auth_user_id', user.id).maybeSingle();
-        role = prof?.role;
+        role = prof?.authority;
       }
 
       window.__userRole = role;
@@ -539,7 +649,150 @@
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
+    let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
+    let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     
+    // === [ADD] 폼 편집 가능/불가 토글 ===
+    function setFormEditable(enabled) {
+      const drawer = document.getElementById('sales-drawer');
+      if (!drawer) return;
+
+      // 입력계열
+      drawer.querySelectorAll('input, select, textarea').forEach(el => {
+        // 닫기 버튼 같은 건 제외
+        if (el.id === 'f_status') return; // 상태버튼은 아래에서 별도 처리
+        if (enabled) {
+          el.disabled = false;
+          el.readOnly = false;
+          el.classList.remove('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+        } else {
+          // select는 disabled, input/textarea는 readOnly + 비주얼
+          if (el.tagName === 'SELECT') el.disabled = true;
+          else el.readOnly = true;
+          el.classList.add('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+        }
+      });
+
+      // 저장 버튼
+      const saveBtn = document.getElementById('save-sales');
+      if (saveBtn) {
+        saveBtn.disabled = !enabled;
+        saveBtn.classList.toggle('opacity-50', !enabled);
+        saveBtn.classList.toggle('cursor-not-allowed', !enabled);
+      }
+
+      // 확정 버튼
+      const statusBtn = document.getElementById('f_status');
+      if (statusBtn) {
+        if (enabled) {
+          statusBtn.disabled = false;
+          statusBtn.textContent = '매출확정';
+          statusBtn.classList.remove('bg-gray-400');
+          statusBtn.classList.add('bg-red-500');
+        } else {
+          statusBtn.disabled = true;
+          statusBtn.textContent = '확정됨';
+          statusBtn.classList.remove('bg-red-500');
+          statusBtn.classList.add('bg-gray-400');
+        }
+      }
+    }
+
+    // === [ADD] 잔금일/확정 상태에 따른 행 배경색 적용 ===
+    // - 잔금일이 2일 초과로 남음: 옅은 초록(#f0fdf4)
+    // - 잔금일이 0~2일 이내: 더 짙은 초록(#bbf7d0)
+    // - 잔금일 지남 && 미확정(status=false): 빨강(#fecaca)
+    function applyRowStatusColor(tr, row) {
+      if (!row?.balance_date) return;
+
+      // YYYY-MM-DD → 로컬 자정 Date
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(row.balance_date);
+      if (!m) return;
+      const bd = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); // 잔금일 00:00
+
+      const now = new Date();
+      const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 오늘 00:00
+      const diffDays = Math.floor((bd - today0) / 86400000); // 잔금일까지 남은 '정수' 일수
+
+      // zebra-stripe(짝수행 회색)보다 우선 적용되도록 inline style 사용
+      if (diffDays > 2) {
+        tr.style.backgroundColor = '#f0fdf4'; // bg-green-50
+        tr.title = '잔금일이 아직 도래하지 않았습니다.';
+      } else if (diffDays >= 0) {
+        tr.style.backgroundColor = '#bbf7d0'; // bg-green-200
+        tr.title = '잔금일이 2일 이내로 남았습니다.';
+      } else if (!row.status) {
+        tr.style.backgroundColor = '#fecaca'; // bg-red-200
+        tr.title = '잔금일이 지났지만 매출이 확정되지 않았습니다.';
+      }
+    }
+
+
+    // === 매출확정: status=true 업데이트 + 폼 잠금 ===
+    document.getElementById('f_status')?.addEventListener('click', async () => {
+      // 신규 작성 상태(아직 저장 전)면 확정 불가
+      if (!currentPerformanceId) {
+        showToastGreenRed('먼저 매출을 저장한 뒤 확정할 수 있습니다.');
+        return;
+      }
+
+      // 사용자 확인
+      if (!confirm('매출을 확정하면 수정할 수 없습니다. 진행하시겠습니까?')) return;
+
+      try {
+        // DB 업데이트
+        const { error } = await window.supabase
+          .from('performance')
+          .update({ status: true })
+          .eq('id', currentPerformanceId);
+
+        if (error) {
+          showToastGreenRed('매출 확정 실패: ' + error.message);
+          return;
+        }
+
+        // 폼 잠금 & UI 반영
+        setFormEditable(false);
+        showToastGreenRed('매출이 확정되었습니다.', { ok: true });
+
+        // 리스트 새로고침 (현재 행의 status 반영)
+        await loadPerformanceTable();
+      } catch (e) {
+        console.error(e);
+        showToastGreenRed('예상치 못한 오류가 발생했습니다.');
+      }
+    });
+
+
+    // === [REPLACE] 내 권한/스태프ID/소속 조회 (user_id 기준) ===
+    async function getMyAuthorityAndStaffId() {
+      await waitForSupabase();
+      const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
+      if (sErr) throw sErr;
+
+      const user = sessionRes?.session?.user;
+      if (!user?.id) throw new Error('로그인이 필요합니다.');
+
+      // 내 staff_profiles (id, authority, affiliation)
+      const { data: staff, error: spErr } = await supabase
+        .from('staff_profiles')
+        .select('id, authority, affiliation')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (spErr) throw spErr;
+      if (!staff) throw new Error('staff_profiles에서 사용자 정보를 찾을 수 없습니다.');
+
+      const authority = staff.authority || '';
+      const isStaff = authority === '직원';
+
+      // 전역 동기화
+      window.__userRole = authority;
+      window.__isStaff  = isStaff;
+
+      // affiliation 추가로 반환 (지점장 필터에 사용)
+      return { authority, isStaff, staffId: staff.id, affiliation: staff.affiliation, userId: user.id };
+    }
 
     function openDrawer() {
         overlay.classList.remove('hidden');
@@ -554,150 +807,245 @@
         currentPerformanceId = null;
     }
 
+    // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
-        await ensureStaffNameMap();
-        try {
+      await ensureStaffNameMap();
+      try {
         await waitForSupabase();
-        const { data, error } = await window.supabase
-            .from('performance')
-            .select(`
-              id, listing_id, listing_title, province, city, district, detail_address,
-              floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
-              contract_date, balance_date,
-              down_payment, balance,
-              interim_payment1, interim_payment1_date,
-              interim_payment2, interim_payment2_date,
-              interim_payment3, interim_payment3_date,
-              buyer_fee, buyer_tax, buyer_tax_date,
-              seller_fee, seller_tax, seller_tax_date,
-              expense,
-              special_contract,
-              performance_allocations:performance_allocations!performance_allocations_performance_id_fkey(
-                staff_id1, staff_id2, staff_id3, staff_id4,
-                buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
-                seller_weight1, seller_weight2, seller_weight3, seller_weight4,
-                buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
-                seller_amount1, seller_amount2, seller_amount3, seller_amount4,
-                involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
-              )
-            `)
-            .order('contract_date', { ascending: false });
 
-        if (error) {
-            console.error('테이블 조회 실패:', error);
-            showToastGreenRed('조회 실패: ' + error.message);
-            return;
+        // 1) 내 권한/스태프ID/소속
+        let me = { authority: window.__userRole, isStaff: window.__isStaff, staffId: null, userId: null, affiliation: null };
+        try { me = await getMyAuthorityAndStaffId(); }
+        catch (e) { console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message); }
+
+        // 선택 상태
+        let selectedId  = __selectedStaffId;
+        let selectedAff = __selectedAffiliation;
+
+        // 직원은 무조건 자기 자신만
+        if (me?.isStaff) {
+          selectedId  = me.staffId;
+          selectedAff = null;
+        }
+        // 지점장: 다른 지점 클릭 방지 (UI에서 막지만 이중 방어)
+        if (me?.authority === '지점장' && selectedAff && selectedAff !== me.affiliation) {
+          selectedAff = me.affiliation;
         }
 
+        // 2) select 구성: 직원/지점으로 필터할 땐 !inner 필요
+        const needInnerJoin = me?.isStaff || me?.authority === '지점장' || !!selectedId || !!selectedAff;
+
+        const selectBase = `
+          id, listing_id, listing_title, province, city, district, detail_address,
+          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+          contract_date, balance_date,
+          down_payment, balance,
+          interim_payment1, interim_payment1_date,
+          interim_payment2, interim_payment2_date,
+          interim_payment3, interim_payment3_date,
+          buyer_fee, buyer_tax, buyer_tax_date,
+          seller_fee, seller_tax, seller_tax_date,
+          expense,
+          special_contract,
+          status,
+          performance_allocations:performance_allocations${needInnerJoin ? '!inner' : ''}(
+            staff_id1, staff_id2, staff_id3, staff_id4,
+            buyer_weight1, buyer_weight2, buyer_weight3, buyer_weight4,
+            seller_weight1, seller_weight2, seller_weight3, seller_weight4,
+            buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+            seller_amount1, seller_amount2, seller_amount3, seller_amount4,
+            involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
+          )
+        `;
+
+        let query = window.supabase
+          .from('performance')
+          .select(selectBase)
+          .order('contract_date', { ascending: false });
+
+        // 3) 권한별 범위 필터
+        if (me?.isStaff && me?.staffId) {
+          // 직원: 본인 배정건만
+          const sid = me.staffId;
+          query = query.or(
+            `staff_id1.eq.${sid},staff_id2.eq.${sid},staff_id3.eq.${sid},staff_id4.eq.${sid}`,
+            { foreignTable: 'performance_allocations' }
+          );
+        } else if (me?.authority === '지점장' && me?.affiliation) {
+          // 지점장: 내 소속 모든 직원이 관여한 건
+          const { data: branchStaff, error: affErr } = await supabase
+            .from('staff_profiles')
+            .select('id')
+            .eq('affiliation', me.affiliation);
+
+          if (!affErr && Array.isArray(branchStaff) && branchStaff.length) {
+            const ids = branchStaff.map(r => r.id).filter(v => v != null);
+            const idList = ids.join(',');
+            query = query.or(
+              `staff_id1.in.(${idList}),staff_id2.in.(${idList}),staff_id3.in.(${idList}),staff_id4.in.(${idList})`,
+              { foreignTable: 'performance_allocations' }
+            );
+          }
+          // 관리자 등은 전체
+        }
+
+        // 4) 좌측 패널 “선택 직원”으로 추가 좁히기
+        if (selectedId) {
+          query = query.or(
+            `staff_id1.eq.${selectedId},staff_id2.eq.${selectedId},staff_id3.eq.${selectedId},staff_id4.eq.${selectedId}`,
+            { foreignTable: 'performance_allocations' }
+          );
+        }
+
+        // 5) 좌측 패널 “선택 지점(affiliation)”으로 추가 좁히기
+        if (!selectedId && selectedAff) {
+          // 선택 직원이 없고 지점이 선택되었을 때만 적용
+          const { data: affStaff, error: selErr } = await supabase
+            .from('staff_profiles')
+            .select('id')
+            .eq('affiliation', selectedAff);
+
+          if (!selErr && Array.isArray(affStaff) && affStaff.length) {
+            const ids = affStaff.map(r => r.id).filter(v => v != null);
+            const idList = ids.join(',');
+            query = query.or(
+              `staff_id1.in.(${idList}),staff_id2.in.(${idList}),staff_id3.in.(${idList}),staff_id4.in.(${idList})`,
+              { foreignTable: 'performance_allocations' }
+            );
+          }
+        }
+
+        // 6) 실행
+        const { data, error } = await query;
+        if (error) {
+          console.error('테이블 조회 실패:', error);
+          showToastGreenRed('조회 실패: ' + error.message);
+          return;
+        }
+
+        // 7) 렌더 (기존 로직 유지)
         const tbody = document.querySelector('#performance-table tbody');
         tbody.innerHTML = '';
 
-        data.forEach(row => {
-            // 관계가 1:1이라도 PostgREST가 배열로 줄 수 있으니 방어적으로 처리
-            const pa = Array.isArray(row.performance_allocations)
+        (data || []).forEach(row => {
+          const pa = Array.isArray(row.performance_allocations)
             ? row.performance_allocations[0]
             : row.performance_allocations;
 
-            // 1) 직원/비율 텍스트를 한 셀용으로 준비
-            const names  = [];
-            const buyerP = [];
-            const sellerP= [];
-            const inv    = [];
+          const names = [], buyerP = [], sellerP = [], inv = [];
+          if (pa) {
+            for (let i = 1; i <= 4; i++) {
+              const sid = pa[`staff_id${i}`];
+              const bw  = pa[`buyer_weight${i}`];
+              const sw  = pa[`seller_weight${i}`];
+              if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
 
-            if (pa) {
-              for (let i = 1; i <= 4; i++) {
-                const sid = pa[`staff_id${i}`];
-                const bw  = pa[`buyer_weight${i}`];   // 0~1
-                const sw  = pa[`seller_weight${i}`];  // 0~1
-
-                // ✔ 표시 기준: staff_id 있고 (bw>0 || sw>0) 인 경우만 라인 추가
-                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                  // 직원 이름 / 비율
-                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
-
-                  // 관여매출(저장값 우선, 없으면 buyer+seller 합)
-                  const savedInv = pa?.[`involvement_sales${i}`];
-                  const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
-                  const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
-                  inv.push(
-                    formatNumberWithCommas(
-                      typeof savedInv === 'number' && !Number.isNaN(savedInv)
-                        ? savedInv
-                        : (buyerAmt + sellerAmt)
-                    )
-                  );
-                }
+                const savedInv = pa?.[`involvement_sales${i}`];
+                const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
+                const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
+                inv.push(
+                  formatNumberWithCommas(
+                    typeof savedInv === 'number' && !Number.isNaN(savedInv)
+                      ? savedInv
+                      : (buyerAmt + sellerAmt)
+                  )
+                );
               }
             }
+            enforceComputedReadOnly(); // 🔒 자동계산 필드 잠금(보호)
+          }
+          if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
 
-            // 직원 라인이 하나도 없으면 모두 '-'
-            if (names.length === 0) {
-              names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-');
-            }
+          const addr = buildAddress(row);
+          const areaDisp = formatArea1(row.area_py);
 
-            const addr = buildAddress(row);
-            const areaDisp = formatArea1(row.area_py);
+          const tr = document.createElement('tr');
+          tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
 
-            // 2) 한 행만 만들어서 넣기
-            const tr = document.createElement('tr');
-            tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
+          const tdHTML = (html) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1';
+            td.innerHTML = html ?? '';
+            return td;
+          };
+          const tdMulti = (text) => {
+            const td = document.createElement('td');
+            td.className = 'border px-2 py-1 whitespace-pre-line';
+            td.textContent = text ?? '';
+            return td;
+          };
 
-            // 간단 헬퍼
-            const tdHTML = (html) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1';
-              td.innerHTML = html ?? '';
-              return td;
-            };
-            const tdMulti = (text) => {
-              const td = document.createElement('td');
-              td.className = 'border px-2 py-1 whitespace-pre-line'; // \n을 줄바꿈으로
-              td.textContent = text ?? '';
-              return td;
-            };
+          tr.appendChild(tdHTML(buildListingTitle(row)));
+          tr.appendChild(tdHTML(addr));
+          tr.appendChild(tdHTML(row.deal_type ?? ''));
+          tr.appendChild(tdHTML(buildPriceBlock(row)));
+          tr.appendChild(tdHTML(areaDisp));
+          tr.appendChild(tdHTML(buildDateBlock(row)));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+          tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+          tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+          tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+          tr.appendChild(tdMulti(names.join('\n')));
+          tr.appendChild(tdMulti(buyerP.join('\n')));
+          tr.appendChild(tdMulti(sellerP.join('\n')));
+          tr.appendChild(tdMulti(inv.join('\n')));
 
-            // 컬럼 추가 (헤더 순서 그대로)
-            tr.appendChild(tdHTML(buildListingTitle(row)));
-            tr.appendChild(tdHTML(addr));
-            tr.appendChild(tdHTML(row.deal_type ?? ''));
-            tr.appendChild(tdHTML(buildPriceBlock(row)));
-            tr.appendChild(tdHTML(areaDisp));
-            tr.appendChild(tdHTML(buildDateBlock(row)));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-            tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-            tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
-            tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+          applyRowStatusColor(tr, row); //배경색 적용
 
-            // ★ 여기 3칸이 다중라인 셀
-            tr.appendChild(tdMulti(names.join('\n')));     // 직원이름
-            tr.appendChild(tdMulti(buyerP.join('\n')));    // 클로징
-            tr.appendChild(tdMulti(sellerP.join('\n')));   // 매물확보
-            tr.appendChild(tdMulti(inv.join('\n')));     // 관여매출
-
-            tr.addEventListener('click', () => {
+          tr.addEventListener('click', () => {
             currentPerformanceId = row.id;
             isDownPaymentAutoFilled = false;
             openDrawer();
             fillFormWithPerformance(row);
             fillAllocations(pa || null);
             updateHighlight();
-            });
-            window.triggerAllocationRecalc?.();
-            tbody.appendChild(tr);
+            // ← [ADD] status에 따라 폼 잠금
+            const locked = !!row.status;
+            setFormEditable(!locked);
+          });
+          window.triggerAllocationRecalc?.();
+          tbody.appendChild(tr);
         });
-        } catch (e) {
+      } catch (e) {
         console.error(e);
         showToastGreenRed('예상치 못한 오류');
-        }
+      }
     }
 
-    // 페이지 로드 시 자동 실행
-    document.addEventListener("DOMContentLoaded", loadPerformanceTable);
+    // 페이지 로드 시 자동 실행 (기본: '내가 관여한 매출'로 필터)
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const me = await getMyAuthorityAndStaffId(); // { staffId, authority, ... }
+        if (me?.staffId) {
+          // 어떤 권한이든 '내 스태프ID'로 먼저 필터링해서 내 관여 매출만 보이게
+          __selectedStaffId = me.staffId;
+        }
+      } catch (e) {
+        console.warn('기본 직원 선택 실패:', e?.message);
+      }
+      await loadPerformanceTable();
+
+      // (선택) 좌측 목록에서 내 이름 하이라이트
+      try {
+        const container = document.getElementById('staff-list');
+        if (container && __selectedStaffId != null) {
+          container.querySelectorAll('.name-item').forEach(el => {
+            if (String(el.dataset.staffId) === String(__selectedStaffId) && el.dataset.disabled !== '1') {
+              el.classList.add('bg-yellow-200');
+            } else {
+              el.classList.remove('bg-yellow-200');
+            }
+          });
+        }
+      } catch {}
+    });
+
 
     // 초기화: 페이지 로드 후
     document.addEventListener("DOMContentLoaded", async () => {
@@ -735,11 +1083,11 @@
       });
 
       // 5) 수수료가 바뀌면 → (클로징/매물) 매출 재산출 → 분배칸 다시 계산
-      ["f_buyer_fee", "f_seller_fee"].forEach(id => {
+      ["f_buyer_fee", "f_seller_fee", "f_expense"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           const handler = () => {
-            recalcPerformanceFromFees();   // 클로징/매물 매출 갱신
+            recalcPerformanceFromFees();   // 클로징/매물 매출 갱신 (비용 차감 포함)
             triggerAllocationRecalc();     // 직원별 기여 매출 갱신
             formatIdsWithCommas(['f_buyer_performance','f_seller_performance']);
           };
@@ -805,6 +1153,7 @@
           ta.style.height = 'auto';
           ta.style.height = ta.scrollHeight + 'px';
         }
+        enforceComputedReadOnly();
       });
     };
 
@@ -814,44 +1163,93 @@
 
     // [CHANGE] 매출등록 버튼 클릭 시 무조건 폼 초기화 후 열기
     document.getElementById('open-sales-drawer')?.addEventListener('click', () => {
-      currentPerformanceId = null;   // 기존 선택 매출 ID 제거
-      resetForm();                   // 폼 값 초기화 (performance.js에 이미 있음)
-      openDrawer();                  // 드로어 열기
+      currentPerformanceId = null;
+      resetForm();
+      openDrawer();
+      setFormEditable(true); // ← [ADD] 신규 작성은 항상 편집 가능
     });
 
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
     overlay?.addEventListener('click', closeDrawer);
 
-    // ===== 입력값 수집 =====
-    
-
-    // ===== 저장 처리 =====
-    document.getElementById('save-sales')?.addEventListener('click', async (evt) => {
-      // evt.preventDefault();  // type="button"이면 불필요
+    // === 저장 ===
+    document.getElementById('save-sales')?.addEventListener('click', async () => {
       if (__saving) return;
       __saving = true;
       try {
         if (!window.supabase) { showToastGreenRed('Supabase 클라이언트를 찾을 수 없습니다.'); return; }
 
-        // 직원은 분배율 30 고정
+        // 직원 권한은 분배율 30 고정
         const distEl = document.getElementById('f_seller_distribution_rate');
         if (window.__isStaff && distEl) {
           distEl.value = 30;
           if (typeof calculateFees === 'function') calculateFees();
         }
 
+        // (1) 가중치 합 검사
         if (!validateTotalWeight()) return;
 
-        const payload = collectPerformancePayload();
-        if (!payload.deal_type && !payload.listing_title) {
-          showToastGreenRed('거래유형 또는 매물명을 입력하세요.');
-          return;
+        // (2) 계산 최신화 (수수료→매출, 계약금/잔금)
+        try {
+          recalcPerformanceFromFees();
+          calculateDownPaymentAndBalance();
+        } catch {}
+
+        // (3) 필수값 검사
+        const get     = (id) => document.getElementById(id);
+        const textVal = (id) => (get(id)?.value ?? '').trim();
+        const numVal  = (id) => numOrNull(get(id)?.value);
+        const fail = (id, msg) => { 
+          showToastGreenRed(msg);
+          const el = get(id);
+          if (el) { el.focus(); el.classList.add('ring-2','ring-red-400'); setTimeout(()=>el.classList.remove('ring-2','ring-red-400'),1200); }
+          return true;
+        };
+
+        // 3-1) 공통 문자열
+        const textRequired = [
+          ['f_listing_title',  '매물명'],
+          ['f_province',       '시/도'],
+          ['f_city',           '시/군/구'],
+          ['f_district',       '읍/면/동'],
+          ['f_detail_address', '번지'],
+          ['f_deal_type',      '거래유형'],
+          ['f_contract_date',  '계약일'],
+          ['f_balance_date',   '잔금일'],
+        ];
+        for (const [id, label] of textRequired) {
+          if (!textVal(id)) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        let perfId = currentPerformanceId;
+        // 3-2) 거래유형별 금액
+        const dealType = textVal('f_deal_type');
+        if (dealType === '매매') {
+          if (numVal('f_sale_price') == null) { if (fail('f_sale_price', '매매가를 입력하세요.')) return; }
+        } else if (dealType === '월세') {
+          if (numVal('f_deposit_price') == null) { if (fail('f_deposit_price', '보증금을 입력하세요.')) return; }
+          if (numVal('f_monthly_rent') == null)  { if (fail('f_monthly_rent',  '월세를 입력하세요.')) return; }
+        }
 
+        // 3-3) 숫자 필수(계약금/잔금/수수료/매출)
+        const numericRequired = [
+          ['f_down_payment',        '계약금'],
+          ['f_balance',             '잔금'],
+          ['f_buyer_fee',           '매수인 수수료'],
+          ['f_seller_fee',          '매도인 수수료'],
+          ['f_buyer_performance',   '클로징 매출'],
+          ['f_seller_performance',  '물건 매출'],
+        ];
+        for (const [id, label] of numericRequired) {
+          if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
+        }
+
+        // (4) 페이로드 수집
+        const payload = collectPerformancePayload();
+
+        // (5) 저장/수정
+        let perfId = currentPerformanceId;
         if (perfId) {
-          // === UPDATE ===
+          // UPDATE
           const { error: upErr } = await window.supabase
             .from('performance')
             .update(payload)
@@ -875,7 +1273,7 @@
 
           showToastGreenRed('수정 완료!', { ok: true });
         } else {
-          // === INSERT ===
+          // INSERT
           const { data: perfInsert, error: perfErr } = await window.supabase
             .from('performance')
             .insert(payload)
@@ -1115,8 +1513,25 @@
 
           const row = retry.data;
           fillFormFromRow(row);
+
+          // === [ADD] 계약금 자동 계산: 보증금의 10% ===
+          (() => {
+            const deposit = numOrNull(document.getElementById('f_deposit_price')?.value);
+            const dpEl = document.getElementById('f_down_payment');
+            if (dpEl) {
+              if (typeof deposit === 'number' && deposit > 0) {
+                const dp = Math.round(deposit * 0.10); // 10%
+                dpEl.value = formatNumberWithCommas(dp);
+                // (옵션) 자동채움 플래그 사용 중이면 켜두기
+                try { isDownPaymentAutoFilled = true; } catch {}
+              } else {
+                dpEl.value = '';
+              }
+            }
+          })();
+
           calculateFees();
-          calculateDownPaymentAndBalance();
+          calculateDownPaymentAndBalance({ forceDownPaymentUpdate: true });
 
           // 선택값과 무관하게 드롭다운을 강제로 맞춤
           initSalesLocationSelects({
@@ -1134,8 +1549,25 @@
 
       // 2) 정상 채움
       fillFormFromRow(data);
+
+      // === [ADD] 계약금 자동 계산: 보증금의 10% ===
+      (() => {
+        const deposit = numOrNull(document.getElementById('f_deposit_price')?.value);
+        const dpEl = document.getElementById('f_down_payment');
+        if (dpEl) {
+          if (typeof deposit === 'number' && deposit > 0) {
+            const dp = Math.round(deposit * 0.10); // 10%
+            dpEl.value = formatNumberWithCommas(dp);
+            // (옵션) 자동채움 플래그 사용 중이면 켜두기
+            try { isDownPaymentAutoFilled = true; } catch {}
+          } else {
+            dpEl.value = '';
+          }
+        }
+      })();
+
       calculateFees();
-      calculateDownPaymentAndBalance();
+      calculateDownPaymentAndBalance({ forceDownPaymentUpdate: true });
 
       // 선택값과 상관없이 드롭다운을 해당 값으로 재구성+선택
       initSalesLocationSelects({
@@ -1175,147 +1607,7 @@
         });
       }
     })();
-
-    // 주소 선택 관련 함수들
-    async function fetchAllPCD(batchSize = 1000) {
-      if (_pcdCache) return _pcdCache;
-
-      await waitForSupabase();
-      const supa = window.supabase;
-
-      let from = 0;
-      const all = [];
-
-      while (true) {
-        const to = from + batchSize - 1;  // range는 양끝 포함
-        const { data, error } = await supa
-          .from('province_city_district')             // ✅ 테이블
-          .select('province, city, district')
-          .order('province', { ascending: true })     // ✅ 페이지 간 정렬 고정
-          .order('city', { ascending: true })
-          .order('district', { ascending: true })
-          .range(from, to);
-
-        if (error) throw error;
-
-        const chunk = data || [];
-        all.push(...chunk);
-
-        // ✅ 더 이상 받아올 게 없으면 종료
-        if (chunk.length === 0) break;
-
-        // 다음 페이지로 이동 (실제 받은 개수만큼 전진)
-        from += chunk.length;
-      }
-
-      console.log('[PCD] loaded rows:', all.length);
-      _pcdCache = all;
-      return all;
-    }
-
-    // ===== 지역(시/도-시/군/구-읍/면/동) 의존형 드롭다운 (sales 폼용) =====
-    async function initSalesLocationSelects(preset = {}) {
-      const provinceEl = document.getElementById('f_province');
-      const cityEl     = document.getElementById('f_city');
-      const districtEl = document.getElementById('f_district');
-      if (!provinceEl || !cityEl || !districtEl) return;
-
-      // 현재 값(자동채움으로 미리 들어온 값이 있으면 우선 사용)
-      const selected = {
-        province: preset.province ?? provinceEl.value ?? '',
-        city:     preset.city     ?? cityEl.value     ?? '',
-        district: preset.district ?? districtEl.value ?? '',
-      };
-
-      const setPlaceholder = () => {
-        provinceEl.innerHTML = `<option value="">시/도</option>`;
-        cityEl.innerHTML     = `<option value="">시/군/구</option>`;
-        districtEl.innerHTML = `<option value="">읍/면/동</option>`;
-      };
-      setPlaceholder();
-
-      // 정렬/유틸
-      const collate = new Intl.Collator('ko-KR');
-      const uniq = arr => Array.from(new Set(arr));
-      const sortKo = arr => arr.sort((a,b)=>collate.compare(a,b));
-
-      const fillSelect = (selectEl, values, selectedVal) => {
-        // placeholder 유지 후 값 채우기
-        const ph = selectEl.querySelector('option[value=""]');
-        selectEl.innerHTML = '';
-        if (ph) selectEl.appendChild(ph);
-
-        let list = [...values];
-        if (selectedVal && !values.includes(selectedVal)) list = [selectedVal, ...values];
-
-        for (const v of list) {
-          const opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = v;
-          if (selectedVal && v === selectedVal) opt.selected = true;
-          selectEl.appendChild(opt);
-        }
-      };
-
-      // 데이터 로드
-      let rows = [];
-      try {
-        if (typeof fetchAllPCD !== 'function') throw new Error('fetchAllPCD가 정의되어 있지 않음');
-        rows = await fetchAllPCD(); // 필요시 상한 조정
-      } catch (e) {
-        console.error('지역 데이터 로드 실패:', e);
-        // 실패 시에도 현재 선택값만이라도 보이도록
-        fillSelect(provinceEl, selected.province ? [selected.province] : [], selected.province);
-        fillSelect(cityEl,     selected.city     ? [selected.city]     : [], selected.city);
-        fillSelect(districtEl, selected.district ? [selected.district] : [], selected.district);
-        return;
-      }
-
-      // 맵 구성
-      const citiesByProv = new Map();            // province -> Set(cities)
-      const distsByProvCity = new Map();         // `${province}|${city}` -> Set(districts)
-      for (const { province, city, district } of rows) {
-        if (!province || !city || !district) continue;
-        if (!citiesByProv.has(province)) citiesByProv.set(province, new Set());
-        citiesByProv.get(province).add(city);
-
-        const key = `${province}|${city}`;
-        if (!distsByProvCity.has(key)) distsByProvCity.set(key, new Set());
-        distsByProvCity.get(key).add(district);
-      }
-
-      const provinces = sortKo(uniq(rows.map(r => r.province).filter(Boolean)));
-
-      // 1) province
-      fillSelect(provinceEl, provinces, selected.province);
-
-      // 2) city (province에 종속)
-      const selProvince = provinceEl.value || selected.province || '';
-      const cities = selProvince ? sortKo(uniq([...(citiesByProv.get(selProvince) || [])])) : [];
-      fillSelect(cityEl, cities, selected.city);
-
-      // 3) district (province+city에 종속)
-      const selCity = cityEl.value || selected.city || '';
-      const key = `${selProvince}|${selCity}`;
-      const districts = (selProvince && selCity) ? sortKo(uniq([...(distsByProvCity.get(key) || [])])) : [];
-      fillSelect(districtEl, districts, selected.district);
-
-      // 이벤트 바인딩
-      provinceEl.onchange = () => {
-        const p = provinceEl.value;
-        const cities2 = p ? sortKo(uniq([...(citiesByProv.get(p) || [])])) : [];
-        fillSelect(cityEl, cities2, '');
-        fillSelect(districtEl, [], '');
-      };
-
-      cityEl.onchange = () => {
-        const p = provinceEl.value;
-        const c = cityEl.value;
-        const k = `${p}|${c}`;
-        const d2 = (p && c) ? sortKo(uniq([...(distsByProvCity.get(k) || [])])) : [];
-        fillSelect(districtEl, d2, '');
-      };
-    }
+   
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
     const calcFeesAndTrigger = () => {

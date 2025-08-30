@@ -157,10 +157,36 @@
       </div>
       <section class="p-5">
         <h3 class="text-base font-semibold text-gray-700 mb-3">매출 조회</h3>
+        <!-- [ADD] 매출 기간 필터 -->
+        <div id="sales-filter" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="flex flex-col">
+            <label for="filter-date-field" class="text-sm text-gray-600 mb-1">기준</label>
+            <select id="filter-date-field" class="border rounded px-2 py-2">
+              <option value="contract_date">계약일</option>
+              <option value="balance_date">잔금일</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="filter-start-date" class="text-sm text-gray-600 mb-1">시작일</label>
+            <input id="filter-start-date" type="date" class="border rounded px-2 py-2" />
+          </div>
+
+          <div class="flex flex-col">
+            <label for="filter-end-date" class="text-sm text-gray-600 mb-1">종료일</label>
+            <input id="filter-end-date" type="date" class="border rounded px-2 py-2" />
+          </div>
+
+          <div class="flex items-end gap-2">
+            <button id="apply-filter" class="border rounded px-3 py-2">적용</button>
+            <button id="reset-filter" class="border rounded px-3 py-2">초기화</button>
+          </div>
+        </div>
+        <!-- [/ADD] -->
         <table id="performance-table" class="table-auto border-collapse w-full text-sm">
           <thead class="bg-gray-100">
             <tr>
-              <th class="border px-2 py-1 min-w-[3rem]">매물명</th>
+              <th class="border px-2 py-1 min-w-[4rem]">매물명</th>
               <th class="border px-2 py-1 min-w-[3rem]">주소</th>
               <th class="border px-2 py-1 min-w-[3rem]">구분</th>
               <th class="border px-2 py-1 min-w-[9rem]">가격</th>
@@ -1742,6 +1768,17 @@
       // 가중치 변경 리스너가 이미 있어서, 아래 트리거로 동기화
       window.triggerAllocationRecalc?.();
     }
+    // [ADD] 날짜 입력칸에서 Enter 누르면 필터 적용
+    document.addEventListener('DOMContentLoaded', () => {
+      const start = document.getElementById('filter-start-date');
+      const end   = document.getElementById('filter-end-date');
+      const apply = document.getElementById('apply-filter');
+      [start, end].forEach(el => {
+        el?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') apply?.click();
+        });
+      });
+    });
   </script>
 </body>
 </html>

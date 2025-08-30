@@ -5,6 +5,7 @@ import {
 
 import { waitForSupabase } from '../../../modules/core/supabase.js';
 import { buildListingTitle, buildAddress } from '../../../modules/data/listing.js';
+import { client } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
@@ -139,6 +140,13 @@ export function createAllocationItem(index) {
     sellerInput.id = `f_seller_weight${index}`;
     resultInput.id = `f_involvement_sales${index}`;
 
+    // 🔒 결과 입력은 자동계산 전용(수정 불가 + 회색 스타일)
+    resultInput.readOnly = true;
+    resultInput.classList.add('bg-gray-50','text-gray-500');
+    ['keydown','beforeinput','paste','drop'].forEach(ev =>
+        resultInput.addEventListener(ev, e => e.preventDefault())
+    );
+
     function calculatePerformance() {
     const buyerPerf = numOrNull(document.getElementById('f_buyer_performance')?.value) || 0;
     const sellerPerf = numOrNull(document.getElementById('f_seller_performance')?.value) || 0;
@@ -204,18 +212,38 @@ export async function ensureStaffNameMap() {
   }
 }
 
-// ✅ 자동계산: 수수료 → 매출 계산
+// ✅ 수수료 → (클로징/물건) 매출 재계산 + '거래관련 사용비용' 비율 차감 로직 반영
 export function recalcPerformanceFromFees() {
   const buyerFee = numOrNull(document.getElementById("f_buyer_fee")?.value) || 0;
   const sellerFee = numOrNull(document.getElementById("f_seller_fee")?.value) || 0;
   const distRate  = numOrNull(document.getElementById("f_seller_distribution_rate")?.value) || 0;
+  const expense   = numOrNull(document.getElementById("f_expense")?.value) || 0;
 
-  const sellerPerformance = sellerFee * distRate * 0.01;
-  const buyerPerformance  = (buyerFee + sellerFee) - sellerPerformance;
+  // 1) 기존 규칙으로 '총 매출'을 클로징/물건으로 분배 (물건분 = 매도인 수수료 × distRate%)
+  const sellerPerfGross = sellerFee * (distRate * 0.01);
+  const buyerPerfGross  = (buyerFee + sellerFee) - sellerPerfGross;
 
+  // 2) '거래관련 사용비용' 분배 규칙
+  //    물건 매출 차감 몫 : sellerFee * 30%
+  //    클로징 매출 차감 몫: buyerFee + sellerFee * 70%
+  //    → 두 몫의 합은 (buyerFee + sellerFee)
+  const denom = buyerFee + sellerFee;
+  let expenseToSeller = 0;
+  let expenseToBuyer  = 0;
+  if (denom > 0 && expense > 0) {
+    expenseToSeller = expense * ((sellerFee * 0.30) / denom);
+    expenseToBuyer  = expense * ((buyerFee + sellerFee * 0.70) / denom);
+  }
+
+  // 3) 차감 적용 (음수 방지)
+  const sellerPerformance = Math.max(sellerPerfGross - expenseToSeller, 0);
+  const buyerPerformance  = Math.max(buyerPerfGross  - expenseToBuyer , 0);
+
+  // 4) 화면 반영
   document.getElementById("f_seller_performance").value = formatNumberWithCommas(Math.round(sellerPerformance));
   document.getElementById("f_buyer_performance").value  = formatNumberWithCommas(Math.round(buyerPerformance));
 }
+
 
 // ✅ 수수료 자동계산 (매매가/월세/보증금 기반)
 export function calculateFees() {
@@ -356,23 +384,41 @@ export function collectAllocationPayloadRow(performance_id) {
     const sellerAmt = sid ? Math.round(sellerPerf * sw) : 0;
     const calcSum   = buyerAmt + sellerAmt;
 
-    // 🔸 합계 input(사용자 입력)을 우선 읽기
-    const sumInputEl = document.getElementById(`f_involvement_sales${i}`);
-    const enteredSum = numOrNull(sumInputEl?.value); // 콤마 제거 처리됨
-
     row[`staff_id${i}`]       = sid || null;
     row[`buyer_weight${i}`]   = sid ? bw : 0;
     row[`seller_weight${i}`]  = sid ? sw : 0;
     row[`buyer_amount${i}`]   = buyerAmt;
     row[`seller_amount${i}`]  = sellerAmt;
 
-    // ✅ 저장 우선순위: 입력값 > 계산값 (sid 없으면 0)
-    row[`involvement_sales${i}`] = sid ? (enteredSum ?? calcSum) : 0;
+    // 🔒 합계 입력값은 무시하고 항상 계산값으로 저장
+    row[`involvement_sales${i}`] = sid ? calcSum : 0;
+
+    // 화면에도 계산값을 강제로 반영(콤마)
+    const sumInputEl = document.getElementById(`f_involvement_sales${i}`);
+    if (sumInputEl) sumInputEl.value = formatNumberWithCommas(Math.round(calcSum));
   }
 
   return row;
 }
 
+// === 자동계산 필드 잠금 ===
+export function enforceComputedReadOnly() {
+  const lock = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.readOnly = true;
+    el.classList.add('bg-gray-50','text-gray-500');
+    ['keydown','beforeinput','paste','drop'].forEach(ev =>
+      el.addEventListener(ev, e => e.preventDefault())
+    );
+  };
+
+  // 잔금 + 매출(클로징/물건)
+  ['f_balance','f_buyer_performance','f_seller_performance'].forEach(lock);
+
+  // 직원별 총매출
+  for (let i = 1; i <= 4; i++) lock(`f_involvement_sales${i}`);
+}
 
 export function resetForm() {
     document.querySelectorAll('#sales-drawer input, #sales-drawer textarea, #sales-drawer select')
@@ -449,4 +495,140 @@ export async function fetchListingAndFill(listingId) {
     // ✅ 거래유형에 맞춰 라벨/색 즉시 갱신
     if (typeof updateHighlight === "function") updateHighlight();
     showToastGreenRed('매물 정보 자동 채움 완료', { ok: true });
+}
+
+let _pcdCache = null;
+
+/** province_city_district 테이블 전체 로드 + 캐시 */
+export async function fetchAllPCD(batchSize = 1000) {
+  if (_pcdCache) return _pcdCache;
+
+  await waitForSupabase();
+  const supa = window.supabase;
+
+  let from = 0;
+  const all = [];
+  while (true) {
+    const to = from + batchSize - 1;
+    const { data, error } = await supa
+      .from('province_city_district')
+      .select('province, city, district')
+      .order('province', { ascending: true })
+      .order('city', { ascending: true })
+      .order('district', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    const chunk = data || [];
+    all.push(...chunk);
+    if (chunk.length === 0) break;
+    from += chunk.length;
+  }
+  _pcdCache = all;
+  return all;
+}
+
+
+// ===== 지역(시/도-시/군/구-읍/면/동) 의존형 드롭다운 (sales 폼용) =====
+export async function initSalesLocationSelects(preset = {}) {
+    const provinceEl = document.getElementById('f_province');
+    const cityEl     = document.getElementById('f_city');
+    const districtEl = document.getElementById('f_district');
+    if (!provinceEl || !cityEl || !districtEl) return;
+
+    // 현재 값(자동채움으로 미리 들어온 값이 있으면 우선 사용)
+    const selected = {
+    province: preset.province ?? provinceEl.value ?? '',
+    city:     preset.city     ?? cityEl.value     ?? '',
+    district: preset.district ?? districtEl.value ?? '',
+    };
+
+    const setPlaceholder = () => {
+    provinceEl.innerHTML = `<option value="">시/도</option>`;
+    cityEl.innerHTML     = `<option value="">시/군/구</option>`;
+    districtEl.innerHTML = `<option value="">읍/면/동</option>`;
+    };
+    setPlaceholder();
+
+    // 정렬/유틸
+    const collate = new Intl.Collator('ko-KR');
+    const uniq = arr => Array.from(new Set(arr));
+    const sortKo = arr => arr.sort((a,b)=>collate.compare(a,b));
+
+    const fillSelect = (selectEl, values, selectedVal) => {
+    // placeholder 유지 후 값 채우기
+    const ph = selectEl.querySelector('option[value=""]');
+    selectEl.innerHTML = '';
+    if (ph) selectEl.appendChild(ph);
+
+    let list = [...values];
+    if (selectedVal && !values.includes(selectedVal)) list = [selectedVal, ...values];
+
+    for (const v of list) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        if (selectedVal && v === selectedVal) opt.selected = true;
+        selectEl.appendChild(opt);
+    }
+    };
+
+    // 데이터 로드
+    let rows = [];
+    try {
+    if (typeof fetchAllPCD !== 'function') throw new Error('fetchAllPCD가 정의되어 있지 않음');
+    rows = await fetchAllPCD(); // 필요시 상한 조정
+    } catch (e) {
+    console.error('지역 데이터 로드 실패:', e);
+    // 실패 시에도 현재 선택값만이라도 보이도록
+    fillSelect(provinceEl, selected.province ? [selected.province] : [], selected.province);
+    fillSelect(cityEl,     selected.city     ? [selected.city]     : [], selected.city);
+    fillSelect(districtEl, selected.district ? [selected.district] : [], selected.district);
+    return;
+    }
+
+    // 맵 구성
+    const citiesByProv = new Map();            // province -> Set(cities)
+    const distsByProvCity = new Map();         // `${province}|${city}` -> Set(districts)
+    for (const { province, city, district } of rows) {
+    if (!province || !city || !district) continue;
+    if (!citiesByProv.has(province)) citiesByProv.set(province, new Set());
+    citiesByProv.get(province).add(city);
+
+    const key = `${province}|${city}`;
+    if (!distsByProvCity.has(key)) distsByProvCity.set(key, new Set());
+    distsByProvCity.get(key).add(district);
+    }
+
+    const provinces = sortKo(uniq(rows.map(r => r.province).filter(Boolean)));
+
+    // 1) province
+    fillSelect(provinceEl, provinces, selected.province);
+
+    // 2) city (province에 종속)
+    const selProvince = provinceEl.value || selected.province || '';
+    const cities = selProvince ? sortKo(uniq([...(citiesByProv.get(selProvince) || [])])) : [];
+    fillSelect(cityEl, cities, selected.city);
+
+    // 3) district (province+city에 종속)
+    const selCity = cityEl.value || selected.city || '';
+    const key = `${selProvince}|${selCity}`;
+    const districts = (selProvince && selCity) ? sortKo(uniq([...(distsByProvCity.get(key) || [])])) : [];
+    fillSelect(districtEl, districts, selected.district);
+
+    // 이벤트 바인딩
+    provinceEl.onchange = () => {
+    const p = provinceEl.value;
+    const cities2 = p ? sortKo(uniq([...(citiesByProv.get(p) || [])])) : [];
+    fillSelect(cityEl, cities2, '');
+    fillSelect(districtEl, [], '');
+    };
+
+    cityEl.onchange = () => {
+    const p = provinceEl.value;
+    const c = cityEl.value;
+    const k = `${p}|${c}`;
+    const d2 = (p && c) ? sortKo(uniq([...(distsByProvCity.get(k) || [])])) : [];
+    fillSelect(districtEl, d2, '');
+    };
 }
