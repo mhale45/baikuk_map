@@ -4237,31 +4237,35 @@
 
                     mapPreviewContainer.appendChild(landBtn);
 
-                    // 2) 기존 N 버튼 (아래쪽)
-                    const btn = document.createElement('button');
-                    btn.id = NAVER_BTN_ID;
-                    btn.type = 'button';
-                    btn.className = [
-                        'absolute','right-2','bottom-2','z-[101]',
-                        'w-10','h-10','rounded-lg','shadow',
-                        'flex','items-center','justify-center',
-                        'border','border-gray-300',
-                        'bg-[#00de5a]','hover:bg-[#00b74a]',
-                        'transition','text-white','text-[28px]','font-black'
+                    // 2) 네이버 지도 버튼 (아래쪽)
+                    const mapBtn = document.createElement('button');
+                    mapBtn.id = NAVER_BTN_ID;
+                    mapBtn.type = 'button';
+                    mapBtn.className = [
+                        'absolute', 'right-2', 'bottom-2', 'z-[101]',
+                        'w-10', 'h-10', 'rounded-lg', 'shadow',
+                        'flex', 'items-center', 'justify-center',
+                        'border', 'border-gray-300',
+                        'bg-white', 'hover:bg-gray-100', // ← 변경된 부분
+                        'transition'
                     ].join(' ');
-                    btn.style.textShadow = '0 1px 2px #ffffff, 0 0 1px #ffffff';
-                    btn.title = '네이버지도';
-                    btn.textContent = 'N';
+                    mapBtn.title = '네이버 지도';
 
-                    btn.onclick = () => {
-                        // (이 버튼은 기존 로직 유지: 검색 URL 또는 좌표 폴백 등)
+                    const mapIcon = document.createElement('img');
+                    mapIcon.src = NAVER_MAP_ICON_URL;
+                    mapIcon.alt = 'Naver Map';
+                    mapIcon.className = 'w-6 h-6 pointer-events-none';
+                    mapBtn.appendChild(mapIcon);
+
+                    mapBtn.onclick = () => {
                         const query = getFullAddressForListing(listing);
                         if (query) {
-                        window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=18.00,0,0,0,dh`, '_blank');
+                            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=18.00,0,0,0,dh`, '_blank');
                         } else {
-                        window.open(`https://map.naver.com/v5/?c=${listing.lng},${listing.lat},18,0,0,0,d`, '_blank');
+                            window.open(`https://map.naver.com/v5/?c=${listing.lng},${listing.lat},18,0,0,0,d`, '_blank');
                         }
                     };
+
 
                     mapPreviewContainer.appendChild(btn);
                 }
