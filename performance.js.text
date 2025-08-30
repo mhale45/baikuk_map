@@ -9,6 +9,74 @@ import { client } from '../../../modules/core/supabase.js';
 
 export const STAFF_NAME_BY_ID = new Map();
 
+// [ADD] 전역 보관용 원본 데이터 & 테이블 렌더러 훅
+let __performanceAllRows = []; // 서버에서 받은 원본 전체 행들 보관
+let __renderPerformanceTable = null; // 기존 렌더 함수 참조 저장
+
+// [ADD] 날짜 파싱 유틸 (YYYY-MM-DD, ISO, etc. 안전 파싱)
+function parseDateSafe(val) {
+  if (!val) return null;
+  // val이 'YYYY-MM-DD' 또는 ISO 문자열이라고 가정
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// [REPLACE] 필터 적용 함수 (종료일 end-of-day 포함)
+function applySalesDateFilter() {
+  if (!__renderPerformanceTable) return;
+
+  const field = document.getElementById('filter-date-field')?.value || 'contract_date';
+  const sVal = document.getElementById('filter-start-date')?.value || '';
+  const eVal = document.getElementById('filter-end-date')?.value || '';
+
+  const start = sVal ? parseDateSafe(sVal) : null;
+  const end   = eVal ? parseDateSafe(eVal) : null;
+
+  // ✅ 종료일을 “해당일 23:59:59.999”로 맞춰서 당일 전체 포함
+  if (end) end.setHours(23, 59, 59, 999);
+
+  if (!start && !end) {
+    __renderPerformanceTable(__performanceAllRows);
+    return;
+  }
+
+  const filtered = __performanceAllRows.filter(row => {
+    const raw = row?.[field]; // 'contract_date' | 'balance_date'
+    const d = parseDateSafe(raw);
+    if (!d) return false;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  });
+
+  __renderPerformanceTable(filtered);
+}
+
+// [ADD] 필터 리셋
+function resetSalesDateFilter() {
+  if (document.getElementById('filter-start-date')) document.getElementById('filter-start-date').value = '';
+  if (document.getElementById('filter-end-date')) document.getElementById('filter-end-date').value = '';
+  if (__renderPerformanceTable) __renderPerformanceTable(__performanceAllRows);
+}
+
+// [ADD] 필터 버튼 이벤트 바인딩 (DOMContentLoaded 이후 보장)
+document.addEventListener('DOMContentLoaded', () => {
+  const applyBtn = document.getElementById('apply-filter');
+  const resetBtn = document.getElementById('reset-filter');
+  if (applyBtn) applyBtn.addEventListener('click', applySalesDateFilter);
+  if (resetBtn) resetBtn.addEventListener('click', resetSalesDateFilter);
+});
+
+// [ADD] 외부(index.js)에서 테이블 렌더러 등록
+export function registerPerformanceRenderer(fn) {
+  __renderPerformanceTable = typeof fn === 'function' ? fn : null;
+}
+
+// [ADD] 외부(index.js)에서 원본 행 세팅
+export function setPerformanceRows(rows) {
+  __performanceAllRows = Array.isArray(rows) ? rows : [];
+}
+
 // 매물등록) 거래유형에 따라 매매가 / 보증금,월세 빨갛게 - 비교 전에 trim
 export function updateHighlight() {
     const dealTypeEl = document.getElementById("f_deal_type");

@@ -677,6 +677,33 @@
     let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
     let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     
+    // === [ADD] 날짜 필터 기본값: 잔금일 + 이번달 1일~말일 ===
+    function getThisMonthRange() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth();            // 0~11
+      const first = new Date(y, m, 1);
+      const last  = new Date(y, m + 1, 0); // 이번달 말일
+      const toStr = (d) => [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2,'0'),
+        String(d.getDate()).padStart(2,'0')
+      ].join('-');
+      return { start: toStr(first), end: toStr(last) };
+    }
+
+    function applyDefaultDateFilter() {
+      const sel  = document.getElementById('filter-date-field');
+      const sInp = document.getElementById('filter-start-date');
+      const eInp = document.getElementById('filter-end-date');
+      if (!sel || !sInp || !eInp) return;
+
+      sel.value = 'balance_date';
+      const { start, end } = getThisMonthRange();
+      sInp.value = start;
+      eInp.value = end;
+    }
+    
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
       const drawer = document.getElementById('sales-drawer');
@@ -940,7 +967,22 @@
           }
         }
 
-        // 6) 실행
+        // 6) 날짜 필터 적용 (기준/시작/종료)
+        (function applyDateFilter() {
+          const sel  = document.getElementById('filter-date-field');
+          const sInp = document.getElementById('filter-start-date');
+          const eInp = document.getElementById('filter-end-date');
+          const field = sel?.value;
+          const start = (sInp?.value || '').trim();
+          const end   = (eInp?.value || '').trim();
+          // 허용된 컬럼만 보호적으로 적용
+          if (field === 'contract_date' || field === 'balance_date') {
+            if (start) query = query.gte(field, start);
+            if (end)   query = query.lte(field, end);
+          }
+        })();
+
+        // 8) 실행
         const { data, error } = await query;
         if (error) {
           console.error('테이블 조회 실패:', error);
@@ -948,7 +990,7 @@
           return;
         }
 
-        // 7) 렌더 함수 정의 + 등록
+        // 9) 렌더 함수 정의 + 등록
         const tbody = document.querySelector('#performance-table tbody');
 
         function renderPerformanceTable(rows) {
@@ -1863,6 +1905,26 @@
         });
       });
     });
+
+    // === [ADD] 날짜 필터: 초기 세팅 + 버튼 바인딩 ===
+    document.addEventListener('DOMContentLoaded', () => {
+      // 기본값(잔금일, 이번달 1~말일) 지정
+      applyDefaultDateFilter();
+    });
+
+    // 적용 버튼 → 현재 값 그대로 재조회
+    document.getElementById('apply-filter')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadPerformanceTable();
+    });
+
+    // 초기화 버튼 → 기본값 복원 후 재조회
+    document.getElementById('reset-filter')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyDefaultDateFilter();
+      loadPerformanceTable();
+    });
+
   </script>
 </body>
 </html>

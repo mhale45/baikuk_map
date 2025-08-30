@@ -157,10 +157,35 @@
       </div>
       <section class="p-5">
         <h3 class="text-base font-semibold text-gray-700 mb-3">매출 조회</h3>
+        <!-- [ADD] 매출 기간 필터 -->
+        <div id="sales-filter" class="mb-4 gap-3 flex">
+          <div class="flex flex-col">
+            <label for="filter-date-field" class="text-sm text-gray-600 mb-1 w-[8rem]">기준</label>
+            <select id="filter-date-field" class="border rounded px-2 py-2">
+              <option value="contract_date">계약일</option>
+              <option value="balance_date">잔금일</option>
+            </select>
+          </div>
+          <div class="flex flex-col">
+            <label for="filter-start-date" class="text-sm text-gray-600 mb-1 w-[10rem]">시작일</label>
+            <input id="filter-start-date" type="date" class="border rounded px-2 py-2" />
+          </div>
+
+          <div class="flex flex-col">
+            <label for="filter-end-date" class="text-sm text-gray-600 mb-1 w-[10rem]">종료일</label>
+            <input id="filter-end-date" type="date" class="border rounded px-2 py-2" />
+          </div>
+
+          <div class="flex items-end gap-2">
+            <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
+            <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
+          </div>
+        </div>
+        <!-- [/ADD] -->
         <table id="performance-table" class="table-auto border-collapse w-full text-sm">
           <thead class="bg-gray-100">
             <tr>
-              <th class="border px-2 py-1 min-w-[3rem]">매물명</th>
+              <th class="border px-2 py-1 min-w-[4rem]">매물명</th>
               <th class="border px-2 py-1 min-w-[3rem]">주소</th>
               <th class="border px-2 py-1 min-w-[3rem]">구분</th>
               <th class="border px-2 py-1 min-w-[9rem]">가격</th>
@@ -413,7 +438,7 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -923,95 +948,180 @@
           return;
         }
 
-        // 7) 렌더 (기존 로직 유지)
+        // 7) 렌더 함수 정의 + 등록
         const tbody = document.querySelector('#performance-table tbody');
-        tbody.innerHTML = '';
 
-        (data || []).forEach(row => {
-          const pa = Array.isArray(row.performance_allocations)
-            ? row.performance_allocations[0]
-            : row.performance_allocations;
+        function renderPerformanceTable(rows) {
+          tbody.innerHTML = '';
+          (rows || []).forEach(row => {
+            const pa = Array.isArray(row.performance_allocations)
+              ? row.performance_allocations[0]
+              : row.performance_allocations;
 
-          const names = [], buyerP = [], sellerP = [], inv = [];
-          if (pa) {
-            for (let i = 1; i <= 4; i++) {
-              const sid = pa[`staff_id${i}`];
-              const bw  = pa[`buyer_weight${i}`];
-              const sw  = pa[`seller_weight${i}`];
-              if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
-                names.push(STAFF_NAME_BY_ID.get(sid) || '-');
-                buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
-                sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
+            const names = [], buyerP = [], sellerP = [], inv = [];
+            if (pa) {
+              for (let i = 1; i <= 4; i++) {
+                const sid = pa[`staff_id${i}`];
+                const bw  = pa[`buyer_weight${i}`];
+                const sw  = pa[`seller_weight${i}`];
+                if (sid && ((bw ?? 0) > 0 || (sw ?? 0) > 0)) {
+                  names.push(STAFF_NAME_BY_ID.get(sid) || '-');
+                  buyerP.push(((bw ?? 0) * 100).toFixed(0) + '%');
+                  sellerP.push(((sw ?? 0) * 100).toFixed(0) + '%');
 
-                const savedInv = pa?.[`involvement_sales${i}`];
-                const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
-                const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
-                inv.push(
-                  formatNumberWithCommas(
-                    typeof savedInv === 'number' && !Number.isNaN(savedInv)
-                      ? savedInv
-                      : (buyerAmt + sellerAmt)
-                  )
-                );
+                  const savedInv = pa?.[`involvement_sales${i}`];
+                  const buyerAmt = pa?.[`buyer_amount${i}`] ?? 0;
+                  const sellerAmt = pa?.[`seller_amount${i}`] ?? 0;
+                  inv.push(
+                    formatNumberWithCommas(
+                      typeof savedInv === 'number' && !Number.isNaN(savedInv)
+                        ? savedInv
+                        : (buyerAmt + sellerAmt)
+                    )
+                  );
+                }
               }
+              enforceComputedReadOnly();
             }
-            enforceComputedReadOnly(); // 🔒 자동계산 필드 잠금(보호)
-          }
-          if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
+            if (names.length === 0) { names.push('-'); buyerP.push('-'); sellerP.push('-'); inv.push('-'); }
 
-          const addr = buildAddress(row);
-          const areaDisp = formatArea1(row.area_py);
+            const addr = buildAddress(row);
+            const areaDisp = formatArea1(row.area_py);
 
-          const tr = document.createElement('tr');
-          tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
+            const tr = document.createElement('tr');
+            tr.classList.add('cursor-pointer', 'hover:bg-gray-100');
 
-          const tdHTML = (html) => {
-            const td = document.createElement('td');
-            td.className = 'border px-2 py-1';
-            td.innerHTML = html ?? '';
-            return td;
-          };
-          const tdMulti = (text) => {
-            const td = document.createElement('td');
-            td.className = 'border px-2 py-1 whitespace-pre-line';
-            td.textContent = text ?? '';
-            return td;
-          };
+            const tdHTML = (html) => {
+              const td = document.createElement('td');
+              td.className = 'border px-2 py-1';
+              td.innerHTML = html ?? '';
+              return td;
+            };
+            const tdMulti = (text) => {
+              const td = document.createElement('td');
+              td.className = 'border px-2 py-1 whitespace-pre-line';
+              td.textContent = text ?? '';
+              return td;
+            };
 
-          tr.appendChild(tdHTML(buildListingTitle(row)));
-          tr.appendChild(tdHTML(addr));
-          tr.appendChild(tdHTML(row.deal_type ?? ''));
-          tr.appendChild(tdHTML(buildPriceBlock(row)));
-          tr.appendChild(tdHTML(areaDisp));
-          tr.appendChild(tdHTML(buildDateBlock(row)));
-          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
-          tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-          tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
-          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
-          tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-          tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
-          tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
-          tr.appendChild(tdMulti(names.join('\n')));
-          tr.appendChild(tdMulti(buyerP.join('\n')));
-          tr.appendChild(tdMulti(sellerP.join('\n')));
-          tr.appendChild(tdMulti(inv.join('\n')));
+            tr.appendChild(tdHTML(buildListingTitle(row)));
+            tr.appendChild(tdHTML(addr));
+            tr.appendChild(tdHTML(row.deal_type ?? ''));
+            tr.appendChild(tdHTML(buildPriceBlock(row)));
+            tr.appendChild(tdHTML(areaDisp));
+            tr.appendChild(tdHTML(buildDateBlock(row)));
+            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
+            tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
+            tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
+            tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
+            tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+            tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
+            tr.appendChild(tdMulti(names.join('\n')));
+            tr.appendChild(tdMulti(buyerP.join('\n')));
+            tr.appendChild(tdMulti(sellerP.join('\n')));
+            tr.appendChild(tdMulti(inv.join('\n')));
 
-          applyRowStatusColor(tr, row); //배경색 적용
+            applyRowStatusColor(tr, row);
 
-          tr.addEventListener('click', () => {
-            currentPerformanceId = row.id;
-            isDownPaymentAutoFilled = false;
-            openDrawer();
-            fillFormWithPerformance(row);
-            fillAllocations(pa || null);
-            updateHighlight();
-            // ← [ADD] status에 따라 폼 잠금
-            const locked = !!row.status;
-            setFormEditable(!locked);
+            tr.addEventListener('click', () => {
+              currentPerformanceId = row.id;
+              isDownPaymentAutoFilled = false;
+              openDrawer();
+              fillFormWithPerformance(row);
+              fillAllocations(pa || null);
+              updateHighlight();
+              const locked = !!row.status;
+              setFormEditable(!locked);
+            });
+
+            window.triggerAllocationRecalc?.();
+            tbody.appendChild(tr);
           });
-          window.triggerAllocationRecalc?.();
-          tbody.appendChild(tr);
-        });
+        }
+
+        // [ADD] 원본 데이터 보관 + 렌더러 등록
+        setPerformanceRows(data || []);
+        registerPerformanceRenderer(renderPerformanceTable);
+
+        // [초기 렌더]
+        renderPerformanceTable(data || []);
+        // [ADD] 필터에서 사용할 원본/렌더러 보관
+        window.__PERF_ROWS   = data || [];
+        window.__RENDER_PERF = renderPerformanceTable;
+
+        // === [ADD] 날짜 필터: 버튼 핸들러 + 렌더 ===
+        (function wireSalesDateFilter() {
+          // 한 번만 바인딩되도록 가드
+          if (window.__salesFilterWired) return;
+          window.__salesFilterWired = true;
+
+          const $ = (id) => document.getElementById(id);
+          const startEl = $('filter-start-date');
+          const endEl   = $('filter-end-date');
+          const fieldEl = $('filter-date-field');
+          const applyEl = $('apply-filter');
+          const resetEl = $('reset-filter');
+
+          // 원본 행/렌더러를 전역에 보관 (loadPerformanceTable에서 셋)
+          // - 아래 두 줄은 loadPerformanceTable()의 초기 렌더 직후에도 세팅해둡니다.
+          //   window.__PERF_ROWS   = data || [];
+          //   window.__RENDER_PERF = renderPerformanceTable;
+
+          function parseYMD(s) {
+            // 'YYYY-MM-DD' → Date(로컬 00:00)
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim());
+            if (!m) return null;
+            return new Date(+m[1], +m[2]-1, +m[3]);
+          }
+
+          function inRangeStr(ymdStr, startStr, endStr) {
+            if (!ymdStr) return false; // 날짜 없는 행은 제외
+            const d = parseYMD(ymdStr);
+            if (!d) return false;
+
+            const start = parseYMD(startStr);
+            const end   = parseYMD(endStr);
+
+            // 시작/종료 중 비어있는 값은 열린구간으로 처리
+            if (start && d < start) return false;
+            if (end) {
+              // 종료일 포함(inclusive) 처리: 23:59:59 대신 날짜 비교로 처리
+              const endIncl = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+              if (d > endIncl) return false;
+            }
+            return true;
+          }
+
+          function applyFilter() {
+            const rows = window.__PERF_ROWS || [];
+            const field = fieldEl?.value || 'contract_date';
+            const s = startEl?.value || '';
+            const e = endEl?.value || '';
+
+            if (!s && !e) {
+              // 날짜 미지정 → 원본 그대로
+              window.__RENDER_PERF?.(rows);
+              return;
+            }
+
+            const filtered = rows.filter(r => inRangeStr(r?.[field], s, e));
+            window.__RENDER_PERF?.(filtered);
+          }
+
+          function resetFilter() {
+            if (startEl) startEl.value = '';
+            if (endEl)   endEl.value = '';
+            // 기준 필드는 유지(사용자 선택 존중)
+            window.__RENDER_PERF?.(window.__PERF_ROWS || []);
+          }
+
+          applyEl?.addEventListener('click', applyFilter);
+          resetEl?.addEventListener('click', resetFilter);
+
+          // 기준(계약일/잔금일) 바뀌면 즉시 재적용
+          fieldEl?.addEventListener('change', applyFilter);
+        })();        
       } catch (e) {
         console.error(e);
         showToastGreenRed('예상치 못한 오류');
@@ -1742,6 +1852,17 @@
       // 가중치 변경 리스너가 이미 있어서, 아래 트리거로 동기화
       window.triggerAllocationRecalc?.();
     }
+    // [ADD] 날짜 입력칸에서 Enter 누르면 필터 적용
+    document.addEventListener('DOMContentLoaded', () => {
+      const start = document.getElementById('filter-start-date');
+      const end   = document.getElementById('filter-end-date');
+      const apply = document.getElementById('apply-filter');
+      [start, end].forEach(el => {
+        el?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') apply?.click();
+        });
+      });
+    });
   </script>
 </body>
 </html>
