@@ -160,7 +160,7 @@
         <!-- [ADD] 매출 기간 필터 -->
         <div id="sales-filter" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
           <div class="flex flex-col">
-            <label for="filter-date-field" class="text-sm text-gray-600 mb-1">기준</label>
+            <label for="filter-date-field" class="text-sm text-gray-600 mb-1 w-[10rem]">기준</label>
             <select id="filter-date-field" class="border rounded px-2 py-2">
               <option value="contract_date">계약일</option>
               <option value="balance_date">잔금일</option>
@@ -168,17 +168,17 @@
           </div>
 
           <div class="flex flex-col">
-            <label for="filter-start-date" class="text-sm text-gray-600 mb-1">시작일</label>
+            <label for="filter-start-date" class="text-sm text-gray-600 mb-1 w-[10rem]">시작일</label>
             <input id="filter-start-date" type="date" class="border rounded px-2 py-2" />
           </div>
 
           <div class="flex flex-col">
-            <label for="filter-end-date" class="text-sm text-gray-600 mb-1">종료일</label>
+            <label for="filter-end-date" class="text-sm text-gray-600 mb-1 w-[10rem]">종료일</label>
             <input id="filter-end-date" type="date" class="border rounded px-2 py-2" />
           </div>
 
           <div class="flex items-end gap-2">
-            <button id="apply-filter" class="border rounded px-3 py-2">적용</button>
+            <button id="apply-filter" class="border rounded px-3 py-2 hover">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2">초기화</button>
           </div>
         </div>
