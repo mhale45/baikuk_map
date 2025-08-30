@@ -682,9 +682,9 @@
     let currentCustomerId = null;
     let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
     let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
-    // [ADD] 지점(affiliation) -> 해당 직원 ID Set 캐시
-    const __AFFIL_STAFF_IDS = {};
-    (window.__AFFIL_STAFF_IDS ||= {});
+    // [FIX] 지점(affiliation) -> 해당 직원 ID Set 캐시 (window 전역과 동기화)
+    const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
+
 
     // 소속별 묶기 원래 로직 유지 + 캐시 구성
 
@@ -881,9 +881,9 @@
       const rows = window.__RENDERED_ROWS || [];
       if (!rows.length) return 0;
 
-      const staffId = (window.__selectedStaffId != null) ? String(window.__selectedStaffId) : null;
-      const aff     = window.__selectedAffiliation || null;
-      const affSet  = aff ? (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[aff]) : null;
+      const staffId = (__selectedStaffId != null) ? String(__selectedStaffId) : null;
+      const aff     = __selectedAffiliation || null;
+      const affSet  = aff ? (__AFFIL_STAFF_IDS && __AFFIL_STAFF_IDS[aff]) : null;
 
       let sum = 0;
 
@@ -1146,9 +1146,9 @@
 
             window.triggerAllocationRecalc?.();
             tbody.appendChild(tr);
-            // [ADD] 합계 갱신
-            updateSalesTotal();
           });
+          // [ADD] 합계 갱신
+          updateSalesTotal();
         }
 
         // [ADD] 원본 데이터 보관 + 렌더러 등록
