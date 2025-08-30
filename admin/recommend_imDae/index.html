@@ -175,7 +175,7 @@
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
           <div>
-            <button id="print-btn" class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded mr-2 ml-auto mb-2">
+            <button id="print-btn" class="h-[2rem] bg-neutral-500 hover:bg-neutral-600 text-white text-sm px-4 py-1 rounded mr-2 ml-auto mb-2">
               🖨️
             </button>
             <button id="copy-link-btn" class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded mr-2 ml-auto mb-2">
@@ -1207,7 +1207,7 @@
       // ✅ 읽기 모드 버튼 스타일 및 텍스트 초기화
       toggleButton.textContent = '수정';
       toggleButton.classList.remove('bg-blue-400', 'hover:bg-blue-500');
-      toggleButton.classList.add('bg-neutral-400', 'hover:bg-neutral-500');
+      toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
 
       // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
       switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
@@ -1246,13 +1246,13 @@
       toggleButton.textContent = isEditMode ? '저장' : '수정';
 
       // 버튼 색상 변경
-      toggleButton.classList.remove('bg-neutral-400', 'hover:bg-neutral-500', 'bg-blue-500', 'hover:bg-blue-600');
+      toggleButton.classList.remove('bg-neutral-500', 'hover:bg-neutral-600', 'bg-blue-500', 'hover:bg-blue-600');
       if (isEditMode) {
         // 수정모드: 파랑
         toggleButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
       } else {
         // 읽기모드: 빨간색
-        toggleButton.classList.add('bg-neutral-400', 'hover:bg-neutral-500');
+        toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
       }
 
       if (isEditMode) {
