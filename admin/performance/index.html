@@ -1046,8 +1046,83 @@
         registerPerformanceRenderer(renderPerformanceTable);
 
         // [초기 렌더]
-        renderPerformanceTable(data || []);        
-        
+        renderPerformanceTable(data || []);
+        // [ADD] 필터에서 사용할 원본/렌더러 보관
+        window.__PERF_ROWS   = data || [];
+        window.__RENDER_PERF = renderPerformanceTable;
+
+        // === [ADD] 날짜 필터: 버튼 핸들러 + 렌더 ===
+        (function wireSalesDateFilter() {
+          // 한 번만 바인딩되도록 가드
+          if (window.__salesFilterWired) return;
+          window.__salesFilterWired = true;
+
+          const $ = (id) => document.getElementById(id);
+          const startEl = $('filter-start-date');
+          const endEl   = $('filter-end-date');
+          const fieldEl = $('filter-date-field');
+          const applyEl = $('apply-filter');
+          const resetEl = $('reset-filter');
+
+          // 원본 행/렌더러를 전역에 보관 (loadPerformanceTable에서 셋)
+          // - 아래 두 줄은 loadPerformanceTable()의 초기 렌더 직후에도 세팅해둡니다.
+          //   window.__PERF_ROWS   = data || [];
+          //   window.__RENDER_PERF = renderPerformanceTable;
+
+          function parseYMD(s) {
+            // 'YYYY-MM-DD' → Date(로컬 00:00)
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim());
+            if (!m) return null;
+            return new Date(+m[1], +m[2]-1, +m[3]);
+          }
+
+          function inRangeStr(ymdStr, startStr, endStr) {
+            if (!ymdStr) return false; // 날짜 없는 행은 제외
+            const d = parseYMD(ymdStr);
+            if (!d) return false;
+
+            const start = parseYMD(startStr);
+            const end   = parseYMD(endStr);
+
+            // 시작/종료 중 비어있는 값은 열린구간으로 처리
+            if (start && d < start) return false;
+            if (end) {
+              // 종료일 포함(inclusive) 처리: 23:59:59 대신 날짜 비교로 처리
+              const endIncl = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+              if (d > endIncl) return false;
+            }
+            return true;
+          }
+
+          function applyFilter() {
+            const rows = window.__PERF_ROWS || [];
+            const field = fieldEl?.value || 'contract_date';
+            const s = startEl?.value || '';
+            const e = endEl?.value || '';
+
+            if (!s && !e) {
+              // 날짜 미지정 → 원본 그대로
+              window.__RENDER_PERF?.(rows);
+              return;
+            }
+
+            const filtered = rows.filter(r => inRangeStr(r?.[field], s, e));
+            window.__RENDER_PERF?.(filtered);
+          }
+
+          function resetFilter() {
+            if (startEl) startEl.value = '';
+            if (endEl)   endEl.value = '';
+            // 기준 필드는 유지(사용자 선택 존중)
+            window.__RENDER_PERF?.(window.__PERF_ROWS || []);
+          }
+
+          applyEl?.addEventListener('click', applyFilter);
+          resetEl?.addEventListener('click', resetFilter);
+
+          // 기준(계약일/잔금일) 바뀌면 즉시 재적용
+          fieldEl?.addEventListener('change', applyFilter);
+        })();        
       } catch (e) {
         console.error(e);
         showToastGreenRed('예상치 못한 오류');
