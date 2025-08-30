@@ -4207,27 +4207,27 @@
                     landBtn.id = LAND_BTN_ID;
                     landBtn.type = 'button';
                     landBtn.className = [
-                        'absolute', 'right-2', 'bottom-2', 'z-[101]', // 네이버 지도보다 위
-                        'w-10', 'h-10', 'rounded-lg', 'shadow',
-                        'flex', 'items-center', 'justify-center',
-                        'border', 'border-gray-300',
-                        'bg-white', 'hover:bg-gray-100',
-                        'transition'
+                        'absolute','right-2','bottom-14','z-[101]',   // ← N 버튼보다 위쪽에 배치 (bottom-14)
+                        'w-10','h-10','rounded-lg','shadow',
+                        'flex','items-center','justify-center',
+                        'border','border-gray-300','bg-white','hover:bg-gray-100','transition'
                     ].join(' ');
                     landBtn.title = '네이버 부동산 (오피스/상가)';
 
+                    // 아이콘 이미지 (Supabase URL)
                     const landIcon = document.createElement('img');
-                    landIcon.src = LAND_ICON_URL;
+                    landIcon.src = LAND_ICON_URL;  // ← 1)에서 지정한 URL
                     landIcon.alt = 'Naver Land';
                     landIcon.className = 'w-8 h-8 pointer-events-none';
                     landBtn.appendChild(landIcon);
 
                     landBtn.onclick = () => {
+                        // 위도/경도 계산 (리스트의 좌표 우선, 없으면 메인 맵 센터)
                         let lat = Number(listing?.lat);
                         let lng = Number(listing?.lng);
                         if (!lat || !lng) {
-                            const c = window.map?.getCenter?.();
-                            if (c) { lat = c.getLat(); lng = c.getLng(); }
+                        const c = window.map?.getCenter?.();
+                        if (c) { lat = c.getLat(); lng = c.getLng(); }
                         }
                         if (!lat || !lng) return;
 
@@ -4237,38 +4237,34 @@
 
                     mapPreviewContainer.appendChild(landBtn);
 
-                    // 2) 네이버 지도 버튼 (아래쪽)
-                    const mapBtn = document.createElement('button');
-                    mapBtn.id = NAVER_BTN_ID;
-                    mapBtn.type = 'button';
-                    mapBtn.className = [
-                        'absolute', 'right-2', 'bottom-2', 'z-[101]',
-                        'w-10', 'h-10', 'rounded-lg', 'shadow',
-                        'flex', 'items-center', 'justify-center',
-                        'border', 'border-gray-300',
-                        'bg-[#00de5a]', 'hover:bg-[#00b74a]',
-                        'transition'
+                    // 2) 기존 N 버튼 (아래쪽)
+                    const btn = document.createElement('button');
+                    btn.id = NAVER_BTN_ID;
+                    btn.type = 'button';
+                    btn.className = [
+                        'absolute','right-2','bottom-2','z-[101]',
+                        'w-10','h-10','rounded-lg','shadow',
+                        'flex','items-center','justify-center',
+                        'border','border-gray-300',
+                        'bg-[#00de5a]','hover:bg-[#00b74a]',
+                        'transition','text-white','text-[28px]','font-black'
                     ].join(' ');
-                    mapBtn.title = '네이버 지도';
+                    btn.style.textShadow = '0 1px 2px #ffffff, 0 0 1px #ffffff';
+                    btn.title = '네이버지도';
+                    btn.textContent = 'N';
 
-                    const mapIcon = document.createElement('img');
-                    mapIcon.src = NAVER_MAP_ICON_URL; // 이미지 주소 (ex: N 마크)
-                    mapIcon.alt = 'Naver Map';
-                    mapIcon.className = 'w-6 h-6 pointer-events-none';
-                    mapBtn.appendChild(mapIcon);
-
-                    mapBtn.onclick = () => {
+                    btn.onclick = () => {
+                        // (이 버튼은 기존 로직 유지: 검색 URL 또는 좌표 폴백 등)
                         const query = getFullAddressForListing(listing);
                         if (query) {
-                            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=18.00,0,0,0,dh`, '_blank');
+                        window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=18.00,0,0,0,dh`, '_blank');
                         } else {
-                            window.open(`https://map.naver.com/v5/?c=${listing.lng},${listing.lat},18,0,0,0,d`, '_blank');
+                        window.open(`https://map.naver.com/v5/?c=${listing.lng},${listing.lat},18,0,0,0,d`, '_blank');
                         }
                     };
 
-                    mapPreviewContainer.appendChild(mapBtn);
+                    mapPreviewContainer.appendChild(btn);
                 }
-
             }
 
             renderDealFields();  // ✅ 거래유형 기반 필드 자동 렌더링
