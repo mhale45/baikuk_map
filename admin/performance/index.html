@@ -865,7 +865,18 @@
       return buyerAmt + sellerAmt;
     }
 
-    /** 현재 렌더링된 행(window.__RENDERED_ROWS) 기준 합계 계산 */
+    /** 각 슬롯의 buyer+seller 금액 합을 안전하게 구한다 */
+    function getBuyerSellerSumForSlot(pa, i) {
+      const buyerAmt  = numberOrZero(pa?.[`buyer_amount${i}`]);
+      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
+      return buyerAmt + sellerAmt;
+    }
+
+    /** (기존 교체) 현재 렌더링된 행 기준 합계 계산
+     * - 직원 선택(__selectedStaffId)인 경우: staff_id1~4 중 일치하는 모든 슬롯의 (buyer_amount + seller_amount) 합
+     * - 지점 선택(__selectedAffiliation)인 경우: 해당 지점 소속 직원이 들어간 모든 슬롯의 (buyer_amount + seller_amount) 합
+     * - 선택 없음: 기존 동작 유지(행의 모든 슬롯에 대해 involvement_sales 있으면 그 값, 없으면 buyer+seller 합)
+     */
     function computeSalesTotalForCurrentContext() {
       const rows = window.__RENDERED_ROWS || [];
       if (!rows.length) return 0;
@@ -884,34 +895,40 @@
         if (!pa) continue;
 
         if (staffId) {
-          // 직원 선택: 해당 직원의 관여매출만
+          // ✅ 직원 선택: 해당 직원이 들어간 모든 슬롯의 (buyer+seller) 합
           for (let i = 1; i <= 4; i++) {
             const sid = pa[`staff_id${i}`];
             if (sid != null && String(sid) === staffId) {
-              sum += getInvForSlot(pa, i);
+              sum += getBuyerSellerSumForSlot(pa, i);
             }
           }
-        } else if (affSet) {
-          // 지점 선택: 지점 소속 직원들의 관여매출 합
+          continue;
+        }
+
+        if (affSet) {
+          // ✅ 지점 선택: 해당 지점 소속 직원이 들어간 모든 슬롯의 (buyer+seller) 합
           for (let i = 1; i <= 4; i++) {
             const sid = pa[`staff_id${i}`];
             if (sid != null && affSet.has(String(sid))) {
-              sum += getInvForSlot(pa, i);
+              sum += getBuyerSellerSumForSlot(pa, i);
             }
           }
-        } else {
-          // 선택 없음: 해당 행의 모든 직원 분배 관여매출 합
-          for (let i = 1; i <= 4; i++) {
-            const sid = pa[`staff_id${i}`];
-            if (sid != null) {
-              sum += getInvForSlot(pa, i);
-            }
+          continue;
+        }
+
+        // 선택 없음: 기존 로직 유지 (involvement_sales 우선, 없으면 buyer+seller)
+        for (let i = 1; i <= 4; i++) {
+          const sid = pa[`staff_id${i}`];
+          if (sid != null) {
+            // 이전에 사용하던 보조 함수 재사용(저장된 involvement_sales 우선)
+            sum += getInvForSlot(pa, i);
           }
         }
       }
 
       return Math.round(sum);
     }
+
 
     /** #salesTotal 텍스트 갱신 */
     function updateSalesTotal() {
