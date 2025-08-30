@@ -501,7 +501,12 @@
         const entry = { id, name, affiliation, leave_date };
         if (!leave_date) grouped[affiliation].active.push(entry);
         else grouped[affiliation].inactive.push(entry);
+
+        // [ADD] 지점 -> 직원ID 세트 캐시
+        if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
+        __AFFIL_STAFF_IDS[affiliation].add(String(id));
       });
+
 
       const container = document.getElementById('staff-list');
       container.innerHTML = '';
@@ -677,6 +682,12 @@
     let currentCustomerId = null;
     let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
     let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
+    // [ADD] 지점(affiliation) -> 해당 직원 ID Set 캐시
+    const __AFFIL_STAFF_IDS = {};
+    (window.__AFFIL_STAFF_IDS ||= {});
+
+    // 소속별 묶기 원래 로직 유지 + 캐시 구성
+
     
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
@@ -833,6 +844,84 @@
         currentPerformanceId = null;
     }
 
+    /* =========================================================
+    * 합계 계산/표시 유틸: 현재 "보이는 데이터" + 선택 컨텍스트 기준
+    * - 직원 클릭 상태(__selectedStaffId)가 있으면: 그 직원의 관여매출만 합산
+    * - 지점 클릭 상태(__selectedAffiliation)만 있으면: 그 지점 소속 직원들의 관여매출 합산
+    * - 둘 다 없으면: 테이블의 "관여매출" 전체(모든 직원 분배) 합산
+    *   (= 각 행의 직원별 관여매출 합계를 전부 더함)
+    * ---------------------------------------------------------*/
+
+    function numberOrZero(v) {
+      return (typeof v === 'number' && isFinite(v)) ? v : 0;
+    }
+
+    /** 각 allocation row에서 i번째 슬롯의 "관여매출" 값을 안전하게 구한다 */
+    function getInvForSlot(pa, i) {
+      const saved = pa?.[`involvement_sales${i}`];
+      if (typeof saved === 'number' && !Number.isNaN(saved)) return saved;
+      const buyerAmt = numberOrZero(pa?.[`buyer_amount${i}`]);
+      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
+      return buyerAmt + sellerAmt;
+    }
+
+    /** 현재 렌더링된 행(window.__RENDERED_ROWS) 기준 합계 계산 */
+    function computeSalesTotalForCurrentContext() {
+      const rows = window.__RENDERED_ROWS || [];
+      if (!rows.length) return 0;
+
+      const staffId = (window.__selectedStaffId != null) ? String(window.__selectedStaffId) : null;
+      const aff     = window.__selectedAffiliation || null;
+      const affSet  = aff ? (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[aff]) : null;
+
+      let sum = 0;
+
+      for (const row of rows) {
+        const pa = Array.isArray(row.performance_allocations)
+          ? row.performance_allocations[0]
+          : row.performance_allocations;
+
+        if (!pa) continue;
+
+        if (staffId) {
+          // 직원 선택: 해당 직원의 관여매출만
+          for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            if (sid != null && String(sid) === staffId) {
+              sum += getInvForSlot(pa, i);
+            }
+          }
+        } else if (affSet) {
+          // 지점 선택: 지점 소속 직원들의 관여매출 합
+          for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            if (sid != null && affSet.has(String(sid))) {
+              sum += getInvForSlot(pa, i);
+            }
+          }
+        } else {
+          // 선택 없음: 해당 행의 모든 직원 분배 관여매출 합
+          for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            if (sid != null) {
+              sum += getInvForSlot(pa, i);
+            }
+          }
+        }
+      }
+
+      return Math.round(sum);
+    }
+
+    /** #salesTotal 텍스트 갱신 */
+    function updateSalesTotal() {
+      const el = document.getElementById('salesTotal');
+      if (!el) return;
+
+      const total = computeSalesTotalForCurrentContext();
+      el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
+    }
+
     // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
       await ensureStaffNameMap();
@@ -954,6 +1043,8 @@
 
         function renderPerformanceTable(rows) {
           tbody.innerHTML = '';
+          // [ADD] 현재 화면에 렌더된 원본 데이터 보관
+          window.__RENDERED_ROWS = rows || [];
           (rows || []).forEach(row => {
             const pa = Array.isArray(row.performance_allocations)
               ? row.performance_allocations[0]
@@ -1038,6 +1129,8 @@
 
             window.triggerAllocationRecalc?.();
             tbody.appendChild(tr);
+            // [ADD] 합계 갱신
+            updateSalesTotal();
           });
         }
 
@@ -1047,6 +1140,9 @@
 
         // [초기 렌더]
         renderPerformanceTable(data || []);
+        // [ADD] 첫 화면 합계 갱신
+        updateSalesTotal();
+
         // [ADD] 필터에서 사용할 원본/렌더러 보관
         window.__PERF_ROWS   = data || [];
         window.__RENDER_PERF = renderPerformanceTable;
@@ -1108,6 +1204,7 @@
 
             const filtered = rows.filter(r => inRangeStr(r?.[field], s, e));
             window.__RENDER_PERF?.(filtered);
+            updateSalesTotal();
           }
 
           function resetFilter() {
@@ -1115,6 +1212,7 @@
             if (endEl)   endEl.value = '';
             // 기준 필드는 유지(사용자 선택 존중)
             window.__RENDER_PERF?.(window.__PERF_ROWS || []);
+            updateSalesTotal();
           }
 
           applyEl?.addEventListener('click', applyFilter);
