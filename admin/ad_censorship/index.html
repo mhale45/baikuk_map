@@ -69,16 +69,13 @@
     import { client as supabase, waitForSupabase } from '../../../modules/core/supabase.js';
     import { showToastGreenRed } from '../../../modules/ui/toast.js';
 
-    // 전역 노출(다른 모듈과 동일하게)
     window.supabase = supabase;
     document.dispatchEvent(new Event('supabase-ready'));
 
-    // === 선택 상태 & 캐시 ===
-    let __selectedStaffId = null;            // 선택된 직원 ID (문자열/숫자)
-    let __selectedAffiliation = null;        // 선택된 지점명
-    const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원ID Set 캐시
+    let __selectedStaffId = null;
+    let __selectedAffiliation = null;
+    const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
 
-    // === 내 권한/소속/스태프ID 조회 (performance 페이지와 동일한 형태) ===
     async function getMyAuthorityAndStaffId() {
       await waitForSupabase();
       const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
@@ -97,20 +94,40 @@
 
       const authority = staff.authority || '';
       const isStaff = authority === '직원';
-
-      // 전역 동기화(있으면 사용)
       window.__userRole = authority;
       window.__isStaff  = isStaff;
 
       return { authority, isStaff, staffId: staff.id, affiliation: staff.affiliation, userId: user.id };
     }
 
-    // === 직원/지점 패널 렌더링 ===
-    (async () => {
-      // 0) 내 권한/소속/내 스태프ID
-      const me = await getMyAuthorityAndStaffId(); // { authority, isStaff, staffId, affiliation, userId }
+    /** ad_channel(s) 테이블에서 여러 ID를 이름으로 매핑 (테이블명이 ad_channel인지 ad_channels인지 모를 때 모두 시도) */
+    async function fetchAdChannelsByIds(ids) {
+      const uniqIds = Array.from(new Set(ids.filter(Boolean)));
+      const result = new Map();
+      if (!uniqIds.length) return result;
 
-      // 1) 직원 데이터 로드 (권한별 재직자 필터)
+      const tables = ['ad_channel', 'ad_channels']; // 둘 중 존재하는 테이블을 사용
+      for (const t of tables) {
+        const { data, error } = await supabase
+          .from(t)
+          .select('id, channel_name')
+          .in('id', uniqIds);
+
+        if (!error && Array.isArray(data)) {
+          for (const row of data) {
+            result.set(row.id, row.channel_name);
+          }
+          return result; // 첫 성공에서 반환
+        }
+      }
+      return result; // 실패해도 빈 Map 반환
+    }
+
+    (async () => {
+      // 0) 권한/소속
+      const me = await getMyAuthorityAndStaffId();
+
+      // 1) 직원 데이터 로드 (조인은 하지 않고 ad_channel_id만 가져옴)
       let staffQuery = supabase
         .from('staff_profiles')
         .select(`
@@ -118,13 +135,12 @@
           name,
           affiliation,
           leave_date,
-          ad_channel ( channel_name )
+          ad_channel_id
         `)
         .order('affiliation', { ascending: true })
         .order('name', { ascending: true });
 
       if (me.authority === '직원') {
-        // 직원 권한은 재직자만 보이도록
         staffQuery = staffQuery.is('leave_date', null);
       }
 
@@ -135,11 +151,15 @@
         return;
       }
 
-      // 2) 소속별 묶기 + 지점→직원ID 캐시
+      // 2) 광고채널명 매핑 조회
+      const channelIds = (data || []).map(r => r.ad_channel_id).filter(Boolean);
+      const channelMap = await fetchAdChannelsByIds(channelIds);
+
+      // 3) 소속별 묶기 + 지점→직원ID 캐시
       const grouped = {};
-      (data || []).forEach(({ id, name, affiliation, leave_date }) => {
+      (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel_id }) => {
         if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date };
+        const entry = { id, name, affiliation, leave_date, ad_channel_id };
         if (!leave_date) grouped[affiliation].active.push(entry);
         else grouped[affiliation].inactive.push(entry);
 
@@ -150,7 +170,7 @@
       const container = document.getElementById('staff-list');
       container.innerHTML = '';
 
-      // 3) 권한별 클릭 가능 여부
+      // 4) 권한별 클릭 가능 여부
       const canClickStaff = (emp) => {
         if (me.authority === '관리자') return true;
         if (me.authority === '지점장') return emp.affiliation === me.affiliation;
@@ -160,10 +180,9 @@
       const canClickAff = (aff) => {
         if (me.authority === '관리자') return true;
         if (me.authority === '지점장') return aff === me.affiliation;
-        return false; // 직원은 지점 헤더 클릭 불가
+        return false;
       };
 
-      // 선택 변경 → 광고 검열 테이블 쪽에 알림
       function emitFilterChange() {
         document.dispatchEvent(new CustomEvent('adc:filter-change', {
           detail: {
@@ -173,11 +192,11 @@
         }));
       }
 
-      // 4) 렌더
+      // 5) 렌더
       let firstClickableStaffEl = null;
 
       Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-        // --- 지점 헤더 (클릭 시 지점 전체 필터) ---
+        // 지점 헤더
         const header = document.createElement('div');
         header.className = 'grade-header';
         header.textContent = aff;
@@ -191,7 +210,7 @@
               header.classList.remove('ring-2', 'ring-yellow-400');
             } else {
               __selectedAffiliation = aff;
-              __selectedStaffId = null; // 지점 선택 시 직원 단일 선택 해제
+              __selectedStaffId = null;
               container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
               header.classList.add('ring-2', 'ring-yellow-400');
               container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
@@ -204,18 +223,16 @@
         }
         container.appendChild(header);
 
-        // --- 직원 리스트 ---
+        // 직원 아이템 생성
         const makeName = (emp, { dim = false } = {}) => {
           const el = document.createElement('div');
           el.className = 'name-item flex items-center gap-1';
           el.dataset.staffId = emp.id;
 
-          // 광고채널명 (없으면 '-')
-          const channel = emp.ad_channel?.channel_name || '';
-
-          // 직원 이름 + 광고채널 같이 표시
+          // 광고채널명 표시
+          const channel = channelMap.get(emp.ad_channel_id) || '';
           el.textContent = dim
-            ? `${emp.name} (퇴사) ${channel ? '· ' + channel : ''}`
+            ? `${emp.name} (퇴사)${channel ? ' · ' + channel : ''}`
             : `${emp.name}${channel ? ' · ' + channel : ''}`;
 
           const allowed = canClickStaff(emp);
@@ -231,7 +248,6 @@
 
         active.forEach((emp) => container.appendChild(makeName(emp)));
 
-        // --- 퇴사자 토글(관리자/지점장만 노출) ---
         if (me.authority !== '직원' && inactive.length > 0) {
           const toggleBtn = document.createElement('button');
           toggleBtn.textContent = '▼ 퇴사자 보기';
@@ -245,8 +261,9 @@
             const el = document.createElement('div');
             el.className = 'name-item text-gray-400 italic';
             el.dataset.staffId = emp.id;
-            el.textContent = `${emp.name} (퇴사)`;
-            // 퇴사자는 클릭 비활성(필요 시 권한에 따라 허용 가능)
+            const channel = channelMap.get(emp.ad_channel_id) || '';
+            el.textContent = `${emp.name} (퇴사)${channel ? ' · ' + channel : ''}`;
+            // 퇴사자 클릭 비활성
             el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
             collapseDiv.appendChild(el);
           });
@@ -261,7 +278,7 @@
         }
       });
 
-      // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
+      // 직원 클릭 → 단일 직원 필터
       function setActiveStaff(staffId) {
         __selectedStaffId = staffId;
         __selectedAffiliation = null;
@@ -284,13 +301,12 @@
         setActiveStaff(el.dataset.staffId);
       });
 
-      // 6) UX: 직원 권한이면 본인을 자동 선택
+      // 직원 권한: 본인 자동 선택
       if (me.isStaff && me.staffId) {
         setActiveStaff(me.staffId);
       }
     })();
 
-    // === (선택) 페이지 진입 시 권한/로그인 체크 실패 안내 ===
     (async () => {
       try {
         await waitForSupabase();
@@ -301,14 +317,12 @@
       }
     })();
 
-    // === 예시) 우측 테이블에서 필터 이벤트를 받는 방법 ===
+    // 예시) 필터 이벤트 수신
     // document.addEventListener('adc:filter-change', (e) => {
     //   const { staffId, affiliation } = e.detail || {};
-    //   // TODO: 광고 검열 리스트 쿼리 갱신/필터링
-    //   //   - staffId가 있으면 해당 직원 관여건만
-    //   //   - staffId 없고 affiliation이 있으면 지점 소속 직원들의 관여건
-    //   //   - 둘 다 없으면 전체
+    //   // TODO: 리스트 필터 적용
     // });
-  </script>
+</script>
+
 </body>
 </html>
