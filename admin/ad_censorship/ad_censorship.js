@@ -164,25 +164,30 @@ async function renderStaffSidebar(me) {
 
     // --- 직원 리스트 ---
     const makeName = (emp, { dim = false } = {}) => {
-      const el = document.createElement('div');
-      el.className = 'name-item';
-      el.dataset.staffId = emp.id;
-      let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
+        const el = document.createElement('div');
+        el.className = 'name-item';
+        el.dataset.staffId = emp.id;
+        // ✅ 클릭 시 조회에 사용할 데이터 속성 추가
+        el.dataset.branch = emp.affiliation || '';
+        el.dataset.channel = emp.ad_channel || '';
+
+        let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
         if (emp.ad_channel) {
             displayName += ` (${emp.ad_channel})`;
         }
         el.textContent = displayName;
 
-      const allowed = canClickStaff(emp);
-      if (!allowed) {
-        el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
-        el.dataset.disabled = '1';
-      } else {
-        el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
-        if (!firstClickableStaffEl) firstClickableStaffEl = el;
-      }
-      return el;
+        const allowed = canClickStaff(emp);
+        if (!allowed) {
+            el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+            el.dataset.disabled = '1';
+        } else {
+            el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
+            if (!firstClickableStaffEl) firstClickableStaffEl = el;
+        }
+        return el;
     };
+
 
     active.forEach((emp) => container.appendChild(makeName(emp)));
 
@@ -200,10 +205,13 @@ async function renderStaffSidebar(me) {
         const el = document.createElement('div');
         el.className = 'name-item text-gray-400 italic';
         el.dataset.staffId = emp.id;
+        // ✅ 클릭 시 조회에 사용할 데이터 속성도 함께 저장(비활성이라 클릭은 막히지만 일관성 유지)
+        el.dataset.branch = emp.affiliation || '';
+        el.dataset.channel = emp.ad_channel || '';
 
         let displayName = `${emp.name} (퇴사)`;
         if (emp.ad_channel) {
-            displayName += ` (${emp.ad_channel})`; // ✅ NULL이면 자동 미표시
+            displayName += ` (${emp.ad_channel})`;
         }
         el.textContent = displayName;
 
@@ -222,17 +230,91 @@ async function renderStaffSidebar(me) {
     }
   });
 
-  // 5) 직원 클릭 핸들러(단일 직원 필터)
-  container.addEventListener('click', (e) => {
-    const el = e.target.closest('.name-item');
-    if (!el || el.dataset.disabled === '1') return;
-    setActiveStaff(container, el.dataset.staffId);
-  });
+  // 5) 직원 클릭 핸들러(단일 직원 필터 + 매물 조회/렌더)
+    container.addEventListener('click', async (e) => {
+        const el = e.target.closest('.name-item');
+        if (!el || el.dataset.disabled === '1') return;
 
-  // 6) UX: 직원 권한이면 본인을 자동 선택
-  if (me.isStaff && me.staffId) {
-    setActiveStaff(container, me.staffId);
-  }
+        // 선택 강조(기존 로직)
+        setActiveStaff(container, el.dataset.staffId);
+
+        // ✅ 클릭한 직원의 소속/채널로 supabase 조회
+        const branchName = el.dataset.branch || '';
+        const channel = (el.dataset.channel || '').trim();
+
+        // 패널/메타 영역
+        const panel = document.getElementById('employee-listings-panel');
+        const meta = document.getElementById('employee-listings-meta');
+        const resultBox = document.getElementById('employee-listings');
+        if (!panel || !meta || !resultBox) return;
+
+        // 가드: 소속/채널 없으면 안내
+        if (!branchName || !channel) {
+            panel.style.display = '';
+            meta.textContent = '이 직원의 소속 또는 채널 정보가 없어 조회할 수 없습니다.';
+            resultBox.innerHTML = '';
+            return;
+        }
+
+        // 로딩 표시
+        panel.style.display = '';
+        meta.textContent = '불러오는 중...';
+        resultBox.innerHTML = '';
+
+        try {
+            const likeValue = `%${channel}%`;
+            const { data, error } = await supabase
+            .from('ad_baikuk_listings')
+            .select('*')
+            .eq('branch_name', branchName)
+            .ilike('agent_name', likeValue);
+
+            if (error) throw error;
+
+            const rows = data || [];
+            meta.innerHTML = `소속 <strong>${branchName}</strong> · 채널 <strong>${channel}</strong> 조건으로 검색된 결과: <strong>${rows.length}</strong>건`;
+
+            if (!rows.length) {
+            resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
+            return;
+            }
+
+            const frag = document.createDocumentFragment();
+            rows.forEach((row) => {
+            const card = document.createElement('div');
+            card.className = 'listing-card';
+            card.style.cssText = 'border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:8px;';
+
+            card.innerHTML = `
+                <div style="font-weight:600;">${row.title || row.item_title || '(제목 없음)'}</div>
+                <div style="font-size:13px; color:#555; margin-top:4px;">
+                지점: ${row.branch_name ?? '-'} · 담당(에이전트): ${row.agent_name ?? '-'}
+                </div>
+                <div style="font-size:13px; color:#555; margin-top:2px;">
+                가격: ${row.price ?? '-'} · 매물ID: ${row.id ?? '-'}
+                </div>
+            `;
+            frag.appendChild(card);
+            });
+            resultBox.appendChild(frag);
+        } catch (err) {
+            console.error(err);
+            meta.textContent = '매물 조회 중 오류가 발생했습니다.';
+            resultBox.innerHTML = '';
+        }
+    });
+
+
+  // 6) UX: 직원 권한이면 본인을 자동 선택(조회까지 실행)
+    if (me.isStaff && me.staffId) {
+        const myEl = container.querySelector(`.name-item[data-staff-id="${me.staffId}"]`);
+        if (myEl) {
+            myEl.click(); // ✅ 클릭 트리거 → 하이라이트 + 조회
+        } else {
+            setActiveStaff(container, me.staffId); // fallback
+        }
+    }
+
 }
 
 // === 초기화 ===
