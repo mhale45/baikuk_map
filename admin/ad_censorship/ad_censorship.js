@@ -102,16 +102,17 @@ async function renderStaffSidebar(me) {
   }
 
   // 2) 소속별 그룹핑 + 캐시
-  const grouped = {};
-  (data || []).forEach(({ id, name, affiliation, leave_date }) => {
-    if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-    const entry = { id, name, affiliation, leave_date };
-    if (!leave_date) grouped[affiliation].active.push(entry);
-    else grouped[affiliation].inactive.push(entry);
+    const grouped = {};
+    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel }) => {
+        if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
+        const entry = { id, name, affiliation, leave_date, ad_channel }; // ✅ ad_channel 유지
+        if (!leave_date) grouped[affiliation].active.push(entry);
+        else grouped[affiliation].inactive.push(entry);
 
-    if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
-    __AFFIL_STAFF_IDS[affiliation].add(String(id));
-  });
+        if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
+        __AFFIL_STAFF_IDS[affiliation].add(String(id));
+    });
+
 
   const container = $('#staff-list');
   if (!container) return;
@@ -199,10 +200,17 @@ async function renderStaffSidebar(me) {
         const el = document.createElement('div');
         el.className = 'name-item text-gray-400 italic';
         el.dataset.staffId = emp.id;
-        el.textContent = `${emp.name} (퇴사)`;
+
+        let displayName = `${emp.name} (퇴사)`;
+        if (emp.ad_channel) {
+            displayName += ` [${emp.ad_channel}]`; // ✅ NULL이면 자동 미표시
+        }
+        el.textContent = displayName;
+
         el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
         collapseDiv.appendChild(el);
-      });
+    });
+
 
       toggleBtn.onclick = () => {
         const expanded = collapseDiv.classList.toggle('hidden');
