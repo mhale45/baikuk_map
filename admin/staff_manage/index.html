@@ -49,7 +49,7 @@
     
     // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
     (async () => {
-      const { data, error } = await client.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
       if (!data?.session) {
         console.warn("로그인 세션 없음 → /index.html로 이동");
         location.replace("/");
@@ -287,8 +287,9 @@
       document.getElementById('signup-affiliation').value = staff.affiliation || '';
       document.getElementById('signup-authority').value   = staff.authority || '';
       document.getElementById('signup-gender').value      = staff.gender || '';
-      document.getElementById('signup-birth').value       = staff.birth_date || '';
-      document.getElementById('signup-join').value        = staff.join_date || '';
+      document.getElementById('signup-birth').value       = toDateInputValue(staff.birth_date);
+      document.getElementById('signup-join').value        = toDateInputValue(staff.join_date);
+      document.getElementById('signup-leave').value       = toDateInputValue(staff.leave_date);
       document.getElementById('signup-phone').value       = staff.phone_num || '';
       document.getElementById('signup-extension').value   = staff.extension || '';
       document.getElementById('signup-max-sessions').value = (staff.max_sessions ?? '');
@@ -322,6 +323,15 @@
     };
     
     // 스크립트 시작
+
+    // YYYY-MM-DD 또는 YYYY-MM-DDTHH:mm:ss 형태를 안전하게 잘라서 반환
+    function toDateInputValue(v) {
+      if (!v) return '';
+      const s = String(v);
+      // ISO 같은 경우 "YYYY-MM-DD"만 잘라 쓰면 타임존 문제 없음
+      return s.slice(0, 10);
+    }
+    window.toDateInputValue = toDateInputValue;
 
     // 관리자, 지점장 다른 직원 비번 변경
     async function changePasswordForCurrentEditUser(staff) {

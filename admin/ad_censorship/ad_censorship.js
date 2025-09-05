@@ -169,7 +169,7 @@ async function renderStaffSidebar(me) {
       el.dataset.staffId = emp.id;
       let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
         if (emp.ad_channel) {
-            displayName += ` [${emp.ad_channel}]`;
+            displayName += ` (${emp.ad_channel})`;
         }
         el.textContent = displayName;
 
@@ -203,7 +203,7 @@ async function renderStaffSidebar(me) {
 
         let displayName = `${emp.name} (퇴사)`;
         if (emp.ad_channel) {
-            displayName += ` [${emp.ad_channel}]`; // ✅ NULL이면 자동 미표시
+            displayName += ` (${emp.ad_channel})`; // ✅ NULL이면 자동 미표시
         }
         el.textContent = displayName;
 
