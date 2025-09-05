@@ -246,10 +246,8 @@ async function renderStaffSidebar(me) {
         const panel = document.getElementById('employee-listings-panel');
         const meta = document.getElementById('employee-listings-meta');
         const resultBox = document.getElementById('employee-listings');
-        const title = document.getElementById('employee-listings-title');
         if (!panel || !meta || !resultBox) return;
 
-        title.textContent = `${el.textContent}`;
         // 가드: 소속/채널 없으면 안내
         if (!branchName || !channel) {
             panel.style.display = '';
