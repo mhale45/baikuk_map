@@ -275,24 +275,36 @@ async function renderStaffSidebar(me) {
             meta.innerHTML = `소속 <strong>${branchName}</strong> · 채널 <strong>${channel}</strong> 조건으로 검색된 결과: <strong>${rows.length}</strong>건`;
 
             if (!rows.length) {
-            resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
-            return;
+                resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
+                return;
             }
 
-            const frag = document.createDocumentFragment();
-            rows.forEach((row) => {
-                const card = document.createElement('div');
-                card.className = 'listing-card';
-                card.style.cssText = 'border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:8px;';
+            // ✅ 표 생성
+            const table = document.createElement('table');
+            table.className = 'min-w-full border-collapse border border-gray-300 text-sm';
+            table.innerHTML = `
+            <thead class="bg-gray-100">
+                <tr>
+                <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            `;
 
-                card.innerHTML = `
-                    <div style="font-weight:600;">네이버: ${row.ad_listing_id ?? '-'}</div>
-                    <div style="font-size:13px; color:#555; margin-top:4px;">매물번호: ${row.description_listing_id ?? '-'}</div>
+            const tbody = table.querySelector('tbody');
+
+            // 행 추가
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border border-gray-300 px-3 py-1">${row.ad_listing_id ?? '-'}</td>
+                    <td class="border border-gray-300 px-3 py-1">${row.description_listing_id ?? '-'}</td>
                 `;
-
-                frag.appendChild(card);
+                tbody.appendChild(tr);
             });
-            resultBox.appendChild(frag);
+
+            resultBox.appendChild(table);
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';
