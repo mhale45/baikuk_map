@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>매출</title>
+  <title>광고관리</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
@@ -60,242 +60,26 @@
         <!-- JS로 렌더링 -->
       </div>
     </div>
+    
+    <!-- 우측: 광고 검열 테이블 (이 영역은 원하는대로 구성/렌더) -->
+    <div id="adc-table" class="flex-1 pt-[5rem] p-4">
+      <!-- TODO: 모듈에서 날아오는 adc:filter-change 이벤트를 받아 리스트를 그리세요 -->
+    </div>
 
     <!-- 어두운 오버레이 -->
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
   </div>
 
   <script type="module">
-    import { client as supabase, waitForSupabase } from '../../../modules/core/supabase.js';
-    import { showToastGreenRed } from '../../../modules/ui/toast.js';
+    import { initAdCensorship } from './ad_censorship.js';
+    initAdCensorship();
 
-    // 전역 노출(다른 모듈과 동일하게)
-    window.supabase = supabase;
-    document.dispatchEvent(new Event('supabase-ready'));
-
-    // === 선택 상태 & 캐시 ===
-    let __selectedStaffId = null;            // 선택된 직원 ID (문자열/숫자)
-    let __selectedAffiliation = null;        // 선택된 지점명
-    const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원ID Set 캐시
-
-    // === 내 권한/소속/스태프ID 조회 (performance 페이지와 동일한 형태) ===
-    async function getMyAuthorityAndStaffId() {
-      await waitForSupabase();
-      const { data: sessionRes, error: sErr } = await supabase.auth.getSession();
-      if (sErr) throw sErr;
-      const user = sessionRes?.session?.user;
-      if (!user?.id) throw new Error('로그인이 필요합니다.');
-
-      const { data: staff, error: spErr } = await supabase
-        .from('staff_profiles')
-        .select('id, authority, affiliation')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (spErr) throw spErr;
-      if (!staff) throw new Error('staff_profiles에서 사용자 정보를 찾을 수 없습니다.');
-
-      const authority = staff.authority || '';
-      const isStaff = authority === '직원';
-
-      // 전역 동기화(있으면 사용)
-      window.__userRole = authority;
-      window.__isStaff  = isStaff;
-
-      return { authority, isStaff, staffId: staff.id, affiliation: staff.affiliation, userId: user.id };
-    }
-
-    // === 직원/지점 패널 렌더링 ===
-    (async () => {
-      // 0) 내 권한/소속/내 스태프ID
-      const me = await getMyAuthorityAndStaffId(); // { authority, isStaff, staffId, affiliation, userId }
-
-      // 1) 직원 데이터 로드 (권한별 재직자 필터)
-      let staffQuery = supabase
-        .from('staff_profiles')
-        .select('id, name, affiliation, leave_date')
-        .order('affiliation', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (me.authority === '직원') {
-        // 직원 권한은 재직자만 보이도록
-        staffQuery = staffQuery.is('leave_date', null);
-      }
-
-      const { data, error } = await staffQuery;
-      if (error) {
-        console.error('직원 정보 실패:', error);
-        showToastGreenRed?.('직원 정보를 불러오지 못했습니다.');
-        return;
-      }
-
-      // 2) 소속별 묶기 + 지점→직원ID 캐시
-      const grouped = {};
-      (data || []).forEach(({ id, name, affiliation, leave_date }) => {
-        if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date };
-        if (!leave_date) grouped[affiliation].active.push(entry);
-        else grouped[affiliation].inactive.push(entry);
-
-        if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
-        __AFFIL_STAFF_IDS[affiliation].add(String(id));
-      });
-
-      const container = document.getElementById('staff-list');
-      container.innerHTML = '';
-
-      // 3) 권한별 클릭 가능 여부
-      const canClickStaff = (emp) => {
-        if (me.authority === '관리자') return true;
-        if (me.authority === '지점장') return emp.affiliation === me.affiliation;
-        if (me.authority === '직원')   return String(emp.id) === String(me.staffId);
-        return false;
-      };
-      const canClickAff = (aff) => {
-        if (me.authority === '관리자') return true;
-        if (me.authority === '지점장') return aff === me.affiliation;
-        return false; // 직원은 지점 헤더 클릭 불가
-      };
-
-      // 선택 변경 → 광고 검열 테이블 쪽에 알림
-      function emitFilterChange() {
-        document.dispatchEvent(new CustomEvent('adc:filter-change', {
-          detail: {
-            staffId: __selectedStaffId ? String(__selectedStaffId) : null,
-            affiliation: __selectedAffiliation || null
-          }
-        }));
-      }
-
-      // 4) 렌더
-      let firstClickableStaffEl = null;
-
-      Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
-        // --- 지점 헤더 (클릭 시 지점 전체 필터) ---
-        const header = document.createElement('div');
-        header.className = 'grade-header';
-        header.textContent = aff;
-
-        if (canClickAff(aff)) {
-          header.classList.add('cursor-pointer', 'hover:bg-yellow-100');
-          header.title = '이 지점의 전체 데이터 보기';
-          header.addEventListener('click', () => {
-            if (__selectedAffiliation === aff) {
-              __selectedAffiliation = null;
-              header.classList.remove('ring-2', 'ring-yellow-400');
-            } else {
-              __selectedAffiliation = aff;
-              __selectedStaffId = null; // 지점 선택 시 직원 단일 선택 해제
-              container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
-              header.classList.add('ring-2', 'ring-yellow-400');
-              container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
-            }
-            emitFilterChange();
-          });
-        } else {
-          header.classList.add('opacity-60');
-          header.title = '이 지점은 조회 권한이 없습니다.';
-        }
-        container.appendChild(header);
-
-        // --- 직원 리스트 ---
-        const makeName = (emp, { dim = false } = {}) => {
-          const el = document.createElement('div');
-          el.className = 'name-item';
-          el.dataset.staffId = emp.id;
-          el.textContent = dim ? `${emp.name} (퇴사)` : emp.name;
-
-          const allowed = canClickStaff(emp);
-          if (!allowed) {
-            el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
-            el.dataset.disabled = '1';
-          } else {
-            el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
-            if (!firstClickableStaffEl) firstClickableStaffEl = el;
-          }
-          return el;
-        };
-
-        active.forEach((emp) => container.appendChild(makeName(emp)));
-
-        // --- 퇴사자 토글(관리자/지점장만 노출) ---
-        if (me.authority !== '직원' && inactive.length > 0) {
-          const toggleBtn = document.createElement('button');
-          toggleBtn.textContent = '▼ 퇴사자 보기';
-          toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
-
-          const collapseDiv = document.createElement('div');
-          collapseDiv.className = 'pl-4 mt-1 hidden';
-          collapseDiv.id = `inactive-group-${idx}`;
-
-          inactive.forEach((emp) => {
-            const el = document.createElement('div');
-            el.className = 'name-item text-gray-400 italic';
-            el.dataset.staffId = emp.id;
-            el.textContent = `${emp.name} (퇴사)`;
-            // 퇴사자는 클릭 비활성(필요 시 권한에 따라 허용 가능)
-            el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
-            collapseDiv.appendChild(el);
-          });
-
-          toggleBtn.onclick = () => {
-            const expanded = collapseDiv.classList.toggle('hidden');
-            toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
-          };
-
-          container.appendChild(toggleBtn);
-          container.appendChild(collapseDiv);
-        }
-      });
-
-      // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
-      function setActiveStaff(staffId) {
-        __selectedStaffId = staffId;
-        __selectedAffiliation = null;
-
-        container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
-        container.querySelectorAll('.name-item').forEach(el => {
-          if (el.dataset.disabled === '1') return;
-          if (String(el.dataset.staffId) === String(staffId)) {
-            el.classList.add('bg-yellow-200');
-          } else {
-            el.classList.remove('bg-yellow-200');
-          }
-        });
-
-        emitFilterChange();
-      }
-      container.addEventListener('click', (e) => {
-        const el = e.target.closest('.name-item');
-        if (!el || el.dataset.disabled === '1') return;
-        setActiveStaff(el.dataset.staffId);
-      });
-
-      // 6) UX: 직원 권한이면 본인을 자동 선택
-      if (me.isStaff && me.staffId) {
-        setActiveStaff(me.staffId);
-      }
-    })();
-
-    // === (선택) 페이지 진입 시 권한/로그인 체크 실패 안내 ===
-    (async () => {
-      try {
-        await waitForSupabase();
-        const { data } = await supabase.auth.getSession();
-        if (!data?.session) location.replace("/");
-      } catch (e) {
-        console.warn(e);
-      }
-    })();
-
-    // === 예시) 우측 테이블에서 필터 이벤트를 받는 방법 ===
-    // document.addEventListener('adc:filter-change', (e) => {
-    //   const { staffId, affiliation } = e.detail || {};
-    //   // TODO: 광고 검열 리스트 쿼리 갱신/필터링
-    //   //   - staffId가 있으면 해당 직원 관여건만
-    //   //   - staffId 없고 affiliation이 있으면 지점 소속 직원들의 관여건
-    //   //   - 둘 다 없으면 전체
-    // });
+    // 광고 검열용 예시: 필터 이벤트 수신
+    document.addEventListener('adc:filter-change', (e) => {
+      const { staffId, affiliation } = e.detail || {};
+      // TODO: staffId/affiliation에 맞춰 우측 리스트 쿼리/필터 갱신
+      // console.log('[adc] filter changed:', { staffId, affiliation });
+    });
   </script>
 </body>
 </html>
