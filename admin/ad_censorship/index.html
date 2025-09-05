@@ -113,13 +113,7 @@
       // 1) 직원 데이터 로드 (권한별 재직자 필터)
       let staffQuery = supabase
         .from('staff_profiles')
-        .select(`
-          id,
-          name,
-          affiliation,
-          leave_date,
-          ad_channel ( channel_name )
-        `)
+        .select('id, name, affiliation, leave_date')
         .order('affiliation', { ascending: true })
         .order('name', { ascending: true });
 
@@ -207,16 +201,9 @@
         // --- 직원 리스트 ---
         const makeName = (emp, { dim = false } = {}) => {
           const el = document.createElement('div');
-          el.className = 'name-item flex items-center gap-1';
+          el.className = 'name-item';
           el.dataset.staffId = emp.id;
-
-          // 광고채널명 (없으면 '-')
-          const channel = emp.ad_channel?.channel_name || '';
-
-          // 직원 이름 + 광고채널 같이 표시
-          el.textContent = dim
-            ? `${emp.name} (퇴사) ${channel ? '· ' + channel : ''}`
-            : `${emp.name}${channel ? ' · ' + channel : ''}`;
+          el.textContent = dim ? `${emp.name} (퇴사)` : emp.name;
 
           const allowed = canClickStaff(emp);
           if (!allowed) {
@@ -228,7 +215,6 @@
           }
           return el;
         };
-
 
         active.forEach((emp) => container.appendChild(makeName(emp)));
 
