@@ -265,7 +265,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('*')
+            .select('ad_listing_id, description_listing_id')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
@@ -281,20 +281,16 @@ async function renderStaffSidebar(me) {
 
             const frag = document.createDocumentFragment();
             rows.forEach((row) => {
-            const card = document.createElement('div');
-            card.className = 'listing-card';
-            card.style.cssText = 'border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:8px;';
+                const card = document.createElement('div');
+                card.className = 'listing-card';
+                card.style.cssText = 'border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:8px;';
 
-            card.innerHTML = `
-                <div style="font-weight:600;">${row.title || row.item_title || '(제목 없음)'}</div>
-                <div style="font-size:13px; color:#555; margin-top:4px;">
-                지점: ${row.branch_name ?? '-'} · 담당(에이전트): ${row.agent_name ?? '-'}
-                </div>
-                <div style="font-size:13px; color:#555; margin-top:2px;">
-                가격: ${row.price ?? '-'} · 매물ID: ${row.id ?? '-'}
-                </div>
-            `;
-            frag.appendChild(card);
+                card.innerHTML = `
+                    <div style="font-weight:600;">네이버: ${row.ad_listing_id ?? '-'}</div>
+                    <div style="font-size:13px; color:#555; margin-top:4px;">매물번호: ${row.description_listing_id ?? '-'}</div>
+                `;
+
+                frag.appendChild(card);
             });
             resultBox.appendChild(frag);
         } catch (err) {
