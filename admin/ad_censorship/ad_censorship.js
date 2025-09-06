@@ -362,17 +362,25 @@ async function renderStaffSidebar(me) {
               // 0) 매물번호(descId)가 '-' 인 항목 최우선
               const descPriority = (descId === '-') ? 0 : 1;
 
-              // 1) 거래상태: '거래완료' 또는 '보류' 우선
-              const statusPriority = (status === '거래완료' || status === '보류') ? 0 : 1;
+              // 1) 매물명(title)이 '-' 인 항목 우선
+              const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 융자금: '융자금 없음' 우선
+              // 2) 거래상태 세부 우선순위
+              let statusPriority = 99;
+              if (status === '-') statusPriority = 0;
+              else if (status === '0') statusPriority = 1;
+              else if (status === '거래완료') statusPriority = 2;
+              else if (status === '보류') statusPriority = 3;
+              else statusPriority = 4;
+
+              // 3) 융자금: '융자금 없음' 우선
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 3) 권리금: '권리금 없음' 우선
+              // 4) 권리금: '권리금 없음' 우선
               const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
 
-              // 안정적 정렬을 위한 원본 인덱스도 포함
-              const sortKey = [descPriority, statusPriority, loanPriority, premiumPriority, idx];
+              // 최종 sortKey
+              const sortKey = [descPriority, titlePriority, statusPriority, loanPriority, premiumPriority, idx];
 
               return { adId, descId, title, status, loanLabel, premiumLabel, sortKey };
             });
