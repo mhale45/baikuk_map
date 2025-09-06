@@ -287,6 +287,7 @@ async function renderStaffSidebar(me) {
                 <tr>
                 <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -294,15 +295,33 @@ async function renderStaffSidebar(me) {
 
             const tbody = table.querySelector('tbody');
 
-            // 행 추가
-            rows.forEach(row => {
+            // 행 추가 (매물명 가져오기)
+            for (const row of rows) {
+                let listingTitle = '-';
+                if (row.description_listing_id) {
+                    try {
+                        const { data: match, error: matchErr } = await supabase
+                            .from('baikukdbtest')
+                            .select('listing_title')
+                            .eq('listing_id', row.description_listing_id)
+                            .maybeSingle();
+
+                        if (!matchErr && match) {
+                            listingTitle = match.listing_title || '-';
+                        }
+                    } catch (e) {
+                        console.warn('매물명 조회 실패:', e);
+                    }
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="border border-gray-300 px-3 py-1">${row.ad_listing_id ?? '-'}</td>
                     <td class="border border-gray-300 px-3 py-1">${row.description_listing_id ?? '-'}</td>
+                    <td class="border border-gray-300 px-3 py-1">${listingTitle}</td>
                 `;
                 tbody.appendChild(tr);
-            });
+            }
 
             resultBox.appendChild(table);
         } catch (err) {
