@@ -399,14 +399,33 @@ async function renderStaffSidebar(me) {
               else if (status === '보류') statusPriority = 3;
               else statusPriority = 4;
 
-              // 3) 융자금: '융자금 없음' 우선
-              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+              // 3) 보증금 우선순위
+              let depositPriority = 2;
+              if (depositLabel === '보증금 확인') depositPriority = 0;
+              else if (depositLabel === '-') depositPriority = 1;
 
-              // 4) 권리금: '권리금 없음' 우선
+              // 4) 월세 우선순위
+              let monthlyPriority = 2;
+              if (monthlyLabel === '-') monthlyPriority = 0;
+              else if (monthlyLabel === '월세 확인') monthlyPriority = 1;
+
+              // 5) 권리금: '권리금 없음' 우선
               const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
 
-              // 최종 sortKey
-              const sortKey = [descPriority, titlePriority, statusPriority, loanPriority, premiumPriority, idx];
+              // 6) 융자금: '융자금 없음' 우선
+              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+
+              // 최종 sortKey (순서대로 비교됨)
+              const sortKey = [
+                descPriority,      // 매물번호 '-'
+                titlePriority,     // 매물명 '-'
+                statusPriority,    // 거래상태 우선순위
+                depositPriority,   // 보증금
+                monthlyPriority,   // 월세
+                premiumPriority,   // 권리금 없음
+                loanPriority,      // 융자금 없음
+                idx                // 입력 순서 fallback
+              ];
 
               return { adId, descId, title, status, depositLabel, monthlyLabel, loanLabel, premiumLabel, sortKey };
             });
