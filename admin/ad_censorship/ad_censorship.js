@@ -351,21 +351,21 @@ async function renderStaffSidebar(me) {
               const status = info?.status ?? '-';
               const premiumPrice = info?.premium_price;
 
-              // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
-              const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
-              const monthlyLabel = _compareMoney(row.ad_monthly_rent,  info?.monthly_rent,  '월세 확인');
+            // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
+            const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
+            const monthlyLabel = _compareMoney(row.ad_monthly_rent,  info?.monthly_rent,  '월세 확인');
 
-              // 표시값 계산
-              const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
+            // 표시값 계산
+            const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
-              let premiumLabel = '-';
-              if (premiumPrice !== undefined) {
-                if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
-                  premiumLabel = '권리금 없음';
-                } else {
-                  premiumLabel = premiumPrice;
-                }
+            let premiumLabel = '-';
+            if (premiumPrice !== undefined) {
+              if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                premiumLabel = '권리금 없음';
+              } else {
+                premiumLabel = premiumPrice;
               }
+            }
 
               // 정렬 우선순위 계산
               // 0) 매물번호(descId)가 '-' 인 항목 최우선
@@ -391,7 +391,7 @@ async function renderStaffSidebar(me) {
               // 최종 sortKey
               const sortKey = [descPriority, titlePriority, statusPriority, loanPriority, premiumPriority, idx];
 
-              return { adId, descId, title, status, depositLabel, monthlyLabel, loanLabel, premiumLabel, sortKey };
+              return { adId, descId, title, status, loanLabel, premiumLabel, sortKey };
             });
 
             // 우선순위대로 정렬
@@ -410,8 +410,6 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.descId}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.status}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
               `;
