@@ -321,7 +321,11 @@ async function renderStaffSidebar(me) {
                 infoMap = Object.fromEntries(
                   (infoRows || []).map(r => [
                     String(r.listing_id),
-                    { title: r.listing_title || '-', status: r.transaction_status || '-' }
+                    {
+                      title: r.listing_title || '-',
+                      status: r.transaction_status || '-',
+                      premium_price: r.premium_price // ✅ 권리금 비교에 필요
+                    }
                   ])
                 );
               } catch (e) {
@@ -355,6 +359,9 @@ async function renderStaffSidebar(me) {
               }
 
               // 정렬 우선순위 계산
+              // 0) 매물번호(descId)가 '-' 인 항목 최우선
+              const descPriority = (descId === '-') ? 0 : 1;
+
               // 1) 거래상태: '거래완료' 또는 '보류' 우선
               const statusPriority = (status === '거래완료' || status === '보류') ? 0 : 1;
 
@@ -365,7 +372,7 @@ async function renderStaffSidebar(me) {
               const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
 
               // 안정적 정렬을 위한 원본 인덱스도 포함
-              const sortKey = [statusPriority, loanPriority, premiumPriority, idx];
+              const sortKey = [descPriority, statusPriority, loanPriority, premiumPriority, idx];
 
               return { adId, descId, title, status, loanLabel, premiumLabel, sortKey };
             });
