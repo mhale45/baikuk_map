@@ -265,7 +265,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id, ad_loan')
+            .select('ad_listing_id, description_listing_id, ad_loan, ad_premium')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
@@ -290,6 +290,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -312,7 +313,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status')
+                  .select('listing_id, listing_title, transaction_status, premium_price')
                   .in('listing_id', idList);
 
                 if (infoErr) throw infoErr;
@@ -341,6 +342,15 @@ async function renderStaffSidebar(me) {
               const status = info?.status ?? '-';
               const loan = row.ad_loan === 0 ? '융자금 없음' : (row.ad_loan ?? '-');
 
+              let premium = '-';
+              if (info?.premium_price !== undefined) {
+                if (row.ad_premium === 0 && info.premium_price >= 1) {
+                  premium = '권리금 없음';
+                } else {
+                  premium = info.premium_price;
+                }
+              }
+
               const tr = document.createElement('tr');
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${adId}</td>
@@ -348,6 +358,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${title}</td>
                 <td class="border border-gray-300 px-3 py-1">${status}</td>
                 <td class="border border-gray-300 px-3 py-1">${loan}</td>
+                <td class="border border-gray-300 px-3 py-1">${premium}</td>
               `;
               tbody.appendChild(tr);
             });
