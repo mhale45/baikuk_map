@@ -295,33 +295,51 @@ async function renderStaffSidebar(me) {
 
             const tbody = table.querySelector('tbody');
 
-            // 행 추가 (매물명 가져오기)
-            for (const row of rows) {
-                let listingTitle = '-';
-                if (row.description_listing_id) {
-                    try {
-                        const { data: match, error: matchErr } = await supabase
-                            .from('baikukdbtest')
-                            .select('listing_title')
-                            .eq('listing_id', row.description_listing_id)
-                            .maybeSingle();
+            // 1) 필요한 description_listing_id만 추려서 한 번에 조회
+            const idList = Array.from(
+              new Set(
+                (rows || [])
+                  .map(r => r?.description_listing_id)
+                  .filter(v => v !== null && v !== undefined && v !== '')
+              )
+            );
 
-                        if (!matchErr && match) {
-                            listingTitle = match.listing_title || '-';
-                        }
-                    } catch (e) {
-                        console.warn('매물명 조회 실패:', e);
-                    }
-                }
+            // 2) baikukdbtest에서 title 한 번에 가져오기 (없으면 빈 배열)
+            let titleMap = {};
+            if (idList.length > 0) {
+              try {
+                const { data: titleRows, error: titleErr } = await supabase
+                  .from('baikukdbtest')
+                  .select('listing_id, listing_title')
+                  .in('listing_id', idList);
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="border border-gray-300 px-3 py-1">${row.ad_listing_id ?? '-'}</td>
-                    <td class="border border-gray-300 px-3 py-1">${row.description_listing_id ?? '-'}</td>
-                    <td class="border border-gray-300 px-3 py-1">${listingTitle}</td>
-                `;
-                tbody.appendChild(tr);
+                if (titleErr) throw titleErr;
+
+                // 비교 안전하게 하기 위해 문자열 키로 매핑
+                titleMap = Object.fromEntries(
+                  (titleRows || []).map(t => [String(t.listing_id), t.listing_title || '-'])
+                );
+              } catch (e) {
+                console.warn('매물명 배치 조회 실패:', e);
+              }
             }
+
+            // 3) 표 행 렌더링
+            rows.forEach(row => {
+              const adId = row.ad_listing_id ?? '-';
+              const descId = row.description_listing_id ?? '-';
+              const title = row.description_listing_id
+                ? (titleMap[String(row.description_listing_id)] ?? '-')
+                : '-';
+
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td class="border border-gray-300 px-3 py-1">${adId}</td>
+                <td class="border border-gray-300 px-3 py-1">${descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${title}</td>
+              `;
+              tbody.appendChild(tr);
+            });
 
             resultBox.appendChild(table);
         } catch (err) {
