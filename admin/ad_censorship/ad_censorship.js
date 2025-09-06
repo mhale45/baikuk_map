@@ -8,7 +8,6 @@
 
 import { client as supabase, waitForSupabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
-import { _normMoney, _compareMoney } from '../../../modules/core/format.js';
 
 // --- 전역 노출 (기존 페이지와 동일 동작 유지) ---
 window.supabase = supabase;
@@ -21,6 +20,7 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
+
 
 // === 인증/권한 조회 ===
 async function getMyAuthorityAndStaffId() {
@@ -266,7 +266,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent')
+            .select('ad_listing_id, description_listing_id, ad_loan, ad_premium')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
@@ -290,8 +290,6 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                 </tr>
@@ -316,7 +314,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent')
+                  .select('listing_id, listing_title, transaction_status, premium_price')
                   .in('listing_id', idList);
 
                 if (infoErr) throw infoErr;
@@ -327,9 +325,7 @@ async function renderStaffSidebar(me) {
                     {
                       title: r.listing_title || '-',
                       status: r.transaction_status || '-',
-                      premium_price: r.premium_price,
-                      deposit_price: r.deposit_price,      // ✅ 보증금 기준값
-                      monthly_rent: r.monthly_rent         // ✅ 월세 기준값
+                      premium_price: r.premium_price // ✅ 권리금 비교에 필요
                     }
                   ])
                 );
@@ -351,21 +347,17 @@ async function renderStaffSidebar(me) {
               const status = info?.status ?? '-';
               const premiumPrice = info?.premium_price;
 
-            // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
-            const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
-            const monthlyLabel = _compareMoney(row.ad_monthly_rent,  info?.monthly_rent,  '월세 확인');
+              // 표시값 계산
+              const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
-            // 표시값 계산
-            const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
-
-            let premiumLabel = '-';
-            if (premiumPrice !== undefined) {
-              if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
-                premiumLabel = '권리금 없음';
-              } else {
-                premiumLabel = premiumPrice;
+              let premiumLabel = '-';
+              if (premiumPrice !== undefined) {
+                if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                  premiumLabel = '권리금 없음';
+                } else {
+                  premiumLabel = premiumPrice;
+                }
               }
-            }
 
               // 정렬 우선순위 계산
               // 0) 매물번호(descId)가 '-' 인 항목 최우선
