@@ -329,41 +329,70 @@ async function renderStaffSidebar(me) {
               }
             }
 
-            // 3) 표 행 렌더링
-            rows.forEach(row => {
-              const adId = row.ad_listing_id ?? '-';
+            // 3) 정렬 키 계산 → 정렬 → 행 렌더링
+            const enriched = (rows || []).map((row, idx) => {
+              const adId  = row.ad_listing_id ?? '-';
               const descId = row.description_listing_id ?? '-';
 
               const info = row.description_listing_id
                 ? infoMap[String(row.description_listing_id)]
                 : null;
 
-              const title = info?.title ?? '-';
+              const title  = info?.title ?? '-';
               const status = info?.status ?? '-';
-              const loan = row.ad_loan === 0 ? '융자금 없음' : (row.ad_loan ?? '-');
+              const premiumPrice = info?.premium_price;
 
-              let premium = '-';
-              if (info?.premium_price !== undefined) {
-                if (row.ad_premium === 0 && info.premium_price >= 1) {
-                  premium = '권리금 없음';
+              // 표시값 계산
+              const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
+
+              let premiumLabel = '-';
+              if (premiumPrice !== undefined) {
+                if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                  premiumLabel = '권리금 없음';
                 } else {
-                  premium = info.premium_price;
+                  premiumLabel = premiumPrice;
                 }
               }
 
+              // 정렬 우선순위 계산
+              // 1) 거래상태: '거래완료' 또는 '보류' 우선
+              const statusPriority = (status === '거래완료' || status === '보류') ? 0 : 1;
+
+              // 2) 융자금: '융자금 없음' 우선
+              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+
+              // 3) 권리금: '권리금 없음' 우선
+              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+
+              // 안정적 정렬을 위한 원본 인덱스도 포함
+              const sortKey = [statusPriority, loanPriority, premiumPriority, idx];
+
+              return { adId, descId, title, status, loanLabel, premiumLabel, sortKey };
+            });
+
+            // 우선순위대로 정렬
+            enriched.sort((a, b) => {
+              for (let i = 0; i < a.sortKey.length; i++) {
+                if (a.sortKey[i] !== b.sortKey[i]) return a.sortKey[i] - b.sortKey[i];
+              }
+              return 0;
+            });
+
+            // 렌더링
+            enriched.forEach(item => {
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td class="border border-gray-300 px-3 py-1">${adId}</td>
-                <td class="border border-gray-300 px-3 py-1">${descId}</td>
-                <td class="border border-gray-300 px-3 py-1">${title}</td>
-                <td class="border border-gray-300 px-3 py-1">${status}</td>
-                <td class="border border-gray-300 px-3 py-1">${loan}</td>
-                <td class="border border-gray-300 px-3 py-1">${premium}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.adId}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.title}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.status}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
               `;
               tbody.appendChild(tr);
             });
-
             resultBox.appendChild(table);
+
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';
