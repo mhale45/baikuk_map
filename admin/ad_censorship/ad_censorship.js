@@ -289,8 +289,8 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -401,8 +401,8 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.descId}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.status}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
               `;
               tbody.appendChild(tr);
             });
