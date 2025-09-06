@@ -265,14 +265,14 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id')
+            .select('ad_listing_id, description_listing_id, transaction_status')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
             if (error) throw error;
 
             const rows = data || [];
-            meta.innerHTML = `소속 <strong>${branchName}</strong> · 채널 <strong>${channel}</strong> 조건으로 검색된 결과: <strong>${rows.length}</strong>건`;
+            meta.innerHTML = `<strong>${branchName}</strong> · <strong>${channel}</strong> : <strong>${rows.length}</strong>건`;
 
             if (!rows.length) {
                 resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
@@ -288,6 +288,7 @@ async function renderStaffSidebar(me) {
                 <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -331,12 +332,14 @@ async function renderStaffSidebar(me) {
               const title = row.description_listing_id
                 ? (titleMap[String(row.description_listing_id)] ?? '-')
                 : '-';
+              const status = row.transaction_status ?? '-';
 
               const tr = document.createElement('tr');
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${adId}</td>
                 <td class="border border-gray-300 px-3 py-1">${descId}</td>
                 <td class="border border-gray-300 px-3 py-1">${title}</td>
+                <td class="border border-gray-300 px-3 py-1">${status}</td>
               `;
               tbody.appendChild(tr);
             });
