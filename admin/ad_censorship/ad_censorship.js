@@ -398,15 +398,24 @@ async function renderStaffSidebar(me) {
               else if (status === '보류') statusPriority = 3;
               else statusPriority = 4;
 
+              // 숫자 기준으로 판정 (라벨은 출력용)
+              const depC = _normMoney(row.ad_deposit_price);
+              const depB = _normMoney(info?.deposit_price);
+              const monC = _normMoney(row.ad_monthly_rent);
+              const monB = _normMoney(info?.monthly_rent);
+
+              const isDepositCheck = (depC !== null && depB !== null && depC !== depB);
+              const isMonthlyCheck = (monC !== null && monB !== null && monC !== monB);
+
               // 3) 보증금: '보증금 확인' → '-' 우선
               let depositPriority = 2;
-              if (depositLabel === '보증금 확인') depositPriority = 0;
-              else if (depositLabel === '-') depositPriority = 1;
+              if (isDepositCheck) depositPriority = 0;
+              else if (depC === null) depositPriority = 1;
 
               // 4) 월세: '-' → '월세 확인' 우선
               let monthlyPriority = 2;
-              if (monthlyLabel === '-') monthlyPriority = 0;
-              else if (monthlyLabel === '월세 확인') monthlyPriority = 1;
+              if (monC === null) monthlyPriority = 0;
+              else if (isMonthlyCheck) monthlyPriority = 1;
 
               // 5) 권리금: '권리금 없음' 우선
               const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
@@ -426,9 +435,11 @@ async function renderStaffSidebar(me) {
                 idx               // 안정적 정렬 보조
               ];
 
-              // 반환 객체에 누락된 필드(보증금/월세) 추가
-              return { adId, descId, title, status, depositLabel, monthlyLabel, premiumLabel, loanLabel, sortKey };
+              // 출력 라벨이 빈 문자열이라면 '-'로 표시
+              const depositOut = depositLabel && depositLabel.length ? depositLabel : '-';
+              const monthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
 
+              return { adId, descId, title, status, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
             });
 
             // 우선순위대로 정렬
