@@ -265,7 +265,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id')
+            .select('ad_listing_id, description_listing_id, ad_loan')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
@@ -285,10 +285,11 @@ async function renderStaffSidebar(me) {
             table.innerHTML = `
             <thead class="bg-gray-100">
                 <tr>
-                <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
-                <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
-                <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
-                <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -338,6 +339,7 @@ async function renderStaffSidebar(me) {
 
               const title = info?.title ?? '-';
               const status = info?.status ?? '-';
+              const loan = row.ad_loan === 0 ? '융자금 없음' : (row.ad_loan ?? '-');
 
               const tr = document.createElement('tr');
               tr.innerHTML = `
@@ -345,10 +347,10 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${descId}</td>
                 <td class="border border-gray-300 px-3 py-1">${title}</td>
                 <td class="border border-gray-300 px-3 py-1">${status}</td>
+                <td class="border border-gray-300 px-3 py-1">${loan}</td>
               `;
               tbody.appendChild(tr);
             });
-
 
             resultBox.appendChild(table);
         } catch (err) {

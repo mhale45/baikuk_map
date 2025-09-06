@@ -272,7 +272,7 @@ async function renderStaffSidebar(me) {
             if (error) throw error;
 
             const rows = data || [];
-            meta.innerHTML = `소속 <strong>${branchName}</strong> · 채널 <strong>${channel}</strong> 조건으로 검색된 결과: <strong>${rows.length}</strong>건`;
+            meta.innerHTML = `<strong>${branchName}</strong> · <strong>${channel}</strong> : <strong>${rows.length}</strong>건`;
 
             if (!rows.length) {
                 resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
@@ -287,6 +287,8 @@ async function renderStaffSidebar(me) {
                 <tr>
                 <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -294,16 +296,59 @@ async function renderStaffSidebar(me) {
 
             const tbody = table.querySelector('tbody');
 
-            // 행 추가
-            rows.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="border border-gray-300 px-3 py-1">${row.ad_listing_id ?? '-'}</td>
-                    <td class="border border-gray-300 px-3 py-1">${row.description_listing_id ?? '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            // 1) 필요한 description_listing_id만 수집
+            const idList = Array.from(
+              new Set(
+                (rows || [])
+                  .map(r => r?.description_listing_id)
+                  .filter(v => v !== null && v !== undefined && v !== '')
+              )
+            );
 
+            // 2) baikukdbtest에서 title + transaction_status 한 번에 조회
+            let infoMap = {};
+            if (idList.length > 0) {
+              try {
+                const { data: infoRows, error: infoErr } = await supabase
+                  .from('baikukdbtest')
+                  .select('listing_id, listing_title, transaction_status')
+                  .in('listing_id', idList);
+
+                if (infoErr) throw infoErr;
+
+                infoMap = Object.fromEntries(
+                  (infoRows || []).map(r => [
+                    String(r.listing_id),
+                    { title: r.listing_title || '-', status: r.transaction_status || '-' }
+                  ])
+                );
+              } catch (e) {
+                console.warn('매물 정보 배치 조회 실패:', e);
+              }
+            }
+
+            // 3) 표 행 렌더링
+            rows.forEach(row => {
+              const adId = row.ad_listing_id ?? '-';
+              const descId = row.description_listing_id ?? '-';
+
+              const info = row.description_listing_id
+                ? infoMap[String(row.description_listing_id)]
+                : null;
+
+              const title = info?.title ?? '-';
+              const status = info?.status ?? '-';
+
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td class="border border-gray-300 px-3 py-1">${adId}</td>
+                <td class="border border-gray-300 px-3 py-1">${descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${title}</td>
+                <td class="border border-gray-300 px-3 py-1">${status}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+            
             resultBox.appendChild(table);
         } catch (err) {
             console.error(err);
