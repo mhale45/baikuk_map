@@ -8,6 +8,7 @@
 
 import { client as supabase, waitForSupabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
+import { _normMoney, _compareMoney } from '../../../modules/core/format.js';
 
 // --- 전역 노출 (기존 페이지와 동일 동작 유지) ---
 window.supabase = supabase;
@@ -20,24 +21,6 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
-
-// [ADD] 금액 파싱/비교 유틸 (거래상태/권리금 위 보증금·월세에 사용)
-function _normMoney(v) {
-  if (v === null || v === undefined) return null;
-  if (typeof v === 'number') return isNaN(v) ? null : v;
-  const s = String(v).replace(/[^\d.-]/g, '');
-  if (!s || s === '-' || s === '.' || s === '-.') return null;
-  const n = Number(s);
-  return isNaN(n) ? null : n;
-}
-
-function _compareMoney(current, baseline, diffLabel) {
-  const c = _normMoney(current);
-  const b = _normMoney(baseline);
-  if (c === null && b === null) return '';                     // 둘 다 없음
-  if (c !== null && b !== null && c !== b) return `<span class="font-semibold text-red-600">${diffLabel}</span>`;
-  return c === null ? '' : c.toLocaleString();                 // 같거나 기준 없음 → 현재값
-}
 
 // === 인증/권한 조회 ===
 async function getMyAuthorityAndStaffId() {
@@ -399,33 +382,14 @@ async function renderStaffSidebar(me) {
               else if (status === '보류') statusPriority = 3;
               else statusPriority = 4;
 
-              // 3) 보증금 우선순위
-              let depositPriority = 2;
-              if (depositLabel === '보증금 확인') depositPriority = 0;
-              else if (depositLabel === '-') depositPriority = 1;
-
-              // 4) 월세 우선순위
-              let monthlyPriority = 2;
-              if (monthlyLabel === '-') monthlyPriority = 0;
-              else if (monthlyLabel === '월세 확인') monthlyPriority = 1;
-
-              // 5) 권리금: '권리금 없음' 우선
-              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
-
-              // 6) 융자금: '융자금 없음' 우선
+              // 3) 융자금: '융자금 없음' 우선
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 최종 sortKey (순서대로 비교됨)
-              const sortKey = [
-                descPriority,      // 매물번호 '-'
-                titlePriority,     // 매물명 '-'
-                statusPriority,    // 거래상태 우선순위
-                depositPriority,   // 보증금
-                monthlyPriority,   // 월세
-                premiumPriority,   // 권리금 없음
-                loanPriority,      // 융자금 없음
-                idx                // 입력 순서 fallback
-              ];
+              // 4) 권리금: '권리금 없음' 우선
+              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+
+              // 최종 sortKey
+              const sortKey = [descPriority, titlePriority, statusPriority, loanPriority, premiumPriority, idx];
 
               return { adId, descId, title, status, depositLabel, monthlyLabel, loanLabel, premiumLabel, sortKey };
             });
