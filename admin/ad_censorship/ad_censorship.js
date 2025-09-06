@@ -265,7 +265,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
             .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id, transaction_status')
+            .select('ad_listing_id, description_listing_id')
             .eq('branch_name', branchName)
             .ilike('agent_name', likeValue);
 
@@ -296,7 +296,7 @@ async function renderStaffSidebar(me) {
 
             const tbody = table.querySelector('tbody');
 
-            // 1) 필요한 description_listing_id만 추려서 한 번에 조회
+            // 1) 필요한 description_listing_id만 수집
             const idList = Array.from(
               new Set(
                 (rows || [])
@@ -305,23 +305,25 @@ async function renderStaffSidebar(me) {
               )
             );
 
-            // 2) baikukdbtest에서 title 한 번에 가져오기 (없으면 빈 배열)
-            let titleMap = {};
+            // 2) baikukdbtest에서 title + transaction_status 한 번에 조회
+            let infoMap = {};
             if (idList.length > 0) {
               try {
-                const { data: titleRows, error: titleErr } = await supabase
+                const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title')
+                  .select('listing_id, listing_title, transaction_status')
                   .in('listing_id', idList);
 
-                if (titleErr) throw titleErr;
+                if (infoErr) throw infoErr;
 
-                // 비교 안전하게 하기 위해 문자열 키로 매핑
-                titleMap = Object.fromEntries(
-                  (titleRows || []).map(t => [String(t.listing_id), t.listing_title || '-'])
+                infoMap = Object.fromEntries(
+                  (infoRows || []).map(r => [
+                    String(r.listing_id),
+                    { title: r.listing_title || '-', status: r.transaction_status || '-' }
+                  ])
                 );
               } catch (e) {
-                console.warn('매물명 배치 조회 실패:', e);
+                console.warn('매물 정보 배치 조회 실패:', e);
               }
             }
 
@@ -329,10 +331,13 @@ async function renderStaffSidebar(me) {
             rows.forEach(row => {
               const adId = row.ad_listing_id ?? '-';
               const descId = row.description_listing_id ?? '-';
-              const title = row.description_listing_id
-                ? (titleMap[String(row.description_listing_id)] ?? '-')
-                : '-';
-              const status = row.transaction_status ?? '-';
+
+              const info = row.description_listing_id
+                ? infoMap[String(row.description_listing_id)]
+                : null;
+
+              const title = info?.title ?? '-';
+              const status = info?.status ?? '-';
 
               const tr = document.createElement('tr');
               tr.innerHTML = `
@@ -343,6 +348,7 @@ async function renderStaffSidebar(me) {
               `;
               tbody.appendChild(tr);
             });
+
 
             resultBox.appendChild(table);
         } catch (err) {
