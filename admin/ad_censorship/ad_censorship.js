@@ -459,7 +459,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -474,7 +474,8 @@ async function renderStaffSidebar(me) {
                       monthly_rent: r.monthly_rent,
                       floor: r.floor ?? '',
                       total_floors: r.total_floors ?? '',
-                      sale_price: r.sale_price ?? ''
+                      sale_price: r.sale_price ?? '',
+                      area_m2: r.area_m2 ?? ''   // ✅ 추가
                     }
                   ])
                 );
@@ -542,25 +543,39 @@ async function renderStaffSidebar(me) {
                               : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
               // === [면적] 비교 ===
-              // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
+              // 월세일 때만 적용
               let areaCell = row.ad_area ?? '-';
               if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
                 const adAreaRaw = row.ad_area ?? '';
                 const adAreaRight = String(adAreaRaw).includes('/')
                   ? String(adAreaRaw).split('/')[1].trim()
                   : String(adAreaRaw).trim();
                 const adAreaNum = _normMoney(adAreaRight);
 
+                // 기준값: baikukdbtest.area_m2
+                const baseAreaRaw = info?.area_m2 ?? '';
+                const baseAreaNum = _normMoney(baseAreaRaw);
+
+                // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
+                const needAreaCheck =
+                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 3;
+
+                // 2) 광고값 vs (description_area_py ÷ 0.3025) 3㎡ 이상 차이면 → '상세설명' (빨간)
                 const descAreaPy = _normMoney(row.description_area_py);
                 const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
-
                 const needAreaDescBadge =
                   adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
 
-                let areaOut = adAreaRight || '-';
+                // 출력 우선순위 ...
+                let areaOut = needAreaCheck
+                  ? '<span class="text-red-600 font-semibold">면적 확인</span>'
+                  : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
+
                 if (needAreaDescBadge) {
                   areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
                 }
+
                 areaCell = areaOut;
               }
 
