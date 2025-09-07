@@ -383,7 +383,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -415,6 +415,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -554,7 +555,6 @@ async function renderStaffSidebar(me) {
                 statusPriority = 4;
               }
 
-
               // 3) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
               let depositPriority = 3;
               if (depositLabel.includes('보증금 확인')) depositPriority = 0;
@@ -576,6 +576,11 @@ async function renderStaffSidebar(me) {
               // 7) 해당층: '해당층 확인', 총층 확인
               const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
               const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+
+              // 8) 매물특징
+              const featuresLabel = (!row.ad_listings_features || row.ad_listings_features === '-')
+                ? '<span class="text-red-600 font-semibold">미표시</span>'
+                : row.ad_listings_features;
 
               // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
@@ -685,6 +690,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
               `;
               tbody.appendChild(tr);
             });
