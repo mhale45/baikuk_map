@@ -461,18 +461,20 @@ async function renderStaffSidebar(me) {
             enriched.forEach(item => {
               const tr = document.createElement('tr');
 
-              // 네이버/자체 링크용 URL 생성
-              const isNoId = (item.descId === '-' || item.descId === '매물번호 없음');
-              const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.descId}`;
+              // 네이버/백억 링크용 URL
+              const noId = (item.descId === '-' || item.descId === '매물번호 없음');
+              const noAdId = (item.adId === '-' || item.adId === '매물번호 없음');
+
+              const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.adId}`;
               const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
 
-              // 1열: 네이버 — 매물번호 그대로 표시 + 클릭 시 네이버로 이동
-              const naverCell = isNoId
+              // 1) 네이버 열: adId 표시 + 네이버 링크
+              const naverCell = noAdId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
+                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.adId}</a>`;
 
-              // 2열: 매물번호 — 매물번호 그대로 표시 + 클릭 시 백억으로 이동
-              const descCell = isNoId
+              // 2) 매물번호 열: descId 표시 + 백억 링크
+              const descCell = noId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.descId}</a>`;
 
@@ -488,6 +490,7 @@ async function renderStaffSidebar(me) {
               `;
               tbody.appendChild(tr);
             });
+
 
             resultBox.appendChild(table);
         } catch (err) {
