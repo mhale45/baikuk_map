@@ -543,29 +543,26 @@ async function renderStaffSidebar(me) {
 
               // === [면적] 비교 ===
               // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
-              const adAreaRaw = row.ad_area ?? '';
-              const adAreaRight = String(adAreaRaw).includes('/')
-                ? String(adAreaRaw).split('/')[1].trim()
-                : String(adAreaRaw).trim();
-              const adAreaNum = _normMoney(adAreaRight);
+              let areaCell = row.ad_area ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                const adAreaRaw = row.ad_area ?? '';
+                const adAreaRight = String(adAreaRaw).includes('/')
+                  ? String(adAreaRaw).split('/')[1].trim()
+                  : String(adAreaRaw).trim();
+                const adAreaNum = _normMoney(adAreaRight);
 
-              // 같은 테이블의 description_area_py(평) → ㎡ 환산
-              const descAreaPy = _normMoney(row.description_area_py);
-              const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
+                const descAreaPy = _normMoney(row.description_area_py);
+                const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
 
-              // 3㎡ 이상 차이나면 상세설명 배지
-              const needAreaDescBadge =
-                adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
+                const needAreaDescBadge =
+                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
 
-              // 기본 출력: 광고측 값 우선, 없으면 '-'
-              let areaOut = adAreaRight || '-';
-
-              // 상세설명 배지 추가 (보증금/월세와 동일한 형식)
-              if (needAreaDescBadge) {
-                areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
+                let areaOut = adAreaRight || '-';
+                if (needAreaDescBadge) {
+                  areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
+                }
+                areaCell = areaOut;
               }
-
-              const areaCell = areaOut;
 
               // === [매매가] 비교 ===
               let salePriceLabel = '-';
@@ -583,18 +580,26 @@ async function renderStaffSidebar(me) {
               }
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
-              const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
-              const monthlyLabel = _compareMoney(row.ad_monthly_rent,  info?.monthly_rent,  '월세 확인');
+              let depositLabel = row.ad_deposit_price ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
+              }
+              let monthlyLabel = row.ad_monthly_rent ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
+              }
 
               // 표시값 계산
               const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
               let premiumLabel = '-';
-              if (premiumPrice !== undefined) {
-                if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
-                  premiumLabel = '권리금 없음';
-                } else {
-                  premiumLabel = premiumPrice;
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                if (premiumPrice !== undefined) {
+                  if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                    premiumLabel = '권리금 없음';
+                  } else {
+                    premiumLabel = premiumPrice;
+                  }
                 }
               }
 
