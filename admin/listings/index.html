@@ -341,10 +341,7 @@
 
         row.innerHTML = `
           <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
-            <span class="hover:underline cursor-pointer"
-                  onclick="event.stopPropagation();">
-              ${listing.listing_id}
-            </span>
+            <span>${listing.listing_id}</span>
           </td>
           <td class="flex flex-col p-2 text-base text-right whitespace-nowrap">
             <div style="
@@ -385,10 +382,7 @@
             </div>
           </td>
           <td class="p-2 font-bold text-lg whitespace-normal break-words">
-            <span class="hover:underline cursor-pointer"
-                  onclick="event.stopPropagation();">
-              ${listing.listing_title || '-'}
-            </span>
+            <span>${listing.listing_title || '-'}</span>
           </td>
           <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city} ${listing.district} ${listing.detail_address}</td>
           <td class="p-2 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
