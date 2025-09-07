@@ -478,11 +478,16 @@ async function renderStaffSidebar(me) {
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline" style="color:#F2C130;">${item.descId}</a>`;
 
+              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시
+              const statusCell = (item.status.includes('계약완료') || item.status.includes('보류'))
+                ? `<span class="text-red-600 font-semibold">${item.status}</span>`
+                : item.status;
+
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.status}</td>
+                <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
