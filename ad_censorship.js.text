@@ -390,13 +390,21 @@ async function renderStaffSidebar(me) {
               // 1) 매물명(title)이 '-' 인 항목 우선
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 거래상태 세부 우선순위
+              // 2) 거래상태 세부 우선순위 (부분일치 적용)
+              const s = (status ?? '').toString().trim();
               let statusPriority = 99;
-              if (status === '-') statusPriority = 0;
-              else if (status === '0') statusPriority = 1;
-              else if (status === '거래완료') statusPriority = 2;
-              else if (status === '보류') statusPriority = 3;
-              else statusPriority = 4;
+
+              if (s === '-') {
+                statusPriority = 0;                              // 상태 없음
+              } else if (s.includes('0')) {
+                statusPriority = 1;                              // '0', '0번', '0상태' 등 포함
+              } else if (s.includes('계약완료') || s.includes('거래완료')) {
+                statusPriority = 2;                              // '계약완료', '계약완료 1234', '거래완료' 등
+              } else if (s.includes('보류')) {
+                statusPriority = 3;                              // '보류', '보류 처리', '보류 1차' 등
+              } else {
+                statusPriority = 4;                              // 진행중 및 기타 상태
+              }
 
               // 숫자 기준으로 판정 (라벨은 출력용)
               const depC = _normMoney(row.ad_deposit_price);
@@ -450,23 +458,55 @@ async function renderStaffSidebar(me) {
               return 0;
             });
 
-            // 렌더링
             enriched.forEach(item => {
               const tr = document.createElement('tr');
+
+              // 네이버/백억 링크용 URL
+              const noId = (item.descId === '-' || item.descId === '매물번호 없음');
+              const noAdId = (item.adId === '-' || item.adId === '매물번호 없음');
+
+              const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.adId}`;
+              const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
+
+              // 1) 네이버 열: adId 표시 + 네이버 링크 (초록색)
+              const naverCell = noAdId
+                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
+                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.adId}</a>`;
+
+              // 2) 매물번호 열: descId 표시 + 백억 링크 (파란색)
+              const descCell = noId
+                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
+                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
+
+              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시
+              const statusCell = (item.status.includes('계약완료') || item.status.includes('보류'))
+                ? `<span class="text-red-600 font-semibold">${item.status}</span>`
+                : item.status;
+
+              // 권리금: '권리금 없음' → 빨간색
+              const premiumCell = (item.premiumLabel === '권리금 없음')
+                ? `<span class="text-red-600 font-semibold">${item.premiumLabel}</span>`
+                : item.premiumLabel;
+
+              // 융자금: '융자금 없음' → 빨간색
+              const loanCell = (item.loanLabel === '융자금 없음')
+                ? `<span class="text-red-600 font-semibold">${item.loanLabel}</span>`
+                : item.loanLabel;
+
               tr.innerHTML = `
-                <td class="border border-gray-300 px-3 py-1">${item.adId}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.status}</td>
+                <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
               `;
               tbody.appendChild(tr);
             });
-            resultBox.appendChild(table);
 
+            resultBox.appendChild(table);
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';

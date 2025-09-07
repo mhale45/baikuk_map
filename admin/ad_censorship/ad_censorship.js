@@ -38,6 +38,59 @@ function _compareMoney(current, baseline, diffLabel) {
   return c === null ? '' : c.toLocaleString();
 }
 
+// === 채널 광고 개수 조회 유틸 ===
+// branch(=지점명) + channel(=직원의 ad_channel)을 기준으로 ad_baikuk_listings에서 개수만 가져온다.
+// Supabase의 count 전용 옵션(head: true)을 사용해 네트워크 부하를 줄인다.
+async function fetchAdCountByBranchAndChannel(branchName, channel) {
+  if (!branchName || !channel) return 0;
+  const likeValue = `%${String(channel).trim()}%`;
+  const { count, error } = await supabase
+    .from('ad_baikuk_listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('branch_name', branchName)
+    .ilike('agent_name', likeValue);
+
+  if (error) {
+    console.warn('count 조회 실패:', error);
+    return 0;
+  }
+  return count || 0;
+}
+
+// 간단한 동시성 제한 실행기
+async function runWithLimit(items, limit, worker) {
+  const queue = [...items];
+  const workers = new Array(Math.min(limit, items.length)).fill(null).map(async () => {
+    while (queue.length) {
+      const it = queue.shift();
+      try { await worker(it); } catch (e) { console.warn(e); }
+    }
+  });
+  await Promise.all(workers);
+}
+
+// 컨테이너 내 .name-item 들에 대해 ad-count 채우기
+async function fillStaffAdCounts(container) {
+  const nodes = Array.from(container.querySelectorAll('.name-item'));
+  await runWithLimit(nodes, 5, async (el) => {
+    const span = el.querySelector('.ad-count');
+    if (!span) return;
+
+    const branchName = el.dataset.branch || '';
+    const channel = (el.dataset.channel || '').trim();
+
+    if (!branchName || !channel) {
+      span.textContent = '0';
+      span.removeAttribute('data-loading');
+      return;
+    }
+
+    const c = await fetchAdCountByBranchAndChannel(branchName, channel);
+    span.textContent = String(c);
+    span.removeAttribute('data-loading');
+  });
+}
+
 // === 인증/권한 조회 ===
 async function getMyAuthorityAndStaffId() {
   await waitForSupabase();
@@ -188,11 +241,12 @@ async function renderStaffSidebar(me) {
         el.dataset.branch = emp.affiliation || '';
         el.dataset.channel = emp.ad_channel || '';
 
+        // 표시 텍스트 구성: 이름 (+퇴사표시), 채널명
         let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
         if (emp.ad_channel) {
-            displayName += ` (${emp.ad_channel})`;
+          displayName += ` (${emp.ad_channel})`;
         }
-        el.textContent = displayName;
+        el.innerHTML = `${displayName} <span class="ad-count" data-loading="1">...</span>`;
 
         const allowed = canClickStaff(emp);
         if (!allowed) {
@@ -228,24 +282,26 @@ async function renderStaffSidebar(me) {
 
         let displayName = `${emp.name} (퇴사)`;
         if (emp.ad_channel) {
-            displayName += ` (${emp.ad_channel})`;
+          displayName += ` (${emp.ad_channel})`;
         }
-        el.textContent = displayName;
+        el.innerHTML = `${displayName} <span class="ad-count" data-loading="1">...</span>`;
 
         el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
         collapseDiv.appendChild(el);
     });
 
-
       toggleBtn.onclick = () => {
-        const expanded = collapseDiv.classList.toggle('hidden');
-        toggleBtn.textContent = expanded ? '▲ 퇴사자 숨기기' : '▼ 퇴사자 보기';
+        const isHidden = collapseDiv.classList.toggle('hidden'); // true면 지금 '숨겨진' 상태
+        toggleBtn.textContent = isHidden ? '▼ 퇴사자 보기' : '▲ 퇴사자 숨기기';
       };
 
       container.appendChild(toggleBtn);
       container.appendChild(collapseDiv);
     }
   });
+
+  // 4-2) 좌측 목록의 각 직원별 광고 개수 채우기
+  await fillStaffAdCounts(container);
 
   // 5) 직원 클릭 핸들러(단일 직원 필터 + 매물 조회/렌더)
     container.addEventListener('click', async (e) => {
@@ -289,7 +345,6 @@ async function renderStaffSidebar(me) {
             if (error) throw error;
 
             const rows = data || [];
-            meta.innerHTML = `<strong>${branchName}</strong> · <strong>${channel}</strong> : <strong>${rows.length}</strong>건`;
 
             if (!rows.length) {
                 resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
