@@ -394,7 +394,7 @@ async function renderStaffSidebar(me) {
               let statusPriority = 99;
               if (status === '-') statusPriority = 0;
               else if (status === '0') statusPriority = 1;
-              else if (status === '거래완료') statusPriority = 2;
+              else if (status === '계약완료') statusPriority = 2;
               else if (status === '보류') statusPriority = 3;
               else statusPriority = 4;
 
@@ -455,7 +455,7 @@ async function renderStaffSidebar(me) {
               const tr = document.createElement('tr');
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${item.adId}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.descId === '-' ? '매물번호 없음' : item.descId}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.status}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
