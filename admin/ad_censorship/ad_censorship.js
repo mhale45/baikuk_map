@@ -519,7 +519,7 @@ async function renderStaffSidebar(me) {
               let statusPriority = 99;
               if (s === '-') {
                 statusPriority = 0;
-              } else if (s.includes('0')) {
+              } else if (s === '0') { // 정확히 '0'만
                 statusPriority = 1;
               } else if (s.includes('계약완료')) {
                 statusPriority = 2;
@@ -528,6 +528,7 @@ async function renderStaffSidebar(me) {
               } else {
                 statusPriority = 4;
               }
+
 
               // 3) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
               let depositPriority = 3;
@@ -547,16 +548,21 @@ async function renderStaffSidebar(me) {
               // 6) 융자금: '융자금 없음'
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
+              // 7) 해당층: '해당층 확인'
+              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+
+
               // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
                 descPriority,     // 매물번호 '-'
                 titlePriority,    // 매물명 '-'
-                statusPriority,   // 거래상태
-                depositPriority,  // 보증금
-                monthlyPriority,  // 월세
-                premiumPriority,  // 권리금
-                loanPriority,     // 융자금
-                idx               // 안정적 정렬
+                statusPriority,   // 거래상태 ('-' → '0' → '계약완료' → '보류' → 기타)
+                depositPriority,  // 보증금 ('보증금 확인' → '상세설명' → '-' → 기타)
+                monthlyPriority,  // 월세 ('-' → '월세 확인' → '상세설명' → 기타)
+                premiumPriority,  // 권리금 ('권리금 없음' 우선)
+                loanPriority,     // 융자금 ('융자금 없음' 우선)
+                floorPriority,    // 해당층 ('해당층 확인' 우선)
+                idx               // 안정적 정렬(타이브레이커)
               ];
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
