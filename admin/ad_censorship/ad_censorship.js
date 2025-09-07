@@ -21,6 +21,13 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
 
+// [ADD] 거래상태 문자열에서 'YYYY-MM-DD' 날짜 꼬리 제거
+function _stripDateFromStatus(str) {
+  if (str === null || str === undefined) return '';
+  // 공백 포함 ' 2025-09-01' 같은 패턴 제거
+  return String(str).replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim();
+}
+
 // [ADD] HTML 이스케이프 유틸 (features 값 안전 출력용)
 function _escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -482,7 +489,9 @@ async function renderStaffSidebar(me) {
                 : null;
 
               const title  = info?.title ?? '-';
-              const status = info?.status ?? '-';
+              // 원본 상태값과 표시용(날짜 제거) 상태값 분리
+              const statusRaw = info?.status ?? '-';
+              const statusDisplay = _stripDateFromStatus(statusRaw);
               const premiumPrice = info?.premium_price;
 
               // === [해당층] 비교 ===
@@ -637,14 +646,14 @@ async function renderStaffSidebar(me) {
                 adId,
                 descId,
                 title,
-                status,
+                statusDisplay, // ✅ 표시용(날짜 제거)
                 floorCell,
                 totalFloorCell,
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
-                featuresLabel, // ✅ 추가
+                featuresLabel,
                 sortKey
               };
             });
@@ -677,10 +686,10 @@ async function renderStaffSidebar(me) {
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
 
-              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시
-              const statusCell = (item.status.includes('계약완료') || item.status.includes('보류'))
-                ? `<span class="text-red-600 font-semibold">${item.status}</span>`
-                : item.status;
+              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시 (날짜 제거된 표시값 기준)
+              const statusCell = (item.statusDisplay.includes('계약완료') || item.statusDisplay.includes('보류'))
+                ? `<span class="text-red-600 font-semibold">${item.statusDisplay}</span>`
+                : item.statusDisplay;
 
               // 권리금: '권리금 없음' → 빨간색
               const premiumCell = (item.premiumLabel === '권리금 없음')
