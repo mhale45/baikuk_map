@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -428,6 +428,7 @@ async function renderStaffSidebar(me) {
                   <th class="w-[12rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">타입</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매매가</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
@@ -458,7 +459,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -472,7 +473,8 @@ async function renderStaffSidebar(me) {
                       deposit_price: r.deposit_price,
                       monthly_rent: r.monthly_rent,
                       floor: r.floor ?? '',
-                      total_floors: r.total_floors ?? ''
+                      total_floors: r.total_floors ?? '',
+                      sale_price: r.sale_price ?? ''
                     }
                   ])
                 );
@@ -564,6 +566,21 @@ async function renderStaffSidebar(me) {
               }
 
               const areaCell = areaOut;
+
+              // === [매매가] 비교 ===
+              let salePriceLabel = '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('매매')) {
+                const adSale = _normMoney(row.ad_sale_price);
+                const baseSale = _normMoney(info?.sale_price);
+
+                if (adSale !== null && baseSale !== null && adSale !== baseSale) {
+                  salePriceLabel = '<span class="text-red-600 font-semibold">매매가 확인</span>';
+                } else if (adSale !== null) {
+                  salePriceLabel = adSale.toLocaleString();
+                } else if (baseSale !== null) {
+                  salePriceLabel = baseSale.toLocaleString();
+                }
+              }
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
@@ -684,6 +701,7 @@ async function renderStaffSidebar(me) {
                 premiumLabel,
                 loanLabel,
                 featuresLabel,
+                salePriceLabel,
                 sortKey
               };
             });
@@ -737,6 +755,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.dealType}</td>
                 <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.salePriceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
