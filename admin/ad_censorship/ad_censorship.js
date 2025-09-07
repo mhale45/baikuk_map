@@ -383,7 +383,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -548,17 +548,27 @@ async function renderStaffSidebar(me) {
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
-              const monthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
+              const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
 
-              // ✅ ad_baikuk_listings.description_deposit_price vs ad_deposit_price 비교
+              // ✅ (보증금) ad_baikuk_listings.description_deposit_price vs ad_deposit_price 비교
               const adDepNorm   = _normMoney(row.ad_deposit_price);
               const descDepNorm = _normMoney(row.description_deposit_price);
-              const needDescBadge = (adDepNorm !== null && descDepNorm !== null && adDepNorm !== descDepNorm);
+              const needDepositDescBadge = (adDepNorm !== null && descDepNorm !== null && adDepNorm !== descDepNorm);
 
-              // ✅ 다르면 기존 보증금 라벨 뒤에 줄바꿈 + '상세설명'(빨강) 추가
-              const depositOut = needDescBadge
+              // ✅ (보증금) 다르면 줄바꿈 + '상세설명'(빨강) 추가
+              const depositOut = needDepositDescBadge
                 ? `${baseDepositOut !== '-' ? baseDepositOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseDepositOut;
+
+              // ✅ (월세) ad_baikuk_listings.deposit_monthly_rent vs ad_monthly_rent 비교
+              const adMonNorm   = _normMoney(row.ad_monthly_rent);
+              const descMonNorm = _normMoney(row.deposit_monthly_rent);
+              const needMonthlyDescBadge = (adMonNorm !== null && descMonNorm !== null && adMonNorm !== descMonNorm);
+
+              // ✅ (월세) 다르면 줄바꿈 + '상세설명'(빨강) 추가
+              const monthlyOut = needMonthlyDescBadge
+                ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
+                : baseMonthlyOut;
 
               return { adId, descId, title, status, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
             });
