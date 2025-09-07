@@ -25,11 +25,15 @@ const $ = (sel, root = document) => root.querySelector(sel);
 function _normMoney(v) {
   if (v === null || v === undefined) return null;
   if (typeof v === 'number') return isNaN(v) ? null : v;
-  const s = String(v).replace(/[^\d.-]/g, '');
+
+  // ✅ 모든 콤마/숫자외 문자 제거
+  const s = String(v).replace(/,/g, '').replace(/[^\d.-]/g, '');
   if (!s || s === '-' || s === '.' || s === '-.') return null;
+
   const n = Number(s);
   return isNaN(n) ? null : n;
 }
+
 function _compareMoney(current, baseline, diffLabel) {
   const c = _normMoney(current);
   const b = _normMoney(baseline);
