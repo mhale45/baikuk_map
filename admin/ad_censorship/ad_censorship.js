@@ -91,6 +91,42 @@ async function fillStaffAdCounts(container) {
   });
 }
 
+// === 지점 전체 광고 개수 조회 유틸 ===
+// 지점명(branch_name)으로 ad_baikuk_listings 전체 개수(count)만 가져온다.
+async function fetchAdCountByBranch(branchName) {
+  if (!branchName) return 0;
+  const { count, error } = await supabase
+    .from('ad_baikuk_listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('branch_name', branchName);
+
+  if (error) {
+    console.warn('branch count 조회 실패:', error);
+    return 0;
+  }
+  return count || 0;
+}
+
+// 컨테이너 내 지점 헤더(.grade-header)들에 대해 지점 전체 광고 개수 채우기
+async function fillAffAdCounts(container) {
+  const nodes = Array.from(container.querySelectorAll('.grade-header'));
+  await runWithLimit(nodes, 5, async (header) => {
+    const span = header.querySelector('.aff-count');
+    if (!span) return;
+
+    const branchName = header.dataset.aff || header.textContent?.trim() || '';
+    if (!branchName) {
+      span.textContent = '0';
+      span.removeAttribute('data-loading');
+      return;
+    }
+
+    const c = await fetchAdCountByBranch(branchName);
+    span.textContent = String(c);
+    span.removeAttribute('data-loading');
+  });
+}
+
 // === 인증/권한 조회 ===
 async function getMyAuthorityAndStaffId() {
   await waitForSupabase();
@@ -208,7 +244,9 @@ async function renderStaffSidebar(me) {
     // --- 지점 헤더 ---
     const header = document.createElement('div');
     header.className = 'grade-header';
-    header.textContent = aff;
+    header.dataset.aff = aff; // 조회용 데이터 속성
+    header.innerHTML = `${aff} <span class="aff-count" data-loading="1">...</span>`;
+
 
     if (canClickAff(aff)) {
       header.classList.add('cursor-pointer', 'hover:bg-yellow-100');
@@ -300,7 +338,10 @@ async function renderStaffSidebar(me) {
     }
   });
 
-  // 4-2) 좌측 목록의 각 직원별 광고 개수 채우기
+  // 4-2) 좌측 목록의 각 지점별 전체 광고 개수 채우기
+  await fillAffAdCounts(container);
+
+  // 4-3) 좌측 목록의 각 직원별 광고 개수 채우기
   await fillStaffAdCounts(container);
 
   // 5) 직원 클릭 핸들러(단일 직원 필터 + 매물 조회/렌더)
