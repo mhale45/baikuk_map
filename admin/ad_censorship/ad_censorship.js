@@ -797,7 +797,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">
-                  <div class="w-[8rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.title}">
+                  <div class="w-[10rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.title}">
                     ${item.title}
                   </div>
                 </td>
