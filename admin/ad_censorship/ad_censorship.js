@@ -414,6 +414,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -436,7 +437,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -449,7 +450,8 @@ async function renderStaffSidebar(me) {
                       premium_price: r.premium_price,
                       deposit_price: r.deposit_price,
                       monthly_rent: r.monthly_rent,
-                      floor: r.floor ?? ''
+                      floor: r.floor ?? '',
+                      total_floors: r.total_floors ?? ''
                     }
                   ])
                 );
@@ -490,6 +492,29 @@ async function renderStaffSidebar(me) {
               const floorCell = needFloorCheck
                 ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
                 : (hasAdFloor ? adFloorFront : (baseFloorRaw ? String(baseFloorRaw) : '-'));
+
+              // === [총층] 비교 ===
+              // 1) 광고(ad_baikuk_listings): ad_floor_info에서 '/' 뒤쪽만 추출하고 공백 제거
+              const adTotalRaw = row.ad_floor_info ?? '';
+              const adTotalBack = String(adTotalRaw).includes('/')
+                ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
+                : '';
+
+              // 2) 기준(baikukdbtest): total_floors에서 공백 제거
+              const baseTotalRaw = info?.total_floors ?? '';
+              const baseTotalNorm = String(baseTotalRaw).replace(/\s+/g, '').trim();
+
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '총층 확인' (빨강)
+              const hasAdTotal   = !!adTotalBack;
+              const hasBaseTotal = !!baseTotalNorm;
+              const needTotalCheck = hasAdTotal && hasBaseTotal && adTotalBack !== baseTotalNorm;
+
+              // 4) 출력 셀: 다르면 '총층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adTotalBack, 원형 표시가 필요하면 원본 사용) → 기준측 원본(baseTotalRaw) → '-'
+              const totalFloorCell = needTotalCheck
+                ? '<span class="text-red-600 font-semibold">총층 확인</span>'
+                : (hasAdTotal ? (String(adTotalRaw).includes('/') ? String(adTotalRaw).split('/')[1].trim() : adTotalBack) // 시각적으로 광고 원형 유지
+                              : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
@@ -548,22 +573,24 @@ async function renderStaffSidebar(me) {
               // 6) 융자금: '융자금 없음'
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 7) 해당층: '해당층 확인'
+              // 7) 해당층: '해당층 확인', 총층 확인
               const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
-
+              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
 
               // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
-                descPriority,     // 매물번호 '-'
-                titlePriority,    // 매물명 '-'
-                statusPriority,   // 거래상태 ('-' → '0' → '계약완료' → '보류' → 기타)
-                depositPriority,  // 보증금 ('보증금 확인' → '상세설명' → '-' → 기타)
-                monthlyPriority,  // 월세 ('-' → '월세 확인' → '상세설명' → 기타)
-                premiumPriority,  // 권리금 ('권리금 없음' 우선)
-                loanPriority,     // 융자금 ('융자금 없음' 우선)
-                floorPriority,    // 해당층 ('해당층 확인' 우선)
-                idx               // 안정적 정렬(타이브레이커)
+                descPriority,      // 매물번호 '-'
+                titlePriority,     // 매물명 '-'
+                statusPriority,    // 거래상태
+                depositPriority,   // 보증금
+                monthlyPriority,   // 월세
+                premiumPriority,   // 권리금
+                loanPriority,      // 융자금
+                floorPriority,     // 해당층
+                totalFloorPriority,// 총층
+                idx                // 안정적 정렬(타이브레이커)
               ];
+
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
@@ -589,7 +616,19 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              return { adId, descId, title, status, floorCell, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
+              return {
+                adId,
+                descId,
+                title,
+                status,
+                floorCell,
+                totalFloorCell,
+                depositLabel: depositOut,
+                monthlyLabel: monthlyOut,
+                premiumLabel,
+                loanLabel,
+                sortKey
+              };
             });
 
             // 우선순위대로 정렬
@@ -645,6 +684,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
               `;
               tbody.appendChild(tr);
             });
