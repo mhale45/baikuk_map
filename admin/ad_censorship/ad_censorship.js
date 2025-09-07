@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -457,7 +457,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, area_m2')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -471,8 +471,7 @@ async function renderStaffSidebar(me) {
                       deposit_price: r.deposit_price,
                       monthly_rent: r.monthly_rent,
                       floor: r.floor ?? '',
-                      total_floors: r.total_floors ?? '',
-                      area_m2: r.area_m2 ?? ''
+                      total_floors: r.total_floors ?? ''
                     }
                   ])
                 );
@@ -540,26 +539,30 @@ async function renderStaffSidebar(me) {
                               : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
               // === [면적] 비교 ===
-              // 광고(ad_baikuk_listings): ad_area의 '/' 뒤쪽 값 사용 (없으면 전체를 trim)
+              // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
               const adAreaRaw = row.ad_area ?? '';
               const adAreaRight = String(adAreaRaw).includes('/')
                 ? String(adAreaRaw).split('/')[1].trim()
                 : String(adAreaRaw).trim();
-
-              // 기준(baikukdbtest): area_m2 원본
-              const baseAreaRaw = info?.area_m2 ?? '';
-
-              // 숫자 비교를 위해 정규화(소수 허용)
               const adAreaNum = _normMoney(adAreaRight);
-              const baseAreaNum = _normMoney(baseAreaRaw);
 
-              // 둘 다 수치가 있고 다르면 빨간 '면적 확인'
-              const needAreaCheck = (adAreaNum !== null && baseAreaNum !== null && adAreaNum !== baseAreaNum);
+              // 같은 테이블의 description_area_py(평) → ㎡ 환산
+              const descAreaPy = _normMoney(row.description_area_py);
+              const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
 
-              // 출력 우선순위: 광고측 값 → 기준 원본 → '-'
-              const areaCell = needAreaCheck
-                ? '<span class="text-red-600 font-semibold">면적 확인</span>'
-                : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
+              // 3㎡ 이상 차이나면 상세설명 배지
+              const needAreaDescBadge =
+                adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
+
+              // 기본 출력: 광고측 값 우선, 없으면 '-'
+              let areaOut = adAreaRight || '-';
+
+              // 상세설명 배지 추가 (보증금/월세와 동일한 형식)
+              if (needAreaDescBadge) {
+                areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
+              }
+
+              const areaCell = areaOut;
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
