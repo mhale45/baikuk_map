@@ -425,7 +425,7 @@ async function renderStaffSidebar(me) {
                 <tr>
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="max-w-[8rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">타입</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매매가</th>
