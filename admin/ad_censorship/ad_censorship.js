@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_restroom')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -434,7 +434,6 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
                   <th class="w-[18rem] border border-gray-300 px-3 py-2 text-left">매물특징</th>
@@ -659,16 +658,6 @@ async function renderStaffSidebar(me) {
               // 6) 융자금: '융자금 없음'
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // === [화장실] ===
-              const restroomRaw = row.ad_restroom ?? '';
-              const restroomRight = String(restroomRaw).includes('/')
-                ? String(restroomRaw).split('/')[1].trim()
-                : String(restroomRaw).trim();
-
-              const restroomCell = (restroomRight.includes('0'))
-                ? '<span class="text-red-600 font-semibold">화장실 확인</span>'
-                : (restroomRight || '-');
-
               // 7) 해당층: '해당층 확인', 총층 확인
               const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
               const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
@@ -727,7 +716,6 @@ async function renderStaffSidebar(me) {
                 totalFloorCell,
                 areaCell,
                 dealType: row.ad_deal_type ?? '-',
-                restroomCell,
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
@@ -793,7 +781,6 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.restroomCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
