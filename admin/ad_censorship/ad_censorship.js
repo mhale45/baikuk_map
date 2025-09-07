@@ -421,7 +421,7 @@ async function renderStaffSidebar(me) {
             const table = document.createElement('table');
             table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
             table.innerHTML = `
-            <thead class="bg-gray-100">
+            <thead class="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
