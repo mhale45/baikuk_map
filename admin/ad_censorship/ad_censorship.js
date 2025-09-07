@@ -383,7 +383,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -413,6 +413,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -435,9 +436,8 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor')
                   .in('listing_id', idList);
-
                 if (infoErr) throw infoErr;
 
                 infoMap = Object.fromEntries(
@@ -447,8 +447,9 @@ async function renderStaffSidebar(me) {
                       title: r.listing_title || '-',
                       status: r.transaction_status || '-',
                       premium_price: r.premium_price,
-                      deposit_price: r.deposit_price,      // ✅ 보증금 기준값
-                      monthly_rent: r.monthly_rent         // ✅ 월세 기준값
+                      deposit_price: r.deposit_price,
+                      monthly_rent: r.monthly_rent,
+                      floor: r.floor ?? ''
                     }
                   ])
                 );
@@ -469,6 +470,26 @@ async function renderStaffSidebar(me) {
               const title  = info?.title ?? '-';
               const status = info?.status ?? '-';
               const premiumPrice = info?.premium_price;
+
+              // === [해당층] 비교 ===
+              // 1) 광고(ad_baikuk_listings) 측: ad_floor_info에서 '/' 앞부분만 추출하고 공백 제거
+              const adFloorRaw = row.ad_floor_info ?? '';
+              const adFloorFront = String(adFloorRaw).split('/')[0]?.replace(/\s+/g, '').trim();
+
+              // 2) 기준(baikukdbtest) 측: floor에서 공백 제거
+              const baseFloorRaw = info?.floor ?? '';
+              const baseFloorNorm = String(baseFloorRaw).replace(/\s+/g, '').trim();
+
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '해당층 확인' (빨강)
+              const hasAdFloor   = !!adFloorFront;
+              const hasBaseFloor = !!baseFloorNorm;
+              const needFloorCheck = hasAdFloor && hasBaseFloor && adFloorFront !== baseFloorNorm;
+
+              // 4) 출력 셀: 다르면 '해당층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adFloorFront) → 기준측 원본(baseFloorRaw) → '-'
+              const floorCell = needFloorCheck
+                ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
+                : (hasAdFloor ? adFloorFront : (baseFloorRaw ? String(baseFloorRaw) : '-'));
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
@@ -562,7 +583,7 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              return { adId, descId, title, status, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
+              return { adId, descId, title, status, floorCell, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
             });
 
             // 우선순위대로 정렬
@@ -617,6 +638,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
               `;
               tbody.appendChild(tr);
             });
