@@ -468,15 +468,15 @@ async function renderStaffSidebar(me) {
               const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.adId}`;
               const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
 
-              // 1) 네이버 열: adId 표시 + 네이버 링크
+              // 1) 네이버 열: adId 표시 + 네이버 링크 (초록색)
               const naverCell = noAdId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.adId}</a>`;
+                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.adId}</a>`;
 
-              // 2) 매물번호 열: descId 표시 + 백억 링크
+              // 2) 매물번호 열: descId 표시 + 백억 링크 (#F2C130 색상)
               const descCell = noId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.descId}</a>`;
+                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline" style="color:#F2C130;">${item.descId}</a>`;
 
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
