@@ -419,7 +419,7 @@ async function renderStaffSidebar(me) {
 
             // ✅ 표 생성
             const table = document.createElement('table');
-            table.className = 'min-w-full table-auto border-collapse border border-gray-300 text-sm';
+            table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
             table.innerHTML = `
             <thead class="bg-gray-100">
                 <tr>
