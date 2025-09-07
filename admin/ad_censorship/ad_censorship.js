@@ -483,6 +483,16 @@ async function renderStaffSidebar(me) {
                 ? `<span class="text-red-600 font-semibold">${item.status}</span>`
                 : item.status;
 
+              // 권리금: '권리금 없음' → 빨간색
+              const premiumCell = (item.premiumLabel === '권리금 없음')
+                ? `<span class="text-red-600 font-semibold">${item.premiumLabel}</span>`
+                : item.premiumLabel;
+
+              // 융자금: '융자금 없음' → 빨간색
+              const loanCell = (item.loanLabel === '융자금 없음')
+                ? `<span class="text-red-600 font-semibold">${item.loanLabel}</span>`
+                : item.loanLabel;
+
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
@@ -490,12 +500,11 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.premiumLabel}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.loanLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
               `;
               tbody.appendChild(tr);
             });
-
 
             resultBox.appendChild(table);
         } catch (err) {
