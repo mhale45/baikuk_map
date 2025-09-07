@@ -27,7 +27,7 @@ function _normMoney(v) {
   if (typeof v === 'number') return isNaN(v) ? null : v;
 
   // ✅ 모든 콤마/숫자외 문자 제거
-  const s = String(v).replace(/,/g, '').replace(/[^\d.-]/g, '');
+  const s = String(v).replace(/[^\d.-]/g, '');
   if (!s || s === '-' || s === '.' || s === '-.') return null;
 
   const n = Number(s);
