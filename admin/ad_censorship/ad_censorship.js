@@ -21,6 +21,17 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
 
+// [ADD] HTML 이스케이프 유틸 (features 값 안전 출력용)
+function _escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // [RESTORE] 금액 파싱/비교 유틸
 function _normMoney(v) {
   if (v === null || v === undefined) return null;
@@ -577,10 +588,11 @@ async function renderStaffSidebar(me) {
               const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
               const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
 
-              // 8) 매물특징
-              const featuresLabel = (!row.ad_listings_features || row.ad_listings_features === '-')
+              // 8) 매물특징 (공백만 있는 경우도 미표시 처리 + HTML 이스케이프)
+              const rawFeat = (row.ad_listings_features ?? '').trim();
+              const featuresLabel = (!rawFeat || rawFeat === '-')
                 ? '<span class="text-red-600 font-semibold">미표시</span>'
-                : row.ad_listings_features;
+                : _escapeHtml(rawFeat);
 
               // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
@@ -632,6 +644,7 @@ async function renderStaffSidebar(me) {
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
+                featuresLabel, // ✅ 추가
                 sortKey
               };
             });
