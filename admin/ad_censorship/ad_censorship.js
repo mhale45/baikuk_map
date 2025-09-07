@@ -466,12 +466,12 @@ async function renderStaffSidebar(me) {
               const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.descId}`;
               const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
 
-              // 매물번호가 '-'이면 링크 없음 처리
+              // 매물번호가 '-'이면 빨간색 "매물번호 없음" 표시
               const descCell = (item.descId === '-' || item.descId === '매물번호 없음')
-                ? '매물번호 없음'
+                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `
-                  <a href="${naverUrl}" target="_blank" class="text-blue-600 hover:underline mr-2">네이버</a>
-                  <a href="${baikukUrl}" target="_blank" class="text-green-600 hover:underline">백억</a>
+                  <a href="${naverUrl}" target="_blank" class="text-blue-600 hover:underline mr-2">${item.descId} (네이버)</a>
+                  <a href="${baikukUrl}" target="_blank" class="text-green-600 hover:underline">${item.descId} (백억)</a>
                 `;
 
               tr.innerHTML = `
