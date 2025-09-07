@@ -461,9 +461,22 @@ async function renderStaffSidebar(me) {
             // 렌더링
             enriched.forEach(item => {
               const tr = document.createElement('tr');
+              
+              // 네이버/자체 링크용 URL 생성
+              const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.descId}`;
+              const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
+
+              // 매물번호가 '-'이면 링크 없음 처리
+              const descCell = (item.descId === '-' || item.descId === '매물번호 없음')
+                ? '매물번호 없음'
+                : `
+                  <a href="${naverUrl}" target="_blank" class="text-blue-600 hover:underline mr-2">네이버</a>
+                  <a href="${baikukUrl}" target="_blank" class="text-green-600 hover:underline">백억</a>
+                `;
+
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${item.adId}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.descId === '-' ? '매물번호 없음' : item.descId}</td>
+                <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.status}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
@@ -473,6 +486,7 @@ async function renderStaffSidebar(me) {
               `;
               tbody.appendChild(tr);
             });
+
             resultBox.appendChild(table);
 
         } catch (err) {
