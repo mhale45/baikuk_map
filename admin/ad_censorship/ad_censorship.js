@@ -734,8 +734,8 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
-                <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
