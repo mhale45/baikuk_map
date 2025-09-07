@@ -425,7 +425,7 @@ async function renderStaffSidebar(me) {
                 <tr>
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
-                  <th class="max-w-[8rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">타입</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매매가</th>
@@ -796,7 +796,11 @@ async function renderStaffSidebar(me) {
               tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.title}</td>
+                <td class="border border-gray-300 px-3 py-1">
+                  <div class="w-[8rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.title}">
+                    ${item.title}
+                  </div>
+                </td>
                 <td class="border border-gray-300 px-3 py-1">${item.dealType}</td>
                 <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.salePriceLabel}</td>
