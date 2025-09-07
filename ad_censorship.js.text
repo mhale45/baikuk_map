@@ -21,6 +21,24 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
 
+// [ADD] 거래상태 문자열에서 'YYYY-MM-DD' 날짜 꼬리 제거
+function _stripDateFromStatus(str) {
+  if (str === null || str === undefined) return '';
+  // 공백 포함 ' 2025-09-01' 같은 패턴 제거
+  return String(str).replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim();
+}
+
+// [ADD] HTML 이스케이프 유틸 (features 값 안전 출력용)
+function _escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // [RESTORE] 금액 파싱/비교 유틸
 function _normMoney(v) {
   if (v === null || v === undefined) return null;
@@ -383,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -401,18 +419,21 @@ async function renderStaffSidebar(me) {
 
             // ✅ 표 생성
             const table = document.createElement('table');
-            table.className = 'min-w-full border-collapse border border-gray-300 text-sm';
+            table.className = 'min-w-full table-auto border-collapse border border-gray-300 text-sm';
             table.innerHTML = `
             <thead class="bg-gray-100">
                 <tr>
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="w-[12rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
+                  <th class="w-[18rem] border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -435,9 +456,8 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
                   .in('listing_id', idList);
-
                 if (infoErr) throw infoErr;
 
                 infoMap = Object.fromEntries(
@@ -447,8 +467,10 @@ async function renderStaffSidebar(me) {
                       title: r.listing_title || '-',
                       status: r.transaction_status || '-',
                       premium_price: r.premium_price,
-                      deposit_price: r.deposit_price,      // ✅ 보증금 기준값
-                      monthly_rent: r.monthly_rent         // ✅ 월세 기준값
+                      deposit_price: r.deposit_price,
+                      monthly_rent: r.monthly_rent,
+                      floor: r.floor ?? '',
+                      total_floors: r.total_floors ?? ''
                     }
                   ])
                 );
@@ -467,8 +489,53 @@ async function renderStaffSidebar(me) {
                 : null;
 
               const title  = info?.title ?? '-';
-              const status = info?.status ?? '-';
+              // 원본 상태값과 표시용(날짜 제거) 상태값 분리
+              const statusRaw = info?.status ?? '-';
+              const statusDisplay = _stripDateFromStatus(statusRaw);
               const premiumPrice = info?.premium_price;
+
+              // === [해당층] 비교 ===
+              // 1) 광고(ad_baikuk_listings) 측: ad_floor_info에서 '/' 앞부분만 추출하고 공백 제거
+              const adFloorRaw = row.ad_floor_info ?? '';
+              const adFloorFront = String(adFloorRaw).split('/')[0]?.replace(/\s+/g, '').trim();
+
+              // 2) 기준(baikukdbtest) 측: floor에서 공백 제거
+              const baseFloorRaw = info?.floor ?? '';
+              const baseFloorNorm = String(baseFloorRaw).replace(/\s+/g, '').trim();
+
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '해당층 확인' (빨강)
+              const hasAdFloor   = !!adFloorFront;
+              const hasBaseFloor = !!baseFloorNorm;
+              const needFloorCheck = hasAdFloor && hasBaseFloor && adFloorFront !== baseFloorNorm;
+
+              // 4) 출력 셀: 다르면 '해당층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adFloorFront) → 기준측 원본(baseFloorRaw) → '-'
+              const floorCell = needFloorCheck
+                ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
+                : (hasAdFloor ? adFloorFront : (baseFloorRaw ? String(baseFloorRaw) : '-'));
+
+              // === [총층] 비교 ===
+              // 1) 광고(ad_baikuk_listings): ad_floor_info에서 '/' 뒤쪽만 추출하고 공백 제거
+              const adTotalRaw = row.ad_floor_info ?? '';
+              const adTotalBack = String(adTotalRaw).includes('/')
+                ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
+                : '';
+
+              // 2) 기준(baikukdbtest): total_floors에서 공백 제거
+              const baseTotalRaw = info?.total_floors ?? '';
+              const baseTotalNorm = String(baseTotalRaw).replace(/\s+/g, '').trim();
+
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '총층 확인' (빨강)
+              const hasAdTotal   = !!adTotalBack;
+              const hasBaseTotal = !!baseTotalNorm;
+              const needTotalCheck = hasAdTotal && hasBaseTotal && adTotalBack !== baseTotalNorm;
+
+              // 4) 출력 셀: 다르면 '총층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adTotalBack, 원형 표시가 필요하면 원본 사용) → 기준측 원본(baseTotalRaw) → '-'
+              const totalFloorCell = needTotalCheck
+                ? '<span class="text-red-600 font-semibold">총층 확인</span>'
+                : (hasAdTotal ? (String(adTotalRaw).includes('/') ? String(adTotalRaw).split('/')[1].trim() : adTotalBack) // 시각적으로 광고 원형 유지
+                              : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
@@ -493,14 +560,14 @@ async function renderStaffSidebar(me) {
               // 1) 매물명 '-'
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 거래상태: '-', '0', '거래완료', '보류', 기타
+              // 2) 거래상태: '-', '0', '계약완료', '보류', 기타
               const s = (status ?? '').toString().trim();
               let statusPriority = 99;
               if (s === '-') {
                 statusPriority = 0;
-              } else if (s.includes('0')) {
+              } else if (s === '0') { // 정확히 '0'만
                 statusPriority = 1;
-              } else if (s.includes('거래완료')) {
+              } else if (s.includes('계약완료')) {
                 statusPriority = 2;
               } else if (s.includes('보류')) {
                 statusPriority = 3;
@@ -526,17 +593,30 @@ async function renderStaffSidebar(me) {
               // 6) 융자금: '융자금 없음'
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
+              // 7) 해당층: '해당층 확인', 총층 확인
+              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+
+              // 8) 매물특징 (공백만 있는 경우도 미표시 처리 + HTML 이스케이프)
+              const rawFeat = (row.ad_listings_features ?? '').trim();
+              const featuresLabel = (!rawFeat || rawFeat === '-')
+                ? '<span class="text-red-600 font-semibold">미표시</span>'
+                : _escapeHtml(rawFeat);
+
               // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
-                descPriority,     // 매물번호 '-'
-                titlePriority,    // 매물명 '-'
-                statusPriority,   // 거래상태
-                depositPriority,  // 보증금
-                monthlyPriority,  // 월세
-                premiumPriority,  // 권리금
-                loanPriority,     // 융자금
-                idx               // 안정적 정렬
+                descPriority,      // 매물번호 '-'
+                titlePriority,     // 매물명 '-'
+                statusPriority,    // 거래상태
+                depositPriority,   // 보증금
+                monthlyPriority,   // 월세
+                premiumPriority,   // 권리금
+                loanPriority,      // 융자금
+                floorPriority,     // 해당층
+                totalFloorPriority,// 총층
+                idx                // 안정적 정렬(타이브레이커)
               ];
+
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
@@ -562,7 +642,20 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              return { adId, descId, title, status, depositLabel: depositOut, monthlyLabel: monthlyOut, premiumLabel, loanLabel, sortKey };
+              return {
+                adId,
+                descId,
+                title,
+                statusDisplay, // ✅ 표시용(날짜 제거)
+                floorCell,
+                totalFloorCell,
+                depositLabel: depositOut,
+                monthlyLabel: monthlyOut,
+                premiumLabel,
+                loanLabel,
+                featuresLabel,
+                sortKey
+              };
             });
 
             // 우선순위대로 정렬
@@ -593,10 +686,10 @@ async function renderStaffSidebar(me) {
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
 
-              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시
-              const statusCell = (item.status.includes('계약완료') || item.status.includes('보류'))
-                ? `<span class="text-red-600 font-semibold">${item.status}</span>`
-                : item.status;
+              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시 (날짜 제거된 표시값 기준)
+              const statusCell = (item.statusDisplay.includes('계약완료') || item.statusDisplay.includes('보류'))
+                ? `<span class="text-red-600 font-semibold">${item.statusDisplay}</span>`
+                : item.statusDisplay;
 
               // 권리금: '권리금 없음' → 빨간색
               const premiumCell = (item.premiumLabel === '권리금 없음')
@@ -617,6 +710,9 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
               `;
               tbody.appendChild(tr);
             });

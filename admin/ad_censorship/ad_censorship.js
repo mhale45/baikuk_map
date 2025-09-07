@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -430,6 +430,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
@@ -456,7 +457,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, area_m2')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -470,7 +471,8 @@ async function renderStaffSidebar(me) {
                       deposit_price: r.deposit_price,
                       monthly_rent: r.monthly_rent,
                       floor: r.floor ?? '',
-                      total_floors: r.total_floors ?? ''
+                      total_floors: r.total_floors ?? '',
+                      area_m2: r.area_m2 ?? ''
                     }
                   ])
                 );
@@ -536,6 +538,28 @@ async function renderStaffSidebar(me) {
                 ? '<span class="text-red-600 font-semibold">총층 확인</span>'
                 : (hasAdTotal ? (String(adTotalRaw).includes('/') ? String(adTotalRaw).split('/')[1].trim() : adTotalBack) // 시각적으로 광고 원형 유지
                               : (baseTotalRaw ? String(baseTotalRaw) : '-'));
+
+              // === [면적] 비교 ===
+              // 광고(ad_baikuk_listings): ad_area의 '/' 뒤쪽 값 사용 (없으면 전체를 trim)
+              const adAreaRaw = row.ad_area ?? '';
+              const adAreaRight = String(adAreaRaw).includes('/')
+                ? String(adAreaRaw).split('/')[1].trim()
+                : String(adAreaRaw).trim();
+
+              // 기준(baikukdbtest): area_m2 원본
+              const baseAreaRaw = info?.area_m2 ?? '';
+
+              // 숫자 비교를 위해 정규화(소수 허용)
+              const adAreaNum = _normMoney(adAreaRight);
+              const baseAreaNum = _normMoney(baseAreaRaw);
+
+              // 둘 다 수치가 있고 다르면 빨간 '면적 확인'
+              const needAreaCheck = (adAreaNum !== null && baseAreaNum !== null && adAreaNum !== baseAreaNum);
+
+              // 출력 우선순위: 광고측 값 → 기준 원본 → '-'
+              const areaCell = needAreaCheck
+                ? '<span class="text-red-600 font-semibold">면적 확인</span>'
+                : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
 
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
               const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
@@ -646,9 +670,10 @@ async function renderStaffSidebar(me) {
                 adId,
                 descId,
                 title,
-                statusDisplay, // ✅ 표시용(날짜 제거)
+                statusDisplay,
                 floorCell,
                 totalFloorCell,
+                areaCell,
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
@@ -710,6 +735,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
