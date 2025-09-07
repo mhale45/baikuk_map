@@ -631,103 +631,94 @@ async function renderStaffSidebar(me) {
                 }
               }
 
+              // 정렬 우선순위 계산 (요청하신 우선순위 반영)
+              // 0) 매물번호 '-'
+              const descPriority = (descId === '-') ? 0 : 1;
+
+              // 1) 매물명 '-'
+              const titlePriority = (title === '-') ? 0 : 1;
+
+              // 2) 거래상태: '-', '0', '계약완료', '보류', 기타
+              const s = (status ?? '').toString().trim();
+              let statusPriority = 99;
+              if (s === '-') {
+                statusPriority = 0;
+              } else if (s === '0') { // 정확히 '0'만
+                statusPriority = 1;
+              } else if (s.includes('계약완료')) {
+                statusPriority = 2;
+              } else if (s.includes('보류')) {
+                statusPriority = 3;
+              } else {
+                statusPriority = 4;
+              }
+
+              // 3) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
+              let depositPriority = 3;
+              if (depositLabel.includes('보증금 확인')) depositPriority = 0;
+              else if (depositLabel.includes('상세설명')) depositPriority = 1;
+              else if (depositLabel === '-') depositPriority = 2;
+
+              // 4) 월세: '-' → '월세 확인' → '상세설명' → 기타
+              let monthlyPriority = 3;
+              if (monthlyLabel === '-') monthlyPriority = 0;
+              else if (monthlyLabel.includes('월세 확인')) monthlyPriority = 1;
+              else if (monthlyLabel.includes('상세설명')) monthlyPriority = 2;
+
+              // 5) 권리금: '권리금 없음'
+              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+
+              // 6) 융자금: '융자금 없음'
+              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+
+              // 7) 해당층: '해당층 확인', 총층 확인
+              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+
               // 8) 매물특징 (공백만 있는 경우도 미표시 처리 + HTML 이스케이프)
               const rawFeat = (row.ad_listings_features ?? '').trim();
               const featuresLabel = (!rawFeat || rawFeat === '-')
                 ? '<span class="text-red-600 font-semibold">미표시</span>'
                 : _escapeHtml(rawFeat);
 
-              // === (보증금/월세) 상세설명 비교 사전 계산 ===
-              // - 이 booleans로 정렬 우선순위에서 '상세설명' 포함 여부를 판단
+              // 최종 sortKey (정렬 순서 반영)
+              const sortKey = [
+                descPriority,      // 매물번호 '-'
+                titlePriority,     // 매물명 '-'
+                statusPriority,    // 거래상태
+                depositPriority,   // 보증금
+                monthlyPriority,   // 월세
+                premiumPriority,   // 권리금
+                loanPriority,      // 융자금
+                floorPriority,     // 해당층
+                totalFloorPriority,// 총층
+                idx                // 안정적 정렬(타이브레이커)
+              ];
+
+
+              // 출력 라벨이 빈 문자열이라면 '-'로 표시
+              const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
+              const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
+
+              // ✅ (보증금) ad_baikuk_listings.description_deposit_price vs ad_deposit_price 비교
               const adDepNorm   = _normMoney(row.ad_deposit_price);
               const descDepNorm = _normMoney(row.description_deposit_price);
               const needDepositDescBadge = (adDepNorm !== null && descDepNorm !== null && adDepNorm !== descDepNorm);
-
-              const adMonNorm   = _normMoney(row.ad_monthly_rent);
-              const descMonNorm = _normMoney(row.deposit_monthly_rent);
-              const needMonthlyDescBadge = (adMonNorm !== null && descMonNorm !== null && adMonNorm !== descMonNorm);
 
               // ✅ (보증금) 다르면 줄바꿈 + '상세설명'(빨강) 추가
               const depositOut = needDepositDescBadge
                 ? `${baseDepositOut !== '-' ? baseDepositOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseDepositOut;
 
+              // ✅ (월세) ad_baikuk_listings.deposit_monthly_rent vs ad_monthly_rent 비교
+              const adMonNorm   = _normMoney(row.ad_monthly_rent);
+              const descMonNorm = _normMoney(row.deposit_monthly_rent);
+              const needMonthlyDescBadge = (adMonNorm !== null && descMonNorm !== null && adMonNorm !== descMonNorm);
+
               // ✅ (월세) 다르면 줄바꿈 + '상세설명'(빨강) 추가
               const monthlyOut = needMonthlyDescBadge
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
-
-              // === 정렬 우선순위 계산 (요청 우선순위 반영) ===
-              // 매물번호 '-'
-              const descPriority = (descId === '-') ? 0 : 1;
-
-              // 매물명 '-'
-              const titlePriority = (title === '-') ? 0 : 1;
-
-              // 거래상태: '-', '0', '계약완료', '보류', 기타
-              const s = (statusDisplay ?? '').toString().trim();
-              let statusPriority = 99;
-              if (s === '-') statusPriority = 0;
-              else if (s === '0') statusPriority = 1;
-              else if (s.includes('계약완료')) statusPriority = 2;
-              else if (s.includes('보류')) statusPriority = 3;
-              else statusPriority = 4;
-
-              // 보증금: '보증금 확인' → '상세설명' → '-' → 기타
-              let depositPriority = 3;
-              if (depositLabel.includes('보증금 확인')) depositPriority = 0;
-              else if (needDepositDescBadge) depositPriority = 1; // ← 상세설명 boolean 사용
-              else if (depositLabel === '-') depositPriority = 2;
-
-              // 월세: '-' → '월세 확인' → '상세설명' → 기타
-              let monthlyPriority = 3;
-              if (monthlyLabel === '-') monthlyPriority = 0;
-              else if (monthlyLabel.includes('월세 확인')) monthlyPriority = 1;
-              else if (needMonthlyDescBadge) monthlyPriority = 2; // ← 상세설명 boolean 사용
-
-              // 권리금: '권리금 없음'
-              const premiumPriority = (String(premiumLabel).includes('권리금 없음')) ? 0 : 1;
-
-              // 면적: '면적 확인' → '상세설명' → 기타
-              let areaPriority = 2;
-              if (String(areaCell).includes('면적 확인')) areaPriority = 0;
-              else if (String(areaCell).includes('상세설명')) areaPriority = 1;
-
-              // 융자금: '융자금 없음'
-              const loanPriority = (String(loanLabel).includes('융자금 없음')) ? 0 : 1;
-
-              // 화장실: '화장실 확인'
-              const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
-
-              // 매물특징: '미표시'
-              const featuresPriority = (String(featuresLabel).includes('미표시')) ? 0 : 1;
-
-              // 해당층: '해당층 확인'
-              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
-
-              // 총층: '총층 확인'
-              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
-
-              // 최종 sortKey (요청한 순서 그대로)
-              const sortKey = [
-                descPriority,       // 1) 매물번호 '-'
-                titlePriority,      // 2) 매물명 '-'
-                statusPriority,     // 3~6) 거래상태
-                depositPriority,    // 7~9) 보증금
-                monthlyPriority,    // 10~12) 월세
-                premiumPriority,    // 13) 권리금 없음
-                areaPriority,       // 14~15) 면적
-                loanPriority,       // 16) 융자금 없음
-                restroomPriority,   // 17) 화장실 확인
-                featuresPriority,   // 18) 매물특징 미표시
-                floorPriority,      // 19) 해당층 확인
-                totalFloorPriority, // 20) 총층 확인
-                idx                 // 안정적 정렬
-              ];
-
-              // 출력 라벨이 빈 문자열이라면 '-'로 표시
-              const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
-              const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
 
               return {
                 adId,
