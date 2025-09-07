@@ -514,7 +514,7 @@
       const tbody = document.getElementById('listings-body');
 
       function goToListing(id) {
-        const href = makeAdminUrl({ id: String(id) }); // ✅ '/admin?id=24873'
+        const href = `https://baikuk.com/item/view/${id}`;
         window.open(href, '_blank', 'noopener,noreferrer');
       }
 
