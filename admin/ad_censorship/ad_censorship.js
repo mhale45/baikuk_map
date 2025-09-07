@@ -458,24 +458,26 @@ async function renderStaffSidebar(me) {
               return 0;
             });
 
-            // 렌더링
             enriched.forEach(item => {
               const tr = document.createElement('tr');
-              
+
               // 네이버/자체 링크용 URL 생성
+              const isNoId = (item.descId === '-' || item.descId === '매물번호 없음');
               const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.descId}`;
               const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
 
-              // 매물번호가 '-'이면 빨간색 "매물번호 없음" 표시
-              const descCell = (item.descId === '-' || item.descId === '매물번호 없음')
+              // 1열: 네이버 — 매물번호 그대로 표시 + 클릭 시 네이버로 이동
+              const naverCell = isNoId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `
-                  <a href="${naverUrl}" target="_blank" class="text-blue-600 hover:underline mr-2">${item.descId} (네이버)</a>
-                  <a href="${baikukUrl}" target="_blank" class="text-green-600 hover:underline">${item.descId} (백억)</a>
-                `;
+                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
+
+              // 2열: 매물번호 — 매물번호 그대로 표시 + 클릭 시 백억으로 이동
+              const descCell = isNoId
+                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
+                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.descId}</a>`;
 
               tr.innerHTML = `
-                <td class="border border-gray-300 px-3 py-1">${item.adId}</td>
+                <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.status}</td>
@@ -488,7 +490,6 @@ async function renderStaffSidebar(me) {
             });
 
             resultBox.appendChild(table);
-
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';
