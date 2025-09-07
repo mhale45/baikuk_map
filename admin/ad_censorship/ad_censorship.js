@@ -473,10 +473,10 @@ async function renderStaffSidebar(me) {
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
                 : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.adId}</a>`;
 
-              // 2) 매물번호 열: descId 표시 + 백억 링크 (#F2C130 색상)
+              // 2) 매물번호 열: descId 표시 + 백억 링크 (파란색)
               const descCell = noId
                 ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline" style="color:#F2C130;">${item.descId}</a>`;
+                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
 
               // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시
               const statusCell = (item.status.includes('계약완료') || item.status.includes('보류'))
