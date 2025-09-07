@@ -390,13 +390,21 @@ async function renderStaffSidebar(me) {
               // 1) 매물명(title)이 '-' 인 항목 우선
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 거래상태 세부 우선순위
+              // 2) 거래상태 세부 우선순위 (부분일치 적용)
+              const s = (status ?? '').toString().trim();
               let statusPriority = 99;
-              if (status === '-') statusPriority = 0;
-              else if (status === '0') statusPriority = 1;
-              else if (status === '계약완료') statusPriority = 2;
-              else if (status === '보류') statusPriority = 3;
-              else statusPriority = 4;
+
+              if (s === '-') {
+                statusPriority = 0;                              // 상태 없음
+              } else if (s.includes('0')) {
+                statusPriority = 1;                              // '0', '0번', '0상태' 등 포함
+              } else if (s.includes('계약완료') || s.includes('거래완료')) {
+                statusPriority = 2;                              // '계약완료', '계약완료 1234', '거래완료' 등
+              } else if (s.includes('보류')) {
+                statusPriority = 3;                              // '보류', '보류 처리', '보류 1차' 등
+              } else {
+                statusPriority = 4;                              // 진행중 및 기타 상태
+              }
 
               // 숫자 기준으로 판정 (라벨은 출력용)
               const depC = _normMoney(row.ad_deposit_price);
