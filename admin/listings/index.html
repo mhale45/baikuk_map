@@ -513,6 +513,11 @@
       // ✅ 행 클릭 → /<매물번호> 로 이동 (Ctrl/⌘-클릭 또는 휠클릭은 새 탭)
       const tbody = document.getElementById('listings-body');
 
+      // function goToListing(id) { 나중에 이동링크 수정
+      //   const href = makeAdminUrl({ id: String(id) }); // ✅ '/admin?id=24873'
+      //   window.open(href, '_blank', 'noopener,noreferrer');
+      // }
+
       function goToListing(id) {
         const href = `https://baikuk.com/item/view/${id}`;
         window.open(href, '_blank', 'noopener,noreferrer');
