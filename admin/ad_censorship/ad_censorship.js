@@ -486,64 +486,56 @@ async function renderStaffSidebar(me) {
                 }
               }
 
-              // 정렬 우선순위 계산
-              // 0) 매물번호(descId)가 '-' 인 항목 최우선
+              // 정렬 우선순위 계산 (요청하신 우선순위 반영)
+              // 0) 매물번호 '-'
               const descPriority = (descId === '-') ? 0 : 1;
 
-              // 1) 매물명(title)이 '-' 인 항목 우선
+              // 1) 매물명 '-'
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 거래상태 세부 우선순위 (부분일치 적용)
+              // 2) 거래상태: '-', '0', '거래완료', '보류', 기타
               const s = (status ?? '').toString().trim();
               let statusPriority = 99;
-
               if (s === '-') {
-                statusPriority = 0;                              // 상태 없음
+                statusPriority = 0;
               } else if (s.includes('0')) {
-                statusPriority = 1;                              // '0', '0번', '0상태' 등 포함
-              } else if (s.includes('계약완료') || s.includes('거래완료')) {
-                statusPriority = 2;                              // '계약완료', '계약완료 1234', '거래완료' 등
+                statusPriority = 1;
+              } else if (s.includes('거래완료')) {
+                statusPriority = 2;
               } else if (s.includes('보류')) {
-                statusPriority = 3;                              // '보류', '보류 처리', '보류 1차' 등
+                statusPriority = 3;
               } else {
-                statusPriority = 4;                              // 진행중 및 기타 상태
+                statusPriority = 4;
               }
 
-              // 숫자 기준으로 판정 (라벨은 출력용)
-              const depC = _normMoney(row.ad_deposit_price);
-              const depB = _normMoney(info?.deposit_price);
-              const monC = _normMoney(row.ad_monthly_rent);
-              const monB = _normMoney(info?.monthly_rent);
+              // 3) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
+              let depositPriority = 3;
+              if (depositLabel.includes('보증금 확인')) depositPriority = 0;
+              else if (depositLabel.includes('상세설명')) depositPriority = 1;
+              else if (depositLabel === '-') depositPriority = 2;
 
-              const isDepositCheck = (depC !== null && depB !== null && depC !== depB);
-              const isMonthlyCheck = (monC !== null && monB !== null && monC !== monB);
+              // 4) 월세: '-' → '월세 확인' → '상세설명' → 기타
+              let monthlyPriority = 3;
+              if (monthlyLabel === '-') monthlyPriority = 0;
+              else if (monthlyLabel.includes('월세 확인')) monthlyPriority = 1;
+              else if (monthlyLabel.includes('상세설명')) monthlyPriority = 2;
 
-              // 3) 보증금: '보증금 확인' → '-' 우선
-              let depositPriority = 2;
-              if (isDepositCheck) depositPriority = 0;
-              else if (depC === null) depositPriority = 1;
-
-              // 4) 월세: '-' → '월세 확인' 우선
-              let monthlyPriority = 2;
-              if (monC === null) monthlyPriority = 0;
-              else if (isMonthlyCheck) monthlyPriority = 1;
-
-              // 5) 권리금: '권리금 없음' 우선
+              // 5) 권리금: '권리금 없음'
               const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
 
-              // 6) 융자금: '융자금 없음' 우선
+              // 6) 융자금: '융자금 없음'
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 최종 sortKey (요청하신 우선순위 순서대로)
+              // 최종 sortKey (정렬 순서 반영)
               const sortKey = [
                 descPriority,     // 매물번호 '-'
                 titlePriority,    // 매물명 '-'
-                statusPriority,   // 거래상태 '-', '0', '거래완료', '보류', 기타
-                depositPriority,  // 보증금 '보증금 확인' → '-'
-                monthlyPriority,  // 월세 '-' → '월세 확인'
-                premiumPriority,  // 권리금 '권리금 없음'
-                loanPriority,     // 융자금 '융자금 없음'
-                idx               // 안정적 정렬 보조
+                statusPriority,   // 거래상태
+                depositPriority,  // 보증금
+                monthlyPriority,  // 월세
+                premiumPriority,  // 권리금
+                loanPriority,     // 융자금
+                idx               // 안정적 정렬
               ];
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
