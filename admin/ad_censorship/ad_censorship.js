@@ -378,18 +378,21 @@ async function renderStaffSidebar(me) {
         try {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
-            .from('ad_baikuk_listings')
-            .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent')
-            .eq('branch_name', branchName)
-            .ilike('agent_name', likeValue);
+              .from('ad_baikuk_listings')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent')
+              .eq('branch_name', branchName)
+              .ilike('agent_name', likeValue);
 
             if (error) throw error;
 
             const rows = data || [];
 
+            // ✅ 로딩 문구 해제: 결과 요약으로 교체
+            meta.textContent = `${branchName} / ${channel} - 총 ${rows.length}건`;
+
             if (!rows.length) {
-                resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
-                return;
+              resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
+              return;
             }
 
             // ✅ 표 생성
@@ -603,6 +606,8 @@ async function renderStaffSidebar(me) {
             });
 
             resultBox.appendChild(table);
+            // ✅ 렌더 완료 후 다시 한번 메타 갱신(보장성)
+            meta.textContent = `${branchName} / ${channel} - 총 ${rows.length}건`;
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';
