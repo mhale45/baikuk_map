@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -426,6 +426,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
                   <th class="w-[12rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">타입</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
@@ -677,6 +678,7 @@ async function renderStaffSidebar(me) {
                 floorCell,
                 totalFloorCell,
                 areaCell,
+                dealType: row.ad_deal_type ?? '-',
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
@@ -733,6 +735,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.dealType}</td>
                 <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
