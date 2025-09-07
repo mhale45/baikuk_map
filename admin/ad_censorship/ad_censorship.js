@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -434,6 +434,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
                   <th class="w-[18rem] border border-gray-300 px-3 py-2 text-left">매물특징</th>
@@ -604,6 +605,18 @@ async function renderStaffSidebar(me) {
                 monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
               }
 
+              // === [화장실] 표시 ===
+              // 규칙: ad_restroom 값을 '/' 기준으로 오른쪽 문자열을 추출해 그 안에 '0'이 포함되면
+              //      빨간 '화장실 확인', 아니면 '-'
+              let restroomLabel = '-';
+              const rrRaw = row.ad_restroom ?? '';
+              const rrRight = String(rrRaw).includes('/')
+                ? String(rrRaw).split('/')[1].trim()
+                : '';
+              if (rrRight.includes('0')) {
+                restroomLabel = '<span class="text-red-600 font-semibold">화장실 확인</span>';
+              }
+
               // 표시값 계산
               const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
@@ -720,6 +733,7 @@ async function renderStaffSidebar(me) {
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
+                restroomLabel,
                 featuresLabel,
                 salePriceLabel,
                 sortKey
@@ -781,6 +795,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>

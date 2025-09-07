@@ -401,7 +401,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features')
+              .select('ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -426,10 +426,13 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물번호</th>
                   <th class="w-[12rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">타입</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">거래상태</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매매가</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
@@ -456,7 +459,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -470,7 +473,9 @@ async function renderStaffSidebar(me) {
                       deposit_price: r.deposit_price,
                       monthly_rent: r.monthly_rent,
                       floor: r.floor ?? '',
-                      total_floors: r.total_floors ?? ''
+                      total_floors: r.total_floors ?? '',
+                      sale_price: r.sale_price ?? '',
+                      area_m2: r.area_m2 ?? ''   // ✅ 추가
                     }
                   ])
                 );
@@ -537,19 +542,79 @@ async function renderStaffSidebar(me) {
                 : (hasAdTotal ? (String(adTotalRaw).includes('/') ? String(adTotalRaw).split('/')[1].trim() : adTotalBack) // 시각적으로 광고 원형 유지
                               : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
+              // === [면적] 비교 ===
+              // 월세일 때만 적용
+              let areaCell = row.ad_area ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
+                const adAreaRaw = row.ad_area ?? '';
+                const adAreaRight = String(adAreaRaw).includes('/')
+                  ? String(adAreaRaw).split('/')[1].trim()
+                  : String(adAreaRaw).trim();
+                const adAreaNum = _normMoney(adAreaRight);
+
+                // 기준값: baikukdbtest.area_m2
+                const baseAreaRaw = info?.area_m2 ?? '';
+                const baseAreaNum = _normMoney(baseAreaRaw);
+
+                // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
+                const needAreaCheck =
+                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 3;
+
+                // 2) 광고값 vs (description_area_py ÷ 0.3025) 3㎡ 이상 차이면 → '상세설명' (빨간)
+                const descAreaPy = _normMoney(row.description_area_py);
+                const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
+                const needAreaDescBadge =
+                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
+
+                // 출력 우선순위 ...
+                let areaOut = needAreaCheck
+                  ? '<span class="text-red-600 font-semibold">면적 확인</span>'
+                  : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
+
+                if (needAreaDescBadge) {
+                  areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
+                }
+
+                areaCell = areaOut;
+              }
+
+              // === [매매가] 비교 ===
+              let salePriceLabel = '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('매매')) {
+                const adSale = _normMoney(row.ad_sale_price);
+                const baseSale = _normMoney(info?.sale_price);
+
+                if (adSale !== null && baseSale !== null && adSale !== baseSale) {
+                  salePriceLabel = '<span class="text-red-600 font-semibold">매매가 확인</span>';
+                } else if (adSale !== null) {
+                  salePriceLabel = adSale.toLocaleString();
+                } else if (baseSale !== null) {
+                  salePriceLabel = baseSale.toLocaleString();
+                }
+              }
+
               // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
-              const depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
-              const monthlyLabel = _compareMoney(row.ad_monthly_rent,  info?.monthly_rent,  '월세 확인');
+              let depositLabel = row.ad_deposit_price ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
+              }
+              let monthlyLabel = row.ad_monthly_rent ?? '-';
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
+              }
 
               // 표시값 계산
               const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
               let premiumLabel = '-';
-              if (premiumPrice !== undefined) {
-                if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
-                  premiumLabel = '권리금 없음';
-                } else {
-                  premiumLabel = premiumPrice;
+              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+                if (premiumPrice !== undefined) {
+                  if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                    premiumLabel = '권리금 없음';
+                  } else {
+                    premiumLabel = premiumPrice;
+                  }
                 }
               }
 
@@ -646,14 +711,17 @@ async function renderStaffSidebar(me) {
                 adId,
                 descId,
                 title,
-                statusDisplay, // ✅ 표시용(날짜 제거)
+                statusDisplay,
                 floorCell,
                 totalFloorCell,
+                areaCell,
+                dealType: row.ad_deal_type ?? '-',
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
                 featuresLabel,
+                salePriceLabel,
                 sortKey
               };
             });
@@ -705,10 +773,13 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.title}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.dealType}</td>
                 <td class="border border-gray-300 px-3 py-1">${statusCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.salePriceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.depositLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
