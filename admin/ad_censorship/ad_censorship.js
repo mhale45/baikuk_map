@@ -493,14 +493,14 @@ async function renderStaffSidebar(me) {
               // 1) 매물명 '-'
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 2) 거래상태: '-', '0', '거래완료', '보류', 기타
+              // 2) 거래상태: '-', '0', '계약완료', '보류', 기타
               const s = (status ?? '').toString().trim();
               let statusPriority = 99;
               if (s === '-') {
                 statusPriority = 0;
               } else if (s.includes('0')) {
                 statusPriority = 1;
-              } else if (s.includes('거래완료')) {
+              } else if (s.includes('계약완료')) {
                 statusPriority = 2;
               } else if (s.includes('보류')) {
                 statusPriority = 3;
