@@ -416,16 +416,16 @@ async function renderStaffSidebar(me) {
             table.innerHTML = `
             <thead class="bg-gray-100">
                 <tr>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">네이버</th>
-                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">매물번호</th>
+                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">네이버</th>
+                  <th class="w-[8rem] border border-gray-300 px-3 py-2 text-left">매물번호</th>
                   <th class="w-[12rem] border border-gray-300 px-3 py-2 text-left">매물명</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">거래상태</th>
-                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">보증금</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">월세</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">권리금</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">융자금</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">해당층</th>
-                  <th class="w-[5rem] border border-gray-300 px-3 py-2 text-left">총층</th>
+                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">거래상태</th>
+                  <th class="w-[7rem] border border-gray-300 px-3 py-2 text-left">보증금</th>
+                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">월세</th>
+                  <th class="w-[7rem] border border-gray-300 px-3 py-2 text-left">권리금</th>
+                  <th class="w-[7rem] border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="w-[7rem] border border-gray-300 px-3 py-2 text-left">해당층</th>
+                  <th class="w-[6rem] border border-gray-300 px-3 py-2 text-left">총층</th>
                   <th class="w-[18rem] border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
