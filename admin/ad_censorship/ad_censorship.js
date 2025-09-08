@@ -560,13 +560,13 @@ async function renderStaffSidebar(me) {
 
                 // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
                 const needAreaCheck =
-                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 3;
+                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 6;
 
-                // 2) 광고값 vs (description_area_py ÷ 0.3025) 3㎡ 이상 차이면 → '상세설명' (빨간)
+                // 2) 광고값 vs (description_area_py ÷ 0.3025) 6㎡ 이상 차이면 → '상세설명' (빨간)
                 const descAreaPy = _normMoney(row.description_area_py);
                 const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
                 const needAreaDescBadge =
-                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
+                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 6;
 
                 // 출력 우선순위 ...
                 let areaOut = needAreaCheck
