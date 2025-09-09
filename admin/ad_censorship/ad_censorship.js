@@ -16,6 +16,7 @@ document.dispatchEvent(new Event('supabase-ready'));
 // === 내부 상태 ===
 let __selectedStaffId = null;            // 선택된 직원 ID (string)
 let __selectedAffiliation = null;        // 선택된 지점명 (string)
+let __selectedChannel = null;            // 선택된 채널 (string)
 const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원ID Set 캐시
 
 // === DOM refs (지연 바인딩) ===
@@ -185,14 +186,21 @@ async function getMyAuthorityAndStaffId() {
 }
 
 // === 직원 클릭 시 선택/강조 ===
-function setActiveStaff(container, staffId) {
+function setActiveStaff(container, staffId, channel) {
   __selectedStaffId = staffId;
+  __selectedChannel = (channel ?? '').trim();
   __selectedAffiliation = null;
 
+  // 지점 헤더 강조 해제
   container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+
+  // 직원/채널이 모두 일치하는 줄만 노란 강조
   container.querySelectorAll('.name-item').forEach(el => {
     if (el.dataset.disabled === '1') return;
-    if (String(el.dataset.staffId) === String(staffId)) el.classList.add('bg-yellow-200');
+    const sameStaff   = String(el.dataset.staffId) === String(staffId);
+    const elChannel   = (el.dataset.channel || '').trim();
+    const sameChannel = elChannel === __selectedChannel;
+    if (sameStaff && sameChannel) el.classList.add('bg-yellow-200');
     else el.classList.remove('bg-yellow-200');
   });
 
@@ -204,7 +212,8 @@ function emitFilterChange() {
   document.dispatchEvent(new CustomEvent('adc:filter-change', {
     detail: {
       staffId: __selectedStaffId ? String(__selectedStaffId) : null,
-      affiliation: __selectedAffiliation || null
+      affiliation: __selectedAffiliation || null,
+      channel: __selectedChannel || null
     }
   }));
 }
@@ -288,6 +297,7 @@ async function renderStaffSidebar(me) {
         } else {
           __selectedAffiliation = aff;
           __selectedStaffId = null;
+          __selectedChannel = null;
           container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
           header.classList.add('ring-2', 'ring-yellow-400');
           container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
@@ -391,8 +401,8 @@ async function renderStaffSidebar(me) {
         const el = e.target.closest('.name-item');
         if (!el || el.dataset.disabled === '1') return;
 
-        // 선택 강조(기존 로직)
-        setActiveStaff(container, el.dataset.staffId);
+        // 선택 강조(직원 + 채널 단일 줄만 강조)
+        setActiveStaff(container, el.dataset.staffId, el.dataset.channel);
 
         // ✅ 클릭한 직원의 소속/채널로 supabase 조회
         const branchName = el.dataset.branch || '';
