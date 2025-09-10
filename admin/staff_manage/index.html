@@ -653,6 +653,8 @@
       const join_date   = document.getElementById('signup-join').value;
       const phone_num   = document.getElementById('signup-phone').value;
       const extension   = document.getElementById('signup-extension').value;
+
+      // 로그인기기 수 검증
       const maxRaw = (document.getElementById('signup-max-sessions').value || '').trim();
       const maxParsed = maxRaw === '' ? null : Number.parseInt(maxRaw, 10);
       if (maxParsed !== null && (!Number.isInteger(maxParsed) || maxParsed < 1 || maxParsed > 10)) {
@@ -665,7 +667,7 @@
         return;
       }
 
-      // 0) 현재 로그인/내 프로필
+      // 0) 현재 로그인/내 프로필 (권한 확인용)
       const { data: { user: sessionUser } } = await supabase.auth.getUser();
       if (!sessionUser) { showToast('로그인이 필요합니다.'); return; }
 
@@ -674,10 +676,9 @@
         .select('authority, affiliation')
         .eq('user_id', sessionUser.id)
         .single();
-
       if (meErr || !me) { showToast('내 권한 정보를 불러오지 못했습니다.'); return; }
 
-      // 1) 권한 검증 (통과 못하면 auth.signUp 호출 자체를 안 함)
+      // 1) 프론트권한 검증 (서버에서도 다시 검증하지만 UX 위해 유지)
       const isAdmin   = me.authority === '관리자';
       const isManager = me.authority === '지점장';
 
@@ -697,13 +698,12 @@
         }
       }
 
-      // 2) staff_profiles에서 이메일 중복 검사 (먼저)
+      // 2) (선택) 이메일 중복 사전 체크 - UX용
       const { data: dup, error: dupErr } = await supabase
         .from('staff_profiles')
         .select('user_id')
         .eq('email', email)
         .maybeSingle();
-
       if (dupErr) {
         console.error(dupErr);
         showToast('이메일 중복 확인 중 오류가 발생했습니다.');
@@ -714,61 +714,67 @@
         return;
       }
 
-      // 3) 여기서만 Supabase Auth에 사용자 생성 시도
-      const { data: signUpData, error: signUpErr } =
-        await supabase.auth.signUp({ email, password });
-
-      if (signUpErr) {
-        const msg = signUpErr.message?.toLowerCase() || '';
-        if (msg.includes('already') && msg.includes('registered')) {
-          showToast('이미 가입된 이메일입니다. 다른 이메일을 입력해 주세요.');
-        } else if (msg.includes('password')) {
-          showToast('비밀번호 조건을 확인해 주세요. (최소 6자 이상)');
-        } else {
-          showToast(`회원가입 실패: ${signUpErr.message}`);
-        }
-        return;
-      }
-
-      const newUserId = signUpData?.user?.id || signUpData?.session?.user?.id;
-      if (!newUserId) {
-        showToast('가입 메일을 확인한 뒤 다시 시도해 주세요.');
-        return;
-      }
-
-      // helper: 빈 문자열을 null로
+      // helper: 빈 문자열 -> null
       const emptyToNull = v => (v === '' || v === undefined ? null : v);
 
-      // 4) staff_profiles insert (RLS가 서버에서 한 번 더 검증)
-      const profileData = {
-        user_id: newUserId,
-        name: name.trim(),                 // 이름은 trim만
-        email,                             // text OK
-        position:    emptyToNull(position),
-        affiliation: emptyToNull(affiliation),
-        authority:   emptyToNull(authority),
-        gender:      emptyToNull(gender),
-        birth_date:  emptyToNull(birth_date), // ← '' -> null (DATE)
-        join_date:   emptyToNull(join_date),  // ← '' -> null (DATE)
-        phone_num:   emptyToNull(phone_num),
-        extension:   emptyToNull(extension),
-        max_sessions: maxParsed,
-        ad_channel:     emptyToNull(document.getElementById('signup-ad-channel').value),
-        ad_account_id:  emptyToNull(document.getElementById('signup-ad-account-id').value),
-        ad_account_pw:  emptyToNull(document.getElementById('signup-ad-account-pw').value),
+      // 3) 🔴 기존의 auth.signUp + profiles.insert 를 없애고
+      //    Edge Function(서비스 롤) 호출로 한번에 처리
+      //    함수 이름: admin-create-staff  (원하는 이름을 쓰되 서버와 일치)
+      const payload = {
+        email,
+        password,
+        profile: {
+          name: name.trim(),
+          email,
+          position:    emptyToNull(position),
+          affiliation: emptyToNull(affiliation),
+          authority:   emptyToNull(authority),
+          gender:      emptyToNull(gender),
+          birth_date:  emptyToNull(birth_date),
+          join_date:   emptyToNull(join_date),
+          phone_num:   emptyToNull(phone_num),
+          extension:   emptyToNull(extension),
+          max_sessions: maxParsed,
+          ad_channel:    emptyToNull(document.getElementById('signup-ad-channel').value),
+          ad_account_id: emptyToNull(document.getElementById('signup-ad-account-id').value),
+          ad_account_pw: emptyToNull(document.getElementById('signup-ad-account-pw').value),
+        }
       };
 
-      const { error: insertErr } = await supabase.from('staff_profiles').insert(profileData);
-      if (insertErr) {
-        console.error(insertErr);
-        showToast(`프로필 저장 실패: ${insertErr.message}`);
-        return;
-      }
+      // 버튼 중복 클릭 방지 UX
+      const btn = document.querySelector('#signupPanel button[data-role="submit"]');
+      const prevLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '생성 중...';
 
-      showToast('회원가입 완료!');
-      closeSignupPanel();
-      fetchStaffProfiles();
-      resetSignupForm();
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-create-staff', {
+          body: payload,
+        });
+
+        if (error) {
+          const msg = (typeof error.message === 'string' && error.message) || '계정 생성 실패';
+          showToast(msg);
+          return;
+        }
+
+        // 서버 함수에서 에러 문자열을 data.error에 넣어줄 수도 있으니 한 번 더 체크
+        if (data?.error) {
+          showToast(data.error);
+          return;
+        }
+
+        showToast('회원가입 완료!');
+        closeSignupPanel();
+        fetchStaffProfiles();
+        resetSignupForm();
+      } catch (e) {
+        console.error(e);
+        showToast('계정 생성 중 오류가 발생했습니다.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      }
     };
 
     window.resetSignupForm = function () {

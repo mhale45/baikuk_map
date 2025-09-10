@@ -1,0 +1,247 @@
+▶ 테이블 컬럼명시
+- ad_baikuk_listings
+ad_listing_id : int8
+ad_deal_type : varchar 
+ad_deposit_price : numeric 
+ad_monthly_rent : numeric 
+ad_sale_price : numeric 
+ad_listings_features : text 
+ad_area : varchar 
+ad_floor_info :  text
+ad_restroom : varchar 
+description_listing_id : int8 
+description_deposit_price : numeric 
+deposit_monthly_rent : numeric 
+description_area_py : varchar 
+agent_name : text
+branch_name : text
+ad_loan : text
+ad_premium : text
+maintenance_cost : text
+
+- performance_allocations
+performance_id : uuid
+buyer_weight1 : numeric
+buyer_weight2 : numeric
+buyer_weight3 : numeric
+buyer_weight4 : numeric
+buyer_amount1 : numeric
+buyer_amount2 : numeric
+buyer_amount3 : numeric
+buyer_amount4 : numeric
+seller_weight1 : numeric 
+seller_weight2 : numeric 
+seller_weight3 : numeric 
+seller_weight4 : numeric 
+seller_amount1 : numeric 
+seller_amount2 : numeric 
+seller_amount3 : numeric 
+seller_amount4 : numeric 
+staff_id1 : uuid 
+staff_id2 : uuid 
+staff_id3 : uuid 
+staff_id4 : uuid 
+created_by : uuid
+created_at : timestamptz
+involvement_sales1  : numeric 
+involvement_sales2  : numeric 
+involvement_sales3  : numeric 
+involvement_sales4  : numeric 
+updated_by : uuid
+updated_at : timestamptz
+
+- performance
+id : uuid
+listing_id : int8
+deal_type : text
+listing_title : text
+province : text
+city : text 
+district : text 
+detail_address : text 
+contract_date : date
+balance_date : date
+deposit_price : numeric
+monthly_rent  : numeric 
+sale_price  : numeric 
+area_py  : numeric 
+floor : int2
+unit_info : text
+memo : text
+expense : numeric 
+premium_price   : numeric 
+buyer_fee  : numeric 
+buyer_tax  : numeric 
+buyer_tax_date : date
+buyer_standard_fee   : numeric 
+seller_fee  : numeric 
+seller_tax  : numeric 
+seller_tax_date : date
+seller_standard_fee   : numeric 
+seller_performance : numeric 
+buyer_performance :  numeric 
+special_contract  : text
+interim_payment1 : numeric
+interim_payment2 : numeric
+interim_payment3 : numeric
+interim_payment1_date : date
+interim_payment2_date  : date
+interim_payment3_date  : date
+status : bool
+affiliation : text
+created_by : uuid
+seller_distribution_rate  :  numeric 
+interim_payment1_date : date
+interim_payment2_date : date
+interim_payment3_date : date
+down_payment  : numeric
+balance : numeric
+created_at : timestamptz
+updated_at : timestamptz
+updated_by : uuid
+
+- branch_info
+id : int8
+office_name : varchar
+full_address : varchar 
+contact_number : varchar 
+representative_name : varchar 
+registration_number : varchar 
+lat : float8
+lng : float8 
+affiliation : varchar
+is_public : bool
+branch_manager_id : uuid
+
+- staff_profiles
+id : uuid
+position : text
+내선번호 extension  : text
+join_date : date
+leave_date : date
+name : text
+gender : text 
+birth_date  : date 
+phone_num : text
+affiliation : text
+user_id : uuid
+authority : text
+email : text
+session_limit_enabled : boll
+max_sessions  : int4
+ad_account_id : varchar
+ad_account_pw : varchar
+ad_channel : varchar
+
+- customers
+id : int8
+staff_profiles_id  : text
+registered_at  : date
+customer_name  : text
+customer_phone_number  : text
+memo : text
+phone_last4 : numeric
+grade : text
+
+- customers_recommendations
+id : int8
+customers_id  : text
+listing_id : int8 
+listing_title 
+full_address 
+building_detail_info 
+deposit_price 
+monthly_rent 
+premium_price 
+area_py
+
+- only_lat_lng 테이블
+full_address : text
+lat : float8
+lng : float8 
+
+- building_info 테이블
+full_address : text
+building_name : text
+addr_compare : text
+building_note : text
+
+- baikukdbtest 테이블
+담당자명 agent_name : text
+거래완료 여부 transaction_status : text 
+거래유형 deal_type : text 
+대분류 1차 category : text 
+매물명 listing_title : text 
+시/도 province : text 
+구/군 city : text 
+동/읍/면 district : text 
+상세주소 detail_address  : text 
+지번주소 full_address : text 
+호수정보 unit_info : text 
+방/사무실 개수 room_count : text 
+화장실 restroom : text 
+방향 direction : text 
+제목 title : text 
+상세정보 description : text 
+비밀메모 private_note : text 
+상가종류 store_type : text 
+업종  store_type_detail : text 
+특징 features  : text 
+공개  is_public : text 
+건축물용도 building_usage : text 
+키 composite_key : text 
+링크 listing_url : text 
+매물번호 listing_id : int8
+해당층 floor  : int2
+전체층 total_floors  : int2
+주차 parking : int2
+추천 recommend_count : int4
+매매가(만원) sale_price : numeric 
+보증금(만원) deposit_price : numeric 
+월세(만원) monthly_rent : numeric 
+권리금(만원) premium_price : numeric 
+총월세 보증금(만원) total_deposit : numeric 
+총월세 total_rent : numeric 
+전용면적 (㎡) area_m2 : numeric 
+전용면적 (평) area_py : numeric 
+공급면적(㎡) supply_area_m2 : numeric 
+공급면적(평) supply_area_py : numeric 
+대지면적(㎡) land_area_m2 : numeric 
+대지면적(평) land_area_py : numeric 
+건축면적(㎡) building_area_m2 : numeric 
+건축면적(평) building_area_py : numeric 
+연면적(㎡) total_floor_area_m2 : numeric 
+연면적(평) total_floor_area_py : numeric 
+토지면적(㎡) site_area_m2 : numeric 
+토지면적(평) site_area_py : numeric 
+평당매매가 sale_per_py : numeric 
+수익률 roi : numeric 
+평당임대료 rent_per_py : numeric 
+위도 lat : float8
+경도 lng : float8 
+등록일 created_at : timestampz
+수정일 updated_at : timestampz 
+사용승인일 approved_date : date
+출입 entrance : text 
+광고현황 ad_status : text 
+고객정보 customer_data : text 
+광고종류  ad_type  : text 
+통신사 carrier  : text 
+건물주 이름 buildingownername  : text 
+건물주 전화번호 ownerphonenumber  : text 
+건물주 성별 ownergender : text 
+건물주 주소 owner_address  : text 
+상가타입 store_category : text 
+addr_compare : text
+
+- building_info 테이블
+full_address : text
+building_name : text
+addr_compare : text
+building_note : text
+
+▶ province_city_district 테이블
+id : int8
+province : text
+city : text
+district : text
