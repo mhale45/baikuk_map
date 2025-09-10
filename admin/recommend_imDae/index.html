@@ -420,13 +420,15 @@
       const { data: staffList, error: staffErr } = await q;
       if (staffErr || !staffList) return;
 
+      // 내가 로그인한 staff id
+      const myStaffId = me.id;
+
       // 3) 소속별 그룹화
       const grouped = staffList.reduce((acc, s) => {
         (acc[s.affiliation || '미지정'] ||= []).push(s);
         return acc;
       }, {});
 
-      // 4) 같은 소속 먼저, 나머지 소속 순회
       const appendGroup = (label, members) => {
         if (!members?.length) return;
         const og = document.createElement('optgroup');
@@ -434,26 +436,29 @@
         members.forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.id;
-          // 관리자/지점장에게만 퇴사자 표기 (직원은 애초에 안 나옴)
           const retiredTag = (myAuth !== '직원' && s.leave_date) ? ' (퇴사)' : '';
           opt.textContent = `${s.name}${retiredTag}`;
-          if (currentStaffId && s.id === currentStaffId) opt.selected = true;
+
+          // ✅ 우선순위: currentStaffId → 없으면 내 staff id
+          if ((currentStaffId && s.id === currentStaffId) || (!currentStaffId && s.id === myStaffId)) {
+            opt.selected = true;
+          }
+
           og.appendChild(opt);
         });
         staffSelect.appendChild(og);
       };
 
-      // 같은 소속 먼저
       if (myAff && grouped[myAff]) {
         appendGroup(`${myAff} (같은 소속)`, grouped[myAff]);
         delete grouped[myAff];
       }
 
-      // 나머지 소속
       Object.entries(grouped).forEach(([aff, members]) => {
         appendGroup(aff, members);
       });
     }
+
 
     // 첫로드시 직원표시 함수
     async function loadCurrentUserStaffInfo() {
@@ -1114,6 +1119,7 @@
       preloadBuildingInfo();
       loadCustomersForCurrentStaff();
       loadCurrentUserStaffInfo(); // 첫로드시 담당자정보 본인정보 표시
+      loadStaffOptions();
 
       const memoTextarea = document.getElementById('memo-textarea');
       
