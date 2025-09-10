@@ -31,6 +31,10 @@
       z-index: 10;
       background-color: transparent;
     }
+    .input-error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 1px #ef4444 inset;
+    }
   </style>
   <script>
     window.STAFF_BASE_ROWS = [];
@@ -272,9 +276,11 @@
       btn.onclick = submitSignup;  // 기존 가입 함수
       resetSignupForm();
       applyUiByAuthority();
+      prepareSignupValidation(); 
     };
 
     window.openEditPanel = function (staff) {
+      prepareSignupValidation();
       window.FORM_MODE = 'edit';
       window.CURRENT_EDIT_USER_ID = staff.user_id;
       document.getElementById('signup-password')?.classList.add('hidden'); // 또는 disabled = true
@@ -622,6 +628,52 @@
       CURRENT_EDIT_USER_ID = null;
     }
 
+    // 에러 표시/해제
+    function markInvalid(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('input-error');
+      // 첫 번째 에러에 포커스
+      if (!markInvalid._focusedOnce) {
+        try { el.focus(); } catch(_) {}
+        markInvalid._focusedOnce = true;
+      }
+    }
+    function clearInvalid(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('input-error');
+    }
+
+    // 값 변화 시 에러 테두리 자동 제거
+    function bindClearOnInput(ids) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.clearBound === '1') return; // 이미 바인딩됨 방지
+        const handler = () => clearInvalid(id);
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+        el.dataset.clearBound = '1';
+      });
+    }
+
+    // 회원가입 패널 열 때 호출: 기존 resetSignupForm 뒤에 호출해주면 깔끔
+    function prepareSignupValidation() {
+      markInvalid._focusedOnce = false;
+      // 기존 에러 테두리 모두 제거
+      [
+        'signup-name','signup-email','signup-password',
+        'signup-affiliation','signup-authority','signup-max-sessions'
+      ].forEach(clearInvalid);
+
+      // 값 바뀌면 에러 테두리 제거
+      bindClearOnInput([
+        'signup-name','signup-email','signup-password',
+        'signup-affiliation','signup-authority','signup-max-sessions'
+      ]);
+    }
+
+
     window.closeSignupPanel = function () {
       document.getElementById('signupPanel').classList.add('translate-x-full');
     };
@@ -654,16 +706,30 @@
       const phone_num   = document.getElementById('signup-phone').value;
       const extension   = document.getElementById('signup-extension').value;
 
-      // 로그인기기 수 검증
+      // 로그인기기 수 원시값
       const maxRaw = (document.getElementById('signup-max-sessions').value || '').trim();
-      const maxParsed = maxRaw === '' ? null : Number.parseInt(maxRaw, 10);
-      if (maxParsed !== null && (!Number.isInteger(maxParsed) || maxParsed < 1 || maxParsed > 10)) {
-        showToast('로그인기기 수는 1~10 사이의 정수로 입력해주세요.');
+
+      // === [필수값 검증] ===
+      markInvalid._focusedOnce = false; // 포커스 초기화
+      let errors = [];
+
+      if (!name)        { markInvalid('signup-name');        errors.push('이름'); }
+      if (!email)       { markInvalid('signup-email');       errors.push('이메일'); }
+      if (!password)    { markInvalid('signup-password');    errors.push('비밀번호'); }
+      if (!affiliation) { markInvalid('signup-affiliation'); errors.push('부서'); }
+      if (!authority)   { markInvalid('signup-authority');   errors.push('권한'); }
+      if (!maxRaw)      { markInvalid('signup-max-sessions');errors.push('로그인기기'); }
+
+      if (errors.length > 0) {
+        showToast(`필수 항목이 비었습니다: ${errors.join(', ')}`);
         return;
       }
 
-      if (!email || !password || !name) {
-        showToast('이메일, 비밀번호, 이름은 필수입니다.');
+      // === [로그인기기 수 형식 검증] 1~10 정수 ===
+      const maxParsed = Number.parseInt(maxRaw, 10);
+      if (!Number.isInteger(maxParsed) || maxParsed < 1 || maxParsed > 10) {
+        markInvalid('signup-max-sessions');
+        showToast('로그인기기 수는 1~10 사이의 정수로 입력해주세요.');
         return;
       }
 
