@@ -753,16 +753,21 @@
         });
 
         if (error) {
-          const msg = (typeof error.message === 'string' && error.message) || '계정 생성 실패';
-          showToast(msg);
+          // supabase-js v2: error.context?.response 에 실제 Response 들어있음
+          let extra = '';
+          const resp = error?.context?.response;
+          if (resp) {
+            try {
+              const txt = await resp.text();
+              extra = ` [${resp.status}] ${txt?.slice(0, 300)}`;
+            } catch (_) {}
+          }
+          console.error('invoke error:', error, resp);
+          showToast(`Edge Function 호출 실패: ${error.message}${extra}`);
           return;
         }
 
-        // 서버 함수에서 에러 문자열을 data.error에 넣어줄 수도 있으니 한 번 더 체크
-        if (data?.error) {
-          showToast(data.error);
-          return;
-        }
+        if (data?.error) { showToast(data.error); return; }
 
         showToast('회원가입 완료!');
         closeSignupPanel();
@@ -770,7 +775,7 @@
         resetSignupForm();
       } catch (e) {
         console.error(e);
-        showToast('계정 생성 중 오류가 발생했습니다.');
+        showToast('네트워크 오류로 함수 호출 실패');
       } finally {
         btn.disabled = false;
         btn.textContent = prevLabel;
@@ -790,29 +795,18 @@
     // 위에서 설정한 supabase 객체를 사용합니다.
     async function fetchStaffProfiles() {
       const isStaff = (window.MY_AUTHORITY === '직원');
+      const canSeeSensitive = (window.MY_AUTHORITY === '관리자' || window.MY_AUTHORITY === '지점장');
+
+      const selectCols = `
+        user_id,name,email,affiliation,position,authority,gender,
+        birth_date,join_date,leave_date,phone_num,extension,max_sessions
+        ${canSeeSensitive ? ',ad_channel,ad_account_id,ad_account_pw' : ''}
+      `.replace(/\s+/g, ''); // 공백 정리
 
       const { data, error } = await supabase
         .from('staff_profiles')
-        .select(`
-          user_id,
-          name,
-          email,
-          affiliation,
-          position,
-          authority,
-          gender,
-          birth_date,
-          join_date,
-          leave_date,
-          phone_num,
-          extension,
-          max_sessions,
-          ad_channel,
-          ad_account_id,
-          ad_account_pw
-        `)
+        .select(selectCols)
         .order('name', { ascending: true });
-
 
       if (error) {
         console.error('데이터 불러오기 오류:', error);
