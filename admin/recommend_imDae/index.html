@@ -229,31 +229,31 @@
               <table>
                 <thead>
                   <tr id="header-row">
-                    <th class="resizable" style="min-width: 1.4rem;">
+                    <th class="resizable" style="width: 1.4rem;">
                       <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 10rem;">
+                    <th class="resizable" style="width: 10rem;">
                       매물명 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 9rem;">
+                    <th class="resizable" style="width: 9rem;">
                       주소 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 9rem;">
+                    <th class="resizable" style="width: 9rem;">
                       건물정보 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 5.2rem;">
+                    <th class="resizable" style="width: 5.2rem;">
                       보증금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 3.8rem;">
+                    <th class="resizable" style="width: 3.8rem;">
                       월세 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 5.2rem;">
+                    <th class="resizable" style="width: 5.2rem;">
                       권리금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 4.7rem;">
+                    <th class="resizable" style="width: 4.7rem;">
                       전용(평) <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="min-width: 15rem;">
+                    <th class="resizable" style="width: 15rem;">
                       내용 <div class="resize-handle"></div>
                     </th>
                   </tr>
@@ -287,34 +287,6 @@
     })();
 
     window.supabase = supabase; // 전역으로 접근
-
-    // ✅ 테이블 헤더 리사이즈 기능
-    document.querySelectorAll("th.resizable").forEach(th => {
-      const handle = document.createElement("div");
-      handle.className = "resize-handle";
-      th.appendChild(handle);
-
-      let startX, startWidth;
-
-      handle.addEventListener("mousedown", (e) => {
-        startX = e.pageX;
-        startWidth = th.offsetWidth;
-
-        const onMouseMove = (e) => {
-          const newWidth = startWidth + (e.pageX - startX);
-          th.style.width = newWidth + "px";
-          th.style.minWidth = newWidth + "px";
-        };
-
-        const onMouseUp = () => {
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", onMouseUp);
-        };
-
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", onMouseUp);
-      });
-    });
   </script>
   <script>
     // 스크립트 시작
@@ -1268,7 +1240,7 @@
           });
         });
       })();
-      
+
       syncRowHeights?.();
 
       // ✅ 전체선택 대상 제한: 매물번호/매물정보만
