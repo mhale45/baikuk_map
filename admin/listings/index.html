@@ -61,40 +61,94 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
-    // ✅ 세션 확인: 없으면 '항상' 로그인 모달 표시 (닫기 → 지도 이동)
+    // ✅ 세션 체크: 없으면 로그인 폼을 '항상' 띄우고, 성공 시 이 페이지 로드
     (async () => {
       try {
         const { data: { session } } = await client.auth.getSession();
 
         if (!session) {
-          const $modal = document.getElementById('login-prompt-modal');
-          const $close = document.getElementById('lp-close');
-          const $login = document.getElementById('lp-login');
+          // 앱 본체 로직 중단 플래그
+          window.__BLOCK_APP__ = true;
 
-          // 모달 보여주기
-          $modal?.classList.remove('hidden');
+          const $screen = document.getElementById('auth-screen');
+          const $email  = document.getElementById('auth-email');
+          const $pw     = document.getElementById('auth-password');
+          const $login  = document.getElementById('auth-login');
+          const $close  = document.getElementById('auth-close');
+          const $err    = document.getElementById('auth-error');
 
-          // 닫기 → 지도 페이지로
-          $close && ($close.onclick = () => {
-            location.replace('https://baikuk.com/map');
+          // 로그인 화면 보이기
+          $screen?.classList.remove('hidden');
+
+          const showError = (msg) => {
+            if ($err) {
+              $err.textContent = String(msg || '로그인 실패');
+              $err.classList.remove('hidden');
+            }
+          };
+
+          const doLogin = async () => {
+            try {
+              $login.disabled = true;
+              $login.textContent = '로그인 중...';
+              $err?.classList.add('hidden');
+
+              // 1) 로그인
+              const { error } = await client.auth.signInWithPassword({
+                email: ($email?.value || '').trim(),
+                password: ($pw?.value || '').trim()
+              });
+              if (error) throw error;
+
+              // 2) 세션 등록 (허용 기기 관리)
+              await client.rpc('register_session', {
+                device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
+                user_agent: navigator.userAgent
+              }).catch(() => { /* 서버 로그용이니 실패해도 치명적 아님 */ });
+
+              // 3) 허용 여부 확인
+              const { data: allowed } = await client.rpc('is_session_allowed').catch(() => ({ data: true }));
+              if (allowed === false) {
+                await client.auth.signOut();
+                throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
+              }
+
+              // 4) 현재 페이지 재로드 → 목록 로직 진행
+              location.reload();
+            } catch (e) {
+              showError(e?.message || e);
+              $login.disabled = false;
+              $login.textContent = '로그인';
+            }
+          };
+
+          // 이벤트 바인딩
+          $login && ($login.onclick = doLogin);
+          $close && ($close.onclick = () => location.replace('https://baikuk.com/map'));
+          [$email, $pw].forEach(inp => {
+            inp && inp.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') doLogin();
+            });
           });
 
-          // 로그인하러 가기 → 루트(로그인 페이지)로
-          $login && ($login.onclick = () => {
-            location.replace('/');
-          });
-
-          // 세션 없으면 이 페이지의 나머지 로직은 진행 안 함
+          // 세션 없으면 여기서 종료 (앱 로직 실행 안 함)
           return;
         }
 
-        // 세션이 있으면: 기존 목록 로딩 등 나머지 로직 계속 진행
+        // 세션이 있으면 앱 로직 실행 허용
+        window.__BLOCK_APP__ = false;
       } catch (e) {
         console.warn('세션 확인 중 예외:', e);
-        // 예외 시에도 안전하게 지도 페이지로
-        location.replace('https://baikuk.com/map');
+        // 예외 시에도 로그인 화면 띄워서 사용자 동작 허용
+        window.__BLOCK_APP__ = true;
+        document.getElementById('auth-screen')?.classList.remove('hidden');
       }
     })();
+
+    // ✅ 세션 상태 바뀌면 자동 반응 (예: 다른 탭에서 로그인)
+    client.auth.onAuthStateChange((_evt, session) => {
+      if (session) location.reload();
+    });
 
     const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
     const filterInputs = [
@@ -445,6 +499,7 @@
     }
     
     document.addEventListener('DOMContentLoaded', () => {
+      if (window.__BLOCK_APP__) return; // 🔒 로그인 전에는 앱 로직 차단
       fetchMoreListings();
       setupScrollTrigger();
       bindNumericFilterInputs(); 
@@ -572,24 +627,28 @@
 
   </script>
 </head>
-<!-- 🔐 첫 방문 로그인 안내 모달 -->
-<div id="login-prompt-modal" class="fixed inset-0 z-[99999] bg-black/40 flex items-center justify-center hidden">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-[22rem]">
-    <h2 class="text-xl font-bold text-center mb-3">직원 로그인 안내</h2>
-    <p class="text-sm text-gray-600 text-center mb-5">
-      로그인 후 이용해 주세요.
-    </p>
-    <div class="flex flex-col gap-2">
-      <button id="lp-login" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
-        로그인하러 가기
-      </button>
-      <button id="lp-close" class="w-full text-gray-600 py-2 rounded border border-gray-300 hover:bg-gray-50">
-        닫기
-      </button>
+<body class="h-screen w-screen">
+  <!-- 🔐 로그인 전체 화면 -->
+  <div id="auth-screen" class="fixed inset-0 z-[99999] hidden">
+    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+      <div class="bg-white w-[22rem] rounded-xl shadow-xl p-6">
+        <h2 class="text-xl font-bold text-center mb-4">직원 로그인</h2>
+        <input id="auth-email" type="email" placeholder="이메일"
+               class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
+        <input id="auth-password" type="password" placeholder="비밀번호"
+               class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+        <button id="auth-login"
+                class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+          로그인
+        </button>
+        <button id="auth-close"
+                class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
+          닫기
+        </button>
+        <div id="auth-error" class="text-red-600 text-sm mt-3 hidden"></div>
+      </div>
     </div>
   </div>
-</div>
-<body class="h-screen w-screen">
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
         alt="글씨로고"
