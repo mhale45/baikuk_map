@@ -40,24 +40,21 @@
     .shadow-right {
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
-    /* 열 리사이즈 UX 강화 */
+    /* === 열 리사이즈: 매매추천 페이지와 동일 스타일 === */
     th.resizable {
-      position: relative;         /* 핸들을 오른쪽 끝에 붙이기 */
-      padding-right: 6px;         /* 핸들 공간 확보 */
+      position: relative;
+      min-width: 40px;
+      white-space: nowrap;
     }
-
-    th.resizable .resize-handle {
+    .resize-handle {
       position: absolute;
       right: 0;
       top: 0;
-      width: 6px;                 /* 잡기 쉬운 폭 */
+      width: 0.4rem;
       height: 100%;
       cursor: col-resize;
-      user-select: none;
-      background: transparent;
-    }
-    th.resizable:hover .resize-handle {
-      background: rgba(0,0,0,0.05); /* 살짝 보이게 (선택) */
+      z-index: 10;
+      background-color: transparent;
     }
     .customer-item {
       position: relative;
@@ -1195,51 +1192,28 @@
       });
       resizeObserver.observe(listingsBody);
 
-      // ✅ 열 리사이즈: 줄이기/늘리기 모두 지원 (+ 최소폭 보장)
-      (() => {
-        let startX, startWidth, activeTh;
-        let dragging = false;
+      // ✅ 열 리사이즈: 매매추천 페이지와 동일 동작(심플)
+      let startX, startWidth, resizableTh;
+      document.querySelectorAll('.resize-handle').forEach(h => {
+        h.addEventListener('mousedown', e => {
+          resizableTh = e.target.closest('th');
+          startX = e.clientX;
+          startWidth = resizableTh.offsetWidth;
 
-        const getMinWidth = (th) => {
-          // th의 min-width를 읽어 최소폭으로 사용 (없으면 40px)
-          const cs = window.getComputedStyle(th);
-          const min = parseFloat(cs.minWidth);
-          return Number.isFinite(min) && min > 0 ? min : 40;
-        };
-
-        const onMouseMove = (e) => {
-          if (!dragging || !activeTh) return;
-          const delta = e.clientX - startX;
-          const minW = getMinWidth(activeTh);
-          const newW = Math.max(minW, startWidth + delta); // 👈 최소폭 이하로는 안 줄어듦
-          activeTh.style.width = newW + 'px';
-          activeTh.style.minWidth = newW + 'px'; // 👈 table-layout: fixed 환경에서 안정적으로 반영
-        };
-
-        const onMouseUp = () => {
-          if (!dragging) return;
-          dragging = false;
-          document.body.style.userSelect = '';
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp);
-          activeTh = null;
-        };
-
-        document.querySelectorAll('.resize-handle').forEach(handle => {
-          handle.addEventListener('mousedown', (e) => {
-            activeTh = e.currentTarget.closest('th');
-            startX = e.clientX;
-            startWidth = activeTh.offsetWidth;
-            dragging = true;
-
-            // 드래그 중 텍스트 선택 방지 (UX)
-            document.body.style.userSelect = 'none';
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-          });
+          document.addEventListener('mousemove', resizeColumn);
+          document.addEventListener('mouseup', stopResize);
         });
-      })();
+      });
+      function resizeColumn(e) {
+        if (!resizableTh) return;
+        const newWidth = startWidth + (e.clientX - startX);
+        resizableTh.style.width = newWidth + 'px';
+      }
+      function stopResize() {
+        document.removeEventListener('mousemove', resizeColumn);
+        document.removeEventListener('mouseup', stopResize);
+        resizableTh = null;
+      }
 
       syncRowHeights?.();
 
