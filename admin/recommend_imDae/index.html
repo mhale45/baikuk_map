@@ -1017,7 +1017,6 @@
 
     async function fetchListingInfo(listingId, rowIndex) {
       const cleanedId = listingId.replace(/[^\d]/g, '');  // 숫자만 남기기
-      console.log(`🔍 [${rowIndex}] 입력된 매물번호:`, cleanedId);
 
       if (!cleanedId) {
         console.warn(`[${rowIndex}] 매물번호가 비어있습니다.`);
@@ -1031,8 +1030,6 @@
         return;
       }
 
-      console.log(`✅ [${rowIndex}] 숫자형 매물번호:`, numericId);
-
       // Supabase 조회
       const { data: listing, error: listingError } = await supabase
         .from('baikukdbtest')
@@ -1040,15 +1037,11 @@
         .eq('listing_id', numericId)
         .single();
 
-      console.log('🔎 원본 입력:', listingId, '정제 후:', cleanedId, '숫자변환:', numericId);
-
       if (listingError || !listing) {
         console.error(`❌ [${rowIndex}] 매물 조회 실패`, listingError);
         showToast(`매물번호 ${listingId} 를 찾을 수 없습니다.`);
         return;
       }
-
-      console.log(`📦 [${rowIndex}] 매물 조회 결과:`, listing);
 
       // 2. 건물명 매핑
       const buildingName = buildingMap.get(listing.addr_compare) ?? '-';
@@ -1116,7 +1109,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      console.log("✅ DOMContentLoaded 실행됨");
       displayTodayDate();
       displayStaffInfo();
       preloadBuildingInfo();
@@ -1244,7 +1236,6 @@
     }
 
     const allInputs = document.querySelectorAll('input[data-index]');
-    console.log("총 input 수:", allInputs.length);
 
     // 수정, 저장버튼 관련
     const toggleButton = document.getElementById('toggle-edit-btn');
@@ -1620,8 +1611,6 @@
         registered_at: today,
         staff_profiles_id: staffId
       };
-
-      console.log("📦 Supabase에 저장할 고객 데이터:", newCustomer);
 
       const { data: insertedCustomer, error: insertError } = await supabase
         .from('customers')
