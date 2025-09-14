@@ -380,7 +380,9 @@ async function renderStaffSidebar(me) {
       targetChannels.forEach((ch) => {
         const el = document.createElement('div');
         el.className = 'name-item';
-        el.dataset.staffId = emp.id;
+        // staffId를 문자열로 고정하고, dataset과 속성 모두에 써서 선택자 안정성 확보
+        el.dataset.staffId = String(emp.id);
+        el.setAttribute('data-staff-id', String(emp.id));
         el.dataset.branch = emp.affiliation || '';
         el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
 
@@ -940,17 +942,30 @@ async function renderStaffSidebar(me) {
         }
     });
 
-
   // 6) UX: 직원 권한이면 본인을 자동 선택(조회까지 실행)
-    if (me.isStaff && me.staffId) {
-        const myEl = container.querySelector(`.name-item[data-staff-id="${me.staffId}"]`);
-        if (myEl) {
-            myEl.click(); // ✅ 클릭 트리거 → 하이라이트 + 조회
-        } else {
-            setActiveStaff(container, me.staffId); // fallback
-        }
-    }
+  //    - 본인 항목이 안 보이면(채널 미기입/필터링 등) 첫 번째 클릭 가능 항목을 클릭
+  //    - 마지막 안전망: 패널만 열고 안내
+  if (me.isStaff && me.staffId) {
+    const idStr = String(me.staffId);
+    const myEl =
+      container.querySelector(`.name-item[data-staff-id="${idStr}"]`) ||
+      container.querySelector(`.name-item[data-staff-id='${idStr}']`);
 
+    if (myEl && myEl.dataset.disabled !== '1') {
+      myEl.click(); // 하이라이트 + 조회
+    } else if (firstClickableStaffEl) {
+      firstClickableStaffEl.click(); // 대체: 첫 클릭 가능 항목 조회
+    } else {
+      const panel = document.getElementById('employee-listings-panel');
+      const meta = document.getElementById('employee-listings-meta');
+      const resultBox = document.getElementById('employee-listings');
+      if (panel && meta && resultBox) {
+        panel.style.display = '';
+        meta.textContent = '선택 가능한 직원 항목이 없습니다.';
+        resultBox.innerHTML = '';
+      }
+    }
+  }
 }
 
 // === 초기화 ===
