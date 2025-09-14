@@ -1402,71 +1402,97 @@
         if (!isNaN(num)) listingIds.push(num);
       });
 
-      // ✅ customers_recommendations upsert
-      if (listingIds.length > 0) {
-        const insertData = [];
-        listingIds.forEach((listingId, i) => {
-          const index = i + 1;
-          const getFieldValue = (field) => {
-            const el = document.querySelector(`[data-field="${field}_${index}"]`);
-            if (!el) return '';
-            return el.tagName === 'SPAN' ? el.textContent.trim() : el.value.trim();
-          };
-          const getNumericValue = (field) => {
-            const val = getFieldValue(field).replace(/,/g, '');
-            const num = Number(val);
-            return isNaN(num) ? null : num;
-          };
+      // ✅ customers_recommendations 전체 갈아끼우기: (DELETE ALL → INSERT CURRENT)
+      {
+        // 현재 화면의 오른쪽 테이블 행 수
+        const rowCount = document.querySelectorAll('#listings-body tr').length;
 
-          const hasListingId = !!listingId;
-          const hasMeaningfulData = [
-            getFieldValue('listing_title'),
-            getFieldValue('full_address'),
-            getFieldValue('combined_unit'),
-            getFieldValue('description'),
-            getNumericValue('deposit_price'),
-            getNumericValue('monthly_rent'),
-            getNumericValue('area_py')
-          ].some(val => val && val !== '-' && val !== '');
+        // index → 왼쪽 매물번호 숫자 추출
+        const getListingIdByIndex = (index) => {
+          const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
+          const num = Number(raw.replace(/[^\d]/g, ''));
+          return isNaN(num) ? null : num;
+        };
 
-          if (hasListingId || hasMeaningfulData) {
-            insertData.push({
+        // 숫자 필드 파싱
+        const getNumericFromField = (field, index) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (!el) return null;
+          const val = (el.tagName === 'SPAN' ? el.textContent : el.value || '').replace(/,/g, '').trim();
+          const n = Number(val);
+          return isNaN(n) ? null : n;
+        };
+
+        // 문자열 필드 파싱
+        const getStringFromField = (field, index) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (!el) return '';
+          const v = el.tagName === 'SPAN' ? (el.textContent || '') : (el.value || '');
+          return v.trim();
+        };
+
+        const rowsToInsert = [];
+        for (let index = 1; index <= rowCount; index++) {
+          const listingId = getListingIdByIndex(index);
+
+          const listing_title = getStringFromField('listing_title', index);
+          const full_address  = getStringFromField('full_address', index);
+          const combined_unit = getStringFromField('combined_unit', index);
+          const description   = getStringFromField('description', index);
+
+          const deposit_price = getNumericFromField('deposit_price', index);
+          const monthly_rent  = getNumericFromField('monthly_rent', index);
+          const premium_price = getNumericFromField('premium_price', index);
+          const area_py       = getNumericFromField('area_py', index);
+
+          const hasMeaningful =
+            (listing_title || full_address || combined_unit || description || deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
+
+          // 번호가 있거나 의미 있는 데이터가 있는 행만 저장
+          if (listingId || hasMeaningful) {
+            rowsToInsert.push({
               customers_id: currentCustomerId,
-              listing_id: listingId,
-              listing_title: getFieldValue('listing_title'),
-              full_address: getFieldValue('full_address'),
-              building_detail_info: getFieldValue('combined_unit'),
-              deposit_price: getNumericValue('deposit_price'),
-              monthly_rent: getNumericValue('monthly_rent'),
-              premium_price: getNumericValue('premium_price'),
-              area_py: getNumericValue('area_py'),
-              contents: getFieldValue('description')
+              listing_id: listingId, // 없으면 null 저장
+              listing_title,
+              full_address,
+              building_detail_info: combined_unit,
+              deposit_price,
+              monthly_rent,
+              premium_price,
+              area_py,
+              contents: description
             });
           }
-        });
-
-        // 중복 listing_id 제거
-        const seen = new Set();
-        const uniqueData = insertData.filter(it => {
-          if (seen.has(it.listing_id)) return false;
-          seen.add(it.listing_id);
-          return true;
-        });
-
-        const { error: recError } = await supabase
-          .from('customers_recommendations')
-          .upsert(uniqueData, {
-            onConflict: ['customers_id', 'listing_id'],
-            returning: 'minimal'
-          });
-
-        if (recError) {
-          console.error('❌ 추천 매물 저장 실패:', recError);
-          showToast('추천 매물 저장 중 오류 발생');
-        } else {
-          showToast('추천 매물 저장 완료');
         }
+
+        // 1) 해당 고객의 기존 추천매물 전부 삭제
+        const { error: delErr } = await supabase
+          .from('customers_recommendations')
+          .delete()
+          .eq('customers_id', currentCustomerId);
+
+        if (delErr) {
+          console.error('❌ 기존 추천 매물 삭제 실패:', delErr);
+          showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        // 2) 현재 화면의 행만 재삽입 (없으면 그냥 빈 상태로 둠)
+        if (rowsToInsert.length > 0) {
+          const { error: insErr } = await supabase
+            .from('customers_recommendations')
+            .insert(rowsToInsert);
+
+          if (insErr) {
+            console.error('❌ 추천 매물 삽입 실패:', insErr);
+            showToast('추천 매물 저장 중 오류가 발생했습니다.');
+            return;
+          }
+        }
+
+        showToast('추천 매물 저장 완료');
       }
+
 
       // 왼쪽 고객 목록 갱신
       loadCustomersForCurrentStaff();
@@ -1620,65 +1646,85 @@
         }
       });
 
-      if (listingIds.length > 0) {
-        const insertData = [];
+      // ✅ customers_recommendations 전체 갈아끼우기: (DELETE ALL → INSERT CURRENT, 신규 고객)
+      {
+        const rowCount = document.querySelectorAll('#listings-body tr').length;
 
-        listingIds.forEach((listingId, i) => {
-          const index = i + 1;
+        const getListingIdByIndex = (index) => {
+          const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
+          const num = Number(raw.replace(/[^\d]/g, ''));
+          return isNaN(num) ? null : num;
+        };
+        const getNumericFromField = (field, index) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (!el) return null;
+          const val = (el.tagName === 'SPAN' ? el.textContent : el.value || '').replace(/,/g, '').trim();
+          const n = Number(val);
+          return isNaN(n) ? null : n;
+        };
+        const getStringFromField = (field, index) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (!el) return '';
+          const v = el.tagName === 'SPAN' ? (el.textContent || '') : (el.value || '');
+          return v.trim();
+        };
 
-          const getFieldValue = (field) => {
-            const el = document.querySelector(`[data-field="${field}_${index}"]`);
-            if (!el) return '';
-            return el.tagName === 'SPAN' ? el.textContent.trim() : el.value.trim();
-          };
+        const rowsToInsert = [];
+        for (let index = 1; index <= rowCount; index++) {
+          const listingId      = getListingIdByIndex(index);
+          const listing_title  = getStringFromField('listing_title', index);
+          const full_address   = getStringFromField('full_address', index);
+          const combined_unit  = getStringFromField('combined_unit', index);
+          const description    = getStringFromField('description', index);
+          const deposit_price  = getNumericFromField('deposit_price', index);
+          const monthly_rent   = getNumericFromField('monthly_rent', index);
+          const premium_price  = getNumericFromField('premium_price', index);
+          const area_py        = getNumericFromField('area_py', index);
 
-          const getNumericValue = (field) => {
-            const val = getFieldValue(field).replace(/,/g, '');
-            const num = Number(val);
-            return isNaN(num) ? null : num;
-          };
+          const hasMeaningful =
+            (listing_title || full_address || combined_unit || description || deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
 
-          const hasListingId = !!listingId;
-          const hasMeaningfulData = [
-            getFieldValue('listing_title'),
-            getFieldValue('full_address'),
-            getFieldValue('combined_unit'),
-            getFieldValue('description'),
-            getNumericValue('deposit_price'),
-            getNumericValue('monthly_rent'),
-            getNumericValue('area_py')
-          ].some(val => val && val !== '-' && val !== '');
-
-          if (hasListingId || hasMeaningfulData) {
-            insertData.push({
+          if (listingId || hasMeaningful) {
+            rowsToInsert.push({
               customers_id: customerId,
               listing_id: listingId,
-              listing_title: getFieldValue('listing_title'),
-              full_address: getFieldValue('full_address'),
-              building_detail_info: getFieldValue('combined_unit'),
-              deposit_price: getNumericValue('deposit_price'),
-              monthly_rent: getNumericValue('monthly_rent'),
-              premium_price: getNumericValue('premium_price'),
-              area_py: getNumericValue('area_py'),
-              contents: getFieldValue('description')
+              listing_title,
+              full_address,
+              building_detail_info: combined_unit,
+              deposit_price,
+              monthly_rent,
+              premium_price,
+              area_py,
+              contents: description
             });
           }
-        });
-
-        const { error: recError } = await supabase
-          .from('customers_recommendations')
-          .upsert(insertData, {
-            onConflict: ['customers_id', 'listing_id'],
-            returning: 'minimal'
-          });
-
-        if (recError) {
-          console.error('❌ 추천 매물 저장 실패:', recError);
-          showToast('추천 매물 저장 중 오류 발생');
-        } else {
-          console.log("✅ 추천 매물 저장 완료:", insertData);
-          showToast('추천 매물 저장 완료');
         }
+
+        // 신규라도 혹시 모를 중복 방지 차원에서 전부 삭제 후 삽입
+        const { error: delErr } = await supabase
+          .from('customers_recommendations')
+          .delete()
+          .eq('customers_id', customerId);
+
+        if (delErr) {
+          console.error('❌ 기존 추천 매물 삭제 실패:', delErr);
+          showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        if (rowsToInsert.length > 0) {
+          const { error: insErr } = await supabase
+            .from('customers_recommendations')
+            .insert(rowsToInsert);
+
+          if (insErr) {
+            console.error('❌ 추천 매물 삽입 실패:', insErr);
+            showToast('추천 매물 저장 중 오류가 발생했습니다.');
+            return;
+          }
+        }
+
+        showToast('추천 매물 저장 완료');
       }
 
       // 왼쪽 고객 목록 갱신
