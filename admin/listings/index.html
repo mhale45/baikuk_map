@@ -639,25 +639,22 @@
 
           const { data: staff, error } = await client
             .from('public_staff_view')
-            .select('name,email,affiliation,affliation,position,extension')
+            .select('name,email,affiliation,position,extension')
             .eq('email', email)
             .single();
 
           if (error) {
             // 조회 실패 시 최소한 이메일만 표시
-            document.getElementById('account-name').textContent = user.email || '(이름없음)';
-            document.getElementById('account-email').textContent = user.email || '-';
+            document.getElementById('account-name').textContent = user.email || '';
+            document.getElementById('account-email').textContent = user.email || '';
             return;
           }
 
-          // 컬럼 오타 대비: affiliation/affliation 중 존재하는 쪽 사용
-          const affiliationVal = staff?.affiliation ?? staff?.affliation;
-
-          document.getElementById('account-name').textContent       = staff?.name || '(이름없음)';
-          document.getElementById('account-email').textContent      = staff?.email || email || '-';
-          document.getElementById('account-affiliation').textContent= affiliationVal || '-';
-          document.getElementById('account-position').textContent   = staff?.position || '-';
-          document.getElementById('account-extension').textContent  = staff?.extension || '-';
+          document.getElementById('account-name').textContent       = staff?.name || '';
+          document.getElementById('account-email').textContent      = staff?.email || email || '';
+          document.getElementById('account-affiliation').textContent= staff?.affiliation || '';
+          document.getElementById('account-position').textContent   = staff?.position || '';
+          document.getElementById('account-extension').textContent  = staff?.extension || '';
         } catch (e) {
           // 예외가 나도 페이지가 멈추지 않도록
           console.warn('계정정보 로드 실패:', e);
