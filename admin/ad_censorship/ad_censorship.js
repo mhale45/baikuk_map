@@ -226,14 +226,30 @@ export function getSelectedFilters() {
   };
 }
 
-function formatDate(dt) {
-  const y = dt.getFullYear();
-  const m = dt.getMonth() + 1;
-  const d = dt.getDate();
-  const hh = dt.getHours().toString().padStart(2, '0');
-  const mm = dt.getMinutes().toString().padStart(2, '0');
+// ISO 문자열 또는 Date → "YYYY. M. D. HH:mm" (KST) 로 변환
+function formatDate(input) {
+  const d = (input instanceof Date) ? input : new Date(input);
+  if (isNaN(d)) return '';
 
-  return `${y}. ${m}. ${d}. ${hh}:${mm}`;
+  // KST 기준으로 각 파트만 추출(단위 텍스트 없음)
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  const y  = get('year');
+  const m  = Number(get('month')); // 앞의 0 제거
+  const day = Number(get('day'));  // 앞의 0 제거
+  const hh = get('hour').padStart(2, '0');
+  const mm = get('minute').padStart(2, '0');
+
+  return `${y}. ${m}. ${day}. ${hh}:${mm}`;
 }
 
 async function _getLatestImdaeUpdatedAt() {
