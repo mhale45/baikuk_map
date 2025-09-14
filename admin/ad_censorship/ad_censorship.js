@@ -238,7 +238,7 @@ function _formatKST(isoString) {
   const hh  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }); // 23
   const mm  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', minute: '2-digit' });               // 32
 
-  return `${y}-${mon}-${day}  ${hh}:${mm}`;
+  return `${y}. ${mon}. ${day}. ${hh}:${mm}`;
 }
 
 async function _getLatestImdaeUpdatedAt() {
