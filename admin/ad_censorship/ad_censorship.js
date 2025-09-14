@@ -247,7 +247,7 @@ async function _getLatestImdaeUpdatedAt() {
       .from('update_log')
       .select('imDae_sheet_timetz')
       .eq('memo', '업데이트성공')
-      .eq('movement', '임대시트')
+      .eq('movement', '매물장')
       .order('imDae_sheet_timetz', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -500,7 +500,7 @@ async function renderStaffSidebar(me) {
             {
               const latestAt = await _getLatestImdaeUpdatedAt();
               meta.textContent = latestAt
-                ? `최신 업데이트: ${_formatKST(latestAt)} (임대시트)`
+                ? `최신 업데이트: ${_formatKST(latestAt)} (매물장)`
                 : '최신 업데이트 기록이 없습니다';
             }
 
@@ -913,7 +913,7 @@ async function renderStaffSidebar(me) {
             {
               const latestAt = await _getLatestImdaeUpdatedAt();
               meta.textContent = latestAt
-                ? `최신 업데이트: ${_formatKST(latestAt)} (임대시트)`
+                ? `최신 업데이트: ${_formatKST(latestAt)} (매물장)`
                 : '최신 업데이트 기록이 없습니다';
             }
         } catch (err) {
