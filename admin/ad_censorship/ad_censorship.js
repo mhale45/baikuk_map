@@ -977,3 +977,30 @@ export async function initAdCensorship() {
     if (tab) tab.style.display = 'none';
   }  
 }
+
+// 권한에 따라 "정산" 탭 표시/비표시 (기본: 숨김)
+document.addEventListener('supabase-ready', async () => {
+  try {
+    const { data: { user } } = await window.supabase.auth.getUser();
+    if (!user?.id) return; // 미로그인 시 그대로 숨김
+
+    const { data: me, error } = await window.supabase
+      .from('staff_profiles')
+      .select('authority')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('authority 조회 실패:', error);
+      return; // 조회 실패 시 안전하게 숨김 유지
+    }
+
+    // 관리자/지점장만 노출, '직원'은 계속 숨김
+    if (me?.authority?.trim() !== '직원') {
+      const tab = document.getElementById('settlement-tab');
+      tab?.style.removeProperty('display'); // 보이게
+    }
+  } catch (e) {
+    console.warn('정산 탭 권한 처리 중 오류:', e);
+  }
+});
