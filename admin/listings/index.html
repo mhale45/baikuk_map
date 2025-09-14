@@ -87,39 +87,45 @@
             }
           };
 
+          // 🔐 로그인 처리 함수
           const doLogin = async () => {
             try {
               $login.disabled = true;
               $login.textContent = '로그인 중...';
               $err?.classList.add('hidden');
 
-              // 1) 로그인
+              // 1) 이메일/비번 로그인
               const { error } = await client.auth.signInWithPassword({
                 email: ($email?.value || '').trim(),
                 password: ($pw?.value || '').trim()
               });
               if (error) throw error;
 
-              // 2) (선택) 세션 등록 / 허용 검사 동일
-              await client.rpc('register_session', {
-                device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
-                user_agent: navigator.userAgent
-              }).catch(()=>{});
+              // 2) (선택) 세션 등록 / 허용 검사  👉 체이닝 .catch 제거 & try/catch 사용
+              try {
+                await client.rpc('register_session', {
+                  device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
+                  user_agent: navigator.userAgent
+                });
+              } catch (_) { /* ignore */ }
 
-              const { data: allowed } = await client.rpc('is_session_allowed').catch(()=>({ data: true }));
-              if (allowed === false) {
+              let allowed = true;
+              try {
+                const { data } = await client.rpc('is_session_allowed');
+                if (data === false) allowed = false;
+              } catch (_) { /* 서버 함수 없으면 통과 */ }
+
+              if (!allowed) {
                 await client.auth.signOut();
                 throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
               }
 
-              // 3) ✅ 여기서 "한 번만" 목적지로 이동 (reload 대신)
-              window.__did_redirect__ = true; // 혹시 모를 중복 방지
-              location.replace('https://baikuk-map.netlify.app/admin/listings/'); // 슬래시 포함!
+              // 3) ✅ 리다이렉트만! (reload 제거)
+              location.replace('https://baikuk-map.netlify.app/admin/listings/');
 
-              // 4) 현재 페이지 재로드 → 목록 로직 진행
-              location.reload();
             } catch (e) {
-              showError(e?.message || e);
+              $err.textContent = e?.message || '로그인 실패';
+              $err.classList.remove('hidden');
               $login.disabled = false;
               $login.textContent = '로그인';
             }
