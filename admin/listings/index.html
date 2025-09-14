@@ -61,48 +61,37 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
-    // ✅ 로그인 체크: 처음 한 번은 모달 → 닫기 시 지도 이동, 이후엔 바로 지도 이동
+    // ✅ 세션 확인: 없으면 '항상' 로그인 모달 표시 (닫기 → 지도 이동)
     (async () => {
       try {
         const { data: { session } } = await client.auth.getSession();
+
         if (!session) {
-          const SEEN_KEY = 'LISTINGS_LOGIN_PROMPT_SHOWN';
-          const seen = sessionStorage.getItem(SEEN_KEY);
+          const $modal = document.getElementById('login-prompt-modal');
+          const $close = document.getElementById('lp-close');
+          const $login = document.getElementById('lp-login');
 
-          // 모달 버튼 핸들러 연결
-          const $modal  = document.getElementById('login-prompt-modal');
-          const $close  = document.getElementById('lp-close');
-          const $login  = document.getElementById('lp-login');
+          // 모달 보여주기
+          $modal?.classList.remove('hidden');
 
-          if (!seen) {
-            // 처음 한 번: 모달 노출
-            if ($modal) $modal.classList.remove('hidden');
-
-            // 닫기 → 지도 페이지로 이동
-            if ($close) {
-              $close.onclick = () => {
-                sessionStorage.setItem(SEEN_KEY, '1');
-                location.replace('https://baikuk.com/map');
-              };
-            }
-            // 로그인하러 가기 → 루트(로그인 페이지)로 이동
-            if ($login) {
-              $login.onclick = () => {
-                sessionStorage.setItem(SEEN_KEY, '1');
-                location.replace('/');
-              };
-            }
-          } else {
-            // 이미 한 번 모달을 본 경우: 즉시 지도 페이지로
+          // 닫기 → 지도 페이지로
+          $close && ($close.onclick = () => {
             location.replace('https://baikuk.com/map');
-          }
+          });
 
-          // 세션 없을 때는 이하 로직 중단
+          // 로그인하러 가기 → 루트(로그인 페이지)로
+          $login && ($login.onclick = () => {
+            location.replace('/');
+          });
+
+          // 세션 없으면 이 페이지의 나머지 로직은 진행 안 함
           return;
         }
-        // 세션 있으면 계속 진행 (목록 로딩 등 기존 로직)
+
+        // 세션이 있으면: 기존 목록 로딩 등 나머지 로직 계속 진행
       } catch (e) {
         console.warn('세션 확인 중 예외:', e);
+        // 예외 시에도 안전하게 지도 페이지로
         location.replace('https://baikuk.com/map');
       }
     })();
