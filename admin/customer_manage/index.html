@@ -37,21 +37,17 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
     
-    // ✅ 로그인 여부 확인 + 권한 확인
+    // ✅ 로그인 여부 확인 + 권한 확인 + '정산' 탭 최종 제어
     (async () => {
       try {
-        // 세션 확인
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.warn("세션 조회 에러:", sessionError);
-        }
+        if (sessionError) console.warn("세션 조회 에러:", sessionError);
         if (!sessionData?.session) {
           console.warn("로그인 세션 없음 → https://baikuk.com/map 으로 이동");
           location.replace("https://baikuk.com/map");
           return;
         }
 
-        // 로그인 된 경우 → 유저 정보 가져오기
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) {
           console.warn("유저 정보 없음 → https://baikuk.com/map 으로 이동");
@@ -59,7 +55,6 @@
           return;
         }
 
-        // 권한 조회
         const { data: me, error: authError } = await supabase
           .from('staff_profiles')
           .select('authority')
@@ -68,13 +63,37 @@
 
         if (authError) {
           console.warn("authority 조회 실패:", authError);
-          return; // 실패 시 그냥 탭 상태 유지
+          return; // 실패 시 탭 상태 유지
         }
 
-        // 직원이면 정산 탭 숨김
-        if (me?.authority?.trim() === '직원') {
-          const tab = document.getElementById('settlement-tab');
-          if (tab) tab.style.display = 'none';
+        // ⛳ 정산 탭 제어: 기본은 HTML에서 display:none.
+        //  - 관리자/지점장: 보이기
+        //  - 직원: 숨김 + 혹시 보였다 눌러도 이동 막기(가드)
+        const tab = document.getElementById('settlement-tab');
+        if (tab) {
+          // 클릭 가드 핸들러 (직원일 때만 동작)
+          const guardClick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const toast = document.getElementById('toast');
+            if (toast) {
+              toast.textContent = '직원 권한은 정산 메뉴에 접근할 수 없습니다.';
+              toast.classList.remove('hidden');
+              setTimeout(() => toast.classList.add('hidden'), 3000);
+            }
+          };
+
+          if (me?.authority?.trim() === '직원') {
+            tab.style.display = 'none';
+            // 만약 아주 잠깐 보였다가 누르는 경우를 대비하여 가드(중복 등록 방지)
+            tab.removeEventListener('click', guardClick);
+            tab.addEventListener('click', guardClick, { once: false });
+          } else {
+            // 관리자/지점장
+            tab.style.removeProperty('display');
+            // 접근 허용이므로 가드 제거
+            tab.replaceWith(tab.cloneNode(true)); // 모든 리스너 초기화
+          }
         }
       } catch (e) {
         console.warn("로그인/권한 확인 중 예외:", e);
