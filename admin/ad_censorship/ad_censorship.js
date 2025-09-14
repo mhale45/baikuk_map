@@ -226,6 +226,35 @@ export function getSelectedFilters() {
   };
 }
 
+// ---- [ADD] 최신 '임대시트' 업데이트 시간 조회 + KST 포맷터 ----
+function _formatKST(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const y = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric' }).format(d);
+  const m = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit' }).format(d);
+  const day = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', day: '2-digit' }).format(d);
+  const h = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }).format(d);
+  const min = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', minute: '2-digit' }).format(d);
+  return `${y}-${m}-${day} ${h}:${min}`;
+}
+
+async function _getLatestImdaeUpdatedAt() {
+  const { data, error } = await supabase
+    .from('update_log')
+    .select('created_at')
+    .eq('memo', '업데이트성공')
+    .eq('movement', '임대시트')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('update_log 조회 실패:', error);
+    return null;
+  }
+  return data?.created_at || null;
+}
+
 // === 직원 사이드바 렌더 ===
 async function renderStaffSidebar(me) {
   // 1) 직원 목록 로드 (권한별 재직자 필터)
@@ -439,8 +468,12 @@ async function renderStaffSidebar(me) {
 
             const rows = data || [];
 
-            // ✅ 로딩 문구 해제: 결과 요약으로 교체
-            meta.textContent = `${branchName} / ${channel} - 총 ${rows.length}건`;
+            {
+              const latestAt = await _getLatestImdaeUpdatedAt();
+              meta.textContent = latestAt
+                ? `최신 업데이트: ${_formatKST(latestAt)} (임대시트)`
+                : '최신 업데이트 기록이 없습니다';
+            }
 
             if (!rows.length) {
               resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
@@ -848,8 +881,12 @@ async function renderStaffSidebar(me) {
             });
 
             resultBox.appendChild(table);
-            // ✅ 렌더 완료 후 다시 한번 메타 갱신(보장성)
-            meta.textContent = `${branchName} / ${channel} - 총 ${rows.length}건`;
+            {
+              const latestAt = await _getLatestImdaeUpdatedAt();
+              meta.textContent = latestAt
+                ? `최신 업데이트: ${_formatKST(latestAt)} (임대시트)`
+                : '최신 업데이트 기록이 없습니다';
+            }
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';

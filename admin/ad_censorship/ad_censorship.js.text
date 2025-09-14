@@ -16,10 +16,19 @@ document.dispatchEvent(new Event('supabase-ready'));
 // === 내부 상태 ===
 let __selectedStaffId = null;            // 선택된 직원 ID (string)
 let __selectedAffiliation = null;        // 선택된 지점명 (string)
+let __selectedChannel = null;            // 선택된 채널 (string)
 const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원ID Set 캐시
 
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
+
+// [ADD] 채널 문자열을 ','로 분리하고 공백 제거
+function _splitChannels(str) {
+  return String(str || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
 // [ADD] 거래상태 문자열에서 'YYYY-MM-DD' 날짜 꼬리 제거
 function _stripDateFromStatus(str) {
@@ -177,14 +186,21 @@ async function getMyAuthorityAndStaffId() {
 }
 
 // === 직원 클릭 시 선택/강조 ===
-function setActiveStaff(container, staffId) {
+function setActiveStaff(container, staffId, channel) {
   __selectedStaffId = staffId;
+  __selectedChannel = (channel ?? '').trim();
   __selectedAffiliation = null;
 
+  // 지점 헤더 강조 해제
   container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+
+  // 직원/채널이 모두 일치하는 줄만 노란 강조
   container.querySelectorAll('.name-item').forEach(el => {
     if (el.dataset.disabled === '1') return;
-    if (String(el.dataset.staffId) === String(staffId)) el.classList.add('bg-yellow-200');
+    const sameStaff   = String(el.dataset.staffId) === String(staffId);
+    const elChannel   = (el.dataset.channel || '').trim();
+    const sameChannel = elChannel === __selectedChannel;
+    if (sameStaff && sameChannel) el.classList.add('bg-yellow-200');
     else el.classList.remove('bg-yellow-200');
   });
 
@@ -196,7 +212,8 @@ function emitFilterChange() {
   document.dispatchEvent(new CustomEvent('adc:filter-change', {
     detail: {
       staffId: __selectedStaffId ? String(__selectedStaffId) : null,
-      affiliation: __selectedAffiliation || null
+      affiliation: __selectedAffiliation || null,
+      channel: __selectedChannel || null
     }
   }));
 }
@@ -280,6 +297,7 @@ async function renderStaffSidebar(me) {
         } else {
           __selectedAffiliation = aff;
           __selectedStaffId = null;
+          __selectedChannel = null;
           container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
           header.classList.add('ring-2', 'ring-yellow-400');
           container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
@@ -293,34 +311,53 @@ async function renderStaffSidebar(me) {
     container.appendChild(header);
 
     // --- 직원 리스트 ---
-    const makeName = (emp, { dim = false } = {}) => {
+    // 직원 1명에 대해 채널을 ','로 분리해 여러 .name-item을 생성
+    const createNameItems = (emp, { dim = false } = {}) => {
+      const channels = _splitChannels(emp.ad_channel);
+      const items = [];
+
+      // 채널이 하나도 없으면 기존 방식처럼 1행 생성(채널표기는 생략)
+      const targetChannels = channels.length ? channels : [null];
+
+      targetChannels.forEach((ch) => {
         const el = document.createElement('div');
         el.className = 'name-item';
         el.dataset.staffId = emp.id;
-        // ✅ 클릭 시 조회에 사용할 데이터 속성 추가
         el.dataset.branch = emp.affiliation || '';
-        el.dataset.channel = emp.ad_channel || '';
+        el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
 
-        // 표시 텍스트 구성: 이름 (+퇴사표시), 채널명
+        // 표기: "이름 (채널)" — 채널 없으면 괄호 생략
         let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
-        if (emp.ad_channel) {
-          displayName += ` (${emp.ad_channel})`;
-        }
+        if (ch) displayName += ` (${ch})`;
+
         el.innerHTML = `${displayName} <span class="ad-count" data-loading="1">...</span>`;
 
+        // 권한별 클릭 허용
         const allowed = canClickStaff(emp);
         if (!allowed) {
-            el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
-            el.dataset.disabled = '1';
+          el.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+          el.dataset.disabled = '1';
         } else {
-            el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
-            if (!firstClickableStaffEl) firstClickableStaffEl = el;
+          el.classList.add('cursor-pointer', 'hover:bg-yellow-100');
+          if (!firstClickableStaffEl) firstClickableStaffEl = el;
         }
-        return el;
+
+        // 퇴사자 표기 스타일
+        if (dim) {
+          el.classList.add('text-gray-400', 'italic');
+        }
+
+        items.push(el);
+      });
+
+      return items;
     };
 
-
-    active.forEach((emp) => container.appendChild(makeName(emp)));
+    // 활성(재직) 직원 렌더: 직원 1명 → 채널 개수만큼 줄 생성
+    active.forEach((emp) => {
+      const els = createNameItems(emp);
+      els.forEach((el) => container.appendChild(el));
+    });
 
     // --- 퇴사자 토글(관리자/지점장만 노출) ---
     if (me.authority !== '직원' && inactive.length > 0) {
@@ -332,32 +369,25 @@ async function renderStaffSidebar(me) {
       collapseDiv.className = 'pl-4 mt-1 hidden';
       collapseDiv.id = `inactive-group-${idx}`;
 
+      // 퇴사자도 채널 분리하여 여러 줄 생성 (클릭은 비활성)
       inactive.forEach((emp) => {
-        const el = document.createElement('div');
-        el.className = 'name-item text-gray-400 italic';
-        el.dataset.staffId = emp.id;
-        // ✅ 클릭 시 조회에 사용할 데이터 속성도 함께 저장(비활성이라 클릭은 막히지만 일관성 유지)
-        el.dataset.branch = emp.affiliation || '';
-        el.dataset.channel = emp.ad_channel || '';
-
-        let displayName = `${emp.name} (퇴사)`;
-        if (emp.ad_channel) {
-          displayName += ` (${emp.ad_channel})`;
-        }
-        el.innerHTML = `${displayName} <span class="ad-count" data-loading="1">...</span>`;
-
-        el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
-        collapseDiv.appendChild(el);
-    });
+        const els = createNameItems(emp, { dim: true });
+        els.forEach((el) => {
+          // 퇴사자는 항상 클릭 불가
+          el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
+          collapseDiv.appendChild(el);
+        });
+      });
 
       toggleBtn.onclick = () => {
-        const isHidden = collapseDiv.classList.toggle('hidden'); // true면 지금 '숨겨진' 상태
+        const isHidden = collapseDiv.classList.toggle('hidden');
         toggleBtn.textContent = isHidden ? '▼ 퇴사자 보기' : '▲ 퇴사자 숨기기';
       };
 
       container.appendChild(toggleBtn);
       container.appendChild(collapseDiv);
     }
+
   });
 
   // 4-2) 좌측 목록의 각 지점별 전체 광고 개수 채우기
@@ -371,8 +401,8 @@ async function renderStaffSidebar(me) {
         const el = e.target.closest('.name-item');
         if (!el || el.dataset.disabled === '1') return;
 
-        // 선택 강조(기존 로직)
-        setActiveStaff(container, el.dataset.staffId);
+        // 선택 강조(직원 + 채널 단일 줄만 강조)
+        setActiveStaff(container, el.dataset.staffId, el.dataset.channel);
 
         // ✅ 클릭한 직원의 소속/채널로 supabase 조회
         const branchName = el.dataset.branch || '';
@@ -560,13 +590,13 @@ async function renderStaffSidebar(me) {
 
                 // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
                 const needAreaCheck =
-                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 3;
+                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 6;
 
-                // 2) 광고값 vs (description_area_py ÷ 0.3025) 3㎡ 이상 차이면 → '상세설명' (빨간)
+                // 2) 광고값 vs (description_area_py ÷ 0.3025) 6㎡ 이상 차이면 → '상세설명' (빨간)
                 const descAreaPy = _normMoney(row.description_area_py);
                 const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
                 const needAreaDescBadge =
-                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 3;
+                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 6;
 
                 // 출력 우선순위 ...
                 let areaOut = needAreaCheck
