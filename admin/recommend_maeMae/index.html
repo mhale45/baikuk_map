@@ -38,12 +38,21 @@
 
     window.supabase = supabase; // 전역으로 접근
     
-    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    // ✅ 로그인 여부 확인 후 없으면 지도 페이지로 이동
     (async () => {
-      const { data, error } = await client.auth.getSession();
-      if (!data?.session) {
-        console.warn("로그인 세션 없음 → /index.html로 이동");
-        location.replace("/");
+      try {
+        const { data, error } = await supabase.auth.getSession(); // ← supabase 로 수정
+        if (error) {
+          console.warn("세션 조회 에러:", error);
+        }
+        if (!data?.session) {
+          console.warn("로그인 세션 없음 → https://baikuk.com/map 으로 이동");
+          location.replace("https://baikuk.com/map");
+          return;
+        }
+      } catch (e) {
+        console.warn("세션 확인 중 예외:", e);
+        location.replace("https://baikuk.com/map");
       }
     })();
 

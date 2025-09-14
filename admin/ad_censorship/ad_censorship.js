@@ -961,7 +961,7 @@ export async function initAdCensorship() {
     await waitForSupabase();
     const { data } = await supabase.auth.getSession();
     if (!data?.session) {
-      location.replace('/');
+      location.replace('https://baikuk.com/map');
       return;
     }
   } catch (e) {
