@@ -1,33 +1,47 @@
-// ad_censorship.js
+// /admin/settlement/settlement.js
 
-// /admin/ad_censorship/ad_censorship.js
-// 모듈화 버전 — 직원 패널 렌더 + 권한별 클릭 제어 + 필터 이벤트 방출
-// 사용법 (index.html):
-//   import { initAdCensorship, getSelectedFilters } from './ad_censorship.js'
-//   initAdCensorship();
-
-import { client as supabase, waitForSupabase } from '../../modules/core/supabase.js';
+import { client as supabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
 
-// --- 전역 노출 (기존 페이지와 동일 동작 유지) ---
-window.supabase = supabase;
-document.dispatchEvent(new Event('supabase-ready'));
+const $ = (sel, doc = document) => doc.querySelector(sel);
+const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 
-// === 초기화 ===
-export async function initAdCensorship() {
-  // (선택) 미로그인 방지
+// === 지점 리스트 렌더 ===
+async function renderBranchList() {
   try {
-    await waitForSupabase();
-    const { data } = await supabase.auth.getSession();
-    if (!data?.session) {
-      location.replace('/');
-      return;
+    const { data: branches, error } = await supabase
+      .from('branch_info')
+      .select('affiliation')
+      .order('affiliation', { ascending: true });
+
+    if (error) throw error;
+
+    const container = $('#branch-list');
+    if (!container) return;
+
+    container.innerHTML = ''; // 기존 내용 제거
+
+    for (const branch of branches) {
+      const div = document.createElement('div');
+      div.className = 'px-3 py-2 text-sm font-medium hover:bg-yellow-100 cursor-pointer';
+      div.textContent = branch.affiliation;
+      div.dataset.affiliation = branch.affiliation;
+
+      // 클릭 이벤트 예시 (향후 필터 연동 예정)
+      div.addEventListener('click', () => {
+        console.log('지점 클릭:', branch.affiliation);
+        // 예: 필터링 로직 또는 선택 상태 저장
+      });
+
+      container.appendChild(div);
     }
   } catch (e) {
-    console.warn(e);
+    console.error('지점 목록 로딩 실패:', e);
+    showToastGreenRed('지점 목록 로딩 실패');
   }
+}
 
-  // 내 권한/소속/ID 파악 후 사이드바 렌더
-  const me = await getMyAuthorityAndStaffId();
-  await renderStaffSidebar(me);
+// === 초기화 ===
+export async function initSettlement() {
+  await renderBranchList();
 }

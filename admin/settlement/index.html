@@ -49,6 +49,7 @@
   </div>
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { initSettlement } from './settlement.js';
 
     const supabase = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
@@ -91,7 +92,11 @@
         console.warn("직원 권한 → /admin/performance 로 이동");
         location.replace("/admin/performance/");
       }
-    })();    
+
+      document.addEventListener('supabase-ready', async () => {
+        await initSettlement();
+      });
+    })();
   </script>
 </body>
 </html>
