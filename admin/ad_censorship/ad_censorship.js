@@ -971,4 +971,9 @@ export async function initAdCensorship() {
   // 내 권한/소속/ID 파악 후 사이드바 렌더
   const me = await getMyAuthorityAndStaffId();
   await renderStaffSidebar(me);
+
+  if (me.isStaff) {
+    const tab = document.getElementById('settlement-tab');
+    if (tab) tab.style.display = 'none';
+  }  
 }

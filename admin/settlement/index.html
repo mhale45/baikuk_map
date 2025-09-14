@@ -2,35 +2,13 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>광고관리</title>
+  <title>정산</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- [ADD] 직원 리스트용 간단 스타일 -->
-  <style>
-    .shadow-right { box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08); }
-    .grade-header {
-      background-color: #e5e7eb;
-      color: #111827;
-      font-weight: 700;
-      padding: 0.5rem;
-      border-radius: 0.25rem;
-      margin-top: 0.5rem;
-      user-select: none;
-    }
-    .name-item {
-      font-size: 0.9rem;
-      color: #374151;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      cursor: pointer;
-      margin-bottom: 0.4rem;
-    }
-    .name-item:hover { background-color: #fef9c3; }
-  </style>
 </head>
 <body class="w-screen overflow-x-hidden">
   <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
@@ -54,6 +32,9 @@
       <a href="/admin/ad_censorship/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
       <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
       <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">직원정보</div></a>
+      <a id="settlement-tab" href="/admin/settlement/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      </a>
     </div>
 
     <!-- [ADD] 직원 패널 -->
