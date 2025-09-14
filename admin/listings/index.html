@@ -628,20 +628,39 @@
         goToListing(tr.dataset.listingId);
       });
 
-      // 로그인 계정정보 표시 및 로그아웃 버튼 
+      // 로그인 계정정보 표시 (public_staff_view에서 name, email, affiliation/affliation, position, extension)
       (async () => {
-        const { data: { user } } = await client.auth.getUser();
+        try {
+          const { data: { user } } = await client.auth.getUser();
+          if (!user) return;
 
-        if (user) {
-          // staff_profiles에서 이름 불러오기 (없으면 이메일 fallback)
-          const { data: staff } = await client
-            .from('staff_profiles')
-            .select('name')
-            .eq('user_id', user.id)
+          // 보통 auth의 user.email 기준으로 매칭
+          const email = user.email || '';
+
+          const { data: staff, error } = await client
+            .from('public_staff_view')
+            .select('name,email,affiliation,affliation,position,extension')
+            .eq('email', email)
             .single();
 
-          const displayName = staff?.name || user.email || '(이름없음)';
-          document.getElementById('account-name').textContent = displayName;
+          if (error) {
+            // 조회 실패 시 최소한 이메일만 표시
+            document.getElementById('account-name').textContent = user.email || '(이름없음)';
+            document.getElementById('account-email').textContent = user.email || '-';
+            return;
+          }
+
+          // 컬럼 오타 대비: affiliation/affliation 중 존재하는 쪽 사용
+          const affiliationVal = staff?.affiliation ?? staff?.affliation;
+
+          document.getElementById('account-name').textContent       = staff?.name || '(이름없음)';
+          document.getElementById('account-email').textContent      = staff?.email || email || '-';
+          document.getElementById('account-affiliation').textContent= affiliationVal || '-';
+          document.getElementById('account-position').textContent   = staff?.position || '-';
+          document.getElementById('account-extension').textContent  = staff?.extension || '-';
+        } catch (e) {
+          // 예외가 나도 페이지가 멈추지 않도록
+          console.warn('계정정보 로드 실패:', e);
         }
       })();
 
@@ -711,14 +730,17 @@
     <div class="w-[94%] flex flex-col bg-gray-50">
       <div class="flex gap-4 items-start bg-gray-100"> <!-- 필터 영역 (상단 10%) -->
         <div class="flex flex-col w-[37%] mt-2">
-          <div class="flex ml-15">
-            <!-- 계정정보 + 로그아웃 버튼 -->
-            <div id="account-info" class="flex justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700">
-              <span id="account-name">-</span>
-              <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
+          <!-- 계정정보 + 로그아웃 버튼 -->
+          <div id="account-info" class="flex items-center justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700">
+            <div class="flex flex-col">
+              <span id="account-name" class="font-semibold">-</span>
+              <span id="account-email" class="text-xs text-gray-600">-</span>
+              <span id="account-affiliation" class="text-xs text-gray-600">-</span>
+              <span id="account-position" class="text-xs text-gray-600">-</span>
+              <span id="account-extension" class="text-xs text-gray-600">-</span>
             </div>
-            <button id="open-admin-listing-btn" class="text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded px-2 py-1 ml-auto mt-5">🏢 매물등록</button>  
-          </div>      
+            <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
+          </div>     
           <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2">
             <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
             <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
