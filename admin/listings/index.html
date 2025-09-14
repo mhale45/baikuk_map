@@ -61,12 +61,49 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
-    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    // ✅ 로그인 체크: 처음 한 번은 모달 → 닫기 시 지도 이동, 이후엔 바로 지도 이동
     (async () => {
-      const { data, error } = await client.auth.getSession();
-      if (!data?.session) {
-        console.warn("로그인 세션 없음 → /index.html로 이동");
-        location.replace("/");
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) {
+          const SEEN_KEY = 'LISTINGS_LOGIN_PROMPT_SHOWN';
+          const seen = sessionStorage.getItem(SEEN_KEY);
+
+          // 모달 버튼 핸들러 연결
+          const $modal  = document.getElementById('login-prompt-modal');
+          const $close  = document.getElementById('lp-close');
+          const $login  = document.getElementById('lp-login');
+
+          if (!seen) {
+            // 처음 한 번: 모달 노출
+            if ($modal) $modal.classList.remove('hidden');
+
+            // 닫기 → 지도 페이지로 이동
+            if ($close) {
+              $close.onclick = () => {
+                sessionStorage.setItem(SEEN_KEY, '1');
+                location.replace('https://baikuk.com/map');
+              };
+            }
+            // 로그인하러 가기 → 루트(로그인 페이지)로 이동
+            if ($login) {
+              $login.onclick = () => {
+                sessionStorage.setItem(SEEN_KEY, '1');
+                location.replace('/');
+              };
+            }
+          } else {
+            // 이미 한 번 모달을 본 경우: 즉시 지도 페이지로
+            location.replace('https://baikuk.com/map');
+          }
+
+          // 세션 없을 때는 이하 로직 중단
+          return;
+        }
+        // 세션 있으면 계속 진행 (목록 로딩 등 기존 로직)
+      } catch (e) {
+        console.warn('세션 확인 중 예외:', e);
+        location.replace('https://baikuk.com/map');
       }
     })();
 
@@ -546,6 +583,23 @@
 
   </script>
 </head>
+<!-- 🔐 첫 방문 로그인 안내 모달 -->
+<div id="login-prompt-modal" class="fixed inset-0 z-[99999] bg-black/40 flex items-center justify-center hidden">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-[22rem]">
+    <h2 class="text-xl font-bold text-center mb-3">직원 로그인 안내</h2>
+    <p class="text-sm text-gray-600 text-center mb-5">
+      로그인 후 이용해 주세요.
+    </p>
+    <div class="flex flex-col gap-2">
+      <button id="lp-login" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">
+        로그인하러 가기
+      </button>
+      <button id="lp-close" class="w-full text-gray-600 py-2 rounded border border-gray-300 hover:bg-gray-50">
+        닫기
+      </button>
+    </div>
+  </div>
+</div>
 <body class="h-screen w-screen">
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
