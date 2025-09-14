@@ -1195,25 +1195,25 @@
       });
       resizeObserver.observe(listingsBody);
 
-      // ✅ 열 리사이즈 바인딩 (최소 너비 보장 + 드래그 중 선택 방지)
+      // ✅ 열 리사이즈: 줄이기/늘리기 모두 지원 (+ 최소폭 보장)
       (() => {
         let startX, startWidth, activeTh;
         let dragging = false;
 
         const getMinWidth = (th) => {
-          // style/min-width 속성 → px 숫자 추출 (기본 40px)
+          // th의 min-width를 읽어 최소폭으로 사용 (없으면 40px)
           const cs = window.getComputedStyle(th);
-          const mw = parseFloat(cs.minWidth);
-          return isNaN(mw) ? 40 : mw;
+          const min = parseFloat(cs.minWidth);
+          return Number.isFinite(min) && min > 0 ? min : 40;
         };
 
         const onMouseMove = (e) => {
           if (!dragging || !activeTh) return;
           const delta = e.clientX - startX;
           const minW = getMinWidth(activeTh);
-          const newW = Math.max(minW, startWidth + delta);
+          const newW = Math.max(minW, startWidth + delta); // 👈 최소폭 이하로는 안 줄어듦
           activeTh.style.width = newW + 'px';
-          activeTh.style.minWidth = newW + 'px';
+          activeTh.style.minWidth = newW + 'px'; // 👈 table-layout: fixed 환경에서 안정적으로 반영
         };
 
         const onMouseUp = () => {
@@ -1232,7 +1232,7 @@
             startWidth = activeTh.offsetWidth;
             dragging = true;
 
-            // 드래그 중 텍스트 선택 방지
+            // 드래그 중 텍스트 선택 방지 (UX)
             document.body.style.userSelect = 'none';
 
             document.addEventListener('mousemove', onMouseMove);
