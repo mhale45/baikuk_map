@@ -642,7 +642,7 @@
       document.getElementById('logout-btn')?.addEventListener('click', async () => {
         await client.auth.signOut();
         // 로그아웃 후 로그인 화면(또는 메인 지도)으로 이동
-        location.replace('https://baikuk.com/map');
+        location.replace('/admin/listings/');
       });
       // 로그인 계정정보 표시 및 로그아웃 버튼 
     });
