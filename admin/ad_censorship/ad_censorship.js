@@ -238,7 +238,7 @@ function _formatKST(isoString) {
   return `${y}-${m}-${day} ${h}:${min}`;
 }
 
-// created_at 없이 timetz + 오늘 날짜 → "YYYY. M. D. HH:mm" 포맷 반환
+// created_at 없이 timetz + 오늘 날짜 → "YYYY. M. D. HH:mm" 반환
 async function _getLatestImdaeUpdatedAt() {
   try {
     const { data, error } = await supabase
@@ -253,24 +253,41 @@ async function _getLatestImdaeUpdatedAt() {
     if (error) throw error;
     if (!data) return null;
 
-    const timez = data.imDae_sheet_timetz; // 예: "22:14:39.497113+09"
-    if (!timez) return null;
+    const raw = data.imDae_sheet_timetz; // 예: "23:32:06.595167+09"
+    if (!raw) return null;
 
-    // 오늘 날짜 + timetz 합치기
-    const today = new Date();
-    const datePart = today.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    const iso = `${datePart}T${String(timez)}`;
+    // --- 타임존 오프셋 정규화: +09, +0900 → +09:00 (JS Date 호환)
+    const normalizeOffset = (t) => {
+      let s = String(t).trim();
+
+      // "+HHMM" → "+HH:MM"
+      s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+      // "+HH" → "+HH:00"
+      s = s.replace(/([+-]\d{2})$/, '$1:00');
+
+      return s;
+    };
+
+    const timez = normalizeOffset(raw); // 예: "23:32:06.595167+09:00"
+
+    // 오늘 날짜(YYYY-MM-DD) + timetz → ISO 시도
+    const datePart = new Date().toISOString().slice(0, 10);
+    const iso = `${datePart}T${timez}`;
 
     const d = new Date(iso);
     if (isNaN(d.getTime())) {
-      console.warn('Invalid combined datetime:', iso);
+      console.warn('Invalid combined datetime after normalization:', iso);
       return null;
     }
 
-    // 원하는 출력 형식: "YYYY. M. D. HH:mm"
-    const formatted = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    // 출력 포맷: "YYYY. M. D. HH:mm"
+    const yyyy = d.getFullYear();
+    const mm = d.getMonth() + 1;
+    const dd = d.getDate();
+    const HH = String(d.getHours()).padStart(2, '0');
+    const MM = String(d.getMinutes()).padStart(2, '0');
 
-    return formatted;
+    return `${yyyy}. ${mm}. ${dd}. ${HH}:${MM}`;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
