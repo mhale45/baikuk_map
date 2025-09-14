@@ -239,30 +239,38 @@ function _formatKST(isoString) {
 }
 
 // 최신 '임대시트' 시간(imDae_sheet_timetz) + created_at 같이 가져와서
-// created_at의 "날짜" + timetz의 "시간"을 합쳐 ISO로 반환
+// created_at 대신 오늘 날짜 + imDae_sheet_timetz를 합쳐 ISO 반환
 async function _getLatestImdaeUpdatedAt() {
   try {
     const { data, error } = await supabase
       .from('update_log')
-      .select('imDae_sheet_timetz')   // 둘 다 받기
+      .select('imDae_sheet_timetz')
       .eq('memo', '업데이트성공')
       .eq('movement', '임대시트')
-      .order('imDae_sheet_timetz', { ascending: false })  // 안전하게 created_at으로 최신행 선택
+      .order('imDae_sheet_timetz', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
     if (!data) return null;
 
-    const timez = data.imDae_sheet_timetz;        // 예: "22:14:39.497113+09"
+    const timez = data.imDae_sheet_timetz; // 예: "22:14:39.497113+09"
     if (!timez) return null;
 
-    // 파싱 확인(Invalid Date 예방)
+    // 오늘 날짜(YYYY-MM-DD)
+    const today = new Date();
+    const datePart = today.toISOString().slice(0, 10);
+
+    // ISO 조합: "YYYY-MM-DDTHH:mm:ss.sss+09"
+    const iso = `${datePart}T${String(timez)}`;
+
+    // 파싱 확인
     const d = new Date(iso);
     if (isNaN(d.getTime())) {
       console.warn('Invalid combined datetime:', iso);
       return null;
     }
+
     return iso;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
