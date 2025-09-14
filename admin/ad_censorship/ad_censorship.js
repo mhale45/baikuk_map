@@ -238,7 +238,6 @@ function _formatKST(isoString) {
   return `${y}-${m}-${day} ${h}:${min}`;
 }
 
-// created_at 없이 timetz + 오늘 날짜 → "YYYY. M. D. HH:mm" 반환
 async function _getLatestImdaeUpdatedAt() {
   try {
     const { data, error } = await supabase
@@ -253,24 +252,18 @@ async function _getLatestImdaeUpdatedAt() {
     if (error) throw error;
     if (!data) return null;
 
-    const raw = data.imDae_sheet_timetz; // 예: "23:32:06.595167+09"
+    const raw = data.imDae_sheet_timetz;
     if (!raw) return null;
 
-    // --- 타임존 오프셋 정규화: +09, +0900 → +09:00 (JS Date 호환)
+    // 타임존 정규화
     const normalizeOffset = (t) => {
       let s = String(t).trim();
-
-      // "+HHMM" → "+HH:MM"
       s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-      // "+HH" → "+HH:00"
       s = s.replace(/([+-]\d{2})$/, '$1:00');
-
       return s;
     };
+    const timez = normalizeOffset(raw);
 
-    const timez = normalizeOffset(raw); // 예: "23:32:06.595167+09:00"
-
-    // 오늘 날짜(YYYY-MM-DD) + timetz → ISO 시도
     const datePart = new Date().toISOString().slice(0, 10);
     const iso = `${datePart}T${timez}`;
 
@@ -280,7 +273,7 @@ async function _getLatestImdaeUpdatedAt() {
       return null;
     }
 
-    // 출력 포맷: "YYYY. M. D. HH:mm"
+    // ✅ 원하는 포맷: "YYYY. M. D. HH:mm"
     const yyyy = d.getFullYear();
     const mm = d.getMonth() + 1;
     const dd = d.getDate();
