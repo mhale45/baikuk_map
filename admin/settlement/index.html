@@ -51,41 +51,63 @@
 
     window.supabase = supabase; // 전역으로 접근
 
-    // ✅ 로그인 및 권한 체크
     (async () => {
-      const { data: sessionRes, error } = await supabase.auth.getSession();
-      if (error) {
-        console.warn("세션 조회 에러:", error);
-      }
-      if (!sessionRes?.session) {
-        console.warn("로그인 세션 없음 → /map으로 이동");
-        location.replace("https://baikuk.com/map");
-        return;
-      }
+      try {
+        // 1) 로그인 세션 확인 (없으면 이동)
+        const { data, error } = await supabase.auth.getSession();
+        if (error) console.warn("세션 조회 에러:", error);
+        if (!data?.session) {
+          console.warn("로그인 세션 없음 → /map 으로 이동");
+          location.replace("https://baikuk.com/map");
+          return;
+        }
 
-      // 권한 조회
-      const user = sessionRes.session.user;
-      if (!user?.id) {
-        location.replace("https://baikuk.com/map");
-        return;
-      }
+        // 2) 권한 기반으로 '정산' 탭 표시/숨김
+        const guardClick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          alert('직원 권한은 정산 메뉴에 접근할 수 없습니다.');
+        };
 
-      const { data: staff, error: staffError } = await supabase
-        .from("staff_profiles")
-        .select("authority")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        const showOrHideSettlementTab = async () => {
+          const tab = document.getElementById('settlement-tab');
+          if (!tab) return;
 
-      if (staffError) {
-        console.warn("권한 조회 실패:", staffError);
-        return;
-      }
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user?.id) return;
 
-      if (staff?.authority?.trim() === "직원") {
-        console.warn("직원 권한 → /admin/performance 로 이동");
-        location.replace("/admin/performance/");
+          const { data: me, error: authErr } = await supabase
+            .from('staff_profiles')
+            .select('authority')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (authErr) {
+            console.warn('authority 조회 실패:', authErr);
+            return; // 실패 시 기본 숨김 유지
+          }
+
+          const role = (me?.authority || '').trim();
+          if (role === '직원') {
+            // 직원: 숨김(기본값 유지) + 안전 가드
+            tab.style.display = 'none';
+            tab.addEventListener('click', guardClick, { once: true });
+          } else {
+            // 관리자/지점장: 표시
+            tab.style.removeProperty('display');
+          }
+        };
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', showOrHideSettlementTab, { once: true });
+        } else {
+          showOrHideSettlementTab();
+        }
+      } catch (e) {
+        console.warn('세션/정산 탭 처리 중 예외:', e);
       }
     })();
+
   </script>
 </body>
 </html>
