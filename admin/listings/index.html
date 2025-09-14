@@ -628,36 +628,67 @@
         goToListing(tr.dataset.listingId);
       });
 
-      // 로그인 계정정보 표시 (public_staff_view에서 name, email, affiliation/affliation, position, extension)
+      // ✅ 계정정보 표시 + '정산' 탭 권한 제어(관리자/지점장만 노출)
       (async () => {
         try {
           const { data: { user } } = await client.auth.getUser();
-          if (!user) return;
+          if (!user?.id) return;
 
-          // 보통 auth의 user.email 기준으로 매칭
+          // 1) 계정정보(public_staff_view) & 권한(staff_profiles) 병렬 조회
           const email = user.email || '';
+          const [staffRes, authRes] = await Promise.all([
+            client.from('public_staff_view')
+                  .select('name,email,affiliation,position,extension')
+                  .eq('email', email)
+                  .maybeSingle(),
+            client.from('staff_profiles')
+                  .select('authority')
+                  .eq('user_id', user.id)
+                  .maybeSingle()
+          ]);
 
-          const { data: staff, error } = await client
-            .from('public_staff_view')
-            .select('name,email,affiliation,position,extension')
-            .eq('email', email)
-            .single();
+          // 2) 상단 계정정보 렌더 (조회 실패 시 이메일만 표시)
+          const staff = staffRes?.data;
+          const hasStaff = !!staff && !staffRes.error;
 
-          if (error) {
-            // 조회 실패 시 최소한 이메일만 표시
-            document.getElementById('account-name').textContent = user.email || '';
-            document.getElementById('account-email').textContent = user.email || '';
-            return;
+          const $name        = document.getElementById('account-name');
+          const $email       = document.getElementById('account-email');
+          const $affiliation = document.getElementById('account-affiliation');
+          const $position    = document.getElementById('account-position');
+          const $extension   = document.getElementById('account-extension');
+
+          if ($name)        $name.textContent        = hasStaff ? (staff.name || '') : (user.email || '');
+          if ($email)       $email.textContent       = hasStaff ? (staff.email || email || '') : (user.email || '');
+          if ($affiliation) $affiliation.textContent = hasStaff ? (staff.affiliation || '') : '';
+          if ($position)    $position.textContent    = hasStaff ? (staff.position || '') : '';
+          if ($extension)   $extension.textContent   = hasStaff ? (staff.extension || '') : '';
+
+          // 3) '정산' 탭 권한 제어
+          const authority = (authRes?.data?.authority || '').trim();
+          const tab = document.getElementById('settlement-tab');
+          if (!tab) return;
+
+          // 직원 클릭 가드
+          const guardClick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alert('직원 권한은 정산 메뉴에 접근할 수 없습니다.');
+          };
+
+          if (authority === '직원') {
+            // 직원: 숨김 + 클릭 가드(혹시 보이더라도 접근 차단)
+            tab.style.display = 'none';
+            tab.removeEventListener('click', guardClick);
+            tab.addEventListener('click', guardClick);
+          } else {
+            // 관리자/지점장: 노출 + 기존 리스너 초기화(가드 제거)
+            tab.style.removeProperty('display');
+            const clean = tab.cloneNode(true);
+            tab.replaceWith(clean);
           }
-
-          document.getElementById('account-name').textContent       = staff?.name || '';
-          document.getElementById('account-email').textContent      = staff?.email || email || '';
-          document.getElementById('account-affiliation').textContent= staff?.affiliation || '';
-          document.getElementById('account-position').textContent   = staff?.position || '';
-          document.getElementById('account-extension').textContent  = staff?.extension || '';
         } catch (e) {
-          // 예외가 나도 페이지가 멈추지 않도록
-          console.warn('계정정보 로드 실패:', e);
+          console.warn('계정/권한 조회 중 예외:', e);
+          // 실패해도 앱 진행은 막지 않음
         }
       })();
 
