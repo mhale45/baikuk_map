@@ -40,20 +40,24 @@
     .shadow-right {
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
+    /* 열 리사이즈 UX 강화 */
     th.resizable {
-      position: relative;
-      min-width: 40px;
-      white-space: nowrap;
+      position: relative;         /* 핸들을 오른쪽 끝에 붙이기 */
+      padding-right: 6px;         /* 핸들 공간 확보 */
     }
-    .resize-handle {
+
+    th.resizable .resize-handle {
       position: absolute;
       right: 0;
       top: 0;
-      width: 0.4rem;
+      width: 6px;                 /* 잡기 쉬운 폭 */
       height: 100%;
       cursor: col-resize;
-      z-index: 10;
-      background-color: transparent;
+      user-select: none;
+      background: transparent;
+    }
+    th.resizable:hover .resize-handle {
+      background: rgba(0,0,0,0.05); /* 살짝 보이게 (선택) */
     }
     .customer-item {
       position: relative;
@@ -225,15 +229,33 @@
               <table>
                 <thead>
                   <tr id="header-row">
-                    <th class="resizable" style="width: 1.4rem;"></th>
-                    <th class="resizable" style="width: 10rem;">매물명</th>
-                    <th class="resizable" style="width: 9rem;">주소</th>
-                    <th class="resizable" style="width: 9rem;">건물정보</th>
-                    <th class="resizable" style="width: 5.2rem;">보증금</th>
-                    <th class="resizable" style="width: 3.8rem;">월세</th>
-                    <th class="resizable" style="width: 5.2rem;">권리금</th>
-                    <th class="resizable" style="width: 4.7rem;">전용(평)</th>
-                    <th class="resizable" style="width: 15rem;">내용</th>
+                    <th class="resizable" style="min-width: 1.4rem;">
+                      <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 10rem;">
+                      매물명 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 9rem;">
+                      주소 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 9rem;">
+                      건물정보 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 5.2rem;">
+                      보증금 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 3.8rem;">
+                      월세 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 5.2rem;">
+                      권리금 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 4.7rem;">
+                      전용(평) <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="min-width: 15rem;">
+                      내용 <div class="resize-handle"></div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="listings-body"></tbody>
@@ -265,6 +287,34 @@
     })();
 
     window.supabase = supabase; // 전역으로 접근
+
+    // ✅ 테이블 헤더 리사이즈 기능
+    document.querySelectorAll("th.resizable").forEach(th => {
+      const handle = document.createElement("div");
+      handle.className = "resize-handle";
+      th.appendChild(handle);
+
+      let startX, startWidth;
+
+      handle.addEventListener("mousedown", (e) => {
+        startX = e.pageX;
+        startWidth = th.offsetWidth;
+
+        const onMouseMove = (e) => {
+          const newWidth = startWidth + (e.pageX - startX);
+          th.style.width = newWidth + "px";
+          th.style.minWidth = newWidth + "px";
+        };
+
+        const onMouseUp = () => {
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+        };
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+      });
+    });
   </script>
   <script>
     // 스크립트 시작
@@ -1173,32 +1223,52 @@
       });
       resizeObserver.observe(listingsBody);
 
-      // ✅ 여기서 한번만 바인딩
-      let startX, startWidth, resizableTh;
+      // ✅ 열 리사이즈 바인딩 (최소 너비 보장 + 드래그 중 선택 방지)
+      (() => {
+        let startX, startWidth, activeTh;
+        let dragging = false;
 
-      document.querySelectorAll('.resize-handle').forEach(handle => {
-        handle.addEventListener('mousedown', (e) => {
-          resizableTh = e.target.closest('th');
-          startX = e.clientX;
-          startWidth = resizableTh.offsetWidth;
+        const getMinWidth = (th) => {
+          // style/min-width 속성 → px 숫자 추출 (기본 40px)
+          const cs = window.getComputedStyle(th);
+          const mw = parseFloat(cs.minWidth);
+          return isNaN(mw) ? 40 : mw;
+        };
 
-          document.addEventListener('mousemove', resizeColumn);
-          document.addEventListener('mouseup', stopResize);
+        const onMouseMove = (e) => {
+          if (!dragging || !activeTh) return;
+          const delta = e.clientX - startX;
+          const minW = getMinWidth(activeTh);
+          const newW = Math.max(minW, startWidth + delta);
+          activeTh.style.width = newW + 'px';
+          activeTh.style.minWidth = newW + 'px';
+        };
+
+        const onMouseUp = () => {
+          if (!dragging) return;
+          dragging = false;
+          document.body.style.userSelect = '';
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          activeTh = null;
+        };
+
+        document.querySelectorAll('.resize-handle').forEach(handle => {
+          handle.addEventListener('mousedown', (e) => {
+            activeTh = e.currentTarget.closest('th');
+            startX = e.clientX;
+            startWidth = activeTh.offsetWidth;
+            dragging = true;
+
+            // 드래그 중 텍스트 선택 방지
+            document.body.style.userSelect = 'none';
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+          });
         });
-      });
-
-      function resizeColumn(e) {
-        if (!resizableTh) return;
-        const newWidth = startWidth + (e.clientX - startX);
-        resizableTh.style.width = newWidth + 'px';
-      }
-
-      function stopResize() {
-        document.removeEventListener('mousemove', resizeColumn);
-        document.removeEventListener('mouseup', stopResize);
-        resizableTh = null;
-      }
-
+      })();
+      
       syncRowHeights?.();
 
       // ✅ 전체선택 대상 제한: 매물번호/매물정보만
