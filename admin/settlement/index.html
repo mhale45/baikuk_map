@@ -91,11 +91,9 @@
       if (staff?.authority?.trim() === "직원") {
         console.warn("직원 권한 → /admin/performance 로 이동");
         location.replace("/admin/performance/");
+      } else {
+        document.dispatchEvent(new Event('supabase-ready')); // 이 줄 추가
       }
-
-      document.addEventListener('supabase-ready', async () => {
-        await initSettlement();
-      });
     })();
   </script>
 </body>
