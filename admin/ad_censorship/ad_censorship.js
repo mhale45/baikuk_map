@@ -226,68 +226,33 @@ export function getSelectedFilters() {
   };
 }
 
-// ISO 문자열 또는 Date → "YYYY. M. D. HH:mm" (KST) 로 변환
-function formatDate(input) {
-  const d = (input instanceof Date) ? input : new Date(input);
-  if (isNaN(d)) return '';
-
-  // KST 기준으로 각 파트만 추출(단위 텍스트 없음)
-  const parts = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(d);
-
-  const get = (type) => parts.find(p => p.type === type)?.value || '';
-  const y  = get('year');
-  const m  = Number(get('month')); // 앞의 0 제거
-  const day = Number(get('day'));  // 앞의 0 제거
-  const hh = get('hour').padStart(2, '0');
-  const mm = get('minute').padStart(2, '0');
-
-  return `${y}. ${m}. ${day}. ${hh}:${mm}`;
+// timetz 문자열을 오늘 날짜와 결합해 ISO로 변환
+function _timetzToTodayISO(tzStr) {
+  if (!tzStr) return null;
+  let s = String(tzStr).trim();
+  // +0900 → +09:00 보정, +09 → +09:00 보정
+  s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+       .replace(/([+-]\d{2})$/, '$1:00');
+  const datePart = new Date().toISOString().slice(0, 10); // 오늘(로컬 아님)
+  const iso = `${datePart}T${s}`;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : iso;
 }
 
-async function _getLatestImdaeUpdatedAt() {
+// movement별 최신 1개 timetz를 조회해 ISO로 반환
+async function _getLatestUpdateISO(movement) {
   try {
     const { data, error } = await supabase
       .from('update_log')
       .select('imDae_sheet_timetz')
       .eq('memo', '업데이트성공')
-      .eq('movement', '매물장')
+      .eq('movement', movement)
       .order('imDae_sheet_timetz', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return null;
-
-    const raw = data.imDae_sheet_timetz;
-    if (!raw) return null;
-
-    // 타임존 정규화
-    const normalizeOffset = (t) => {
-      let s = String(t).trim();
-      s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-      s = s.replace(/([+-]\d{2})$/, '$1:00');
-      return s;
-    };
-    const timez = normalizeOffset(raw);
-
-    const datePart = new Date().toISOString().slice(0, 10);
-    const iso = `${datePart}T${timez}`;
-
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) {
-      console.warn('Invalid combined datetime after normalization:', iso);
-      return null;
-    }
-
-    return iso;
+    return data?.imDae_sheet_timetz ? _timetzToTodayISO(data.imDae_sheet_timetz) : null;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
@@ -508,9 +473,17 @@ async function renderStaffSidebar(me) {
             const rows = data || [];
 
             {
-              const latestAt = await _getLatestImdaeUpdatedAt();
-              meta.textContent = latestAt
-                ? `최신 업데이트: ${formatDate(latestAt)} (매물장)`
+              const [maemulAt, adAt] = await Promise.all([
+                _getLatestUpdateISO('매물장'),
+                _getLatestUpdateISO('백억광고'),
+              ]);
+
+              const parts = [];
+              if (maemulAt) parts.push(`${formatDate(maemulAt)} (매물장)`);
+              if (adAt)     parts.push(`${formatDate(adAt)} (백억광고)`);
+
+              meta.textContent = parts.length
+                ? `최신 업데이트: ${parts.join(' / ')}`
                 : '최신 업데이트 기록이 없습니다';
             }
 
@@ -921,11 +894,20 @@ async function renderStaffSidebar(me) {
 
             resultBox.appendChild(table);
             {
-              const latestAt = await _getLatestImdaeUpdatedAt();
-              meta.textContent = latestAt
-                ? `최신 업데이트: ${formatDate(latestAt)} (매물장)`
+              const [maemulAt, adAt] = await Promise.all([
+                _getLatestUpdateISO('매물장'),
+                _getLatestUpdateISO('백억광고'),
+              ]);
+
+              const parts = [];
+              if (maemulAt) parts.push(`${formatDate(maemulAt)} (매물장)`);
+              if (adAt)     parts.push(`${formatDate(adAt)} (백억광고)`);
+
+              meta.textContent = parts.length
+                ? `최신 업데이트: ${parts.join(' / ')}`
                 : '최신 업데이트 기록이 없습니다';
             }
+
         } catch (err) {
             console.error(err);
             meta.textContent = '매물 조회 중 오류가 발생했습니다.';
