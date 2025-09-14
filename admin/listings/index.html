@@ -100,18 +100,21 @@
               });
               if (error) throw error;
 
-              // 2) 세션 등록 (허용 기기 관리)
+              // 2) (선택) 세션 등록 / 허용 검사 동일
               await client.rpc('register_session', {
                 device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
                 user_agent: navigator.userAgent
-              }).catch(() => { /* 서버 로그용이니 실패해도 치명적 아님 */ });
+              }).catch(()=>{});
 
-              // 3) 허용 여부 확인
-              const { data: allowed } = await client.rpc('is_session_allowed').catch(() => ({ data: true }));
+              const { data: allowed } = await client.rpc('is_session_allowed').catch(()=>({ data: true }));
               if (allowed === false) {
                 await client.auth.signOut();
                 throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
               }
+
+              // 3) ✅ 여기서 "한 번만" 목적지로 이동 (reload 대신)
+              window.__did_redirect__ = true; // 혹시 모를 중복 방지
+              location.replace('https://baikuk-map.netlify.app/admin/listings/'); // 슬래시 포함!
 
               // 4) 현재 페이지 재로드 → 목록 로직 진행
               location.reload();
@@ -145,9 +148,13 @@
       }
     })();
 
-    // ✅ 세션 상태 바뀌면 자동 반응 (예: 다른 탭에서 로그인)
-    client.auth.onAuthStateChange((_evt, session) => {
-      if (session) location.reload();
+    // ✅ 대체안: 'SIGNED_IN'에서만 1회 동작
+    client.auth.onAuthStateChange((evt, session) => {
+      if (evt === 'SIGNED_IN' && session && !window.__did_redirect__) {
+        window.__did_redirect__ = true; // 중복 방지
+        // 필요 없으면 이 줄도 생략 가능 (우리는 B에서 명시 리다이렉트)
+        // location.replace('https://baikuk-map.netlify.app/admin/listings/');
+      }
     });
 
     const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
