@@ -37,6 +37,32 @@ function _stripDateFromStatus(str) {
   return String(str).replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim();
 }
 
+// ISO 문자열 또는 Date → "YYYY. M. D. HH:mm" (KST) 로 변환
+function formatDate(input) {
+  const d = (input instanceof Date) ? input : new Date(input);
+  if (isNaN(d)) return '';
+
+  // KST로 표시
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  const y  = get('year');
+  const m  = Number(get('month'));
+  const day = Number(get('day'));
+  const hh = get('hour').padStart(2, '0');
+  const mm = get('minute').padStart(2, '0');
+
+  return `${y}. ${m}. ${day}. ${hh}:${mm}`;
+}
+
 // [ADD] HTML 이스케이프 유틸 (features 값 안전 출력용)
 function _escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -945,10 +971,4 @@ export async function initAdCensorship() {
   // 내 권한/소속/ID 파악 후 사이드바 렌더
   const me = await getMyAuthorityAndStaffId();
   await renderStaffSidebar(me);
-
-  // 예시: 다른 모듈에서 필터 변경 수신
-  // document.addEventListener('adc:filter-change', (e) => {
-  //   const { staffId, affiliation } = e.detail || {};
-  //   // TODO: 광고 검열 리스트 쿼리 갱신/필터링
-  // });
 }
