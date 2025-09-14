@@ -621,6 +621,30 @@
         if (!tr) return;
         goToListing(tr.dataset.listingId);
       });
+
+      // 로그인 계정정보 표시 및 로그아웃 버튼 
+      (async () => {
+        const { data: { user } } = await client.auth.getUser();
+
+        if (user) {
+          // staff_profiles에서 이름 불러오기 (없으면 이메일 fallback)
+          const { data: staff } = await client
+            .from('staff_profiles')
+            .select('name')
+            .eq('user_id', user.id)
+            .single();
+
+          const displayName = staff?.name || user.email || '(이름없음)';
+          document.getElementById('account-name').textContent = displayName;
+        }
+      })();
+
+      document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        await client.auth.signOut();
+        // 로그아웃 후 로그인 화면(또는 메인 지도)으로 이동
+        location.replace('https://baikuk.com/map');
+      });
+      // 로그인 계정정보 표시 및 로그아웃 버튼 
     });
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
@@ -681,6 +705,11 @@
     <div class="w-[94%] flex flex-col bg-gray-50">
       <div class="flex gap-4 items-start bg-gray-100"> <!-- 필터 영역 (상단 10%) -->
         <div class="flex flex-col w-[37%] mt-2">
+          <!-- 계정정보 + 로그아웃 버튼 -->
+          <div id="account-info" class="flex items-center justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700">
+            <span id="account-name">-</span>
+            <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
+          </div>
             <button id="open-admin-listing-btn" class="text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded px-2 py-1 ml-auto mt-5">🏢 매물등록</button>        
           <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2">
             <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
