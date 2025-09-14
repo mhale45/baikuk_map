@@ -226,16 +226,19 @@ export function getSelectedFilters() {
   };
 }
 
-// ---- [ADD] 최신 '임대시트' 업데이트 시간 조회 + KST 포맷터 ----
+// ISO 문자열(예: 2025-09-14T23:32:06+09:00) → "YYYY. M. D. HH:mm"
 function _formatKST(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
-  const y = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric' }).format(d);
-  const m = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit' }).format(d);
-  const day = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', day: '2-digit' }).format(d);
-  const h = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }).format(d);
-  const min = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', minute: '2-digit' }).format(d);
-  return `${y}-${m}-${day} ${h}:${min}`;
+  if (isNaN(d)) return '';
+
+  const y   = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric' });
+  const mon = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric' }); // 9
+  const day = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', day: 'numeric' });   // 14
+  const hh  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }); // 23
+  const mm  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', minute: '2-digit' });               // 32
+
+  return `${y}. ${mon}. ${day}. ${hh}:${mm}`;
 }
 
 async function _getLatestImdaeUpdatedAt() {
@@ -273,14 +276,8 @@ async function _getLatestImdaeUpdatedAt() {
       return null;
     }
 
-    // ✅ 원하는 포맷: "YYYY. M. D. HH:mm"
-    const yyyy = d.getFullYear();
-    const mm = d.getMonth() + 1;
-    const dd = d.getDate();
-    const HH = String(d.getHours()).padStart(2, '0');
-    const MM = String(d.getMinutes()).padStart(2, '0');
-
-    return `${yyyy}. ${mm}. ${dd}. ${HH}:${MM}`;
+    // 화면 포맷팅은 _formatKST에서 처리 → 여기선 ISO 그대로 반환
+    return iso;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
