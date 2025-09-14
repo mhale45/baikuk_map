@@ -241,18 +241,14 @@ function _formatKST(isoString) {
 async function _getLatestImdaeUpdatedAt() {
   const { data, error } = await supabase
     .from('update_log')
-    .select('created_at')
+    .select('imDae_sheet_timetz')
     .eq('memo', '업데이트성공')
     .eq('movement', '임대시트')
-    .order('created_at', { ascending: false })
+    .order('imDae_sheet_timetz', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (error) {
-    console.warn('update_log 조회 실패:', error);
-    return null;
-  }
-  return data?.created_at || null;
+  return data?.imDae_sheet_timetz || null;
 }
 
 // === 직원 사이드바 렌더 ===
