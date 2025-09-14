@@ -128,6 +128,8 @@
   </div>
 
   <script>
+    let __selectedStaffId = null; // 선택된 담당자 ID 기억용
+
     /* ==============================
        공통 유틸 / 권한 컨텍스트
     ===============================*/
@@ -349,6 +351,7 @@
         .maybeSingle();
 
       if(staffError || !staff) return;
+      __selectedStaffId = staff.id; // ← 현재 로그인한 담당자 ID 저장
       const el=document.getElementById('staff-info');
       if(el) el.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
     }
@@ -431,7 +434,7 @@
           switchSpansToInputs();
           staffInfoEl.classList.add('hidden');
           staffSelectEl.classList.remove('hidden');
-          await loadStaffOptions(); // 권한에 맞춰 채우기
+          await loadStaffOptions(__selectedStaffId);
           showToast('편집 모드로 전환되었습니다.');
           // 불필요한 빈 행 정리
           const listingsBody=document.getElementById('listings-body');
