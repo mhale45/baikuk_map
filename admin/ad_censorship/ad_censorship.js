@@ -226,19 +226,14 @@ export function getSelectedFilters() {
   };
 }
 
-// ISO 문자열(예: 2025-09-14T23:32:06+09:00) → "YYYY. M. D. HH:mm"
-function _formatKST(isoString) {
-  if (!isoString) return '';
-  const d = new Date(isoString);
-  if (isNaN(d)) return '';
+function formatDate(dt) {
+  const y = dt.getFullYear();
+  const m = dt.getMonth() + 1;
+  const d = dt.getDate();
+  const hh = dt.getHours().toString().padStart(2, '0');
+  const mm = dt.getMinutes().toString().padStart(2, '0');
 
-  const y   = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric' });
-  const mon = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric' }); // 9
-  const day = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', day: 'numeric' });   // 14
-  const hh  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }); // 23
-  const mm  = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', minute: '2-digit' });               // 32
-
-  return `${y}. ${mon}. ${day}. ${hh}:${mm}`;
+  return `${y}. ${m}. ${d}. ${hh}:${mm}`;
 }
 
 async function _getLatestImdaeUpdatedAt() {
@@ -276,7 +271,6 @@ async function _getLatestImdaeUpdatedAt() {
       return null;
     }
 
-    // 화면 포맷팅은 _formatKST에서 처리 → 여기선 ISO 그대로 반환
     return iso;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
@@ -500,7 +494,7 @@ async function renderStaffSidebar(me) {
             {
               const latestAt = await _getLatestImdaeUpdatedAt();
               meta.textContent = latestAt
-                ? `최신 업데이트: ${_formatKST(latestAt)} (매물장)`
+                ? `최신 업데이트: ${formatDate(latestAt)} (매물장)`
                 : '최신 업데이트 기록이 없습니다';
             }
 
@@ -913,7 +907,7 @@ async function renderStaffSidebar(me) {
             {
               const latestAt = await _getLatestImdaeUpdatedAt();
               meta.textContent = latestAt
-                ? `최신 업데이트: ${_formatKST(latestAt)} (매물장)`
+                ? `최신 업데이트: ${formatDate(latestAt)} (매물장)`
                 : '최신 업데이트 기록이 없습니다';
             }
         } catch (err) {
