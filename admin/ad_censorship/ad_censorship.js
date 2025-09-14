@@ -238,8 +238,7 @@ function _formatKST(isoString) {
   return `${y}-${m}-${day} ${h}:${min}`;
 }
 
-// 최신 '임대시트' 시간(imDae_sheet_timetz) + created_at 같이 가져와서
-// created_at 대신 오늘 날짜 + imDae_sheet_timetz를 합쳐 ISO 반환
+// created_at 없이 timetz + 오늘 날짜 → "YYYY. M. D. HH:mm" 포맷 반환
 async function _getLatestImdaeUpdatedAt() {
   try {
     const { data, error } = await supabase
@@ -257,21 +256,21 @@ async function _getLatestImdaeUpdatedAt() {
     const timez = data.imDae_sheet_timetz; // 예: "22:14:39.497113+09"
     if (!timez) return null;
 
-    // 오늘 날짜(YYYY-MM-DD)
+    // 오늘 날짜 + timetz 합치기
     const today = new Date();
-    const datePart = today.toISOString().slice(0, 10);
-
-    // ISO 조합: "YYYY-MM-DDTHH:mm:ss.sss+09"
+    const datePart = today.toISOString().slice(0, 10); // "YYYY-MM-DD"
     const iso = `${datePart}T${String(timez)}`;
 
-    // 파싱 확인
     const d = new Date(iso);
     if (isNaN(d.getTime())) {
       console.warn('Invalid combined datetime:', iso);
       return null;
     }
 
-    return iso;
+    // 원하는 출력 형식: "YYYY. M. D. HH:mm"
+    const formatted = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+    return formatted;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
