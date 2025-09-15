@@ -251,20 +251,20 @@ export function getSelectedFilters() {
   };
 }
 
-// [삽입] timetz 문자열을 오늘 날짜(KST)와 결합해 Date 객체로 반환
+// [교체] timetz 문자열을 오늘 날짜(KST)와 결합해 Date 객체로 반환
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
   const raw = String(tzStr).trim();
 
-  // 1) 오늘 날짜를 KST 기준으로 "YYYY-MM-DD" 생성
+  // KST 기준 "YYYY-MM-DD"
   const datePart = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date()); // e.g. "2025-09-15"
+  }).format(new Date());
 
-  // 2) timetz에서 HH:mm(:ss)와 오프셋 추출, 없으면 +09:00 기본값
+  // HH:mm(:ss) + 선택 오프셋(+09, +0900, +09:00) 파싱, 없으면 +09:00
   const m = raw.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([+-]\d{1,2})(?::?(\d{2}))?)?$/);
   if (!m) return null;
 
@@ -275,8 +275,8 @@ function _timetzToTodayISO(tzStr) {
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
   const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
-
   const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
+
   const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
 
