@@ -963,6 +963,7 @@
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
+        syncRowHeights();
       }
 
       // 행이 너무 많으면 자름
@@ -1237,10 +1238,13 @@
 
       // ✅ ResizeObserver로 실시간 높이 동기화
       const listingsBody = document.getElementById('listings-body');
+      const leftBody     = document.getElementById('left-tbody');
+
       const resizeObserver = new ResizeObserver(() => {
         syncRowHeights();
       });
       resizeObserver.observe(listingsBody);
+      resizeObserver.observe(leftBody);
 
       // ✅ 열 리사이즈: 매매추천 페이지와 동일 동작(심플)
       let startX, startWidth, resizableTh;
