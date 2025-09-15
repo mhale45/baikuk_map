@@ -824,10 +824,9 @@ async function renderStaffSidebar(me) {
                 ? '-'  // 정상일 때 기본값은 '-'
                 : '<span class="text-red-600 font-semibold">미노출</span>';
 
-              // ✅ 시설체크 조건
-              if (row.premium_price === 0 && rawFeat.includes('완비')) {
+              // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
+              if (premiumPrice === 0 && rawFeat.includes('완비')) {
                 if (featuresLabel.includes('미노출')) {
-                  // 이미 '미노출'이 있으면 줄바꿈 후 추가
                   featuresLabel += '<br><span class="text-red-600 font-semibold">시설체크</span>';
                 } else {
                   featuresLabel = '<span class="text-red-600 font-semibold">시설체크</span>';
@@ -858,80 +857,85 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              // === 정렬 우선순위 계산 (사용자 정의 순서) ===
+              // === 정렬 우선순위 계산 (요청하신 항목 순서대로 '조건별 분해 키') ===
 
               // 1) 매물번호 '-'
-              const descPriority = (descId === '-') ? 0 : 1;
+              const pr_descDash = (descId === '-') ? 0 : 1;
 
               // 2) 매물명 '-'
-              const titlePriority = (title === '-') ? 0 : 1;
+              const pr_titleDash = (title === '-') ? 0 : 1;
 
               // 3~6) 거래상태
               const s = (statusDisplay || '').toString().trim();
-              let statusPriority = 99;
-              if (s === '-') statusPriority = 0;
-              else if (s === '0') statusPriority = 1;
-              else if (s.includes('계약완료')) statusPriority = 2;
-              else if (s.includes('보류')) statusPriority = 3;
-              else statusPriority = 4;
+              const pr_statusDash        = (s === '-') ? 0 : 1;                     // 3) '-'
+              const pr_statusZero        = (s === '0') ? 0 : 1;                      // 4) '0'
+              const pr_statusContract    = s.includes('계약완료') ? 0 : 1;           // 5) '계약완료' 포함
+              const pr_statusHold        = s.includes('보류') ? 0 : 1;               // 6) '보류' 포함
 
-              // 7) 매매가: '매매가 확인' → 기타
-              const salePricePriority = String(salePriceLabel).includes('매매가 확인') ? 0 : 1;
+              // 7) 매매가: '매매가 확인' 포함
+              const pr_saleCheck = String(salePriceLabel).includes('매매가 확인') ? 0 : 1;
 
               // 8~10) 보증금
-              let depositPriority = 3;
-              if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
-              else if (String(depositOut).includes('상세설명')) depositPriority = 1;
-              else if (depositOut === '-') depositPriority = 2;
+              const pr_depositCheck  = String(depositOut).includes('보증금 확인') ? 0 : 1; // 8)
+              const pr_depositDetail = String(depositOut).includes('상세설명') ? 0 : 1;    // 9)
+              const pr_depositDash   = (depositOut === '-') ? 0 : 1;                       // 10)
 
               // 11~13) 월세
-              let monthlyPriority = 3;
-              if (monthlyOut === '-') monthlyPriority = 0;
-              else if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 1;
-              else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 2;
+              const pr_monthlyDash   = (monthlyOut === '-') ? 0 : 1;                        // 11)
+              const pr_monthlyCheck  = String(monthlyOut).includes('월세 확인') ? 0 : 1;    // 12)
+              const pr_monthlyDetail = String(monthlyOut).includes('상세설명') ? 0 : 1;     // 13)
 
-              // 14) 권리금: '권리금 없음'
-              const premiumPriority = (String(premiumLabel).includes('권리금 없음')) ? 0 : 1;
+              // 14) 권리금: '권리금 없음' 포함
+              const pr_premiumNone   = String(premiumLabel).includes('권리금 없음') ? 0 : 1;
 
               // 15~16) 면적
-              let areaPriority = 3;
-              if (String(areaCell).includes('면적 확인')) areaPriority = 0;
-              else if (String(areaCell).includes('상세설명')) areaPriority = 1;
+              const pr_areaCheck     = String(areaCell).includes('면적 확인') ? 0 : 1;      // 15)
+              const pr_areaDetail    = String(areaCell).includes('상세설명') ? 0 : 1;       // 16)
 
-              // 17) 융자금: '융자금 없음'
-              const loanPriority = (String(loanLabel).includes('융자금 없음')) ? 0 : 1;
+              // 17) 융자금: '융자금 없음' 포함
+              const pr_loanNone      = String(loanLabel).includes('융자금 없음') ? 0 : 1;
 
-              // 18) 관리비: '관리비 체크'
-              const maintenancePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
+              // 18) 관리비: '관리비 체크' 포함
+              const pr_maintCheck    = String(maintenanceLabel).includes('관리비 체크') ? 0 : 1;
 
-              // 19) 화장실: '화장실 확인'
-              const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
+              // 19) 화장실: '화장실 확인' 포함
+              const pr_restroomCheck = String(restroomLabel).includes('화장실 확인') ? 0 : 1;
 
-              // 20) 매물특징: '미표시'
-              const featuresPriority = (String(featuresLabel).includes('미표시')) ? 0 : 1;
+              // 20~21) 매물특징
+              const pr_featNoExpose  = String(featuresLabel).includes('미노출') ? 0 : 1;    // 20)
+              const pr_featFacility  = String(featuresLabel).includes('시설체크') ? 0 : 1;  // 21)
 
-              // 21) 해당층: '해당층 확인'
-              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+              // 22) 해당층: '해당층 확인' 포함
+              const pr_floorCheck    = String(floorCell).includes('해당층 확인') ? 0 : 1;
 
-              // 22) 총층: '총층 확인'
-              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+              // 23) 총층: '총층 확인' 포함
+              const pr_totalCheck    = String(totalFloorCell).includes('총층 확인') ? 0 : 1;
 
-              // === 최종 sortKey ===
+              // === 최종 sortKey (위 순서 그대로) ===
               const sortKey = [
-                descPriority,       // 매물번호 '-'
-                titlePriority,      // 매물명 '-'
-                statusPriority,     // 거래상태 (-,0,계약완료,보류)
-                salePricePriority,  // 매매가 확인
-                depositPriority,    // 보증금
-                monthlyPriority,    // 월세
-                premiumPriority,    // 권리금 없음
-                areaPriority,       // 면적
-                loanPriority,       // 융자금 없음
-                maintenancePriority,// 관리비 체크
-                restroomPriority,   // 화장실 확인
-                featuresPriority,   // 매물특징 미표시
-                floorPriority,      // 해당층 확인
-                totalFloorPriority, // 총층 확인
+                pr_descDash,        // 1) 매물번호 '-'
+                pr_titleDash,       // 2) 매물명 '-'
+                pr_statusDash,      // 3) 거래상태 '-'
+                pr_statusZero,      // 4) 거래상태 '0'
+                pr_statusContract,  // 5) 거래상태 '계약완료' 포함
+                pr_statusHold,      // 6) 거래상태 '보류' 포함
+                pr_saleCheck,       // 7) 매매가 '매매가 확인' 포함
+                pr_depositCheck,    // 8) 보증금 '보증금 확인' 포함
+                pr_depositDetail,   // 9) 보증금 '상세설명' 포함
+                pr_depositDash,     // 10) 보증금 '-'
+                pr_monthlyDash,     // 11) 월세 '-'
+                pr_monthlyCheck,    // 12) 월세 '월세 확인' 포함
+                pr_monthlyDetail,   // 13) 월세 '상세설명' 포함
+                pr_premiumNone,     // 14) 권리금 '권리금 없음' 포함
+                pr_areaCheck,       // 15) 면적 '면적 확인' 포함
+                pr_areaDetail,      // 16) 면적 '상세설명' 포함
+                pr_loanNone,        // 17) 융자금 '융자금 없음' 포함
+                pr_maintCheck,      // 18) 관리비 '관리비 체크' 포함
+                pr_restroomCheck,   // 19) 화장실 '화장실 확인' 포함
+                pr_featNoExpose,    // 20) 매물특징 '미노출' 포함
+                pr_featFacility,    // 21) 매물특징 '시설체크' 포함
+                pr_floorCheck,      // 22) 해당층 '해당층 확인' 포함
+                pr_totalCheck,      // 23) 총층 '총층 확인' 포함
                 idx                 // 안정 정렬
               ];
 
