@@ -363,7 +363,7 @@ async function renderStaffSidebar(me) {
 
   // 2) 소속별 그룹핑 + 캐시
     const grouped = {};
-    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel }) => {
+    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel, extension  }) => {
         if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
         const entry = { id, name, affiliation, leave_date, ad_channel, extension  };
         if (!leave_date) grouped[affiliation].active.push(entry);
