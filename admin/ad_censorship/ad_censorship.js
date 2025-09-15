@@ -790,11 +790,14 @@ async function renderStaffSidebar(me) {
                 }
               }
 
-              // 매물특징 (공백만 있는 경우도 미표시 처리 + HTML 이스케이프)
+              // 매물특징 표시 정책 변경
+              // - 비정상(미입력/빈값/'-')이면: '미표시'(빨강)
+              // - 정상(값 존재)인 경우: 실제 텍스트 대신 '-'
               const rawFeat = (row.ad_listings_features ?? '').trim();
-              const featuresLabel = (!rawFeat || rawFeat === '-')
-                ? '<span class="text-red-600 font-semibold">미표시</span>'
-                : _escapeHtml(rawFeat);
+              const hasFeature = !!rawFeat && rawFeat !== '-';
+              const featuresLabel = hasFeature
+                ? '-'  // 정상인 경우에도 텍스트는 숨기고 하이픈만 표시
+                : '<span class="text-red-600 font-semibold">미표시</span>';
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
