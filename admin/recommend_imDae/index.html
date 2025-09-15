@@ -885,7 +885,12 @@
 
           let inputEl;
 
-          if (field.startsWith('listing_title_') || field.startsWith('full_address_')|| field.startsWith('description_')) {
+          if (
+            field.startsWith('listing_title_') ||
+            field.startsWith('full_address_')  ||
+            field.startsWith('combined_unit_') ||   // ✅ 건물정보도 textarea로
+            field.startsWith('description_')
+          ) {
             inputEl = document.createElement('textarea');
             inputEl.rows = 2;
             inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
