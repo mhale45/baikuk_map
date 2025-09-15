@@ -988,12 +988,9 @@
         listingsBody.removeChild(listingsBody.lastChild);
       }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          observeRows();
-          syncRowHeights();
-        });
-      });
+      // ⬇️ 행 증감 이후 관찰 재설정 + 최종 동기화
+      observeRows();
+      syncRowHeights();
     }
 
     function showToast(message, duration = 3000) {
@@ -1325,22 +1322,26 @@
     // 👉 창 리사이즈 시에도 높이 동기화
     window.addEventListener('resize', syncRowHeights);
 
+    // 👉 행 높이 동기화 함수 정의
     function syncRowHeights() {
       const rightRows = document.querySelectorAll('#listings-body tr');
       const leftRows  = document.querySelectorAll('#left-tbody tr');
 
-      // 0) 왼쪽은 일단 전부 풀어주기(빈 행 높이 잔상 제거)
-      leftRows.forEach(l => { l.style.height = 'auto'; });
-
-      // 1) 공통 구간만 다시 맞춤
       const len = Math.min(rightRows.length, leftRows.length);
       for (let i = 0; i < len; i++) {
         const r = rightRows[i];
         const l = leftRows[i];
         if (!r || !l) continue;
 
-        // 오른쪽 실제 높이 측정 후 왼쪽에 적용
+        // 1) 먼저 잠금 해제 (줄어들 수 있게)
+        l.style.height = 'auto';
+        // 혹시 예전에 잠갔다면 오른쪽도 풀어줌(선택 사항)
+        // r.style.height = 'auto';
+
+        // 2) 실제 높이 다시 측정
         const h = Math.ceil(r.getBoundingClientRect().height);
+
+        // 3) 왼쪽 행에 동일 높이 적용
         l.style.height = `${h}px`;
       }
     }
@@ -1418,17 +1419,9 @@
         }
         // ✅ 높이 다시 동기화
         syncRowHeights?.();
-        observeRows();
         return;
       } else {
         switchInputsToSpans(); // 저장 모드: span으로 변경
-        // 렌더 완료 후 관찰+동기화
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            observeRows();
-            syncRowHeights();
-          });
-        });
         // --- 👇 담당자 저장 처리 (staff-select → customers.staff_profiles_id) ---
         const selectedStaffId = document.getElementById('staff-select').value;
         if (selectedStaffId) {
