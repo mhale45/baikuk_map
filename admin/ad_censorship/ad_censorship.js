@@ -251,10 +251,23 @@ export function getSelectedFilters() {
   };
 }
 
-// [교체] timetz 문자열을 KST 오늘 날짜와 결합해 Date 객체로 반환
+// timetz 문자열을 KST 오늘 날짜와 결합해 Date 객체로 반환 (오전/오후까지 지원)
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
-  const raw = String(tzStr).trim();
+  let raw = String(tzStr).trim();
+
+  // 0) "오전/오후 HH:mm(:ss)" → 24시간제로 변환
+  //    예) "오전 09:04:05" -> "09:04:05", "오후 12:15" -> "12:15", "오후 01:30" -> "13:30"
+  const ampm = raw.match(/^(오전|오후)\s*(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (ampm) {
+    const isPM = ampm[1] === '오후';
+    let hh = parseInt(ampm[2], 10);
+    const mm = ampm[3];
+    const ss = ampm[4] || '00';
+    if (isPM && hh < 12) hh += 12;
+    if (!isPM && hh === 12) hh = 0;
+    raw = `${String(hh).padStart(2,'0')}:${mm}:${ss}`;
+  }
 
   // 1) 오늘 날짜를 KST 기준으로 YYYY-MM-DD 생성
   const datePart = new Intl.DateTimeFormat('en-CA', {
@@ -274,13 +287,13 @@ function _timetzToTodayISO(tzStr) {
 
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
-  const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
+  const offset = `${sign}${String(offH).padStart(2,'0')}:${String(offM).padStart(2,'0')}`;
 
   const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
   const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
 
-  return isNaN(d.getTime()) ? null : d; // ✅ Date 객체 반환
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // movement별 최신 1개 timetz를 조회해 'Date 객체'(KST 오늘 날짜와 결합)로 반환
