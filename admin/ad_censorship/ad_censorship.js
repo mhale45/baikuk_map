@@ -595,9 +595,9 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -1021,9 +1021,9 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
               `;
               tbody.appendChild(tr);
             });

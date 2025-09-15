@@ -11,7 +11,6 @@ import { showToastGreenRed } from '../../modules/ui/toast.js';
 
 // --- 전역 노출 (기존 페이지와 동일 동작 유지) ---
 window.supabase = supabase;
-document.dispatchEvent(new Event('supabase-ready'));
 
 // === 내부 상태 ===
 let __selectedStaffId = null;            // 선택된 직원 ID (string)
@@ -252,20 +251,74 @@ export function getSelectedFilters() {
   };
 }
 
-// timetz 문자열을 오늘 날짜와 결합해 ISO로 변환
+// timetz 문자열을 KST 오늘 날짜와 결합해 Date 객체로 반환 (오전/오후까지 지원)
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
-  let s = String(tzStr).trim();
-  // +0900 → +09:00 보정, +09 → +09:00 보정
-  s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
-       .replace(/([+-]\d{2})$/, '$1:00');
-  const datePart = new Date().toISOString().slice(0, 10); // 오늘(로컬 아님)
-  const iso = `${datePart}T${s}`;
+  let raw = String(tzStr).trim();
+
+  // 0) "오전/오후 HH:mm(:ss)" → 24시간제로 변환
+  //    예) "오전 09:04:05" -> "09:04:05", "오후 12:15" -> "12:15", "오후 01:30" -> "13:30"
+  const ampm = raw.match(/^(오전|오후)\s*(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (ampm) {
+    const isPM = ampm[1] === '오후';
+    let hh = parseInt(ampm[2], 10);
+    const mm = ampm[3];
+    const ss = ampm[4] || '00';
+    if (isPM && hh < 12) hh += 12;
+    if (!isPM && hh === 12) hh = 0;
+    raw = `${String(hh).padStart(2,'0')}:${mm}:${ss}`;
+  }
+
+  // 1) 오늘 날짜를 KST 기준으로 YYYY-MM-DD 생성
+  const datePart = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  // 2) timetz 파싱: "HH:mm(:ss)" + optional offset(+09, +0900, +09:00)
+  const m = raw.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([+-]\d{1,2})(?::?(\d{2}))?)?$/);
+  if (!m) return null;
+
+  const timePart = m[1];
+  let offH = (m[2] !== undefined) ? Number(m[2]) : 9;
+  let offM = (m[3] !== undefined) ? Number(m[3]) : 0;
+
+  const sign = offH >= 0 ? '+' : '-';
+  offH = Math.abs(offH);
+  const offset = `${sign}${String(offH).padStart(2,'0')}:${String(offM).padStart(2,'0')}`;
+
+  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
+  const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : iso;
+
+  return isNaN(d.getTime()) ? null : d;
 }
 
-// movement별 최신 1개 timetz를 조회해 ISO로 반환
+// ✅ update_log의 imDae_sheet_timetz가 "timestamptz" 또는 "timetz" 모두 들어와도 처리
+function _parseUpdateLogTime(v) {
+  if (!v) return null;
+
+  // Date 객체면 그대로
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+
+  const s = String(v).trim();
+
+  // 1) "YYYY-MM-DD HH:mm:ss+09" 또는 "YYYY-MM-DDTHH:mm:ssZ" 같은 전체 타임스탬프인 경우
+  //    - 공백을 'T'로 바꿔도 표준 Date 파서가 읽습니다.
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?([+-]\d{2}:?\d{2}|Z)?$/.test(s)) {
+    const isoLike = s.replace(' ', 'T'); // " " → "T"
+    const d = new Date(isoLike);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // 2) timetz("HH:mm[:ss][+09[:00]]" 또는 "오전/오후 HH:mm[:ss]") 형식이면 기존 로직으로
+  const t = _timetzToTodayISO(s);
+  return t;
+}
+
+// movement별 최신 1개 timetz를 조회해 'Date 객체'(KST 오늘 날짜와 결합)로 반환
 async function _getLatestUpdateISO(movement) {
   try {
     const { data, error } = await supabase
@@ -278,7 +331,10 @@ async function _getLatestUpdateISO(movement) {
       .maybeSingle();
 
     if (error) throw error;
-    return data?.imDae_sheet_timetz ? _timetzToTodayISO(data.imDae_sheet_timetz) : null;
+    
+    const t = data?.imDae_sheet_timetz ?? null;
+    return t ? _parseUpdateLogTime(t) : null;
+
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
@@ -381,7 +437,9 @@ async function renderStaffSidebar(me) {
       targetChannels.forEach((ch) => {
         const el = document.createElement('div');
         el.className = 'name-item';
-        el.dataset.staffId = emp.id;
+        // staffId를 문자열로 고정하고, dataset과 속성 모두에 써서 선택자 안정성 확보
+        el.dataset.staffId = String(emp.id);
+        el.setAttribute('data-staff-id', String(emp.id));
         el.dataset.branch = emp.affiliation || '';
         el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
 
@@ -490,7 +548,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -535,10 +593,11 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
-                  <th class="w-[10rem] border border-gray-300 px-3 py-2 text-left">매물특징</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -706,6 +765,28 @@ async function renderStaffSidebar(me) {
                 monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
               }
 
+              // === [관리비] 표시 ===
+              // 규칙:
+              //  - '/' 기준 앞부분만 사용
+              //  - 공백 제거 + '만원' 제거
+              //  - 숫자 변환 후 2 미만이면 '관리비 체크'(빨강)
+              let maintenanceLabel = '-';
+              if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
+                const raw = String(row.maintenance_cost).split('/')[0] || '';
+                const cleaned = raw.replace(/\s+/g, '').replace(/만원/g, '');
+                const num = Number(cleaned);
+
+                if (!isNaN(num)) {
+                  if (num < 2) {
+                    maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
+                  } else {
+                    maintenanceLabel = num.toLocaleString();
+                  }
+                } else {
+                  maintenanceLabel = '-';
+                }
+              }
+
               // === [화장실] 표시 ===
               // 규칙: ad_restroom 값을 '/' 기준으로 오른쪽 문자열을 추출해 그 안에 '0'이 포함되면
               //      빨간 '화장실 확인', 아니면 '-'
@@ -732,11 +813,25 @@ async function renderStaffSidebar(me) {
                 }
               }
 
-              // 매물특징 (공백만 있는 경우도 미표시 처리 + HTML 이스케이프)
+              // 매물특징 표시 정책 확장
+              // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
+              // - 정상(값 존재) → '-'
+              // - 단, premium_price === 0 && '완비' 포함 시 '시설체크'(빨강) 추가
               const rawFeat = (row.ad_listings_features ?? '').trim();
-              const featuresLabel = (!rawFeat || rawFeat === '-')
-                ? '<span class="text-red-600 font-semibold">미표시</span>'
-                : _escapeHtml(rawFeat);
+              const hasFeature = !!rawFeat && rawFeat !== '-';
+
+              let featuresLabel = hasFeature
+                ? '-'  // 정상일 때 기본값은 '-'
+                : '<span class="text-red-600 font-semibold">미노출</span>';
+
+              // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
+              if (premiumPrice === 0 && rawFeat.includes('완비')) {
+                if (featuresLabel.includes('미노출')) {
+                  featuresLabel += '<br><span class="text-red-600 font-semibold">시설체크</span>';
+                } else {
+                  featuresLabel = '<span class="text-red-600 font-semibold">시설체크</span>';
+                }
+              }
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
@@ -762,73 +857,86 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              // === 정렬 우선순위 계산 (요청 순서 그대로, "최종 라벨" 기준) ===
+              // === 정렬 우선순위 계산 (요청하신 항목 순서대로 '조건별 분해 키') ===
+
               // 1) 매물번호 '-'
-              const descPriority = (descId === '-') ? 0 : 1;
+              const pr_descDash = (descId === '-') ? 0 : 1;
 
               // 2) 매물명 '-'
-              const titlePriority = (title === '-') ? 0 : 1;
+              const pr_titleDash = (title === '-') ? 0 : 1;
 
-              // 3) 거래상태: '-', '0', '계약완료', '보류', 기타
+              // 3~6) 거래상태
               const s = (statusDisplay || '').toString().trim();
-              let statusPriority = 99;
-              if (s === '-') statusPriority = 0;
-              else if (s === '0') statusPriority = 1;
-              else if (s.includes('계약완료')) statusPriority = 2;
-              else if (s.includes('보류')) statusPriority = 3;
-              else statusPriority = 4;
+              const pr_statusDash        = (s === '-') ? 0 : 1;                     // 3) '-'
+              const pr_statusZero        = (s === '0') ? 0 : 1;                      // 4) '0'
+              const pr_statusContract    = s.includes('계약완료') ? 0 : 1;           // 5) '계약완료' 포함
+              const pr_statusHold        = s.includes('보류') ? 0 : 1;               // 6) '보류' 포함
 
-              // 4) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
-              let depositPriority = 3;
-              if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
-              else if (String(depositOut).includes('상세설명')) depositPriority = 1;
-              else if (depositOut === '-') depositPriority = 2;
+              // 7) 매매가: '매매가 확인' 포함
+              const pr_saleCheck = String(salePriceLabel).includes('매매가 확인') ? 0 : 1;
 
-              // 5) 월세: '-' → '월세 확인' → '상세설명' → 기타
-              let monthlyPriority = 3;
-              if (monthlyOut === '-') monthlyPriority = 0;
-              else if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 1;
-              else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 2;
+              // 8~10) 보증금
+              const pr_depositCheck  = String(depositOut).includes('보증금 확인') ? 0 : 1; // 8)
+              const pr_depositDetail = String(depositOut).includes('상세설명') ? 0 : 1;    // 9)
+              const pr_depositDash   = (depositOut === '-') ? 0 : 1;                       // 10)
 
-              // 6) 권리금: '권리금 없음' 우선
-              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+              // 11~13) 월세
+              const pr_monthlyDash   = (monthlyOut === '-') ? 0 : 1;                        // 11)
+              const pr_monthlyCheck  = String(monthlyOut).includes('월세 확인') ? 0 : 1;    // 12)
+              const pr_monthlyDetail = String(monthlyOut).includes('상세설명') ? 0 : 1;     // 13)
 
-              // 7) 면적: '면적 확인' → '상세설명' → '-' → 기타
-              let areaPriority = 3;
-              if (String(areaCell).includes('면적 확인')) areaPriority = 0;
-              else if (String(areaCell).includes('상세설명')) areaPriority = 1;
-              else if (areaCell === '-') areaPriority = 2;
+              // 14) 권리금: '권리금 없음' 포함
+              const pr_premiumNone   = String(premiumLabel).includes('권리금 없음') ? 0 : 1;
 
-              // 8) 융자금: '융자금 없음' 우선
-              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+              // 15~16) 면적
+              const pr_areaCheck     = String(areaCell).includes('면적 확인') ? 0 : 1;      // 15)
+              const pr_areaDetail    = String(areaCell).includes('상세설명') ? 0 : 1;       // 16)
 
-              // 9) 화장실: '화장실 확인' 우선
-              const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
+              // 17) 융자금: '융자금 없음' 포함
+              const pr_loanNone      = String(loanLabel).includes('융자금 없음') ? 0 : 1;
 
-              // 10) 매물특징: '미표시' 우선
-              const featuresPriority = (String(featuresLabel).includes('미표시')) ? 0 : 1;
+              // 18) 관리비: '관리비 체크' 포함
+              const pr_maintCheck    = String(maintenanceLabel).includes('관리비 체크') ? 0 : 1;
 
-              // 11) 해당층: '해당층 확인' 우선
-              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+              // 19) 화장실: '화장실 확인' 포함
+              const pr_restroomCheck = String(restroomLabel).includes('화장실 확인') ? 0 : 1;
 
-              // 12) 총층: '총층 확인' 우선
-              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+              // 20~21) 매물특징
+              const pr_featNoExpose  = String(featuresLabel).includes('미노출') ? 0 : 1;    // 20)
+              const pr_featFacility  = String(featuresLabel).includes('시설체크') ? 0 : 1;  // 21)
 
-              // 최종 sortKey: 요청하신 순서 그대로
+              // 22) 해당층: '해당층 확인' 포함
+              const pr_floorCheck    = String(floorCell).includes('해당층 확인') ? 0 : 1;
+
+              // 23) 총층: '총층 확인' 포함
+              const pr_totalCheck    = String(totalFloorCell).includes('총층 확인') ? 0 : 1;
+
+              // === 최종 sortKey (위 순서 그대로) ===
               const sortKey = [
-                descPriority,         // 매물번호 '-'
-                titlePriority,        // 매물명 '-'
-                statusPriority,       // 거래상태
-                depositPriority,      // 보증금
-                monthlyPriority,      // 월세
-                premiumPriority,      // 권리금
-                areaPriority,         // 면적
-                loanPriority,         // 융자금
-                restroomPriority,     // 화장실
-                featuresPriority,     // 매물특징
-                floorPriority,        // 해당층
-                totalFloorPriority,   // 총층
-                idx                   // 안정정렬
+                pr_descDash,        // 1) 매물번호 '-'
+                pr_titleDash,       // 2) 매물명 '-'
+                pr_statusDash,      // 3) 거래상태 '-'
+                pr_statusZero,      // 4) 거래상태 '0'
+                pr_statusContract,  // 5) 거래상태 '계약완료' 포함
+                pr_statusHold,      // 6) 거래상태 '보류' 포함
+                pr_saleCheck,       // 7) 매매가 '매매가 확인' 포함
+                pr_depositCheck,    // 8) 보증금 '보증금 확인' 포함
+                pr_depositDetail,   // 9) 보증금 '상세설명' 포함
+                pr_depositDash,     // 10) 보증금 '-'
+                pr_monthlyDash,     // 11) 월세 '-'
+                pr_monthlyCheck,    // 12) 월세 '월세 확인' 포함
+                pr_monthlyDetail,   // 13) 월세 '상세설명' 포함
+                pr_premiumNone,     // 14) 권리금 '권리금 없음' 포함
+                pr_areaCheck,       // 15) 면적 '면적 확인' 포함
+                pr_areaDetail,      // 16) 면적 '상세설명' 포함
+                pr_loanNone,        // 17) 융자금 '융자금 없음' 포함
+                pr_maintCheck,      // 18) 관리비 '관리비 체크' 포함
+                pr_restroomCheck,   // 19) 화장실 '화장실 확인' 포함
+                pr_featNoExpose,    // 20) 매물특징 '미노출' 포함
+                pr_featFacility,    // 21) 매물특징 '시설체크' 포함
+                pr_floorCheck,      // 22) 해당층 '해당층 확인' 포함
+                pr_totalCheck,      // 23) 총층 '총층 확인' 포함
+                idx                 // 안정 정렬
               ];
 
               return {
@@ -844,6 +952,7 @@ async function renderStaffSidebar(me) {
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
+                maintenanceLabel,
                 restroomLabel,
                 featuresLabel,
                 salePriceLabel,
@@ -910,6 +1019,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
@@ -941,17 +1051,30 @@ async function renderStaffSidebar(me) {
         }
     });
 
+  // 6) UX: 누구든(관리자/지점장/직원) 본인 항목이 보이면 자동 선택(조회까지 실행)
+  //    - 본인 항목이 없거나 클릭 불가면 첫 번째 클릭 가능 항목을 클릭
+  //    - 마지막 안전망: 패널만 열고 안내
+  if (me.staffId) {
+    const idStr = String(me.staffId);
 
-  // 6) UX: 직원 권한이면 본인을 자동 선택(조회까지 실행)
-    if (me.isStaff && me.staffId) {
-        const myEl = container.querySelector(`.name-item[data-staff-id="${me.staffId}"]`);
-        if (myEl) {
-            myEl.click(); // ✅ 클릭 트리거 → 하이라이트 + 조회
-        } else {
-            setActiveStaff(container, me.staffId); // fallback
-        }
+    // 내 항목 중 클릭 가능한 첫 줄(채널 분리된 여러 줄 중) 찾기
+    const myEl = container.querySelector(`.name-item[data-staff-id="${idStr}"]:not([data-disabled="1"])`);
+
+    if (myEl) {
+      myEl.click(); // 하이라이트 + 조회
+    } else if (firstClickableStaffEl) {
+      firstClickableStaffEl.click(); // 대체: 첫 클릭 가능 항목 조회
+    } else {
+      const panel = document.getElementById('employee-listings-panel');
+      const meta = document.getElementById('employee-listings-meta');
+      const resultBox = document.getElementById('employee-listings');
+      if (panel && meta && resultBox) {
+        panel.style.display = '';
+        meta.textContent = '선택 가능한 직원 항목이 없습니다.';
+        resultBox.innerHTML = '';
+      }
     }
-
+  }
 }
 
 // === 초기화 ===
@@ -961,7 +1084,7 @@ export async function initAdCensorship() {
     await waitForSupabase();
     const { data } = await supabase.auth.getSession();
     if (!data?.session) {
-      location.replace('/');
+      location.replace('https://baikuk.com/map');
       return;
     }
   } catch (e) {
@@ -971,4 +1094,14 @@ export async function initAdCensorship() {
   // 내 권한/소속/ID 파악 후 사이드바 렌더
   const me = await getMyAuthorityAndStaffId();
   await renderStaffSidebar(me);
+
+  // ✅ 정산 탭 표시/숨김을 여기서 최종 결정
+  const tab = document.getElementById('settlement-tab');
+  if (tab) {
+    if (me.isStaff) {
+      tab.style.display = 'none';           // 직원: 계속 숨김
+    } else {
+      tab.style.removeProperty('display');  // 관리자/지점장: 보이기
+    }
+  }
 }
