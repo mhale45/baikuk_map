@@ -813,12 +813,26 @@ async function renderStaffSidebar(me) {
                 }
               }
 
-              // 매물특징 표시
+              // 매물특징 표시 정책 확장
+              // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
+              // - 정상(값 존재) → '-'
+              // - 단, premium_price === 0 && '완비' 포함 시 '시설체크'(빨강) 추가
               const rawFeat = (row.ad_listings_features ?? '').trim();
               const hasFeature = !!rawFeat && rawFeat !== '-';
-              const featuresLabel = hasFeature
-                ? '-'  // 정상인 경우에도 텍스트는 숨기고 하이픈만 표시
-                : '<span class="text-red-600 font-semibold">미표시</span>';
+
+              let featuresLabel = hasFeature
+                ? '-'  // 정상일 때 기본값은 '-'
+                : '<span class="text-red-600 font-semibold">미노출</span>';
+
+              // ✅ 시설체크 조건
+              if (row.premium_price === 0 && rawFeat.includes('완비')) {
+                if (featuresLabel.includes('미노출')) {
+                  // 이미 '미노출'이 있으면 줄바꿈 후 추가
+                  featuresLabel += '<br><span class="text-red-600 font-semibold">시설체크</span>';
+                } else {
+                  featuresLabel = '<span class="text-red-600 font-semibold">시설체크</span>';
+                }
+              }
 
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
