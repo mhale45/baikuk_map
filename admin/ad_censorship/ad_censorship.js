@@ -251,7 +251,7 @@ export function getSelectedFilters() {
   };
 }
 
-// timetz 문자열을 오늘 날짜와 결합해 ISO로 변환
+// [삭제] 기존 _timetzToTodayISO 전체를 지워주세요.
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
   let s = String(tzStr).trim();
