@@ -346,7 +346,7 @@ async function renderStaffSidebar(me) {
   // 1) 직원 목록 로드 (권한별 재직자 필터)
   let staffQuery = supabase
     .from('staff_profiles')
-    .select('id, name, affiliation, leave_date, ad_channel')
+    .select('id, name, affiliation, leave_date, ad_channel, extension')
     .order('affiliation', { ascending: true })
     .order('name', { ascending: true });
 
@@ -365,7 +365,7 @@ async function renderStaffSidebar(me) {
     const grouped = {};
     (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel }) => {
         if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date, ad_channel }; // ✅ ad_channel 유지
+        const entry = { id, name, affiliation, leave_date, ad_channel, extension  };
         if (!leave_date) grouped[affiliation].active.push(entry);
         else grouped[affiliation].inactive.push(entry);
 
@@ -442,6 +442,7 @@ async function renderStaffSidebar(me) {
         el.setAttribute('data-staff-id', String(emp.id));
         el.dataset.branch = emp.affiliation || '';
         el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
+        el.dataset.extension = (emp.extension || '').toString();
 
         // 표기: "이름 (채널)" — 채널 없으면 괄호 생략
         let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
@@ -546,9 +547,11 @@ async function renderStaffSidebar(me) {
 
         try {
             const likeValue = `%${channel}%`;
+            const staffExtRaw = (el.dataset.extension || '');      // ✅ 선택 직원 extension(원문)
+            const staffExtCmp = staffExtRaw.replace(/\s+/g, ''); 
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -595,6 +598,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">전화번호</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
@@ -813,6 +817,23 @@ async function renderStaffSidebar(me) {
                 }
               }
 
+              // === [전화번호] 표시 ===
+              // 규칙:
+              //  - ad_baikuk_listings.contact_number(광고 원문)과 staff_profiles.extension(선택 직원) 비교
+              //  - 비교 시 공백 제거
+              //  - 둘 다 값이 있고 서로 다르면 '불일치'(빨강)
+              //  - 그 외에는 광고 contact_number 원문을 그대로 표시, 값 없으면 '-'
+              const contactRaw = row.contact_number ?? '';
+              const contactCmp = String(contactRaw).replace(/\s+/g, '');
+              let phoneCell = '-';
+              if (contactCmp && staffExtCmp) {
+                phoneCell = (contactCmp === staffExtCmp)
+                  ? String(contactRaw) // 원문 보존
+                  : '<span class="text-red-600 font-semibold">불일치</span>';
+              } else if (contactCmp) {
+                phoneCell = String(contactRaw);
+              }
+
               // 매물특징 표시 정책 확장
               // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
               // - 정상(값 존재) → '-'
@@ -956,6 +977,7 @@ async function renderStaffSidebar(me) {
                 restroomLabel,
                 featuresLabel,
                 salePriceLabel,
+                phoneCell,
                 sortKey
               };
             });
@@ -1021,6 +1043,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.phoneCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
