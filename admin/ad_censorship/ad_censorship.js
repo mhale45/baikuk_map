@@ -296,6 +296,28 @@ function _timetzToTodayISO(tzStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// ✅ update_log의 imDae_sheet_timetz가 "timestamptz" 또는 "timetz" 모두 들어와도 처리
+function _parseUpdateLogTime(v) {
+  if (!v) return null;
+
+  // Date 객체면 그대로
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+
+  const s = String(v).trim();
+
+  // 1) "YYYY-MM-DD HH:mm:ss+09" 또는 "YYYY-MM-DDTHH:mm:ssZ" 같은 전체 타임스탬프인 경우
+  //    - 공백을 'T'로 바꿔도 표준 Date 파서가 읽습니다.
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?([+-]\d{2}:?\d{2}|Z)?$/.test(s)) {
+    const isoLike = s.replace(' ', 'T'); // " " → "T"
+    const d = new Date(isoLike);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // 2) timetz("HH:mm[:ss][+09[:00]]" 또는 "오전/오후 HH:mm[:ss]") 형식이면 기존 로직으로
+  const t = _timetzToTodayISO(s);
+  return t;
+}
+
 // movement별 최신 1개 timetz를 조회해 'Date 객체'(KST 오늘 날짜와 결합)로 반환
 async function _getLatestUpdateISO(movement) {
   try {
@@ -309,10 +331,10 @@ async function _getLatestUpdateISO(movement) {
       .maybeSingle();
 
     if (error) throw error;
-    // ✅ 항상 Date 객체 반환
-    return data?.imDae_sheet_timetz
-      ? _timetzToTodayISO(data.imDae_sheet_timetz)
-      : null;
+    
+    const t = data?.imDae_sheet_timetz ?? null;
+    return t ? _parseUpdateLogTime(t) : null;
+
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
