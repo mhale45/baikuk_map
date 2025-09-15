@@ -283,7 +283,7 @@ function _timetzToTodayISO(tzStr) {
   return isNaN(d.getTime()) ? null : d; // ✅ Date 객체 반환
 }
 
-// movement별 최신 1개 timetz를 조회해 ISO로 반환
+// movement별 최신 1개 timetz를 조회해 'Date 객체'(KST 오늘 날짜와 결합)로 반환
 async function _getLatestUpdateISO(movement) {
   try {
     const { data, error } = await supabase
@@ -296,6 +296,7 @@ async function _getLatestUpdateISO(movement) {
       .maybeSingle();
 
     if (error) throw error;
+    // _timetzToTodayISO: "HH:mm(+offset)" → KST '오늘 날짜'와 합친 Date
     return data?.imDae_sheet_timetz ? _timetzToTodayISO(data.imDae_sheet_timetz) : null;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
