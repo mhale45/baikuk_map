@@ -134,6 +134,7 @@ async function fillStaffAdCounts(container) {
 
     const branchName = el.dataset.branch || '';
     const channel = (el.dataset.channel || '').trim();
+    const staffExt = (el.dataset.extension || '');
 
     if (!branchName || !channel) {
       span.textContent = '0';
@@ -346,7 +347,7 @@ async function renderStaffSidebar(me) {
   // 1) 직원 목록 로드 (권한별 재직자 필터)
   let staffQuery = supabase
     .from('staff_profiles')
-    .select('id, name, affiliation, leave_date, ad_channel')
+    .select('id, name, affiliation, leave_date, ad_channel, extension')
     .order('affiliation', { ascending: true })
     .order('name', { ascending: true });
 
@@ -365,7 +366,7 @@ async function renderStaffSidebar(me) {
     const grouped = {};
     (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel }) => {
         if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date, ad_channel }; // ✅ ad_channel 유지
+        const entry = { id, name, affiliation, leave_date, ad_channel, extension };
         if (!leave_date) grouped[affiliation].active.push(entry);
         else grouped[affiliation].inactive.push(entry);
 
@@ -441,7 +442,8 @@ async function renderStaffSidebar(me) {
         el.dataset.staffId = String(emp.id);
         el.setAttribute('data-staff-id', String(emp.id));
         el.dataset.branch = emp.affiliation || '';
-        el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
+        el.dataset.channel = ch ? ch : '';
+        el.dataset.extension = emp.extension || '';
 
         // 표기: "이름 (채널)" — 채널 없으면 괄호 생략
         let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
@@ -548,7 +550,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -595,6 +597,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">전화번호</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
@@ -833,6 +836,18 @@ async function renderStaffSidebar(me) {
                 }
               }
 
+              // === [전화번호] 비교 ===
+              // 규칙: ad_baikuk_listings.contact_number 와 staff_profiles.extension 을 '공백 제거' 후 비교
+              //      - 다르면 빨간 '불일치'
+              //      - 같으면 광고측 원문(contact_number)을 표시(값이 비어 있으면 '-')
+              const adPhoneRaw  = row.contact_number ?? '';
+              const adPhoneNorm = String(adPhoneRaw).replace(/\s+/g, '');
+              const extNorm     = String(staffExt || '').replace(/\s+/g, '');
+
+              const phoneLabel = (adPhoneNorm === extNorm)
+                ? (adPhoneRaw.trim() ? adPhoneRaw : '-')
+                : '<span class="text-red-600 font-semibold">불일치</span>';
+
               // 출력 라벨이 빈 문자열이라면 '-'로 표시
               const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
               const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
@@ -954,6 +969,7 @@ async function renderStaffSidebar(me) {
                 loanLabel,
                 maintenanceLabel,
                 restroomLabel,
+                phoneLabel,
                 featuresLabel,
                 salePriceLabel,
                 sortKey
@@ -1021,6 +1037,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.phoneLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
