@@ -251,12 +251,12 @@ export function getSelectedFilters() {
   };
 }
 
-// [교체] timetz 문자열을 오늘 날짜(KST)와 결합해 Date 객체로 반환
+// [교체] timetz 문자열을 KST 오늘 날짜와 결합해 Date 객체로 반환
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
   const raw = String(tzStr).trim();
 
-  // KST 기준 "YYYY-MM-DD"
+  // 1) 오늘 날짜를 KST 기준으로 YYYY-MM-DD 생성
   const datePart = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
@@ -264,7 +264,7 @@ function _timetzToTodayISO(tzStr) {
     day: '2-digit',
   }).format(new Date());
 
-  // HH:mm(:ss) + 선택 오프셋(+09, +0900, +09:00) 파싱, 없으면 +09:00
+  // 2) timetz 파싱: "HH:mm(:ss)" + optional offset(+09, +0900, +09:00)
   const m = raw.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([+-]\d{1,2})(?::?(\d{2}))?)?$/);
   if (!m) return null;
 
@@ -275,8 +275,8 @@ function _timetzToTodayISO(tzStr) {
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
   const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
-  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
 
+  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
   const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
 
