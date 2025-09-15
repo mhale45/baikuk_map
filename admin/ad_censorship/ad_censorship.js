@@ -251,37 +251,36 @@ export function getSelectedFilters() {
   };
 }
 
-// [삽입] KST 기준 '오늘 날짜'를 사용하고, timetz 오프셋을 안전하게 표준화
+// [삽입] timetz 문자열을 오늘 날짜(KST)와 결합해 Date 객체로 반환
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
   const raw = String(tzStr).trim();
 
-  // 1) KST 기준 "YYYY-MM-DD" 만들기 (UTC 금지)
+  // 1) 오늘 날짜를 KST 기준으로 "YYYY-MM-DD" 생성
   const datePart = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date()); // ex) "2025-09-15"
+  }).format(new Date()); // e.g. "2025-09-15"
 
-  // 2) timetz 파싱: "HH:mm", "HH:mm:ss", 뒤에 +09, +0900, +09:00 등 다양한 경우 수용
-  //    오프셋이 없으면 기본 +09:00 적용
+  // 2) timetz에서 HH:mm(:ss)와 오프셋 추출, 없으면 +09:00 기본값
   const m = raw.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([+-]\d{1,2})(?::?(\d{2}))?)?$/);
   if (!m) return null;
 
-  const timePart = m[1]; // "08:37" or "08:37:00"
-  let offH = (m[2] !== undefined) ? Number(m[2]) : 9;   // 기본 +09
+  const timePart = m[1];
+  let offH = (m[2] !== undefined) ? Number(m[2]) : 9;
   let offM = (m[3] !== undefined) ? Number(m[3]) : 0;
 
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
   const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
 
-  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart; // HH:mm → HH:mm:ss
-
+  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
   const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : d; // Date 객체로 반환(아래 formatDate가 그대로 처리)
+
+  return isNaN(d.getTime()) ? null : d; // ✅ Date 객체 반환
 }
 
 // movement별 최신 1개 timetz를 조회해 ISO로 반환
