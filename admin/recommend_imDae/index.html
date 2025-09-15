@@ -336,7 +336,20 @@
     window.supabase = supabase; // 전역으로 접근
   </script>
   <script>
+    // === 행 관찰용 전역 ===
+    let listingsBody;          // tbody 캐시
+    let rowObserver;           // ResizeObserver 인스턴스
+
     // 스크립트 시작
+
+
+    // 현재 있는 모든 행을 관찰
+    function observeRows() {
+      if (!listingsBody) return;
+      if (!rowObserver) return;
+      rowObserver.disconnect();
+      listingsBody.querySelectorAll('tr').forEach(tr => rowObserver.observe(tr));
+    }
 
     // ✅ data-field 값을 (span / input / textarea 모두에서) 안전하게 읽기
     function getFieldValue(field, index) {
@@ -969,6 +982,10 @@
       while (listingsBody.children.length > maxIndex) {
         listingsBody.removeChild(listingsBody.lastChild);
       }
+
+      // ⬇️ 행 증감 이후 관찰 재설정 + 최종 동기화
+      observeRows();
+      syncRowHeights();
     }
 
     function showToast(message, duration = 3000) {
@@ -1185,6 +1202,14 @@
       loadCurrentUserStaffInfo(); // 첫로드시 담당자정보 본인정보 표시
       loadStaffOptions();
 
+      // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
+      listingsBody = document.getElementById('listings-body');
+      rowObserver = new ResizeObserver(() => {
+        // 행 하나가 커지거나 작아질 때마다 전체 동기화 (간단/안전)
+        syncRowHeights();
+      });
+      observeRows();   // 현재 있는 모든 행 관찰 시작
+
       const memoTextarea = document.getElementById('memo-textarea');
       
       // 매물번호 입력 감지
@@ -1234,13 +1259,6 @@
           });
         });
       });
-
-      // ✅ ResizeObserver로 실시간 높이 동기화
-      const listingsBody = document.getElementById('listings-body');
-      const resizeObserver = new ResizeObserver(() => {
-        syncRowHeights();
-      });
-      resizeObserver.observe(listingsBody);
 
       // ✅ 열 리사이즈: 매매추천 페이지와 동일 동작(심플)
       let startX, startWidth, resizableTh;
@@ -1302,16 +1320,24 @@
     // 👉 행 높이 동기화 함수 정의
     function syncRowHeights() {
       const rightRows = document.querySelectorAll('#listings-body tr');
-      const leftRows = document.querySelectorAll('#left-tbody tr');
+      const leftRows  = document.querySelectorAll('#left-tbody tr');
 
-      for (let i = 0; i < leftRows.length; i++) {
-        const rightRow = rightRows[i];
-        const leftRow = leftRows[i];
+      const len = Math.min(rightRows.length, leftRows.length);
+      for (let i = 0; i < len; i++) {
+        const r = rightRows[i];
+        const l = leftRows[i];
+        if (!r || !l) continue;
 
-        if (rightRow && leftRow) {
-          const height = rightRow.offsetHeight;
-          leftRow.style.height = `${height}px`;
-        }
+        // 1) 먼저 잠금 해제 (줄어들 수 있게)
+        l.style.height = 'auto';
+        // 혹시 예전에 잠갔다면 오른쪽도 풀어줌(선택 사항)
+        // r.style.height = 'auto';
+
+        // 2) 실제 높이 다시 측정
+        const h = Math.ceil(r.getBoundingClientRect().height);
+
+        // 3) 왼쪽 행에 동일 높이 적용
+        l.style.height = `${h}px`;
       }
     }
 
