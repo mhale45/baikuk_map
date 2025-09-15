@@ -1443,9 +1443,32 @@
         }
         document.getElementById('staff-select').classList.add('hidden');
         document.getElementById('staff-info').classList.remove('hidden');
-        // --- 👆 이 블럭을 switchInputsToSpans() 다음에 붙여주세요 ---
 
         showToast('읽기 모드로 전환되었습니다.');
+
+        // 매물번호 행은 있지만, 오른쪽 매물정보 행이 없는 경우 → 빈 행 추가
+        const listingsBody = document.getElementById('listings-body');
+        const leftInputs = document.querySelectorAll('input[data-index]');
+        const existingRows = listingsBody.querySelectorAll('tr').length;
+
+        for (let i = existingRows + 1; i <= leftInputs.length; i++) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-1 border text-center">${i}</td>
+            <td class="p-1 border text-center"><span data-field="listing_title_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="full_address_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="combined_unit_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="deposit_price_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="monthly_rent_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="premium_price_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="area_py_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+            <td class="p-1 border text-center"><span data-field="description_${i}" class="text-base block whitespace-pre-wrap"></span></td>
+          `;
+          listingsBody.appendChild(tr);
+        }
+
+        // ⬇ 높이 다시 맞춤
+        syncRowHeights?.();
       }
 
       // 👇 저장 로직 실행
