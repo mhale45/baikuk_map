@@ -963,7 +963,6 @@
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
-        syncRowHeights();
       }
 
       // 행이 너무 많으면 자름
@@ -1238,13 +1237,10 @@
 
       // ✅ ResizeObserver로 실시간 높이 동기화
       const listingsBody = document.getElementById('listings-body');
-      const leftBody     = document.getElementById('left-tbody');
-
       const resizeObserver = new ResizeObserver(() => {
         syncRowHeights();
       });
       resizeObserver.observe(listingsBody);
-      resizeObserver.observe(leftBody);
 
       // ✅ 열 리사이즈: 매매추천 페이지와 동일 동작(심플)
       let startX, startWidth, resizableTh;
@@ -1303,26 +1299,19 @@
     // 👉 창 리사이즈 시에도 높이 동기화
     window.addEventListener('resize', syncRowHeights);
 
-    // 👉 기존 syncRowHeights() 전체를 아래로 교체
+    // 👉 행 높이 동기화 함수 정의
     function syncRowHeights() {
       const rightRows = document.querySelectorAll('#listings-body tr');
-      const leftRows  = document.querySelectorAll('#left-tbody tr');
+      const leftRows = document.querySelectorAll('#left-tbody tr');
 
-      const count = Math.max(leftRows.length, rightRows.length);
-      for (let i = 0; i < count; i++) {
-        const leftRow  = leftRows[i];
+      for (let i = 0; i < leftRows.length; i++) {
         const rightRow = rightRows[i];
-        if (!leftRow && !rightRow) continue;
+        const leftRow = leftRows[i];
 
-        // 현재 렌더 기준 실높이
-        const hL = leftRow  ? leftRow.getBoundingClientRect().height  : 0;
-        const hR = rightRow ? rightRow.getBoundingClientRect().height : 0;
-
-        // 최소행높이(입력칸 기준 36px 정도) 보정
-        const target = Math.max(hL, hR, 36);
-
-        if (leftRow)  leftRow.style.height  = `${target}px`;
-        if (rightRow) rightRow.style.height = `${target}px`;
+        if (rightRow && leftRow) {
+          const height = rightRow.offsetHeight;
+          leftRow.style.height = `${height}px`;
+        }
       }
     }
 
