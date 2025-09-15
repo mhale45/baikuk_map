@@ -848,9 +848,9 @@ async function renderStaffSidebar(me) {
               // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
               if (premiumPrice === 0 && rawFeat.includes('완비')) {
                 if (featuresLabel.includes('미노출')) {
-                  featuresLabel += '<br><span class="text-red-600 font-semibold">시설체크</span>';
+                  featuresLabel += '<br><span class="font-semibold">시설체크</span>';
                 } else {
-                  featuresLabel = '<span class="text-red-600 font-semibold">시설체크</span>';
+                  featuresLabel = '<span class="font-semibold">시설체크</span>';
                 }
               }
 
