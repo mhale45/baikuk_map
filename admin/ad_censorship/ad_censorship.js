@@ -828,7 +828,7 @@ async function renderStaffSidebar(me) {
               let phoneCell = '-';
               if (contactCmp && staffExtCmp) {
                 phoneCell = (contactCmp === staffExtCmp)
-                  ? String(contactRaw) // 원문 보존
+                  ? '-'
                   : '<span class="text-red-600 font-semibold">불일치</span>';
               } else if (contactCmp) {
                 phoneCell = String(contactRaw);
