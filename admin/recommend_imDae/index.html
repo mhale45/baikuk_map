@@ -988,9 +988,12 @@
         listingsBody.removeChild(listingsBody.lastChild);
       }
 
-      // ⬇️ 행 증감 이후 관찰 재설정 + 최종 동기화
-      observeRows();
-      syncRowHeights();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          observeRows();
+          syncRowHeights();
+        });
+      });
     }
 
     function showToast(message, duration = 3000) {
@@ -1340,8 +1343,6 @@
         const h = Math.ceil(r.getBoundingClientRect().height);
         l.style.height = `${h}px`;
       }
-
-      // 2) 오른쪽보다 많은 왼쪽 나머지 행은 그대로 auto(별도 처리 X)
     }
 
     const allInputs = document.querySelectorAll('input[data-index]');
@@ -1421,9 +1422,13 @@
         return;
       } else {
         switchInputsToSpans(); // 저장 모드: span으로 변경
-        // ✅ 행 관찰 다시 걸고 즉시 동기화
-        observeRows();
-        syncRowHeights();
+        // 렌더 완료 후 관찰+동기화
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            observeRows();
+            syncRowHeights();
+          });
+        });
         // --- 👇 담당자 저장 처리 (staff-select → customers.staff_profiles_id) ---
         const selectedStaffId = document.getElementById('staff-select').value;
         if (selectedStaffId) {
