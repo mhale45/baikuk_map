@@ -251,17 +251,37 @@ export function getSelectedFilters() {
   };
 }
 
-// [삭제] 기존 _timetzToTodayISO 전체를 지워주세요.
+// [삽입] KST 기준 '오늘 날짜'를 사용하고, timetz 오프셋을 안전하게 표준화
 function _timetzToTodayISO(tzStr) {
   if (!tzStr) return null;
-  let s = String(tzStr).trim();
-  // +0900 → +09:00 보정, +09 → +09:00 보정
-  s = s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
-       .replace(/([+-]\d{2})$/, '$1:00');
-  const datePart = new Date().toISOString().slice(0, 10); // 오늘(로컬 아님)
-  const iso = `${datePart}T${s}`;
+  const raw = String(tzStr).trim();
+
+  // 1) KST 기준 "YYYY-MM-DD" 만들기 (UTC 금지)
+  const datePart = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date()); // ex) "2025-09-15"
+
+  // 2) timetz 파싱: "HH:mm", "HH:mm:ss", 뒤에 +09, +0900, +09:00 등 다양한 경우 수용
+  //    오프셋이 없으면 기본 +09:00 적용
+  const m = raw.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([+-]\d{1,2})(?::?(\d{2}))?)?$/);
+  if (!m) return null;
+
+  const timePart = m[1]; // "08:37" or "08:37:00"
+  let offH = (m[2] !== undefined) ? Number(m[2]) : 9;   // 기본 +09
+  let offM = (m[3] !== undefined) ? Number(m[3]) : 0;
+
+  const sign = offH >= 0 ? '+' : '-';
+  offH = Math.abs(offH);
+  const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
+
+  const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart; // HH:mm → HH:mm:ss
+
+  const iso = `${datePart}T${hhmmss}${offset}`;
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : iso;
+  return isNaN(d.getTime()) ? null : d; // Date 객체로 반환(아래 formatDate가 그대로 처리)
 }
 
 // movement별 최신 1개 timetz를 조회해 ISO로 반환
