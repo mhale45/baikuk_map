@@ -766,12 +766,24 @@ async function renderStaffSidebar(me) {
               }
 
               // === [관리비] 표시 ===
+              // 규칙:
+              //  - '/' 기준 앞부분만 사용
+              //  - 공백 제거 + '만원' 제거
+              //  - 숫자 변환 후 3 미만이면 '관리비 체크'(빨강)
               let maintenanceLabel = '-';
               if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
-                if (row.maintenance_cost === 0) {
-                  maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 없음</span>';
+                const raw = String(row.maintenance_cost).split('/')[0] || '';
+                const cleaned = raw.replace(/\s+/g, '').replace(/만원/g, '');
+                const num = Number(cleaned);
+
+                if (!isNaN(num)) {
+                  if (num < 3) {
+                    maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
+                  } else {
+                    maintenanceLabel = num.toLocaleString();
+                  }
                 } else {
-                  maintenanceLabel = row.maintenance_cost.toLocaleString();
+                  maintenanceLabel = '-';
                 }
               }
 
