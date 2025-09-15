@@ -769,7 +769,7 @@ async function renderStaffSidebar(me) {
               // 규칙:
               //  - '/' 기준 앞부분만 사용
               //  - 공백 제거 + '만원' 제거
-              //  - 숫자 변환 후 3 미만이면 '관리비 체크'(빨강)
+              //  - 숫자 변환 후 2 미만이면 '관리비 체크'(빨강)
               let maintenanceLabel = '-';
               if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
                 const raw = String(row.maintenance_cost).split('/')[0] || '';
@@ -777,7 +777,7 @@ async function renderStaffSidebar(me) {
                 const num = Number(cleaned);
 
                 if (!isNaN(num)) {
-                  if (num < 3) {
+                  if (num < 2) {
                     maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
                   } else {
                     maintenanceLabel = num.toLocaleString();
