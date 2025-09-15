@@ -1299,19 +1299,26 @@
     // 👉 창 리사이즈 시에도 높이 동기화
     window.addEventListener('resize', syncRowHeights);
 
-    // 👉 행 높이 동기화 함수 정의
+    // 👉 기존 syncRowHeights() 전체를 아래로 교체
     function syncRowHeights() {
       const rightRows = document.querySelectorAll('#listings-body tr');
-      const leftRows = document.querySelectorAll('#left-tbody tr');
+      const leftRows  = document.querySelectorAll('#left-tbody tr');
 
-      for (let i = 0; i < leftRows.length; i++) {
+      const count = Math.max(leftRows.length, rightRows.length);
+      for (let i = 0; i < count; i++) {
+        const leftRow  = leftRows[i];
         const rightRow = rightRows[i];
-        const leftRow = leftRows[i];
+        if (!leftRow && !rightRow) continue;
 
-        if (rightRow && leftRow) {
-          const height = rightRow.offsetHeight;
-          leftRow.style.height = `${height}px`;
-        }
+        // 현재 렌더 기준 실높이
+        const hL = leftRow  ? leftRow.getBoundingClientRect().height  : 0;
+        const hR = rightRow ? rightRow.getBoundingClientRect().height : 0;
+
+        // 최소행높이(입력칸 기준 36px 정도) 보정
+        const target = Math.max(hL, hR, 36);
+
+        if (leftRow)  leftRow.style.height  = `${target}px`;
+        if (rightRow) rightRow.style.height = `${target}px`;
       }
     }
 
