@@ -296,8 +296,10 @@ async function _getLatestUpdateISO(movement) {
       .maybeSingle();
 
     if (error) throw error;
-    // _timetzToTodayISO: "HH:mm(+offset)" → KST '오늘 날짜'와 합친 Date
-    return data?.imDae_sheet_timetz ? _timetzToTodayISO(data.imDae_sheet_timetz) : null;
+    // ✅ 항상 Date 객체 반환
+    return data?.imDae_sheet_timetz
+      ? _timetzToTodayISO(data.imDae_sheet_timetz)
+      : null;
   } catch (e) {
     console.warn('update_log 조회 실패:', e);
     return null;
