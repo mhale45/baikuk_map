@@ -999,16 +999,16 @@ async function renderStaffSidebar(me) {
         }
     });
 
-  // 6) UX: 직원 권한이면 본인을 자동 선택(조회까지 실행)
-  //    - 본인 항목이 안 보이면(채널 미기입/필터링 등) 첫 번째 클릭 가능 항목을 클릭
+  // 6) UX: 누구든(관리자/지점장/직원) 본인 항목이 보이면 자동 선택(조회까지 실행)
+  //    - 본인 항목이 없거나 클릭 불가면 첫 번째 클릭 가능 항목을 클릭
   //    - 마지막 안전망: 패널만 열고 안내
-  if (me.isStaff && me.staffId) {
+  if (me.staffId) {
     const idStr = String(me.staffId);
-    const myEl =
-      container.querySelector(`.name-item[data-staff-id="${idStr}"]`) ||
-      container.querySelector(`.name-item[data-staff-id='${idStr}']`);
 
-    if (myEl && myEl.dataset.disabled !== '1') {
+    // 내 항목 중 클릭 가능한 첫 줄(채널 분리된 여러 줄 중) 찾기
+    const myEl = container.querySelector(`.name-item[data-staff-id="${idStr}"]:not([data-disabled="1"])`);
+
+    if (myEl) {
       myEl.click(); // 하이라이트 + 조회
     } else if (firstClickableStaffEl) {
       firstClickableStaffEl.click(); // 대체: 첫 클릭 가능 항목 조회
