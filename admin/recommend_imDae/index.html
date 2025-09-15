@@ -1322,7 +1322,6 @@
     // 👉 창 리사이즈 시에도 높이 동기화
     window.addEventListener('resize', syncRowHeights);
 
-    // 👉 행 높이 동기화 함수 정의
     function syncRowHeights() {
       const rightRows = document.querySelectorAll('#listings-body tr');
       const leftRows  = document.querySelectorAll('#left-tbody tr');
@@ -1333,16 +1332,20 @@
         const l = leftRows[i];
         if (!r || !l) continue;
 
-        // 1) 먼저 잠금 해제 (줄어들 수 있게)
+        // 높이 재설정
         l.style.height = 'auto';
-        // 혹시 예전에 잠갔다면 오른쪽도 풀어줌(선택 사항)
-        // r.style.height = 'auto';
+        r.style.height = 'auto';
 
-        // 2) 실제 높이 다시 측정
-        const h = Math.ceil(r.getBoundingClientRect().height);
+        const lh = l.getBoundingClientRect().height;
+        const rh = r.getBoundingClientRect().height;
 
-        // 3) 왼쪽 행에 동일 높이 적용
-        l.style.height = `${h}px`;
+        const max = Math.max(lh, rh);
+
+        // ✅ 오른쪽이 더 작으면 오른쪽에 높이 고정 (왼쪽이 기준)
+        if (rh < lh) r.style.height = `${lh}px`;
+
+        // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
+        l.style.height = `${Math.max(lh, rh)}px`;
       }
     }
 
