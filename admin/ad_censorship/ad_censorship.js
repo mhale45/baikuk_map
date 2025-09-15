@@ -844,14 +844,15 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              // === 정렬 우선순위 계산 (요청 순서 그대로, "최종 라벨" 기준) ===
+              // === 정렬 우선순위 계산 (사용자 정의 순서) ===
+
               // 1) 매물번호 '-'
               const descPriority = (descId === '-') ? 0 : 1;
 
               // 2) 매물명 '-'
               const titlePriority = (title === '-') ? 0 : 1;
 
-              // 3) 거래상태: '-', '0', '계약완료', '보류', 기타
+              // 3~6) 거래상태
               const s = (statusDisplay || '').toString().trim();
               let statusPriority = 99;
               if (s === '-') statusPriority = 0;
@@ -860,57 +861,64 @@ async function renderStaffSidebar(me) {
               else if (s.includes('보류')) statusPriority = 3;
               else statusPriority = 4;
 
-              // 4) 보증금: '보증금 확인' → '상세설명' → '-' → 기타
+              // 7) 매매가: '매매가 확인' → 기타
+              const salePricePriority = String(salePriceLabel).includes('매매가 확인') ? 0 : 1;
+
+              // 8~10) 보증금
               let depositPriority = 3;
               if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
               else if (String(depositOut).includes('상세설명')) depositPriority = 1;
               else if (depositOut === '-') depositPriority = 2;
 
-              // 5) 월세: '-' → '월세 확인' → '상세설명' → 기타
+              // 11~13) 월세
               let monthlyPriority = 3;
               if (monthlyOut === '-') monthlyPriority = 0;
               else if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 1;
               else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 2;
 
-              // 6) 권리금: '권리금 없음' 우선
-              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+              // 14) 권리금: '권리금 없음'
+              const premiumPriority = (String(premiumLabel).includes('권리금 없음')) ? 0 : 1;
 
-              // 7) 면적: '면적 확인' → '상세설명' → '-' → 기타
+              // 15~16) 면적
               let areaPriority = 3;
               if (String(areaCell).includes('면적 확인')) areaPriority = 0;
               else if (String(areaCell).includes('상세설명')) areaPriority = 1;
-              else if (areaCell === '-') areaPriority = 2;
 
-              // 8) 융자금: '융자금 없음' 우선
-              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+              // 17) 융자금: '융자금 없음'
+              const loanPriority = (String(loanLabel).includes('융자금 없음')) ? 0 : 1;
 
-              // 9) 화장실: '화장실 확인' 우선
+              // 18) 관리비: '관리비 체크'
+              const maintenancePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
+
+              // 19) 화장실: '화장실 확인'
               const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
 
-              // 10) 매물특징: '미표시' 우선
+              // 20) 매물특징: '미표시'
               const featuresPriority = (String(featuresLabel).includes('미표시')) ? 0 : 1;
 
-              // 11) 해당층: '해당층 확인' 우선
+              // 21) 해당층: '해당층 확인'
               const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
 
-              // 12) 총층: '총층 확인' 우선
+              // 22) 총층: '총층 확인'
               const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
 
-              // 최종 sortKey: 요청하신 순서 그대로
+              // === 최종 sortKey ===
               const sortKey = [
-                descPriority,         // 매물번호 '-'
-                titlePriority,        // 매물명 '-'
-                statusPriority,       // 거래상태
-                depositPriority,      // 보증금
-                monthlyPriority,      // 월세
-                premiumPriority,      // 권리금
-                areaPriority,         // 면적
-                loanPriority,         // 융자금
-                restroomPriority,     // 화장실
-                featuresPriority,     // 매물특징
-                floorPriority,        // 해당층
-                totalFloorPriority,   // 총층
-                idx                   // 안정정렬
+                descPriority,       // 매물번호 '-'
+                titlePriority,      // 매물명 '-'
+                statusPriority,     // 거래상태 (-,0,계약완료,보류)
+                salePricePriority,  // 매매가 확인
+                depositPriority,    // 보증금
+                monthlyPriority,    // 월세
+                premiumPriority,    // 권리금 없음
+                areaPriority,       // 면적
+                loanPriority,       // 융자금 없음
+                maintenancePriority,// 관리비 체크
+                restroomPriority,   // 화장실 확인
+                featuresPriority,   // 매물특징 미표시
+                floorPriority,      // 해당층 확인
+                totalFloorPriority, // 총층 확인
+                idx                 // 안정 정렬
               ];
 
               return {
