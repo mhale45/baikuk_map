@@ -548,7 +548,7 @@ async function renderStaffSidebar(me) {
             const likeValue = `%${channel}%`;
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -593,6 +593,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
@@ -764,6 +765,16 @@ async function renderStaffSidebar(me) {
                 monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
               }
 
+              // === [관리비] 표시 ===
+              let maintenanceLabel = '-';
+              if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
+                if (row.maintenance_cost === 0) {
+                  maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 없음</span>';
+                } else {
+                  maintenanceLabel = row.maintenance_cost.toLocaleString();
+                }
+              }
+
               // === [화장실] 표시 ===
               // 규칙: ad_restroom 값을 '/' 기준으로 오른쪽 문자열을 추출해 그 안에 '0'이 포함되면
               //      빨간 '화장실 확인', 아니면 '-'
@@ -790,9 +801,7 @@ async function renderStaffSidebar(me) {
                 }
               }
 
-              // 매물특징 표시 정책 변경
-              // - 비정상(미입력/빈값/'-')이면: '미표시'(빨강)
-              // - 정상(값 존재)인 경우: 실제 텍스트 대신 '-'
+              // 매물특징 표시
               const rawFeat = (row.ad_listings_features ?? '').trim();
               const hasFeature = !!rawFeat && rawFeat !== '-';
               const featuresLabel = hasFeature
@@ -905,6 +914,7 @@ async function renderStaffSidebar(me) {
                 monthlyLabel: monthlyOut,
                 premiumLabel,
                 loanLabel,
+                maintenanceLabel,
                 restroomLabel,
                 featuresLabel,
                 salePriceLabel,
@@ -971,6 +981,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
