@@ -769,11 +769,6 @@ async function renderStaffSidebar(me) {
                 monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
               }
 
-              // === [관리비] 표시 ===
-              // 규칙:
-              //  - '/' 기준 앞부분만 사용
-              //  - 공백 제거 + '만원' 제거
-              //  - 숫자 변환 후 2 미만이면 '관리비 체크'(빨강)
               let maintenanceLabel = '-';
               if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
                 const raw = String(row.maintenance_cost).split('/')[0] || '';
@@ -781,10 +776,12 @@ async function renderStaffSidebar(me) {
                 const num = Number(cleaned);
 
                 if (!isNaN(num)) {
-                  if (num < 2) {
+                  if (num < 1) {
                     maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
+                  } else if (num >= 1 && num < 2) {
+                    maintenanceLabel = num.toLocaleString(); // 그냥 검정 숫자
                   } else {
-                    maintenanceLabel = num.toLocaleString();
+                    maintenanceLabel = num.toLocaleString(); // 기존처럼
                   }
                 } else {
                   maintenanceLabel = '-';
