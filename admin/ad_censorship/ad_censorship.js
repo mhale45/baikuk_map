@@ -920,13 +920,13 @@ async function renderStaffSidebar(me) {
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
               // 10) 관리비: '관리비 체크' 포함 우선
-              const manageFeePriority = (String(row.ad_manage_fee || '').includes('관리비 체크')) ? 0 : 1;
+              const manageFeePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
 
               // 11) 화장실: '화장실 확인' 포함 우선
               const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
 
               // 12) 전화번호: '불일치' 포함 우선
-              const phonePriority = (String(row.ad_phone || '').includes('불일치')) ? 0 : 1;
+              const phonePriority = (String(phoneCell).includes('불일치')) ? 0 : 1;
 
               // 13) 매물특징: '미노출' → '시설체크' → 기타
               let featuresPriority = 2;
