@@ -20,8 +20,6 @@ export async function rpc(name, args) {
 
 /**
  * Supabase 준비되기까지 대기하는 공통 헬퍼
- * @param {number} timeoutMs - 타임아웃(ms)
- * @returns {Promise<any>} resolves with window.supabase
  */
 export function waitForSupabase(timeoutMs = 5000) {
   const start = Date.now();
