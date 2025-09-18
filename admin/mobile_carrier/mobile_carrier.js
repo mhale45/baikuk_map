@@ -44,27 +44,15 @@ export async function initMobileCarrier() {
           return;
         }
 
-        const { data: staff, error: staffErr } = await supabase
-          .from('staff_profiles')
-          .select('affiliation, name')
-          .eq('user_id', user.id)
-          .single();
-
-        let memo;
-        let movement;
-
-        if (staff && !staffErr) {
-          movement = `통신사체크_${staff.affiliation}_${staff.name}`;
-          memo = phone;
-        } else {
-          movement = `통신사체크_unknown_${user.email ?? 'no-email'}`;
-          memo = phone;
-        }
+        // movement 고정, memo는 번호만 저장
+        const movement = '통신사체크';
+        const memo = phone;
 
         const payload = {
           movement,
           memo,
-          imDae_sheet_timetz: new Date().toISOString(),
+          requested_by: user.id,                 // 동시성 안전용
+          imDae_sheet_timetz: new Date().toISOString(), // DB에 DEFAULT now() 있으면 생략 가능
         };
 
         const { error: insertErr } = await supabase
