@@ -13,8 +13,6 @@ export async function getCurrentUserId() {
 
 /**
  * 로그인된 유저의 소속(affiliation) 조회
- * @returns {Promise<string|null>} affiliation 값 또는 null
- * @example
  * const aff = await getMyAffiliation();
  * if (aff) console.log("내 소속:", aff);
  */
