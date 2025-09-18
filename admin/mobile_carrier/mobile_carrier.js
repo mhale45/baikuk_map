@@ -51,20 +51,20 @@ export async function initMobileCarrier() {
           .single();
 
         let memo;
+        let movement;
+
         if (staff && !staffErr) {
-          memo = `${staff.affiliation} / ${staff.name} / ${phone}`;
+          movement = `통신사체크_${staff.affiliation}_${staff.name}`;
+          memo = phone;
         } else {
-          // staff_profiles가 없을 때 대비
-          memo = `unknown / ${user.email ?? 'no-email'} / ${phone}`;
+          movement = `통신사체크_unknown_${user.email ?? 'no-email'}`;
+          memo = phone;
         }
 
-        // update_log에 기록
-        // imDae_sheet_timetz 컬럼이 timestamptz 이므로 JS Date(ISO) 그대로 넣어도 됩니다.
-        // DB에서 DEFAULT now()를 걸어두셨다면 컬럼 생략 가능.
         const payload = {
-          movement: '통신사체크',
-          memo: memo,
-          imDae_sheet_timetz: new Date().toISOString(), // 서버에서 now() 쓰실 거면 이 줄 지워도 됨
+          movement,
+          memo,
+          imDae_sheet_timetz: new Date().toISOString(),
         };
 
         const { error: insertErr } = await supabase
