@@ -72,6 +72,17 @@ try:
 except Exception as e:
     print("데이터선물 클릭 실패:", e)
 
+try:
+    # inputId 요소가 나타날 때까지 기다리기 (최대 10초)
+    input_box = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="histSvcNum"]'))
+    )
+    # 값 입력
+    input_box.clear()   # 혹시 기존 값이 있다면 지우기
+    input_box.send_keys("여기에번호입력")
+    print("번호 입력 완료!")
+except Exception as e:
+    print("번호를 찾지 못했거나 입력 실패:", e)
     
 
 # 이후 필요한 작업 ...
