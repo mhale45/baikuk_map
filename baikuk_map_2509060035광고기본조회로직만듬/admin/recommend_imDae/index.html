@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>임대추천</title>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    let currentCustomerId = null; // 전역 변수로 추가
+  </script>
+  <style>
+    /* === print 전용 설정 === */
+    @media print {
+      @page { size: A4 landscape; margin: 12mm; }
+      html, body { margin:0 !important; padding:0 !important; }
+
+      /* body 직계/후손 전부 숨김 */
+      body > * { display: none !important; }
+
+      /* 인쇄 포털만 표시 */
+      #print-portal { 
+        display: block !important; 
+        position: static !important;
+        width: 100% !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
+      }
+      #print-portal table { width: 100% !important; table-layout: fixed; border-collapse: collapse; }
+      #print-portal th, #print-portal td { border: 1px solid #ccc; padding: 4px; font-size: 12px; text-align: center; }
+      #print-portal thead { background: #f3f4f6; position: static !important; }
+
+      /* 색/배경 출력 */
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+  <style>
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+    th.resizable {
+      position: relative;
+      min-width: 40px;
+      white-space: nowrap;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 0.4rem;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+      background-color: transparent;
+    }
+    .customer-item {
+      position: relative;
+      padding: 0.5rem 0.5rem; /* 위아래/좌우 여백 증가 */
+      margin-bottom: 0.25rem;  /* 항목 사이 간격 */
+      border-radius: 0.25rem;  /* 모서리 살짝 둥글게 (선택) */
+    }
+    .customer-item:hover .customer-delete-btn {
+      display: block;
+    }
+    .customer-item:active { background-color: #fde68a; } /* 눌렀을 때 살짝 더 진하게 */
+    .grade-header {
+      background-color: #e5e7eb; /* bg-yellow-100 같은 효과 */
+      color: #000000;           /* 진한 주황색 글씨 */
+      font-weight: bold;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+    }
+    .name-item {
+      font-size: 0.9rem;
+      color: #374151;           /* text-gray-700 */
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      margin-bottom: 0.4rem;
+    }
+    .name-item:hover {
+      background-color: #fef9c3; /* hover:bg-yellow-100 */
+    }
+
+  </style>
+  <style>
+    /* 테이블 전체 + 셀 테두리 */
+    table {
+      border-collapse: collapse; /* 테두리 겹침 제거 */
+      width: 50rem;
+      table-layout: fixed;
+    }
+
+    table, th, td {
+      border: 1px solid #ccc; /* 연한 회색 테두리 */
+    }
+
+    th, td {
+      padding: 0.25rem; /* p-1 정도 */
+      text-align: center;
+      font-size: 0.875rem; /* text-sm */
+    }
+
+    /* 헤더 스타일 */
+    thead {
+      background-color: #f3f4f6; /* bg-gray-100 */
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* 짝수/홀수 줄 배경 */
+    tbody tr:nth-child(odd) {
+      background-color: white;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f9fafb; /* bg-gray-50 */
+    }
+  </style>
+</head>
+<body class="w-screen overflow-x-hidden">
+  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
+    메시지 영역
+  </div>
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()" />
+  </div>
+  <div class="flex min-h-screen">
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+      <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
+      <a href="/admin/recommend_imDae/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
+      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
+      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+    </div>
+    <div id="customer-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <div id="customer-list" class="overflow-y-auto">
+        <!-- 여기에 고객 이름들이 표시됩니다 -->
+      </div>
+    </div>
+    <div class="w-[84%] flex flex-col bg-gray-100">
+      <div class="mt-[2rem] flex px-3 bg-gray-100">
+        <div class="text-left text-base rounded outline-none resize-none">
+          <div class="flex">
+            <input
+              type="text"
+              placeholder="고객이름"
+              class="border border-gray-300 px-2 rounded ml-1 w-[15rem] text-left text-base h-[2rem]"
+              id="top-row-input"
+            />
+            <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded font-bold">
+              신규저장
+            </button>
+          </div>            
+          <div class="flex mt-[0.5rem]">
+            <div class="flex">
+              <div class="ml-1 mt-1">구분:</div>
+              <select id="customer-grade" class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                <option >A</option>
+                <option >B</option>
+                <option >C</option>
+                <option >F</option>
+              </select>
+            </div>
+            <input id="customer-phone" placeholder="전화번호" class="w-[15rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+          </div>
+          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[23rem] h-[45rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+        </div>
+        <div class="ml-3 mt-[1rem] flex flex-col">
+          <div>
+            <button id="print-btn" class="h-[2rem] bg-neutral-500 hover:bg-neutral-600 text-white text-sm px-4 py-1 rounded mr-2 ml-auto mb-2">
+              🖨️
+            </button>
+            <button id="copy-link-btn" class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded mr-2 ml-auto mb-2">
+              링크
+            </button>
+          </div>
+          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
+            <div class="mb-2 text-right">
+              <button id="toggle-edit-btn" class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded">
+                저장
+              </button>
+            </div>
+            <div id="table-container" class="border rounded-md">
+              <table class="w-[7rem] text-sm text-left">
+                <thead class="bg-gray-100 sticky top-0 z-10">
+                  <tr id="header-row">
+                    <th class="p-1 font-bold text-base text-center">매물번호</th>
+                  </tr>
+                </thead>
+                <tbody id="left-tbody" class="bg-white">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>        
+        <div class="ml-6 px-4 py-4 bg-white rounded-md self-start">
+          <div id="table-container" class="custom-scroll bg-white rounded-md">
+            <div id="print-block">              
+              <div class="flex items-end mb-2 gap-3">
+                <img
+                  src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
+                  alt="백억로고"
+                  class="w-[25rem]"
+                />
+                <div class="justify-between items-end mb-2">
+                  <!-- 날짜 -->
+                  <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
+                  <!-- 담당자 -->
+                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold">
+                    <div id="staff-info" class="hidden"></div>
+                    <select id="staff-select" class="hidden border border-gray-300 rounded px-2 py-1 text-base"></select>
+                  </div>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr id="header-row">
+                    <th style="width: 1.5rem;"></th>
+                    <th style="width: 10rem;">매물명</th>
+                    <th style="width: 8rem;">주소</th>
+                    <th style="width: 8rem;">건물정보</th>
+                    <th style="width: 5.5rem;">보증금</th>
+                    <th style="width: 4rem;">월세</th>
+                    <th style="width: 5.5rem;">권리금</th>
+                    <th style="width: 4.7rem;">전용(평)</th>
+                    <th style="width: 15rem;">내용</th>
+                  </tr>
+                </thead>
+                <tbody id="listings-body"></tbody>
+              </table>
+            </div>  
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>  
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://sfinbtiqlfnaaarziixu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+    );
+
+    // ✅ 로그인 여부 확인 후 없으면 /index.html로 이동
+    (async () => {
+      const { data, error } = await client.auth.getSession();
+      if (!data?.session) {
+        console.warn("로그인 세션 없음 → /index.html로 이동");
+        location.replace("/");
+      }
+    })();
+
+    window.supabase = supabase; // 전역으로 접근
+  </script>
+  <script>
+    // 스크립트 시작
+
+    // ✅ data-field 값을 (span / input / textarea 모두에서) 안전하게 읽기
+    function getFieldValue(field, index) {
+      const sel = `[data-field="${field}_${index}"]`;
+      const el = document.querySelector(sel);
+      if (!el) return '';
+      if (el.tagName === 'SPAN') return (el.textContent || '').trim();
+      return (el.value || '').trim();
+    }
+
+    // ✅ 왼쪽 매물번호 input에서 번호 읽기
+    function getListingNumber(index) {
+      const input = document.querySelector(`input[data-index="${index}"]`);
+      return (input?.value || '').trim();
+    }
+
+    // ✅ 돈 포맷 되어 있는 문자열에서 숫자만 추출(‘억 2,000’ 등도 허용) → 다시 원래 문자열 그대로 쓰길 원하면 이 부분 조정
+    const stripEmpty = (s) => (s || '').trim();
+    // (교체) 보증금/월세 라벨을 붙여서 합성
+    function joinMoney(deposit, monthly) {
+      const a = (deposit || '').trim(); // 예: "1억 5,000"
+      const b = (monthly || '').trim(); // 예: "800"
+      const aL = a ? `${a}` : '';
+      const bL = b ? `${b}`   : '';
+      if (a && b) return `${aL}/${bL}`;
+      return aL || bL || '';
+    }
+
+    // ✅ 해당 행에 “의미 있는 값”이 하나라도 있는지 확인 (번호 제외)
+    function hasMeaningfulData(index) {
+      const keys = [
+        'listing_title', 'full_address', 'combined_unit', 'deposit_price',
+        'monthly_rent', 'premium_price', 'area_py', 'description'
+      ];
+      return keys.some(k => !!getFieldValue(k, index));
+    }
+
+    // ✅ 한 행을 메시지 4줄로 변환
+    function buildMessageForRow(index) {
+      const no     = getListingNumber(index) || '';
+      const title  = getFieldValue('listing_title', index) || '-';
+      const addr   = getFieldValue('full_address', index) || '-';
+      const unit   = getFieldValue('combined_unit', index) || '-';
+      const dep    = getFieldValue('deposit_price', index);
+      const mon    = getFieldValue('monthly_rent', index);
+      const prem   = getFieldValue('premium_price', index);
+      const area   = getFieldValue('area_py', index);
+      const desc   = getFieldValue('description', index);
+
+      // 1행/2행
+      const line1 = `${title}`.trim();
+      const line2 = `${addr} ${unit}`.trim();
+
+      // 3행
+      const areaPart   = area ? `${area}평` : '';
+      const moneyPair  = joinMoney(dep, mon);   // 보증금/월세
+      const premiumTag = prem ? `권${prem}` : '';
+      const parts = [areaPart, moneyPair, premiumTag].filter(Boolean);
+      const line3 = parts.join(' ');
+
+      // 4행: 설명
+      const line4 = desc || '';
+
+      // 5행: URL (매물번호 있을 때만)
+      const baseUrl = "http://localhost:5173/";
+      const line5 = no ? `${baseUrl}?id=${no}` : '';
+
+      const lines = [line1, line2, line3, line4, line5].filter(l => l !== '');
+      return lines.join('\n');
+    }
+
+
+    // ✅ 전체 행을 훑어 텍스트 생성
+    function buildAllMessages() {
+      const rows = document.querySelectorAll('#listings-body tr');
+      const blocks = [];
+      rows.forEach((_, i) => {
+        const idx = i + 1; // 실제 index
+        if (hasMeaningfulData(idx) || getListingNumber(idx)) {
+          const msg = buildMessageForRow(idx);
+          if (msg) {
+            // 🔹 앞에 순서 번호 붙이기
+            blocks.push(`${blocks.length + 1}.\n${msg}`);
+          }
+        }
+      });
+      return blocks.join('\n\n'); // 행과 행 사이 빈 줄
+    }
+
+    // ✅ 클립보드 복사 (표준 + 폴백)
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('링크용 문구를 복사했어요.');
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('링크용 문구를 복사했어요.');
+        } catch {
+          showToast('복사에 실패했습니다. 수동으로 복사해주세요.');
+        }
+        document.body.removeChild(ta);
+      }
+    }
+    
+    // 퇴사자 안보이는 관련코드
+    // ✅ 내 권한/소속 조회
+    async function getAuthContext() {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return { me: null, myAuth: null, myAff: null };
+
+      const { data: me, error: meErr } = await supabase
+        .from('staff_profiles')
+        .select('id, authority, affiliation')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      return {
+        me,
+        myAuth: me?.authority ?? null,      // '관리자' | '지점장' | '직원'
+        myAff: (me?.affiliation ?? '').trim()
+      };
+    }
+
+    // ✅ 직원 목록 로딩 (권한별 퇴사자 표시 제어)
+    async function loadStaffOptions(currentStaffId = null) {
+      const staffSelect = document.getElementById('staff-select');
+      if (!staffSelect) return;
+      staffSelect.innerHTML = '';
+
+      // 권한/소속
+      const { me, myAuth, myAff } = await getAuthContext();
+      if (!me) return;
+
+      // 1) 기본 쿼리
+      let q = supabase
+        .from('staff_profiles')
+        .select('id, name, affiliation, leave_date')
+        .order('affiliation', { ascending: true })
+        .order('name', { ascending: true });
+
+      // 2) 권한이 '직원'이면 퇴사자 제외
+      if (myAuth === '직원') {
+        q = q.is('leave_date', null);
+      }
+
+      const { data: staffList, error: staffErr } = await q;
+      if (staffErr || !staffList) return;
+
+      // 3) 소속별 그룹화
+      const grouped = staffList.reduce((acc, s) => {
+        (acc[s.affiliation || '미지정'] ||= []).push(s);
+        return acc;
+      }, {});
+
+      // 4) 같은 소속 먼저, 나머지 소속 순회
+      const appendGroup = (label, members) => {
+        if (!members?.length) return;
+        const og = document.createElement('optgroup');
+        og.label = label;
+        members.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          // 관리자/지점장에게만 퇴사자 표기 (직원은 애초에 안 나옴)
+          const retiredTag = (myAuth !== '직원' && s.leave_date) ? ' (퇴사)' : '';
+          opt.textContent = `${s.name}${retiredTag}`;
+          if (currentStaffId && s.id === currentStaffId) opt.selected = true;
+          og.appendChild(opt);
+        });
+        staffSelect.appendChild(og);
+      };
+
+      // 같은 소속 먼저
+      if (myAff && grouped[myAff]) {
+        appendGroup(`${myAff} (같은 소속)`, grouped[myAff]);
+        delete grouped[myAff];
+      }
+
+      // 나머지 소속
+      Object.entries(grouped).forEach(([aff, members]) => {
+        appendGroup(aff, members);
+      });
+    }
+
+    // 첫로드시 직원표시 함수
+    async function loadCurrentUserStaffInfo() {
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser();
+
+      if (error || !user) return;
+
+      const userId = user.id;
+
+      // staff_profiles 테이블에서 해당 사용자 정보 조회
+      const { data: staff } = await supabase
+        .from('staff_profiles')
+        .select('position, name, phone_num')
+        .eq('user_id', userId) // 혹은 eq('id', userId) → 실제 구조에 따라 변경
+        .maybeSingle();
+
+      if (staff) {
+        const staffInfoBox = document.getElementById('staff-info');
+        staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+        staffInfoBox.classList.remove('hidden');
+        document.getElementById('staff-select').classList.add('hidden');
+      }
+    }
+
+    // ✅ 내 staff_profiles.id 가져오기
+    async function getMyStaffId() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data: me } = await supabase
+        .from('staff_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return me?.id ?? null;
+    }
+
+    // ✅ 내가(대표/보조) 배정된 고객인지 확인 (고객-담당 링크 OR customers.staff_profiles_id)
+    async function isMyAssignedCustomer(customerId) {
+      const myId = await getMyStaffId();
+      if (!myId || !customerId) return false;
+
+      const [{ data: link }, { data: cust }] = await Promise.all([
+        supabase
+          .from('customer_assignees')
+          .select('customer_id')
+          .eq('customer_id', customerId)
+          .eq('staff_profiles_id', myId)
+          .maybeSingle(),
+        supabase
+          .from('customers')
+          .select('id, staff_profiles_id')
+          .eq('id', customerId)
+          .maybeSingle()
+      ]);
+
+      return !!link || (!!cust && cust.staff_profiles_id === myId);
+    }
+
+    // 손님정보 불러오는 함수 (대표/보조 둘 다 접근 가능)
+    async function loadCustomerDataByName(name) {
+      const myId = await getMyStaffId();
+      if (!myId) { showToast('로그인 필요'); return; }
+
+      // 1) 이름으로 고객 1명 찾기 (조인 X)
+      const { data: customer, error: custError } = await supabase
+        .from('customers')
+        .select('id, customer_name, customer_phone_number, grade, memo, staff_profiles_id')
+        .eq('customer_name', name)
+        .maybeSingle();
+
+      if (custError || !customer) {
+        console.warn('❌ 고객 정보 불러오기 실패:', custError);
+        showToast('고객 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 2) 접근 권한 체크 (대표 또는 보조)
+      const allowed = (customer.staff_profiles_id === myId) || (await isMyAssignedCustomer(customer.id));
+      if (!allowed) {
+        showToast('담당자가 아닌 고객은 볼 수 없습니다.');
+        return;
+      }
+
+      currentCustomerId = customer.id;
+
+      // 👉 우측 정보창 채우기
+      document.getElementById('top-row-input').value = customer.customer_name || '';
+      document.getElementById('customer-phone').value = customer.customer_phone_number || '';
+      document.getElementById('customer-grade').value = customer.grade || 'F';
+      document.getElementById('memo-textarea').value = customer.memo || '';
+
+      // 👉 왼쪽 매물번호 입력창 초기화
+      document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
+
+      // 👉 오른쪽 매물입력 테이블 초기화
+      const listingsBody = document.getElementById('listings-body');
+      listingsBody.innerHTML = '';
+
+      // ✅ 추천 매물 목록 불러오기
+      const { data: listings, error: listingsError } = await supabase
+        .from('customers_recommendations')
+        .select('*')
+        .eq('customers_id', currentCustomerId);
+
+      if (listingsError) {
+        console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
+        showToast('추천 매물 정보를 불러오지 못했습니다.');
+        return;
+      }
+
+      listings.forEach((listing, i) => {
+        const index = i + 1;
+        const leftInput = document.querySelector(`input[data-index="${index}"]`);
+        if (leftInput) leftInput.value = listing.listing_id;
+
+        updateListingsTableByInputs(); // 행 수 확장
+        const setField = (field, value) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (el) el.value = value ?? '';
+        };
+
+        setField('listing_title', listing.listing_title);
+        setField('full_address', listing.full_address);
+        setField('combined_unit', listing.building_detail_info);
+        setField('deposit_price', listing.deposit_price);
+        setField('monthly_rent', listing.monthly_rent);
+        setField('premium_price', listing.premium_price);
+        setField('area_py', listing.area_py);
+        setField('description', listing.contents);
+      });
+
+      syncRowHeights?.();
+      applyRowStriping?.();
+      showToast(`고객 "${name}" 데이터 불러옴`);
+
+      // 무조건 읽기모드로 정리
+      if (isEditMode) {
+        toggleButton.click();
+        switchInputsToSpans();
+      }
+      switchInputsToSpans();
+
+      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
+      const staffInfoBox = document.getElementById('staff-info');
+      if (customer.staff_profiles_id) {
+        const { data: staff } = await supabase
+          .from('staff_profiles')
+          .select('position, name, phone_num')
+          .eq('id', customer.staff_profiles_id)
+          .maybeSingle();
+
+        if (staff && staffInfoBox) {
+          staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+          staffInfoBox.classList.remove('hidden');
+          document.getElementById('staff-select').classList.add('hidden');
+        }
+      }
+
+    }
+
+
+    // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
+    async function loadCustomersForCurrentStaff() {
+      const myId = await getMyStaffId();
+      if (!myId) {
+        console.error('❌ 로그인된 사용자를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 1) 내가 '대표'인 고객
+      const { data: primaryList, error: pErr } = await supabase
+        .from('customers')
+        .select('id, customer_name, grade')
+        .eq('staff_profiles_id', myId);
+
+      // 2) 내가 '배정자(대표/보조)'로 들어간 고객 (조인)
+      const { data: assigneeList, error: aErr } = await supabase
+        .from('customers')
+        .select(`
+          id,
+          customer_name,
+          grade,
+          customer_assignees!inner(staff_profiles_id, is_primary)
+        `)
+        .eq('customer_assignees.staff_profiles_id', myId);
+
+      if (pErr || aErr) {
+        console.error('❌ 고객 목록 불러오기 실패:', pErr || aErr);
+        return;
+      }
+
+      // 3) 병합 + 중복 제거 + 역할 표시(대표/보조)
+      const map = new Map();
+
+      (primaryList || []).forEach(c => {
+        map.set(c.id, { ...c, role: '대표' });
+      });
+
+      (assigneeList || []).forEach(c => {
+        const prev = map.get(c.id);
+        // 조인 결과에 is_primary가 있을 수도 있고 없을 수도 있음 → 대표 우선
+        const role = (c.customer_assignees?.[0]?.is_primary || prev?.role === '대표') ? '대표' : '보조';
+        map.set(c.id, { id: c.id, customer_name: c.customer_name, grade: c.grade, role });
+      });
+
+      let customers = Array.from(map.values());
+
+      // 4) 정렬: A > B > C > F, 같은 등급은 이름 오름차순
+      const gradeOrder = { A: 0, B: 1, C: 2, F: 3 };
+      customers.sort((a, b) => {
+        const ga = gradeOrder[a.grade] ?? 99;
+        const gb = gradeOrder[b.grade] ?? 99;
+        if (ga !== gb) return ga - gb;
+        return (a.customer_name || '').localeCompare(b.customer_name || '', 'ko');
+        // 필요시 localeCompare 두번째 인자 'ko'로 한국어 정렬
+      });
+
+      // 4.5) 고객별 다른 담당자 이름 수집 (담당자가 정확히 2명일 때만 표시)
+      const custIds = customers.map(c => c.id);
+
+      // 모든 배정자 조회 (내/남 구분 위해 staff_profiles.id, name 필요)
+      const { data: assigneesAll, error: assAllErr } = await supabase
+        .from('customer_assignees')
+        .select('customer_id, staff_profiles!inner(id, name)')
+        .in('customer_id', custIds);
+
+      const otherNameMap = new Map();
+      if (!assAllErr && assigneesAll) {
+        // customer_id별로 담당자 id/name 모으기 (중복 제거)
+        const byCustomer = new Map();
+        assigneesAll.forEach(row => {
+          const cid = row.customer_id;
+          const sp = row.staff_profiles;
+          if (!sp) return;
+          if (!byCustomer.has(cid)) byCustomer.set(cid, new Map());
+          byCustomer.get(cid).set(sp.id, sp.name);
+        });
+
+        // 정확히 2명일 때 내 id가 아닌 이름을 other로 저장
+        byCustomer.forEach((idNameMap, cid) => {
+          if (idNameMap.size === 2 && idNameMap.has(myId)) {
+            for (const [sid, sname] of idNameMap.entries()) {
+              if (sid !== myId) { otherNameMap.set(cid, sname); break; }
+            }
+          }
+        });
+      }
+
+
+      // 5) 렌더 (등급별 그룹 섹션 + 이름만)
+      const container = document.getElementById('customer-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!customers.length) {
+        container.textContent = '등록된 고객이 없습니다.';
+        return;
+      }
+
+      // F 등급 고객은 걸러냄
+      const filteredCustomers = customers.filter(c => ['A', 'B', 'C'].includes((c.grade || '').toUpperCase()));
+
+      // 등급 그룹핑
+      const grouped = filteredCustomers.reduce((acc, c) => {
+        const g = (c.grade || '미분류').toUpperCase();
+        (acc[g] ||= []).push(c);
+        return acc;
+      }, {});
+
+      // 표시 순서 고정: A > B > C > F > 나머지
+      const gradeOrderList = ['A', 'B', 'C', 'F'];
+      const sortedGrades = [
+        ...gradeOrderList.filter(g => grouped[g]?.length),
+        ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g))
+      ];
+
+      // 섹션별 렌더
+      sortedGrades.forEach(grade => {
+        const list = grouped[grade] || [];
+        if (!list.length) return;
+
+        // 섹션 헤더
+        const header = document.createElement('div');
+        header.className = 'grade-header';
+        header.textContent = grade; // 필요하면 `${grade} (${list.length}명)` 로 변경 가능
+        container.appendChild(header);
+
+        // 이름들 (이름만, 역할/뱃지 제거)
+        list
+          .sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || '', 'ko'))
+          .forEach(cust => {
+            const nameBtn = document.createElement('div');
+            nameBtn.className = 'name-item';
+            const other = otherNameMap.get(cust.id); // 다른 담당자 이름 (있으면)
+
+            // ✅ 여기부터 교체
+            const label = document.createElement('span');
+            label.textContent = cust.customer_name || '-';
+
+            const sub = document.createElement('span');
+            sub.className = 'mr-1 text-sm text-gray-500';
+            sub.textContent = other ? `(${other})` : '';
+
+            nameBtn.innerHTML = '';
+            nameBtn.append(sub, label);
+            // ✅ 여기까지 교체
+
+            // 접근성: 키보드 선택 지원
+            nameBtn.setAttribute('role', 'button');
+            nameBtn.tabIndex = 0;
+
+            nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
+            nameBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadCustomerDataByName(cust.customer_name);
+              }
+            });
+
+            container.appendChild(nameBtn);
+          });
+      });
+
+      
+    }
+
+    // 저장버튼 누르면 수정모드로 표 바꿔주는 함수
+    function switchSpansToInputs() {
+      const rows = document.querySelectorAll('#listings-body tr');
+
+      rows.forEach((row, rowIndex) => {
+        const spans = row.querySelectorAll('span[data-field]');
+        spans.forEach(span => {
+          const field = span.dataset.field;
+          const value = span.textContent || '';
+
+          let inputEl;
+
+          if (field.startsWith('listing_title_') || field.startsWith('full_address_')|| field.startsWith('description_')) {
+            inputEl = document.createElement('textarea');
+            inputEl.rows = 2;
+            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
+          } else {
+            inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none';
+          }
+
+          inputEl.value = value;
+          inputEl.dataset.field = field;
+
+          span.parentElement.replaceChild(inputEl, span);
+        });
+      });
+    }
+
+    // 저장버튼 누르면 뷰모드로 바꿔주는 함수
+    function switchInputsToSpans() {
+      const rows = document.querySelectorAll('#listings-body tr');
+
+      rows.forEach(row => {
+        const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
+        fields.forEach(el => {
+          const value = el.value || '';
+          const field = el.dataset.field;
+
+          const span = document.createElement('span');
+          span.className = 'text-base block whitespace-pre-wrap';
+          span.dataset.field = field;
+          span.textContent = value;
+
+          el.parentElement.replaceChild(span, el);
+        });
+      });
+    }
+
+    let buildingMap = new Map();
+
+    // 매물번호 입력에 따라 매물정보 표 늘리고 줄이기
+    function updateListingsTableByInputs() {
+      const listingsBody = document.getElementById('listings-body');
+      const allInputs = document.querySelectorAll('input[data-index]');
+
+      // 입력된 data-index 중 최대값 찾기 (빈칸은 무시)
+      let maxIndex = 0;
+      allInputs.forEach(input => {
+        const val = input.value.trim();
+        const idx = parseInt(input.dataset.index);
+        if (val !== '' && !isNaN(idx)) {
+          maxIndex = Math.max(maxIndex, idx);
+        }
+      });
+
+      // 기존 행 수
+      const currentRows = listingsBody.children.length;
+
+      // 행이 부족하면 추가
+      for (let i = currentRows + 1; i <= maxIndex; i++) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="p-1 border text-center">${i}</td>
+          <td class="p-1 border text-center">
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+          </td>
+          <td class="p-1 border text-center">
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+          </td>
+          <td class="p-1 border text-center">
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="combined_unit_${i}" />
+          </td>
+          <td class="p-1 border text-center">
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+          </td>
+          <td class="p-1 border text-center">
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+          </td>
+          <td class="p-1 border text-center">
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+          </td>
+          <td class="p-1 border text-center">
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+          </td>
+          <td class="p-1 border text-center">
+            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+          </td>
+        `;
+
+        listingsBody.appendChild(row);
+        applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
+      }
+
+      // 행이 너무 많으면 자름
+      while (listingsBody.children.length > maxIndex) {
+        listingsBody.removeChild(listingsBody.lastChild);
+      }
+    }
+
+    function showToast(message, duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+
+      // 스타일 직접 지정
+      toast.style.backgroundColor = '#F2C130';
+      toast.style.color = 'black';
+      toast.style.fontWeight = 'bold';
+      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
+
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, duration);
+    }
+
+    // --- Formatting Helpers ---
+    function formatKoreanMoney(value) {
+        if (!value && value !== 0) return '-';
+        const num = Number(value);
+        if (isNaN(num)) return '-';
+        if (num >= 10000) {
+            const eok = Math.floor(num / 10000);
+            const man = num % 10000;
+            return `${eok}억${man > 0 ? ' ' + man.toLocaleString() : ''}`;
+        }
+        return num.toLocaleString();
+    }
+    
+    async function preloadBuildingInfo() {
+      const { data: buildings, error } = await supabase
+        .from('building_info')
+        .select('addr_compare, building_name');
+
+      if (!error && buildings) {
+        buildingMap = new Map(buildings.map(b => [b.addr_compare, b.building_name]));
+        // console.log(`🏢 building_info ${buildings.length}건 로드 완료`);
+      } else {
+        console.warn('❗ building_info 로딩 실패:', error);
+      }
+    }
+
+    const leftTbody = document.getElementById('left-tbody');
+    for (let i = 1; i <= 50; i++) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="border-b text-right pr-2"> <!-- 오른쪽 정렬 -->
+          <input type="text" placeholder="입력 ${i}" 
+                class="w-[5rem] border px-2 rounded text-base ml-auto block" 
+                data-index="${i}" />
+        </td>
+      `;
+      leftTbody.appendChild(row);
+    }
+
+
+    function addListingRow(i) {
+      const row = document.createElement('tr');
+      const listingsBody = document.getElementById('listings-body');
+
+      // i가 홀수면 흰색, 짝수면 회색
+      const bgClass = i % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+      row.className = `${bgClass} hover:bg-yellow-50`;
+
+      row.innerHTML = `
+        <td class="p-2 border text-center">${i}</td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="listing_title_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="full_address_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="building_name_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="unit_info_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="floor_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="deposit_price_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="monthly_rent_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="premium_price_${i}" /></td>
+        <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="area_py_${i}" /></td>
+      `;
+
+      listingsBody.appendChild(row);
+      applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
+    }
+
+    // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
+    function applyRowStriping() {
+      const rows = document.querySelectorAll('#listings-body tr');
+      rows.forEach((row, index) => {
+        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
+        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
+      });
+    }
+    
+    // 매물정보 지우는 함수
+    function clearListingRow(index) {
+      const fields = [
+        'listing_title', 'full_address', 'combined_unit',
+        'deposit_price', 'monthly_rent', 'premium_price', 'area_py', 'description'
+      ];
+
+      fields.forEach(field => {
+        const el = document.querySelector(`[data-field="${field}_${index}"]`);
+        if (el) {
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.value = '';
+          } else {
+            el.textContent = '';
+          }
+        }
+      });
+
+      // ✅ 행 높이 다시 동기화
+      syncRowHeights?.();
+    }
+
+    async function fetchListingInfo(listingId, rowIndex) {
+      const cleanedId = listingId.replace(/[^\d]/g, '');  // 숫자만 남기기
+      console.log(`🔍 [${rowIndex}] 입력된 매물번호:`, cleanedId);
+
+      if (!cleanedId) {
+        console.warn(`[${rowIndex}] 매물번호가 비어있습니다.`);
+        return;
+      }
+
+      const numericId = Number(cleanedId.replaceAll(',', '')); // 쉼표 제거 + 숫자 변환
+
+      if (isNaN(numericId)) {
+        alert(`유효한 숫자 매물번호를 입력해주세요.`);
+        return;
+      }
+
+      console.log(`✅ [${rowIndex}] 숫자형 매물번호:`, numericId);
+
+      // Supabase 조회
+      const { data: listing, error: listingError } = await supabase
+        .from('baikukdbtest')
+        .select('listing_title, full_address, addr_compare, unit_info, floor, deposit_price, monthly_rent, premium_price, area_py')
+        .eq('listing_id', numericId)
+        .single();
+
+      console.log('🔎 원본 입력:', listingId, '정제 후:', cleanedId, '숫자변환:', numericId);
+
+      if (listingError || !listing) {
+        console.error(`❌ [${rowIndex}] 매물 조회 실패`, listingError);
+        showToast(`매물번호 ${listingId} 를 찾을 수 없습니다.`);
+        return;
+      }
+
+      console.log(`📦 [${rowIndex}] 매물 조회 결과:`, listing);
+
+      // 2. 건물명 매핑
+      const buildingName = buildingMap.get(listing.addr_compare) ?? '-';
+
+      // 3. 표시할 데이터 정리
+      const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
+      const dataToDisplay = {
+        listing_title: listing.listing_title,
+        full_address: listing.full_address,
+        combined_unit: combinedUnit, // 새 필드
+        deposit_price: listing.deposit_price,
+        monthly_rent: listing.monthly_rent,
+        premium_price: listing.premium_price,
+        area_py: listing.area_py
+      };
+
+      updateListingsTableByInputs();
+      
+      // 🔽 읽기모드일 경우, 해당 행만 다시 span으로 전환
+      if (!isEditMode) {
+        const row = document.querySelectorAll('#listings-body tr')[rowIndex - 1];
+        if (row) {
+          const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
+          fields.forEach(el => {
+            const value = el.value || '';
+            const field = el.dataset.field;
+
+            const span = document.createElement('span');
+            span.className = 'text-base block whitespace-pre-wrap';
+            span.dataset.field = field;
+            span.textContent = value;
+
+            el.parentElement.replaceChild(span, el);
+          });
+        }
+      }
+      
+      
+      // 4. DOM에 출력
+      Object.entries(dataToDisplay).forEach(([field, value]) => {
+        const selector = `[data-field="${field}_${rowIndex}"]`;
+        const el = document.querySelector(selector);
+        if (el) {
+          const isMoney = ['deposit_price', 'monthly_rent', 'premium_price'].includes(field);
+          const formattedValue =
+            isMoney
+              ? formatKoreanMoney(value)
+              : field === 'area_py'
+                ? (isNaN(Number(value)) ? '-' : Number(value).toFixed(1))
+              : field === 'full_address'
+                ? (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-')
+              : (value ?? '-');
+
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.value = formattedValue;
+          } else {
+            el.textContent = formattedValue;  // ✅ span 태그용
+          }
+        }
+      });
+
+      // ✅ 높이 동기화 실행
+      syncRowHeights();
+      applyRowStriping();  // ✅ 행 배경색 다시 적용      
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("✅ DOMContentLoaded 실행됨");
+      displayTodayDate();
+      displayStaffInfo();
+      preloadBuildingInfo();
+      loadCustomersForCurrentStaff();
+      loadCurrentUserStaffInfo(); // 첫로드시 담당자정보 본인정보 표시
+
+      const memoTextarea = document.getElementById('memo-textarea');
+      
+      // 매물번호 입력 감지
+      document.querySelectorAll('input[data-index]').forEach(input => {
+        const index = parseInt(input.dataset.index);
+
+        input.addEventListener('change', (e) => {
+          const value = e.target.value.trim();
+
+          if (value === '') {
+            // ✅ 입력이 빈 경우 → 해당 행 초기화
+            clearListingRow(index);
+          } else {
+            // ✅ 입력된 경우 → 매물조회
+            fetchListingInfo(value, index);
+          }
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const value = e.target.value.trim();
+            if (value === '') {
+              clearListingRow(index);
+            } else {
+              fetchListingInfo(value, index);
+            }
+            const nextInput = document.querySelector(`input[data-index="${index + 1}"]`);
+            if (nextInput) nextInput.focus();
+            e.preventDefault();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasteText = (e.clipboardData || window.clipboardData).getData('text');
+          const values = pasteText
+            .split(/[\s,\n]+/)
+            .map(str => str.trim())
+            .filter(Boolean);
+
+          values.forEach((val, offset) => {
+            const targetInput = document.querySelector(`input[data-index="${index + offset}"]`);
+            if (targetInput) {
+              targetInput.value = val;
+              targetInput.dispatchEvent(new Event('change'));
+            }
+          });
+        });
+      });
+
+      // ✅ ResizeObserver로 실시간 높이 동기화
+      const listingsBody = document.getElementById('listings-body');
+      const resizeObserver = new ResizeObserver(() => {
+        syncRowHeights();
+      });
+      resizeObserver.observe(listingsBody);
+
+      // ✅ 여기서 한번만 바인딩
+      let startX, startWidth, resizableTh;
+
+      document.querySelectorAll('.resize-handle').forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+          resizableTh = e.target.closest('th');
+          startX = e.clientX;
+          startWidth = resizableTh.offsetWidth;
+
+          document.addEventListener('mousemove', resizeColumn);
+          document.addEventListener('mouseup', stopResize);
+        });
+      });
+
+      function resizeColumn(e) {
+        if (!resizableTh) return;
+        const newWidth = startWidth + (e.clientX - startX);
+        resizableTh.style.width = newWidth + 'px';
+      }
+
+      function stopResize() {
+        document.removeEventListener('mousemove', resizeColumn);
+        document.removeEventListener('mouseup', stopResize);
+        resizableTh = null;
+      }
+
+      syncRowHeights?.();
+
+      document.addEventListener('focusin', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+          e.target.select();
+        }
+      });
+
+      // ✅ 읽기 모드 버튼 스타일 및 텍스트 초기화
+      toggleButton.textContent = '수정';
+      toggleButton.classList.remove('bg-blue-400', 'hover:bg-blue-500');
+      toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
+
+      // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
+      switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
+    });
+
+    // 👉 창 리사이즈 시에도 높이 동기화
+    window.addEventListener('resize', syncRowHeights);
+
+    // 👉 행 높이 동기화 함수 정의
+    function syncRowHeights() {
+      const rightRows = document.querySelectorAll('#listings-body tr');
+      const leftRows = document.querySelectorAll('#left-tbody tr');
+
+      for (let i = 0; i < leftRows.length; i++) {
+        const rightRow = rightRows[i];
+        const leftRow = leftRows[i];
+
+        if (rightRow && leftRow) {
+          const height = rightRow.offsetHeight;
+          leftRow.style.height = `${height}px`;
+        }
+      }
+    }
+
+    const allInputs = document.querySelectorAll('input[data-index]');
+    console.log("총 input 수:", allInputs.length);
+
+    // 수정, 저장버튼 관련
+    const toggleButton = document.getElementById('toggle-edit-btn');
+    let isEditMode = false;
+
+    const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
+
+    toggleButton.addEventListener('click', async () => {
+      isEditMode = !isEditMode;
+      toggleButton.textContent = isEditMode ? '저장' : '수정';
+
+      // 버튼 색상 변경
+      toggleButton.classList.remove('bg-neutral-500', 'hover:bg-neutral-600', 'bg-blue-500', 'hover:bg-blue-600');
+      if (isEditMode) {
+        // 수정모드: 파랑
+        toggleButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+      } else {
+        // 읽기모드: 빨간색
+        toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
+      }
+
+      if (isEditMode) {
+        switchSpansToInputs(); // 수정 모드: input/textarea로 복원
+        showToast('편집 모드로 전환되었습니다.');
+
+        document.getElementById('staff-info').classList.add('hidden');
+        document.getElementById('staff-select').classList.remove('hidden');
+
+        // 현재 고객의 staff_profiles_id 불러오기
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('staff_profiles_id')
+          .eq('id', currentCustomerId)
+          .maybeSingle();
+
+        const currentStaffId = customer?.staff_profiles_id;
+        await loadStaffOptions(currentStaffId);
+
+        // ✅ 저장 시, 마지막 값이 있는 행까지만 남기고 이후 오른쪽 listings 행 제거
+        const listingsBody = document.getElementById('listings-body');
+        const rows = listingsBody.querySelectorAll('tr');
+
+        let lastFilledRowIndex = -1;
+
+        rows.forEach((row, i) => {
+          const index = i + 1;
+
+          const keyFields = [
+            `listing_title_${index}`,
+            `full_address_${index}`,
+            `deposit_price_${index}`,
+            `monthly_rent_${index}`,
+            `area_py_${index}`
+          ];
+
+          const hasValue = keyFields.some(field => {
+            const el = row.querySelector(`[data-field="${field}"]`);
+            if (!el) return false;
+            const val = el.tagName === 'SPAN' ? el.textContent : el.value;
+            return val && val.trim() !== '';
+          });
+
+          if (hasValue) {
+            lastFilledRowIndex = i;
+          }
+        });
+        // ✅ 오른쪽 listings 행만 제거 (왼쪽은 유지)
+        for (let i = rows.length - 1; i > lastFilledRowIndex; i--) {
+          listingsBody.removeChild(rows[i]);
+        }
+        // ✅ 높이 다시 동기화
+        syncRowHeights?.();
+        return;
+      } else {
+        switchInputsToSpans(); // 저장 모드: span으로 변경
+        // --- 👇 담당자 저장 처리 (staff-select → customers.staff_profiles_id) ---
+        const selectedStaffId = document.getElementById('staff-select').value;
+        if (selectedStaffId) {
+          await supabase
+            .from('customers')
+            .update({ staff_profiles_id: selectedStaffId })
+            .eq('id', currentCustomerId);
+
+          const { data: selectedStaff } = await supabase
+            .from('staff_profiles')
+            .select('position, name, phone_num')
+            .eq('id', selectedStaffId)
+            .maybeSingle();
+
+          if (selectedStaff) {
+            const displayText = `${selectedStaff.position} ${selectedStaff.name} ${selectedStaff.phone_num}`;
+            document.getElementById('staff-info').textContent = displayText;
+          }
+        }
+        document.getElementById('staff-select').classList.add('hidden');
+        document.getElementById('staff-info').classList.remove('hidden');
+        // --- 👆 이 블럭을 switchInputsToSpans() 다음에 붙여주세요 ---
+
+        showToast('읽기 모드로 전환되었습니다.');
+      }
+
+      // 👇 저장 로직 실행
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) { showToast("로그인 정보가 필요합니다."); return; }
+
+      const customerName = document.getElementById('top-row-input')?.value.trim();
+      const customerPhone = document.getElementById('customer-phone')?.value.trim();
+      const customerGrade = document.getElementById('customer-grade')?.value;
+      const memoText = document.getElementById('memo-textarea')?.value.trim();
+
+      if (!currentCustomerId) { showToast('먼저 고객을 선택해주세요.'); return; }
+
+      // ✅ 권한 확인: 내가 이 고객의 대표/보조 배정자여야 함
+      if (!(await isMyAssignedCustomer(currentCustomerId))) {
+        showToast('담당자가 아닌 고객은 수정할 수 없습니다.');
+        return;
+      }
+
+      // 중복 이름 체크(본인 제외)
+      if (customerName) {
+        const { data: duplicateCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('customer_name', customerName)
+          .neq('id', currentCustomerId)
+          .maybeSingle();
+        if (duplicateCustomer) {
+          showToast(`이미 "${customerName}" 고객이 존재합니다.`);
+          return;
+        }
+      }
+
+      const customerData = {
+        customer_name: customerName || null,
+        customer_phone_number: customerPhone || null,
+        phone_last4: customerPhone ? customerPhone.replace(/\D/g,'').slice(-4) : null,
+        grade: customerGrade || 'F',
+        memo: memoText || null
+      };
+      // ⚠️ 대표담당자 칼럼(staff_profiles_id)은 건드리지 않음
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update(customerData)
+        .eq('id', currentCustomerId);
+
+      if (updateError) {
+        console.error('❌ 고객 정보 업데이트 실패:', updateError);
+        showToast('저장 중 오류 발생');
+        return;
+      }
+
+      // ✅ 입력된 매물번호 수집
+      const allInputs = document.querySelectorAll('input[data-index]');
+      const listingIds = [];
+      allInputs.forEach(input => {
+        const raw = input.value.trim();
+        const num = Number(raw.replace(/[^\d]/g, ''));
+        if (!isNaN(num)) listingIds.push(num);
+      });
+
+      // ✅ customers_recommendations upsert
+      if (listingIds.length > 0) {
+        const insertData = [];
+        listingIds.forEach((listingId, i) => {
+          const index = i + 1;
+          const getFieldValue = (field) => {
+            const el = document.querySelector(`[data-field="${field}_${index}"]`);
+            if (!el) return '';
+            return el.tagName === 'SPAN' ? el.textContent.trim() : el.value.trim();
+          };
+          const getNumericValue = (field) => {
+            const val = getFieldValue(field).replace(/,/g, '');
+            const num = Number(val);
+            return isNaN(num) ? null : num;
+          };
+
+          const hasListingId = !!listingId;
+          const hasMeaningfulData = [
+            getFieldValue('listing_title'),
+            getFieldValue('full_address'),
+            getFieldValue('combined_unit'),
+            getFieldValue('description'),
+            getNumericValue('deposit_price'),
+            getNumericValue('monthly_rent'),
+            getNumericValue('area_py')
+          ].some(val => val && val !== '-' && val !== '');
+
+          if (hasListingId || hasMeaningfulData) {
+            insertData.push({
+              customers_id: currentCustomerId,
+              listing_id: listingId,
+              listing_title: getFieldValue('listing_title'),
+              full_address: getFieldValue('full_address'),
+              building_detail_info: getFieldValue('combined_unit'),
+              deposit_price: getNumericValue('deposit_price'),
+              monthly_rent: getNumericValue('monthly_rent'),
+              premium_price: getNumericValue('premium_price'),
+              area_py: getNumericValue('area_py'),
+              contents: getFieldValue('description')
+            });
+          }
+        });
+
+        // 중복 listing_id 제거
+        const seen = new Set();
+        const uniqueData = insertData.filter(it => {
+          if (seen.has(it.listing_id)) return false;
+          seen.add(it.listing_id);
+          return true;
+        });
+
+        const { error: recError } = await supabase
+          .from('customers_recommendations')
+          .upsert(uniqueData, {
+            onConflict: ['customers_id', 'listing_id'],
+            returning: 'minimal'
+          });
+
+        if (recError) {
+          console.error('❌ 추천 매물 저장 실패:', recError);
+          showToast('추천 매물 저장 중 오류 발생');
+        } else {
+          showToast('추천 매물 저장 완료');
+        }
+      }
+
+      // 왼쪽 고객 목록 갱신
+      loadCustomersForCurrentStaff();
+
+      // ✅ 무조건 읽기모드로 전환
+      if (isEditMode) {
+        toggleButton.click();
+      }
+    });
+
+    // 건물정보, 호수, 층 하나로 합치는 함수
+    function combineUnitInfo(buildingName, floor, unitInfo) {
+      const parts = [];
+
+      if (buildingName && buildingName !== '-') {
+        parts.push(buildingName);
+      }
+
+      if (floor && floor !== '-') {
+        const floorStr = String(floor);
+        parts.push(floorStr.endsWith('층') ? floorStr : floorStr + '층');
+      }
+        
+      if (unitInfo && unitInfo !== '-') {
+        const unitStr = String(unitInfo).trim();
+        const endsWithHo = unitStr.endsWith('호');
+        const endsWithIlbu = unitStr.endsWith('일부');
+        const containsJeonche = unitStr.includes('전체');
+
+        const displayUnit = (endsWithHo || endsWithIlbu || containsJeonche)
+          ? unitStr
+          : unitStr + '호';
+
+        parts.push(displayUnit);
+      }
+
+      return parts.join(' ');
+    }
+
+    // 이미지 옆 오늘 날짜 출력
+    function displayTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+
+      const dateStr = `${yyyy}-${mm}-${dd}`; // 예: 2025-08-04
+      const dateEl = document.getElementById('today-date');
+      if (dateEl) dateEl.textContent = dateStr;
+    }
+
+    // 이미지 옆 담당자 정보 출력
+    async function displayStaffInfo() {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.warn('❌ 로그인 정보를 가져올 수 없습니다:', userError);
+        return;
+      }
+
+      const { data: staff, error: staffError } = await supabase
+        .from('staff_profiles')
+        .select('position, name, phone_num')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (staffError || !staff) {
+        console.warn('❌ staff_profiles 조회 실패:', staffError);
+        return;
+      }
+
+      const text = `${staff.position} ${staff.name} ${staff.phone_num}`;
+      const el = document.getElementById('staff-info');
+      if (el) el.textContent = text;
+    }
+
+    // 신규고객 저장버튼
+    document.getElementById('save-new-customer').addEventListener('click', async () => {
+      const staffId = await getMyStaffId(); // ✅ staff_profiles.id 가져오기
+      if (!staffId) {
+        showToast('직원 정보가 없습니다.');
+        return;
+      }
+
+      const customerName = document.getElementById('top-row-input')?.value.trim();
+      const customerPhone = document.getElementById('customer-phone')?.value.trim();
+      const customerGrade = document.getElementById('customer-grade')?.value;
+      const memoText = document.getElementById('memo-textarea')?.value.trim();
+
+      if (!customerName) {
+        showToast('고객 이름은 필수입니다.');
+        return;
+      }
+
+      // 1. 고객 중복 검사
+      const { data: existingCustomer, error: dupCheckError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('customer_name', customerName)
+        .maybeSingle();
+
+      if (dupCheckError) {
+        console.error('❌ 중복 검사 실패:', dupCheckError);
+        showToast('중복 검사 중 오류 발생');
+        return;
+      }
+
+      if (existingCustomer) {
+        showToast(`이미 "${customerName}" 고객이 존재합니다.`);
+        return;
+      }
+
+      // 2. 고객 저장
+      const today = new Date().toISOString().split('T')[0];
+
+      const newCustomer = {
+        customer_name: customerName,
+        customer_phone_number: customerPhone,
+        phone_last4: customerPhone?.slice(-4) || null,
+        grade: customerGrade,
+        memo: memoText,
+        registered_at: today,
+        staff_profiles_id: staffId
+      };
+
+      console.log("📦 Supabase에 저장할 고객 데이터:", newCustomer);
+
+      const { data: insertedCustomer, error: insertError } = await supabase
+        .from('customers')
+        .insert([newCustomer])
+        .select();
+
+      if (insertError || !insertedCustomer || insertedCustomer.length === 0) {
+        console.error('❌ 고객 저장 실패:', insertError);
+        showToast('고객 저장 실패');
+        return;
+      }
+
+      const customerId = insertedCustomer[0].id;
+      showToast(`"${customerName}" 고객 저장 완료`);
+
+      // 3. 매물정보 저장
+      const allInputs = document.querySelectorAll('input[data-index]');
+      const listingIds = [];
+
+      allInputs.forEach(input => {
+        const raw = input.value.trim();
+        const num = Number(raw.replace(/[^\d]/g, ''));  // 숫자만 추출
+        if (!isNaN(num)) {
+          listingIds.push(num);
+        }
+      });
+
+      if (listingIds.length > 0) {
+        const insertData = [];
+
+        listingIds.forEach((listingId, i) => {
+          const index = i + 1;
+
+          const getFieldValue = (field) => {
+            const el = document.querySelector(`[data-field="${field}_${index}"]`);
+            if (!el) return '';
+            return el.tagName === 'SPAN' ? el.textContent.trim() : el.value.trim();
+          };
+
+          const getNumericValue = (field) => {
+            const val = getFieldValue(field).replace(/,/g, '');
+            const num = Number(val);
+            return isNaN(num) ? null : num;
+          };
+
+          const hasListingId = !!listingId;
+          const hasMeaningfulData = [
+            getFieldValue('listing_title'),
+            getFieldValue('full_address'),
+            getFieldValue('combined_unit'),
+            getFieldValue('description'),
+            getNumericValue('deposit_price'),
+            getNumericValue('monthly_rent'),
+            getNumericValue('area_py')
+          ].some(val => val && val !== '-' && val !== '');
+
+          if (hasListingId || hasMeaningfulData) {
+            insertData.push({
+              customers_id: customerId,
+              listing_id: listingId,
+              listing_title: getFieldValue('listing_title'),
+              full_address: getFieldValue('full_address'),
+              building_detail_info: getFieldValue('combined_unit'),
+              deposit_price: getNumericValue('deposit_price'),
+              monthly_rent: getNumericValue('monthly_rent'),
+              premium_price: getNumericValue('premium_price'),
+              area_py: getNumericValue('area_py'),
+              contents: getFieldValue('description')
+            });
+          }
+        });
+
+        const { error: recError } = await supabase
+          .from('customers_recommendations')
+          .upsert(insertData, {
+            onConflict: ['customers_id', 'listing_id'],
+            returning: 'minimal'
+          });
+
+        if (recError) {
+          console.error('❌ 추천 매물 저장 실패:', recError);
+          showToast('추천 매물 저장 중 오류 발생');
+        } else {
+          console.log("✅ 추천 매물 저장 완료:", insertData);
+          showToast('추천 매물 저장 완료');
+        }
+      }
+
+      // 왼쪽 고객 목록 갱신
+      loadCustomersForCurrentStaff();
+    });
+
+     // ✅ 버튼 이벤트
+    document.getElementById('copy-link-btn')?.addEventListener('click', () => {
+      const text = buildAllMessages();
+      if (!text) {
+        showToast('복사할 내용이 없습니다.');
+        return;
+      }
+      copyToClipboard(text);
+    });
+
+    let wasEditModeForPrint = false;
+    let portalEl = null;
+
+    function buildPrintPortal() {
+      // 편집모드면 보기 좋게 span으로 임시 전환
+      wasEditModeForPrint = isEditMode;
+      if (isEditMode) switchInputsToSpans();
+
+      // 기존 포털 제거
+      portalEl?.remove();
+
+      // #print-block 복제해서 body 바로 아래 포털로 붙임
+      const src = document.getElementById('print-block');
+      if (!src) return;
+      portalEl = document.createElement('div');
+      portalEl.id = 'print-portal';
+      // 필요한 최소 스타일(여백 제거)
+      portalEl.style.margin = '0';
+      portalEl.style.padding = '0';
+      portalEl.appendChild(src.cloneNode(true)); // 깊은 복제
+      document.body.appendChild(portalEl);
+    }
+
+    function cleanupPrintPortal() {
+      // 포털 제거
+      portalEl?.remove();
+      portalEl = null;
+
+      // 인쇄 전이 편집모드였으면 원복
+      if (wasEditModeForPrint) {
+        switchSpansToInputs();
+      }
+
+      // 줄무늬/높이 다시 맞춤(보호적 호출)
+      applyRowStriping?.();
+      syncRowHeights?.();
+    }
+
+    window.addEventListener('beforeprint', buildPrintPortal);
+    window.addEventListener('afterprint', cleanupPrintPortal);
+
+    document.getElementById('print-btn')?.addEventListener('click', () => {
+      buildPrintPortal();   // 혹시 beforeprint 못 받는 브라우저 보정
+      window.print();
+      // 일부 브라우저 보정
+      setTimeout(cleanupPrintPortal, 0);
+    });
+  </script>
+</body>
+</html>

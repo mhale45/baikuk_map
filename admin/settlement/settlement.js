@@ -29,8 +29,13 @@ async function renderBranchList() {
 
       // 클릭 이벤트 예시 (향후 필터 연동 예정)
       div.addEventListener('click', () => {
+        // 선택 스타일 초기화
+        $$('#branch-list > div').forEach(el => el.classList.remove('bg-yellow-200'));
+        // 현재 선택 표시
+        div.classList.add('bg-yellow-200');
+
         console.log('지점 클릭:', branch.affiliation);
-        // 예: 필터링 로직 또는 선택 상태 저장
+        // TODO: 이후 선택된 지점 기준으로 데이터 필터링 로직 연결
       });
 
       container.appendChild(div);
