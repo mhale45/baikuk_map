@@ -626,8 +626,8 @@
           }
         });
 
-        // ✅ “초기화 버튼을 눌렀을 때와 동일한 동작” 실행
-        document.getElementById('reset-filter')?.click();
+        // 테이블 갱신
+        loadPerformanceTable();
       }
       container.addEventListener('click', (e) => {
         const el = e.target.closest('.name-item');
@@ -1984,11 +1984,6 @@
           if (e.key === 'Enter') apply?.click();
         });
       });
-    });
-
-    window.addEventListener('load', () => {
-      // 페이지가 모두 로드된 뒤 '초기화' 버튼 클릭과 동일한 동작 실행
-      document.getElementById('reset-filter')?.click();
     });
   </script>
 </body>
