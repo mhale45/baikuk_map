@@ -134,13 +134,17 @@
   </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
-      <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
       <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
       <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
       <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
       <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
-      <a href="/admin/performance/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
       <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+      <a href="/admin/performance/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      </a>
     </div>
     <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
       <div id="staff-list" class="overflow-y-auto">
@@ -385,6 +389,14 @@
                 <input id="f_expense" type="text" step="any" class="border rounded px-3 py-2 w-[8rem]">
               </label>
             </div>
+            <div class="mt-4">
+              <label for="f_affiliation" class="block text-sm font-medium text-gray-700 mb-1">
+                담당 지점
+              </label>
+              <select id="f_affiliation" class="w-full border rounded-lg p-2">
+                <option value="">-- 지점 선택 --</option>
+              </select>
+            </div>
           </section>
           <div class="grid grid-cols-4 gap-x-6 gap-y-4">
             <template id="allocation-template">
@@ -409,7 +421,7 @@
           </div>
         </div>
         <section class="space-y-3">
-          <h3 class="text-base font-semibold text-gray-700">특약사항</h3>
+          <h3 class="text-base font-semibold text-gray-700">메모</h3>
           <textarea id="f_special_contract" rows="3" class="border rounded px-3 py-2 w-[70rem] overflow-hidden resize-none"></textarea>
         </section>
 
@@ -435,11 +447,70 @@
     window.supabase = client;
     document.dispatchEvent(new Event('supabase-ready'));
     
+    // === 정산 탭 제어(권한별 표시/차단) ===
+    (async () => {
+      try {
+        await waitForSupabase();
+        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr) console.warn('세션 조회 에러:', sessionErr);
+
+        const user = sessionData?.session?.user;
+        const tab = document.getElementById('settlement-tab');
+        if (!tab) return;
+
+        // 로그인 아니면 굳이 보일 필요 없음
+        if (!user?.id) {
+          tab.style.display = 'none';
+          return;
+        }
+
+        const { data: me, error: authErr } = await supabase
+          .from('staff_profiles')
+          .select('authority')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (authErr) {
+          console.warn('authority 조회 실패:', authErr);
+          // 실패 시 기본 숨김 유지
+          tab.style.display = 'none';
+          return;
+        }
+
+        // 직원 클릭 가드 (혹시 일시적으로 보였을 때 대비)
+        const guardClick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const toast = document.getElementById('toast');
+          if (toast) {
+            toast.textContent = '직원 권한은 정산 메뉴에 접근할 수 없습니다.';
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+          }
+        };
+
+        if (me?.authority?.trim() === '직원') {
+          // 직원: 숨김 + 클릭 방지(중복 등록 방지 포함)
+          tab.style.display = 'none';
+          tab.removeEventListener('click', guardClick);
+          tab.addEventListener('click', guardClick, { once: false });
+        } else {
+          // 관리자/지점장: 노출 + 기존 guard 제거
+          tab.style.removeProperty('display');
+          // 모든 기존 리스너 초기화(가드 제거 목적)
+          tab.replaceWith(tab.cloneNode(true));
+        }
+      } catch (e) {
+        console.warn('정산 탭 제어 중 예외:', e);
+      }
+    })();
+
     import {
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock,
+      populateAffiliationSelect,   // ← 추가
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -552,7 +623,9 @@
               // 직원 선택 하이라이트 제거
               container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
             }
-            loadPerformanceTable();
+            Promise.resolve(loadPerformanceTable()).then(() => {
+              window.__updateSalesTotalFromIndex?.();
+            });
           });
         } else {
           header.classList.add('opacity-60');
@@ -626,8 +699,10 @@
           }
         });
 
-        // 테이블 갱신
-        loadPerformanceTable();
+        // 테이블 갱신 + 합계 즉시 갱신
+        Promise.resolve(loadPerformanceTable()).then(() => {
+          window.__updateSalesTotalFromIndex?.();
+        });
       }
       container.addEventListener('click', (e) => {
         const el = e.target.closest('.name-item');
@@ -690,7 +765,7 @@
     const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
 
 
-    // 소속별 묶기 원래 로직 유지 + 캐시 구성
+
 
     
     // === [ADD] 폼 편집 가능/불가 토글 ===
@@ -837,16 +912,17 @@
     }
 
     function openDrawer() {
-        overlay.classList.remove('hidden');
-        requestAnimationFrame(() => {
-        drawer.classList.remove('translate-x-full');
-        });
-        initSalesLocationSelects();
+      overlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+      drawer.classList.remove('translate-x-full');
+      });
+      initSalesLocationSelects();
+      populateAffiliationSelect?.();
     }
     function closeDrawer() {
-        drawer.classList.add('translate-x-full');
-        overlay.classList.add('hidden');
-        currentPerformanceId = null;
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('hidden');
+      currentPerformanceId = null;
     }
 
     /* =========================================================
@@ -877,20 +953,8 @@
       return buyerAmt + sellerAmt;
     }
 
-    // 직원 관여매출 합계만 표시(선택된 직원 없으면 0)
-    // - 직원/지점장/관리자 모두: 좌측에서 직원 하나를 선택했을 때만 합계 계산
-    // - '직원' 권한은 자동으로 본인 선택이 들어오므로 그대로 동작
-    function computeSalesTotalForCurrentContext() {
-      const rows = window.__RENDERED_ROWS || [];
-      if (!rows.length) return 0;
-
-      // 우선순위: 좌측에서 선택한 직원 → (없으면) 직원권한이면 본인 → (없으면) 0
-      let staffId = (__selectedStaffId != null) ? String(__selectedStaffId) : null;
-      if (!staffId && window.__isStaff && window.__userRole === '직원' && window.__MY_STAFF_ID) {
-        staffId = String(window.__MY_STAFF_ID);
-      }
-      if (!staffId) return 0;
-
+    // [NEW] 공통 합산 유틸: 전달된 staffId 집합에 속하는 슬롯만 buyer/seller 금액 합산
+    function sumForStaffIds(rows, staffIdSet) {
       let sum = 0;
 
       for (const row of rows) {
@@ -900,24 +964,38 @@
         if (!pa) continue;
 
         for (let i = 1; i <= 4; i++) {
-          const sid = pa[`staff_id${i}`];
-          if (sid == null || String(sid) !== staffId) continue;
+          const sid = pa?.[`staff_id${i}`];
+          if (!sid) continue;
+          if (!staffIdSet.has(String(sid))) continue;
 
-          // 1) involvement_sales{i}가 저장돼 있으면 그걸 우선 사용
-          const invSaved = pa[`involvement_sales${i}`];
-          if (typeof invSaved === 'number' && isFinite(invSaved)) {
-            sum += invSaved;
-            continue;
-          }
-
-          // involvement_sales{i}가 있으면 그것을 우선 사용하고,
-          // 없으면 buyer/seller amount 합을 사용
-          const inv = Number(getInvForSlot(pa, i) || 0);
-          sum += inv;
+          const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
+          const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
+          sum += (buyerAmt + sellerAmt);
         }
       }
+      return sum;
+    }
 
-      return Math.round(sum);
+    // [REPLACE] 지점 선택 시 해당 지점 직원들만 합계에 포함
+    function computeSalesTotalForCurrentContext() {
+      const rows = window.__RENDERED_ROWS || [];
+      if (!rows.length) return 0;
+
+      // 1) 직원 단일 선택이 최우선
+      if (__selectedStaffId != null) {
+        const only = new Set([String(__selectedStaffId)]);
+        return sumForStaffIds(rows, only);
+      }
+
+      // 2) 지점이 선택돼 있다면: 그 지점 소속 직원(ID 세트)만 합산
+      if (__selectedAffiliation) {
+        const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[__selectedAffiliation]) || null;
+        if (!set || set.size === 0) return 0;
+        return sumForStaffIds(rows, set);
+      }
+
+      // 3) 둘 다 없으면(전체 모드): 타지점 제외 요구사항에 맞춰 0 반환
+      return 0;
     }
 
     /** #salesTotal 텍스트 갱신 */
@@ -930,6 +1008,18 @@
     }
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
+
+    // [ADD] UI 날짜 필터 읽기
+    function readDateFilter() {
+      const fieldEl = document.getElementById('filter-date-field');
+      const startEl = document.getElementById('filter-start-date');
+      const endEl   = document.getElementById('filter-end-date');
+      return {
+        field: (fieldEl?.value || 'contract_date'),
+        start: (startEl?.value || ''),
+        end:   (endEl?.value   || '')
+      };
+    }
 
     // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
@@ -961,7 +1051,7 @@
 
         const selectBase = `
           id, listing_id, listing_title, province, city, district, detail_address,
-          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
           contract_date, balance_date,
           down_payment, balance,
           interim_payment1, interim_payment1_date,
@@ -1039,28 +1129,38 @@
           }
         }
 
-        // 5.5) 직원 단일 보기일 때: 이번 달(1일~말일) 범위만 자동 적용 (잔금일 기준)
-        if (selectedId) {
-          const now = new Date();
-          const first = new Date(now.getFullYear(), now.getMonth(), 1);
-          const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-          const toYMD = (d) => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-          };
+        // [REPLACE] 날짜 조건: UI가 지정되면 UI를 우선해서 DB에 직접 적용,
+        // 없으면(빈 값) 직원/지점 보기일 때만 "이번달 잔금일" 기본값 적용
+        {
+          const { field: uiField, start: uiStart, end: uiEnd } = readDateFilter();
+          const fld = (uiField === 'balance_date') ? 'balance_date' : 'contract_date';
 
-          // 🔎 DB 조회 단계에서 이번 달로 제한 (잔금일 기준)
-          query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
+          if (uiStart || uiEnd) {
+            // ✅ 사용자가 지정한 기간으로 DB 조회
+            if (uiStart) query = query.gte(fld, uiStart);
+            if (uiEnd)   query = query.lte(fld, uiEnd);
+          } else if (selectedId || selectedAff) {
+            // ✅ UI 비어있으면, 직원/지점 보기일 때만 "이번달 잔금일" 기본값
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const toYMD = (d) => {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              return `${y}-${m}-${day}`;
+            };
 
-          // 🧭 UI 필터에도 동일 값 동기화 (사용자가 보면 이해 쉬움)
-          const fieldEl = document.getElementById('filter-date-field');
-          const startEl = document.getElementById('filter-start-date');
-          const endEl   = document.getElementById('filter-end-date');
-          if (fieldEl) fieldEl.value = 'balance_date';
-          if (startEl) startEl.value = toYMD(first);
-          if (endEl)   endEl.value   = toYMD(last);
+            query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
+
+            // UI 표시도 동기화(사용자에게 기본값이 보이도록)
+            const fieldEl = document.getElementById('filter-date-field');
+            const startEl = document.getElementById('filter-start-date');
+            const endEl   = document.getElementById('filter-end-date');
+            if (fieldEl) fieldEl.value = 'balance_date';
+            if (startEl) startEl.value = toYMD(first);
+            if (endEl)   endEl.value   = toYMD(last);
+          }
         }
 
         // 6) 실행
@@ -1219,20 +1319,10 @@
           }
 
           function applyFilter() {
-            const rows = window.__PERF_ROWS || [];
-            const field = fieldEl?.value || 'contract_date';
-            const s = startEl?.value || '';
-            const e = endEl?.value || '';
-
-            if (!s && !e) {
-              // 날짜 미지정 → 원본 그대로
-              window.__RENDER_PERF?.(rows);
-              return;
-            }
-
-            const filtered = rows.filter(r => inRangeStr(r?.[field], s, e));
-            window.__RENDER_PERF?.(filtered);
-            updateSalesTotal();
+            // 날짜는 readDateFilter()로 loadPerformanceTable 내부에서 직접 반영됨
+            Promise.resolve(loadPerformanceTable()).then(() => {
+              window.__updateSalesTotalFromIndex?.();
+            });
           }
 
           function resetFilter() {
@@ -1312,6 +1402,7 @@
       // 2) 내 소속 우선 직원 옵션 채우기
       const myAff = await getMyAffiliation();
       await populateAllStaffSelects(myAff);
+      await populateAffiliationSelect();  // ← 추가: 담당 지점 셀렉트 옵션 채우기
 
       // 3) 헬퍼: 분배칸(클로징/매물확보 %) 재계산 트리거
       function triggerAllocationRecalc() {
@@ -1419,6 +1510,9 @@
       resetForm();
       openDrawer();
       setFormEditable(true); // ← [ADD] 신규 작성은 항상 편집 가능
+      // 담당 지점 초기화(옵션 목록은 openDrawer에서 populateAffiliationSelect가 채움)
+      const affEl = document.getElementById('f_affiliation');
+      if (affEl) affEl.value = '';
     });
 
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
@@ -1468,6 +1562,7 @@
           ['f_deal_type',      '거래유형'],
           ['f_contract_date',  '계약일'],
           ['f_balance_date',   '잔금일'],
+          ['f_affiliation',    '담당 지점'],
         ];
         for (const [id, label] of textRequired) {
           if (!textVal(id)) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
@@ -1495,8 +1590,14 @@
           if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        // (4) 페이로드 수집
+        // (4) 페이로드 수집 + 담당 지점 주입(방어적)
         const payload = collectPerformancePayload();
+        const affEl = document.getElementById('f_affiliation');
+        if (affEl) {
+          const v = (affEl.value || '').trim();
+          // 비어있으면 null, 있으면 문자열로 저장
+          payload.affiliation = v || null;
+        }
 
         // (5) 저장/수정
         let perfId = currentPerformanceId;
@@ -1951,13 +2052,32 @@
       setField('f_seller_fee', row.seller_fee, {comma:true});
       setField('f_seller_tax', row.seller_tax, {comma:true});
       setField('f_seller_tax_date', row.seller_tax_date);
+      setField('f_expense', row.expense, {comma:true});
 
       // 매출 자동계산 필드(표시만)
       // 분배율은 현재 정책(직원은 30 고정)이 있으므로 값 그대로 두거나 필요 시 조정
       recalcPerformanceFromFees();
 
-      // 특약사항
-      setField('f_special_contract', row.special_contract);
+      // 담당 지점: 옵션 보장 후 선택
+      (async () => {
+        try {
+          // 옵션이 아직 비었을 수도 있으니 한 번 더 보장
+          await populateAffiliationSelect?.();
+        } catch {}
+        const affEl = document.getElementById('f_affiliation');
+        if (affEl) {
+          const v = (row.affiliation ?? '').trim();
+          if (v && ![...affEl.options].some(o => o.value === v)) {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            affEl.appendChild(opt);
+          }
+          affEl.value = v;
+        }
+      })();
+
+      // 메모
+      setField('f_special_contract', row.special_contract);    
     }
 
     // ✅ 분배 드로어 채우기: staff/weights + 합계 매출(involvement_sales) 표시

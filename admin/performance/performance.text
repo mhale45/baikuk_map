@@ -204,6 +204,28 @@ export function calculateFees() {
   recalcPerformanceFromFees();
 }
 
+// ==== 담당 지점 셀렉트 채우기 ====
+export async function populateAffiliationSelect() {
+  const el = document.getElementById('f_affiliation');
+  if (!el) return;
+
+  await waitForSupabase();
+  const { data, error } = await window.supabase
+    .from('staff_profiles')
+    .select('affiliation')
+    .is('leave_date', null);
+
+  if (error || !data) return;
+
+  const ko = new Intl.Collator('ko');
+  const list = Array.from(new Set(
+    data.map(r => r.affiliation).filter(v => !!v && String(v).trim() !== '')
+  )).sort(ko.compare);
+
+  el.innerHTML = `<option value="">-- 지점 선택 --</option>` +
+    list.map(aff => `<option value="${aff}">${aff}</option>`).join('');
+}
+
 // ==== 분배 비율 검증 (알림 주입 가능) ====
 export function validateTotalWeight(notify) {
   const n = notify || (msg => { if (window.showToastGreenRed) window.showToastGreenRed(msg); else alert(msg); });
@@ -238,7 +260,7 @@ export function collectPerformancePayload() {
     city: (document.getElementById('f_city')?.value ?? '').trim() || null,
     district: (document.getElementById('f_district')?.value ?? '').trim() || null,
     detail_address: (document.getElementById('f_detail_address')?.value ?? '').trim() || null,
-
+    affiliation: (document.getElementById('f_affiliation')?.value ?? '').trim() || null,
     contract_date: dateOrNull(document.getElementById('f_contract_date')?.value),
 
     down_payment: numOrNull(document.getElementById('f_down_payment')?.value),

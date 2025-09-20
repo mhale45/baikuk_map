@@ -390,8 +390,8 @@
               </label>
             </div>
             <div class="mt-4">
-              <label for="f_affiliation" class="block text-sm font-medium text-gray-700 mb-1">
-                담당 지점
+              <label for="f_affiliation" class="block text-sm text-red-600 mb-1">
+                담당 지점*
               </label>
               <select id="f_affiliation" class="w-full border rounded-lg p-2">
                 <option value="">-- 지점 선택 --</option>
@@ -1263,6 +1263,7 @@
             window.triggerAllocationRecalc?.();
             tbody.appendChild(tr);
           });
+          console.debug('[render row]', row.id, row.affiliation);
           // [ADD] 합계 갱신
           updateSalesTotal();
         }
@@ -1533,7 +1534,12 @@
         }
 
         // (1) 가중치 합 검사
-        if (!validateTotalWeight()) return;
+        if (!validateTotalWeight()) {
+          const btn = document.getElementById('save-sales');
+          btn?.classList.add('animate-bounce');
+          setTimeout(() => btn?.classList.remove('animate-bounce'), 600);
+          return;
+        }
 
         // (2) 계산 최신화 (수수료→매출, 계약금/잔금)
         try {
@@ -1590,24 +1596,32 @@
           if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        // (4) 페이로드 수집 + 담당 지점 주입(방어적)
+        // (4) 페이로드 수집 + 담당 지점 강제 보정
         const payload = collectPerformancePayload();
-        const affEl = document.getElementById('f_affiliation');
-        if (affEl) {
-          const v = (affEl.value || '').trim();
-          // 비어있으면 null, 있으면 문자열로 저장
-          payload.affiliation = v || null;
+        {
+          const affEl = document.getElementById('f_affiliation');
+          const raw = typeof payload.affiliation === 'string'
+            ? payload.affiliation
+            : (affEl?.value ?? '');
+          const v = String(raw || '').trim();
+          payload.affiliation = v === '' ? null : v;
+
+          // ❗(필요시 해제) 만약 실제 컬럼명이 다르면 아래 매핑을 사용하세요.
+          // payload.branch_affiliation = payload.affiliation; delete payload.affiliation;
         }
 
         // (5) 저장/수정
         let perfId = currentPerformanceId;
+
         if (perfId) {
-          // UPDATE
-          const { error: upErr } = await window.supabase
+          // UPDATE (반환값으로 affiliation 확인)
+          const { data: upd, error: upErr } = await window.supabase
             .from('performance')
             .update(payload)
-            .eq('id', perfId);
+            .eq('id', perfId)
+            .select('id, affiliation');   // ✅ 반영 확인
           if (upErr) { showToastGreenRed('매출 수정 실패: ' + upErr.message); return; }
+          console.debug('[performance UPDATE] id=', perfId, 'affiliation=', upd?.[0]?.affiliation ?? null);
 
           const allocRow = collectAllocationPayloadRow(perfId);
           const anySelected = [1,2,3,4].some(i => !!allocRow[`staff_id${i}`]);
@@ -1623,18 +1637,19 @@
               .upsert(allocRow, { onConflict: 'performance_id', ignoreDuplicates: false });
             if (upsertErr) { showToastGreenRed('분배 저장 실패: ' + upsertErr.message); return; }
           }
-
           showToastGreenRed('수정 완료!', { ok: true });
+
         } else {
-          // INSERT
+          // INSERT (반환값으로 affiliation 확인)
           const { data: perfInsert, error: perfErr } = await window.supabase
             .from('performance')
             .insert(payload)
-            .select('id')
+            .select('id, affiliation')     // ✅ 반영 확인
             .single();
           if (perfErr) { showToastGreenRed('매출 저장 실패: ' + perfErr.message); return; }
 
           perfId = perfInsert?.id;
+          console.debug('[performance INSERT] id=', perfId, 'affiliation=', perfInsert?.affiliation ?? null);
           if (!perfId) { showToastGreenRed('생성된 매출 ID를 확인할 수 없습니다.'); return; }
 
           const allocRow = collectAllocationPayloadRow(perfId);
@@ -1649,9 +1664,10 @@
               return;
             }
           }
-
           showToastGreenRed('저장 완료!', { ok: true });
         }
+
+        
 
         currentPerformanceId = null;
         resetForm();
