@@ -25,7 +25,7 @@ export async function getMyAffiliation() {
     const { data: prof, error } = await window.supabase
       .from('staff_profiles')
       .select('affiliation')
-      .eq('auth_user_id', userId)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (error) return null;
