@@ -126,9 +126,10 @@ async function renderBranchList() {
 // 1) 선택 지점의 소속 직원(staff_profiles.affiliation == 지점) ID들을 구함
 // 2) 기간 내(balance_date 기준)의 performance 목록 ID/날짜를 구함
 // 3) 그 ID들에 대한 performance_allocations를 가져와서
-//    각 row의 slot(1~4) 중 staff_idN이 '선택 지점 소속 직원'이면 involvement_salesN을 해당 월(잔금월)에 더함
-// 4) staff_settlement_incomes는 같은 기간/지점의 confirmed_income을 월별 합산
-// 5) 최종적으로 '잔금매출 > 0'인 월만 행으로 반환
+//    각 row slot(1~4) 중 staff_idN이 '선택 지점 소속'이면
+//    - 잔금매출(revenue) += buyer_amountN + seller_amountN
+//    - 급여(salary)     += involvement_salesN
+// 4) 최종적으로 '잔금매출 > 0'인 월만 행으로 반환
 async function loadMonthlySettlement(affiliation, startYM, endYM) {
   if (!affiliation || !startYM || !endYM) return [];
 
@@ -179,6 +180,8 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
       .select(`
         performance_id,
         staff_id1, staff_id2, staff_id3, staff_id4,
+        buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+        seller_amount1, seller_amount2, seller_amount3, seller_amount4,
         involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
       `)
       .in('performance_id', perfIds);
@@ -202,33 +205,22 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
     const ym  = perfYmById.get(pid);
     if (!ym) continue;
 
-    // slot 1~4 검사 → staff_idN이 선택 지점 소속이면 involvement_salesN 더함
+    // slot 1~4 검사
     for (let i = 1; i <= 4; i++) {
       const sid = row[`staff_id${i}`];
       if (!sid) continue;
       if (!staffIdSet.has(String(sid))) continue;
 
-      const inv = Number(row[`involvement_sales${i}`] || 0);
-      if (inv > 0) ensure(ym).revenue += inv;
+      const buyerAmt  = Number(row[`buyer_amount${i}`]  || 0);
+      const sellerAmt = Number(row[`seller_amount${i}`] || 0);
+      const invSales  = Number(row[`involvement_sales${i}`] || 0);
+
+      // 잔금매출: buyer_amount + seller_amount
+      ensure(ym).revenue += buyerAmt + sellerAmt;
+
+      // 급여: involvement_sales
+      ensure(ym).salary  += invSales;
     }
-  }
-
-  // 4) 급여(salary): 같은 기간/지점
-  const { data: incomes, error: incErr } = await supabase
-    .from('staff_settlement_incomes')
-    .select('period_month, affiliation, confirmed_income')
-    .eq('affiliation', affiliation)
-    .gte('period_month', startDate)
-    .lt('period_month', endExcl);
-
-  if (incErr) {
-    console.error('staff_settlement_incomes query error:', incErr);
-  } else {
-    (incomes || []).forEach(r => {
-      const ym = ymFromDateStr(r.period_month); // 'YYYY-MM-01' 저장 권장
-      if (!ym) return;
-      ensure(ym).salary += Number(r.confirmed_income || 0);
-    });
   }
 
   // 5) 결과: "잔금매출 > 0" 월만 남기고 최신월 우선 정렬
