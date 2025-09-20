@@ -52,6 +52,9 @@ function monthToRange(ym) {
   if (!ym) return [null, null];
   return [`${ym}-01`, `${ym}-31`];
 }
+function formatYM(ym) {
+  return ym || '';
+}
 function formatYM_KR(ym) {
   if (!ym) return '';
   const [y, m] = ym.split('-');
@@ -240,20 +243,24 @@ function renderSettlementTable(rows) {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  // 안전장치: 혹시라도 상위에서 필터링이 안 되면 여기서도 revenue>0만 렌더
+  // "잔금매출 > 0"인 월만 표시
   const list = (rows || []).filter(r => (r?.revenue || 0) > 0);
 
   list.forEach(({ ym, revenue, salary }) => {
+    const salaryCell = (salary && salary > 0)
+      ? formatNumberWithCommas(Math.round(salary))
+      : ''; // 0이면 빈칸
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="border px-2 py-1">${formatYM_KR(ym)}</td>
+      <td class="border px-2 py-1">${formatYM(ym)}</td>
       <td class="border px-2 py-1 text-right">${formatNumberWithCommas(Math.round(revenue))}</td>
-      <td class="border px-2 py-1 text-right">${formatNumberWithCommas(Math.round(salary || 0))}</td>
+      <td class="border px-2 py-1 text-right">${salaryCell}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  // 합계행 (표시된 행 기준)
+  // 합계행(표시된 행 기준)
   const totalRev = list.reduce((s, r) => s + (r.revenue || 0), 0);
   const totalSal = list.reduce((s, r) => s + (r.salary || 0), 0);
   const trSum = document.createElement('tr');
@@ -261,7 +268,7 @@ function renderSettlementTable(rows) {
   trSum.innerHTML = `
     <td class="border px-2 py-1 text-right">합계</td>
     <td class="border px-2 py-1 text-right">${formatNumberWithCommas(Math.round(totalRev))}</td>
-    <td class="border px-2 py-1 text-right">${formatNumberWithCommas(Math.round(totalSal))}</td>
+    <td class="border px-2 py-1 text-right">${totalSal ? formatNumberWithCommas(Math.round(totalSal)) : ''}</td>
   `;
   tbody.appendChild(trSum);
 }
