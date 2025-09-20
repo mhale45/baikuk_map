@@ -1,22 +1,9 @@
 ▶ 테이블 컬럼명시
-- settlement_periods
-id : uuid
-period_month : date
-status : text
-
-- staff_settlement_incomes
-id : uuid
-period_id : uuid
-affiliation : text
-staff_id : uuid
-confirmed_income : numeric(14,2)
-memo : text
-
 - branch_settlement_expenses
 id : uuid
-period_id : uuid
-affiliation : text
-total_expense : numeric(14,2)
+period_month : date
+branch_info_id : uuid
+total_expense : numeric
 memo : text
 
 - ad_baikuk_listings
