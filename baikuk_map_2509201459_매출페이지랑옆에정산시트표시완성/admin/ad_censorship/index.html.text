@@ -2,13 +2,35 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>정산</title>
+  <title>광고관리</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- [ADD] 직원 리스트용 간단 스타일 -->
+  <style>
+    .shadow-right { box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08); }
+    .grade-header {
+      background-color: #e5e7eb;
+      color: #111827;
+      font-weight: 700;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+      user-select: none;
+    }
+    .name-item {
+      font-size: 0.9rem;
+      color: #374151;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      margin-bottom: 0.4rem;
+    }
+    .name-item:hover { background-color: #fef9c3; }
+  </style>
 </head>
 <body class="w-screen overflow-x-hidden">
   <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
@@ -29,64 +51,41 @@
       <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
       <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
       <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
-      <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
-      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+      <a href="/admin/ad_censorship/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
       <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
-      <a id="settlement-tab" href="/admin/settlement/">
-        <div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">직원정보</div></a>
+      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    
+
     <!-- [ADD] 직원 패널 -->
-    <div id="branch-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
-      <div id="branch-list" class="overflow-y-auto">
+    <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <div id="staff-list" class="overflow-y-auto">
         <!-- JS로 렌더링 -->
       </div>
     </div>
+    <section id="employee-listings-panel" class="employee-listings-panel" style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
+      <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
+      <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:54.5rem;">
+        <!-- 매물 카드가 여기에 렌더링됩니다 -->
+      </div>
+    </section>
 
     <!-- 어두운 오버레이 -->
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
   </div>
+
   <script type="module">
-    import { client as supabase } from '../../modules/core/supabase.js';
-    import { initSettlement } from './settlement.js';
+    import { initAdCensorship } from './ad_censorship.js';
+    initAdCensorship();
 
-    (async () => {
-      const { data: sessionRes, error } = await supabase.auth.getSession();
-      if (error) {
-        console.warn("세션 조회 에러:", error);
-      }
-      if (!sessionRes?.session) {
-        console.warn("로그인 세션 없음 → /map으로 이동");
-        location.replace("https://baikuk.com/map");
-        return;
-      }
-
-      const user = sessionRes.session.user;
-      if (!user?.id) {
-        location.replace("https://baikuk.com/map");
-        return;
-      }
-
-      const { data: staff, error: staffError } = await supabase
-        .from("staff_profiles")
-        .select("authority")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (staffError) {
-        console.warn("권한 조회 실패:", staffError);
-        return;
-      }
-
-      if (staff?.authority?.trim() === "직원") {
-        console.warn("직원 권한 → /admin/performance 로 이동");
-        location.replace("/admin/performance/");
-      } else {
-        await initSettlement();  // ✅ 바로 실행
-      }
-    })();
+    // 광고 검열용 예시: 필터 이벤트 수신
+    document.addEventListener('adc:filter-change', (e) => {
+      const { staffId, affiliation } = e.detail || {};
+      // TODO: staffId/affiliation에 맞춰 우측 리스트 쿼리/필터 갱신
+      // console.log('[adc] filter changed:', { staffId, affiliation });
+    });
   </script>
-
 </body>
 </html>
