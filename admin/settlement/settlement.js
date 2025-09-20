@@ -9,14 +9,6 @@ const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 
 let __selectedAffiliation = null;
 
-// === 월 경계 ===
-function firstDayOf(ym) { // 'YYYY-MM' -> 'YYYY-MM-01'
-  return `${ym}-01`;
-}
-function lastDayOf(ym) {  // 'YYYY-MM' -> 'YYYY-MM-31' (루즈)
-  return `${ym}-31`;
-}
-
 // === 선택 지점 소속 직원 ID Set ===
 // - staff_profiles에서 affiliation이 지점명과 같은 직원 전원(ID) 조회
 async function getStaffIdsForAffiliation(affiliation) {
@@ -35,6 +27,21 @@ async function getStaffIdsForAffiliation(affiliation) {
 }
 
 // ============ 날짜/월 유틸 ============
+// 'YYYY-MM' -> 'YYYY-MM-01'
+function startOfMonth(ym) {
+  return `${ym}-01`;
+}
+
+// 'YYYY-MM' -> 다음달 1일 (exclusive upper bound)
+function nextMonthStart(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(ym);
+  if (!m) return null;
+  let y = Number(m[1]);
+  let mon = Number(m[2]); // 1~12
+  mon += 1;
+  if (mon === 13) { y += 1; mon = 1; }
+  return `${y}-${String(mon).padStart(2, '0')}-01`;
+}
 function ymFromDateStr(dateStr) {
   // 'YYYY-MM-DD' -> 'YYYY-MM'
   if (!dateStr) return null;
@@ -46,11 +53,6 @@ function ymValidate(monthStr) {
   if (!monthStr) return null;
   const m = /^(\d{4})-(\d{2})$/.exec(monthStr);
   return m ? monthStr : null;
-}
-function monthToRange(ym) {
-  // 'YYYY-MM' -> ['YYYY-MM-01', 'YYYY-MM-31'] (루즈하게 31일까지)
-  if (!ym) return [null, null];
-  return [`${ym}-01`, `${ym}-31`];
 }
 function formatYM(ym) {
   return ym || '';
@@ -131,7 +133,7 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
   if (!affiliation || !startYM || !endYM) return [];
 
   const startDate = firstDayOf(startYM);
-  const endDate   = lastDayOf(endYM);
+  const endExcl   = nextMonthStart(endYM);
 
   // 0) 지점 소속 직원 ID set
   const staffIdSet = await getStaffIdsForAffiliation(affiliation);
@@ -147,7 +149,7 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
     .eq('affiliation', affiliation)
     .not('balance_date', 'is', null)
     .gte('balance_date', startDate)
-    .lte('balance_date', endDate);
+    .lte('balance_date', endExcl);
     // .eq('status', true)  // 확정 건만 집계하려면 주석 해제
 
   if (perfErr) {
@@ -217,7 +219,7 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
     .select('period_month, affiliation, confirmed_income')
     .eq('affiliation', affiliation)
     .gte('period_month', startDate)
-    .lte('period_month', endDate);
+    .lte('period_month', endExcl);
 
   if (incErr) {
     console.error('staff_settlement_incomes query error:', incErr);
