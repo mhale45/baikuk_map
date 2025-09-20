@@ -917,6 +917,7 @@
         drawer.classList.remove('translate-x-full');
         });
         initSalesLocationSelects();
+        populateAffiliationSelect?.();
     }
     function closeDrawer() {
         drawer.classList.add('translate-x-full');
@@ -1050,7 +1051,7 @@
 
         const selectBase = `
           id, listing_id, listing_title, province, city, district, detail_address,
-          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py,
+          floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
           contract_date, balance_date,
           down_payment, balance,
           interim_payment1, interim_payment1_date,
@@ -2047,8 +2048,23 @@
       // 분배율은 현재 정책(직원은 30 고정)이 있으므로 값 그대로 두거나 필요 시 조정
       recalcPerformanceFromFees();
 
-      // 담당 지점
-      setField('f_affiliation', row.affiliation);
+      // 담당 지점: 옵션 보장 후 선택
+      (async () => {
+        try {
+          // 옵션이 아직 비었을 수도 있으니 한 번 더 보장
+          await populateAffiliationSelect?.();
+        } catch {}
+        const affEl = document.getElementById('f_affiliation');
+        if (affEl) {
+          const v = (row.affiliation ?? '').trim();
+          if (v && ![...affEl.options].some(o => o.value === v)) {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            affEl.appendChild(opt);
+          }
+          affEl.value = v;
+        }
+      })();
 
       // 메모
       setField('f_special_contract', row.special_contract);    
