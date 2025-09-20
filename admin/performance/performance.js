@@ -12,24 +12,19 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 export function registerPerformanceRenderer(fn) { /* no-op (index.html에서 자체 사용) */ }
 export function setPerformanceRows(rows) { /* no-op (index.html에서 자체 보관) */ }
 
-// ==== 직원 이름/소속 맵 ====
+// ==== 직원 이름 맵 ====
 export const STAFF_NAME_BY_ID = new Map();
-export const STAFF_AFF_BY_ID  = new Map(); // id -> affiliation(지점명)
 
 export async function ensureStaffNameMap() {
-  if (STAFF_NAME_BY_ID.size > 0 && STAFF_AFF_BY_ID.size > 0) return;
+  if (STAFF_NAME_BY_ID.size > 0) return;
   await waitForSupabase();
   const { data, error } = await window.supabase
     .from('staff_profiles')
-    .select('id, name, affiliation')
+    .select('id, name')
     .is('leave_date', null);
   if (!error && data) {
     STAFF_NAME_BY_ID.clear();
-    STAFF_AFF_BY_ID.clear();
-    data.forEach(({ id, name, affiliation }) => {
-      STAFF_NAME_BY_ID.set(id, name);
-      STAFF_AFF_BY_ID.set(id, affiliation ?? null);
-    });
+    data.forEach(({ id, name }) => STAFF_NAME_BY_ID.set(id, name));
   }
 }
 
@@ -70,15 +65,6 @@ export function buildDateBlock(row) {
   return parts.join('<br>');
 }
 
-// ==== staff_id1 기준 지점명(affiliation) 추출 ====
-export function resolveAffiliationFromStaff1() {
-  const sid = document.getElementById('select_staff1')?.value;
-  if (!sid) return null;
-  const idNum = parseInt(sid, 10);
-  if (Number.isNaN(idNum)) return null;
-  return STAFF_AFF_BY_ID.get(idNum) ?? null;
-}
-
 // ==== 직원 선택 박스 채우기 ====
 export async function populateAllStaffSelects(myAffiliation=null) {
   await waitForSupabase();
@@ -90,11 +76,7 @@ export async function populateAllStaffSelects(myAffiliation=null) {
   if (error || !data) return;
 
   STAFF_NAME_BY_ID.clear();
-  STAFF_AFF_BY_ID.clear();
-  data.forEach(r => {
-    STAFF_NAME_BY_ID.set(r.id, r.name);
-    STAFF_AFF_BY_ID.set(r.id, r.affiliation ?? null);
-  });
+  data.forEach(r => STAFF_NAME_BY_ID.set(r.id, r.name));
 
   const grouped = {};
   for (const { id, name, affiliation } of data) (grouped[affiliation] ||= []).push({ id, name });
@@ -256,7 +238,7 @@ export function collectPerformancePayload() {
     city: (document.getElementById('f_city')?.value ?? '').trim() || null,
     district: (document.getElementById('f_district')?.value ?? '').trim() || null,
     detail_address: (document.getElementById('f_detail_address')?.value ?? '').trim() || null,
-    affiliation: resolveAffiliationFromStaff1(),
+
     contract_date: dateOrNull(document.getElementById('f_contract_date')?.value),
 
     down_payment: numOrNull(document.getElementById('f_down_payment')?.value),
