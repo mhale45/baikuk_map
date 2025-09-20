@@ -14,17 +14,22 @@ export function setPerformanceRows(rows) { /* no-op (index.html에서 자체 보
 
 // ==== 직원 이름 맵 ====
 export const STAFF_NAME_BY_ID = new Map();
+export const STAFF_AFF_BY_ID  = new Map();
 
 export async function ensureStaffNameMap() {
-  if (STAFF_NAME_BY_ID.size > 0) return;
+  if (STAFF_NAME_BY_ID.size > 0 && STAFF_AFF_BY_ID.size > 0) return;
   await waitForSupabase();
   const { data, error } = await window.supabase
     .from('staff_profiles')
-    .select('id, name')
+    .select('id, name, affiliation')        // ← affiliation 함께 가져오기
     .is('leave_date', null);
   if (!error && data) {
     STAFF_NAME_BY_ID.clear();
-    data.forEach(({ id, name }) => STAFF_NAME_BY_ID.set(id, name));
+    STAFF_AFF_BY_ID.clear();               // [NEW]
+    data.forEach(({ id, name, affiliation }) => {
+      STAFF_NAME_BY_ID.set(id, name);
+      STAFF_AFF_BY_ID.set(id, affiliation || '');
+    });
   }
 }
 
@@ -501,6 +506,48 @@ export function sumForStaffIds(rows, staffIdSet) {
   return sum;
 }
 
+// 선택된 지점 기준, 해당 지점(affiliation)으로 매출이 잡힌 건들 중
+// 타지점 직원들의 관여매출 합계(= 이체해야 할 금액)
+export function computeCrossBranchTransferForCurrentAffiliation() {
+  const rows = window.__RENDERED_ROWS || [];
+  const aff = window.__selectedAffiliation;
+  if (!aff || rows.length === 0) return 0;
+
+  // 이 지점 소속 직원ID 집합 (사이드패널 구성 시 만들어 둔 캐시)
+  const mySet = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[aff]) || new Set();
+  if (!mySet || mySet.size === 0) return 0;
+
+  let sum = 0;
+
+  for (const row of rows) {
+    // 이 지점 명의로 고객에게 수수료가 발행된 건(= 이 지점이 돈을 받은 건)만 대상
+    if (row.affiliation !== aff) continue;
+
+    const pa = Array.isArray(row.performance_allocations)
+      ? row.performance_allocations[0]
+      : row.performance_allocations;
+    if (!pa) continue;
+
+    for (let i = 1; i <= 4; i++) {
+      const sid = pa[`staff_id${i}`];
+      if (!sid) continue;
+
+      // 타지점 직원이면 그 사람의 관여매출을 이체 대상에 포함
+      const isMine = mySet.has(String(sid));
+      if (isMine) continue;
+
+      const savedInv  = numberOrZero(pa[`involvement_sales${i}`]);
+      const buyerAmt  = numberOrZero(pa[`buyer_amount${i}`]);
+      const sellerAmt = numberOrZero(pa[`seller_amount${i}`]);
+
+      // 저장된 involvement_sales가 있으면 그 값, 없으면 buyer+seller 합으로 계산
+      const amt = savedInv > 0 ? savedInv : (buyerAmt + sellerAmt);
+      sum += amt;
+    }
+  }
+  return sum;
+}
+
 /**
  * 현재 선택 컨텍스트(직원/지점)에 맞는 합계 계산
  * - 직원 선택시: 그 직원의 관여매출 합
@@ -527,11 +574,61 @@ export function computeSalesTotalForCurrentContext() {
   // 3) 전체 모드(선택 없음) → 0
   return 0;
 }
+// rows: performance 행들, baseAff: 기준 지점명(돈 받은 지점)
+function computeTransfersByAff(rows, baseAff) {
+  const byAff = new Map();
+  if (!baseAff) return byAff;
 
-/** #salesTotal 텍스트 갱신 */
+  for (const row of (rows || [])) {
+    // 기준 지점이 아닌 행은 스킵 (이 화면은 '지점별 보기'니까, 혹시 모를 혼선을 방지)
+    if ((row?.affiliation || '') !== baseAff) continue;
+
+    const pa = Array.isArray(row.performance_allocations)
+      ? row.performance_allocations[0]
+      : row.performance_allocations;
+    if (!pa) continue;
+
+    for (let i = 1; i <= 4; i++) {
+      const sid = pa[`staff_id${i}`];
+      if (!sid) continue;
+
+      const staffAff = STAFF_AFF_BY_ID.get(sid) || '';
+      if (!staffAff || staffAff === baseAff) continue; // 같은 지점이면 이체 없음
+
+      const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
+      const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
+      const sum = buyerAmt + sellerAmt;
+      if (sum <= 0) continue;
+
+      byAff.set(staffAff, (byAff.get(staffAff) || 0) + sum);
+    }
+  }
+  return byAff;
+}
+
+/** #salesTotal 텍스트 갱신 (지점 이체 표시 포함) */
 export function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
   if (!el) return;
+
+  const rows = window.__RENDERED_ROWS || [];
   const total = computeSalesTotalForCurrentContext();
-  el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
+
+  // 기본 합계
+  let text = '합계: ' + formatNumberWithCommas(total) + '원';
+
+  // 지점 보기일 때만 타지점 이체 표시
+  const baseAff = (typeof window.__selectedAffiliation !== 'undefined' && window.__selectedAffiliation) ? String(window.__selectedAffiliation) : '';
+  if (baseAff) {
+    const transfers = computeTransfersByAff(rows, baseAff);
+    if (transfers.size > 0) {
+      // 금액 큰 순으로 정렬해서 붙이기
+      const parts = [...transfers.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([aff, amt]) => `${aff}: ${formatNumberWithCommas(amt)}원`);
+      text += '   ' + parts.join('  ');
+    }
+  }
+
+  el.textContent = text;
 }
