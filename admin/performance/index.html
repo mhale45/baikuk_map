@@ -627,7 +627,7 @@
         });
 
         // 테이블 갱신
-        loadPerformanceTable();
+        document.getElementById('reset-filter')?.click();
       }
       container.addEventListener('click', (e) => {
         const el = e.target.closest('.name-item');
@@ -1984,6 +1984,10 @@
           if (e.key === 'Enter') apply?.click();
         });
       });
+    });
+
+    window.addEventListener('load', () => {
+      document.getElementById('reset-filter')?.click();
     });
   </script>
 </body>
