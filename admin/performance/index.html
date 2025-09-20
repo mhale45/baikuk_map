@@ -877,47 +877,79 @@
       return buyerAmt + sellerAmt;
     }
 
-    // 직원 관여매출 합계만 표시(선택된 직원 없으면 0)
-    // - 직원/지점장/관리자 모두: 좌측에서 직원 하나를 선택했을 때만 합계 계산
-    // - '직원' 권한은 자동으로 본인 선택이 들어오므로 그대로 동작
-    function computeSalesTotalForCurrentContext() {
+    // 직원/지점 컨텍스트 합계 계산
+    // - 직원 선택(__selectedStaffId): 그 직원 몫만 합산
+    // - 지점 선택(__selectedAffiliation): 그 지점 소속 직원들의 몫만 합산
+    // - 둘 다 없으면 0 (전체 합이 아닌 요구사항 중심 동작)
+    async function computeSalesTotalForCurrentContext() {
       const rows = window.__RENDERED_ROWS || [];
       if (!rows.length) return 0;
 
-      // 우선순위: 좌측에서 선택한 직원 → (없으면) 직원권한이면 본인 → (없으면) 0
+      // 1) 직원 우선
       let staffId = (__selectedStaffId != null) ? String(__selectedStaffId) : null;
       if (!staffId && window.__isStaff && window.__userRole === '직원' && window.__MY_STAFF_ID) {
         staffId = String(window.__MY_STAFF_ID);
       }
-      if (!staffId) return 0;
-
-      let sum = 0;
-
-      for (const row of rows) {
-        const pa = Array.isArray(row.performance_allocations)
-          ? row.performance_allocations[0]
-          : row.performance_allocations;
-        if (!pa) continue;
-
-        for (let i = 1; i <= 4; i++) {
-          const sid = pa[`staff_id${i}`];
-          if (sid == null || String(sid) !== staffId) continue;
-
-          // 1) involvement_sales{i}가 저장돼 있으면 그걸 우선 사용
-          const invSaved = pa[`involvement_sales${i}`];
-          if (typeof invSaved === 'number' && isFinite(invSaved)) {
-            sum += invSaved;
-            continue;
+      if (staffId) {
+        let sum = 0;
+        for (const row of rows) {
+          const pa = Array.isArray(row.performance_allocations)
+            ? row.performance_allocations[0]
+            : row.performance_allocations;
+          if (!pa) continue;
+          for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            if (sid != null && String(sid) === staffId) {
+              sum += Number(getInvForSlot(pa, i) || 0);
+            }
           }
-
-          // involvement_sales{i}가 있으면 그것을 우선 사용하고,
-          // 없으면 buyer/seller amount 합을 사용
-          const inv = Number(getInvForSlot(pa, i) || 0);
-          sum += inv;
         }
+        return Math.round(sum);
       }
 
-      return Math.round(sum);
+      // 2) 지점 선택 합산
+      const aff = __selectedAffiliation;
+      if (aff) {
+        // 캐시된 지점→직원ID Set 사용, 없으면 DB에서 가져와 채움
+        let affSet = __AFFIL_STAFF_IDS?.[aff];
+        if (!affSet || !(affSet instanceof Set) || affSet.size === 0) {
+          try {
+            const { data: affStaff, error } = await window.supabase
+              .from('staff_profiles')
+              .select('id')
+              .eq('affiliation', aff);
+            if (!error && Array.isArray(affStaff)) {
+              affSet = new Set(affStaff.map(r => String(r.id)).filter(Boolean));
+              __AFFIL_STAFF_IDS[aff] = affSet;
+            } else {
+              affSet = new Set();
+            }
+          } catch {
+            affSet = new Set();
+          }
+        }
+
+        if (affSet.size === 0) return 0;
+
+        let sum = 0;
+        for (const row of rows) {
+          const pa = Array.isArray(row.performance_allocations)
+            ? row.performance_allocations[0]
+            : row.performance_allocations;
+          if (!pa) continue;
+
+          for (let i = 1; i <= 4; i++) {
+            const sid = pa[`staff_id${i}`];
+            if (sid != null && affSet.has(String(sid))) {
+              sum += Number(getInvForSlot(pa, i) || 0);
+            }
+          }
+        }
+        return Math.round(sum);
+      }
+
+      // 3) 컨텍스트 없으면 0 (요구사항상 전체 합산은 불필요)
+      return 0;
     }
 
     /** #salesTotal 텍스트 갱신 */
@@ -1062,7 +1094,6 @@
           if (startEl) startEl.value = toYMD(first);
           if (endEl)   endEl.value   = toYMD(last);
         }
-
 
         // 6) 실행
         const { data, error } = await query;
