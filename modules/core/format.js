@@ -35,27 +35,76 @@ export function formatFloor(floor, total_floors){
  */
 
 // 입력할 때 마다 숫자 콤마 변환
-export function attachCommaFormatter(id) {
-  const el = document.getElementById(id);
+// 입력할 때마다 숫자 콤마 변환 (커서 유지 + IME 대응)
+export function attachCommaFormatter(idOrEl) {
+  const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
   if (!el) return;
 
-  // 입력할 때마다 숫자 변환 + 콤마 표시
-  el.addEventListener("input", () => {
-    const cursor = el.selectionStart;
-    const raw = el.value.replace(/,/g, '');
-    if (!raw) { el.value = ''; return; }
-    const num = Number(raw);
-    if (!isNaN(num)) {
-      el.value = formatNumberWithCommas(num);
-      // 커서 위치 보정 (선택사항)
-      el.setSelectionRange(cursor, cursor);
+  let composing = false; // IME 조합 중 여부
+
+  const sanitize = (s) => s.replace(/[^\d.-]/g, ''); // 숫자/마이너스/소수점만 유지
+  const format = (s) => {
+    // 입력 도중의 특수 상태는 그대로 허용
+    if (s === '' || s === '-' || s === '.' || s === '-.') return s;
+    const neg = s.startsWith('-');
+    const [intPart, decPart = ''] = s.replace('-', '').split('.');
+    // 정수부 콤마 삽입
+    const withComma = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + withComma + (decPart ? '.' + decPart : '');
+  };
+
+  // 이전 커서 왼쪽에 '숫자'가 몇 개 있었는지 기준으로 새 커서 계산
+  const calcNewCaret = (oldV, newV, oldPos) => {
+    // oldPos 이전의 숫자 개수
+    const targetDigits = (oldV.slice(0, oldPos).match(/\d/g) || []).length;
+
+    // 숫자가 하나도 없던 자리면, 새 문자열의 첫 숫자 위치로
+    if (targetDigits === 0) {
+      const firstDigit = newV.search(/\d/);
+      return firstDigit >= 0 ? firstDigit : 0;
     }
+
+    // 새 문자열에서 같은 개수의 숫자를 지난 지점에 커서 배치
+    let seen = 0;
+    for (let i = 0; i < newV.length; i++) {
+      if (/\d/.test(newV[i])) seen++;
+      if (seen === targetDigits) return i + 1;
+    }
+    return newV.length; // fallback: 맨 끝
+  };
+
+  const handle = () => {
+    if (composing) return; // 조합 중에는 포맷 금지
+    const oldV = el.value;
+    const oldPos = el.selectionStart ?? oldV.length;
+
+    const raw = sanitize(oldV);
+    const next = format(raw);
+
+    if (next !== oldV) {
+      const newPos = calcNewCaret(oldV, next, oldPos);
+      el.value = next;
+      if (typeof el.setSelectionRange === 'function') {
+        el.setSelectionRange(newPos, newPos);
+      }
+    }
+  };
+
+  // IME(한글 등) 조합 이벤트
+  el.addEventListener('compositionstart', () => { composing = true; });
+  el.addEventListener('compositionend',   () => { composing = false; handle(); });
+
+  // 입력 시마다 포맷 (조합 중 제외)
+  el.addEventListener('input', handle);
+
+  // 포커스 잃으면 최종 정리
+  el.addEventListener('blur', () => {
+    if (composing) return;
+    el.value = format(sanitize(el.value));
   });
 
-  // 포커스 잃었을 때도 포맷 적용
-  el.addEventListener("blur", () => {
-    el.value = formatNumberWithCommas(el.value);
-  });
+  // 초기 값도 정리
+  el.value = format(sanitize(el.value));
 }
 
 // 헬퍼: 면적 소수점 1자리
