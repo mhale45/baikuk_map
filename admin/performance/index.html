@@ -694,7 +694,7 @@
     const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
 
 
-    // 소속별 묶기 원래 로직 유지 + 캐시 구성
+
 
     
     // === [ADD] 폼 편집 가능/불가 토글 ===
@@ -937,6 +937,18 @@
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
 
+    // [ADD] UI 날짜 필터 읽기
+    function readDateFilter() {
+      const fieldEl = document.getElementById('filter-date-field');
+      const startEl = document.getElementById('filter-start-date');
+      const endEl   = document.getElementById('filter-end-date');
+      return {
+        field: (fieldEl?.value || 'contract_date'),
+        start: (startEl?.value || ''),
+        end:   (endEl?.value   || '')
+      };
+    }
+
     // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
       await ensureStaffNameMap();
@@ -1045,52 +1057,38 @@
           }
         }
 
-        // 5.5) 직원 단일 보기일 때: 이번 달(1일~말일) 범위만 자동 적용 (잔금일 기준)
-        if (selectedId) {
-          const now = new Date();
-          const first = new Date(now.getFullYear(), now.getMonth(), 1);
-          const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-          const toYMD = (d) => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-          };
+        // [REPLACE] 날짜 조건: UI가 지정되면 UI를 우선해서 DB에 직접 적용,
+        // 없으면(빈 값) 직원/지점 보기일 때만 "이번달 잔금일" 기본값 적용
+        {
+          const { field: uiField, start: uiStart, end: uiEnd } = readDateFilter();
+          const fld = (uiField === 'balance_date') ? 'balance_date' : 'contract_date';
 
-          // 🔎 DB 조회 단계에서 이번 달로 제한 (잔금일 기준)
-          query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
+          if (uiStart || uiEnd) {
+            // ✅ 사용자가 지정한 기간으로 DB 조회
+            if (uiStart) query = query.gte(fld, uiStart);
+            if (uiEnd)   query = query.lte(fld, uiEnd);
+          } else if (selectedId || selectedAff) {
+            // ✅ UI 비어있으면, 직원/지점 보기일 때만 "이번달 잔금일" 기본값
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const toYMD = (d) => {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              return `${y}-${m}-${day}`;
+            };
 
-          // 🧭 UI 필터에도 동일 값 동기화 (사용자가 보면 이해 쉬움)
-          const fieldEl = document.getElementById('filter-date-field');
-          const startEl = document.getElementById('filter-start-date');
-          const endEl   = document.getElementById('filter-end-date');
-          if (fieldEl) fieldEl.value = 'balance_date';
-          if (startEl) startEl.value = toYMD(first);
-          if (endEl)   endEl.value   = toYMD(last);
-        }
+            query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
 
-        // 5.6) 지점 보기일 때도: 이번 달(1일~말일) 범위 자동 적용 (잔금일 기준)
-        if (!selectedId && selectedAff) {
-          const now = new Date();
-          const first = new Date(now.getFullYear(), now.getMonth(), 1);
-          const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-          const toYMD = (d) => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-          };
-
-          // 🔎 DB 조회 단계에서 이번 달로 제한 (잔금일 기준)
-          query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
-
-          // 🧭 UI 필터에도 동일 값 동기화
-          const fieldEl = document.getElementById('filter-date-field');
-          const startEl = document.getElementById('filter-start-date');
-          const endEl   = document.getElementById('filter-end-date');
-          if (fieldEl) fieldEl.value = 'balance_date';
-          if (startEl) startEl.value = toYMD(first);
-          if (endEl)   endEl.value   = toYMD(last);
+            // UI 표시도 동기화(사용자에게 기본값이 보이도록)
+            const fieldEl = document.getElementById('filter-date-field');
+            const startEl = document.getElementById('filter-start-date');
+            const endEl   = document.getElementById('filter-end-date');
+            if (fieldEl) fieldEl.value = 'balance_date';
+            if (startEl) startEl.value = toYMD(first);
+            if (endEl)   endEl.value   = toYMD(last);
+          }
         }
 
         // 6) 실행
@@ -1249,20 +1247,10 @@
           }
 
           function applyFilter() {
-            const rows = window.__PERF_ROWS || [];
-            const field = fieldEl?.value || 'contract_date';
-            const s = startEl?.value || '';
-            const e = endEl?.value || '';
-
-            if (!s && !e) {
-              // 날짜 미지정 → 원본 그대로
-              window.__RENDER_PERF?.(rows);
-              return;
-            }
-
-            const filtered = rows.filter(r => inRangeStr(r?.[field], s, e));
-            window.__RENDER_PERF?.(filtered);
-            updateSalesTotal();
+            // 날짜는 readDateFilter()로 loadPerformanceTable 내부에서 직접 반영됨
+            Promise.resolve(loadPerformanceTable()).then(() => {
+              window.__updateSalesTotalFromIndex?.();
+            });
           }
 
           function resetFilter() {
