@@ -884,17 +884,15 @@
       const rows = window.__RENDERED_ROWS || [];
       if (!rows.length) return 0;
 
-      // 우선순위: 좌측에서 선택한 직원 -> (없으면) '직원'권한의 본인 -> (없으면) 합계 0
+      // 우선순위: 좌측에서 선택한 직원 → (없으면) 직원권한이면 본인 → (없으면) 0
       let staffId = (__selectedStaffId != null) ? String(__selectedStaffId) : null;
-
-      // 직원 권한이면 자기 자신으로 강제
       if (!staffId && window.__isStaff && window.__userRole === '직원' && window.__MY_STAFF_ID) {
         staffId = String(window.__MY_STAFF_ID);
       }
-
       if (!staffId) return 0;
 
       let sum = 0;
+
       for (const row of rows) {
         const pa = Array.isArray(row.performance_allocations)
           ? row.performance_allocations[0]
@@ -903,13 +901,22 @@
 
         for (let i = 1; i <= 4; i++) {
           const sid = pa[`staff_id${i}`];
-          if (sid != null && String(sid) === staffId) {
-            const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
-            const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
-            sum += buyerAmt + sellerAmt;
+          if (sid == null || String(sid) !== staffId) continue;
+
+          // 1) involvement_sales{i}가 저장돼 있으면 그걸 우선 사용
+          const invSaved = pa[`involvement_sales${i}`];
+          if (typeof invSaved === 'number' && isFinite(invSaved)) {
+            sum += invSaved;
+            continue;
           }
+
+          // 2) 아니면 buyer/seller 금액 합으로 대체
+          const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
+          const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
+          sum += (buyerAmt + sellerAmt);
         }
       }
+
       return Math.round(sum);
     }
 
@@ -1817,8 +1824,7 @@
           }
         });
       }
-    })();
-   
+    })();   
 
     // 이벤트 바인딩 (값이 변할 때마다 자동계산)
     const calcFeesAndTrigger = () => {
