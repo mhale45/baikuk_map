@@ -37,11 +37,35 @@
       </a>
     </div>
     
-    <!-- [ADD] 직원 패널 -->
+    <!-- [ADD] 지점 패널 -->
     <div id="branch-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
       <div id="branch-list" class="overflow-y-auto">
         <!-- JS로 렌더링 -->
       </div>
+    </div>
+
+    <!-- [ADD] 메인 컬럼: 지점 월별 잔금매출 합계 -->
+    <div id="main-col" class="w-[84.5%] bg-gray-50 pt-[5rem] px-6">
+      <div class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur border-b border-gray-200 px-2 py-3 mb-4">
+        <h2 id="branch-monthly-title" class="text-lg font-bold text-gray-800">지점을 선택하세요</h2>
+        <p class="text-sm text-gray-500">클릭한 지점의 직원 관여매출을 잔금월 기준으로 합산해 표시합니다.</p>
+      </div>
+
+      <section class="bg-white rounded-xl shadow p-4 border border-gray-200">
+        <table class="w-full table-fixed border-collapse text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-2 py-2 w-32">기간(YYYY-MM)</th>
+              <th class="border px-2 py-2 w-48">잔금매출 합계</th>
+            </tr>
+          </thead>
+          <tbody id="branch-monthly-tbody">
+            <tr>
+              <td class="border px-2 py-3 text-center text-gray-500" colspan="2">지점을 선택하세요</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </div>
 
     <!-- 어두운 오버레이 -->

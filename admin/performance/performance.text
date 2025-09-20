@@ -574,14 +574,15 @@ export function computeSalesTotalForCurrentContext() {
   // 3) 전체 모드(선택 없음) → 0
   return 0;
 }
-// rows: performance 행들, baseAff: 기준 지점명(돈 받은 지점)
+
+/** 지점별 이체해야 할 금액 계산 */
 function computeTransfersByAff(rows, baseAff) {
   const byAff = new Map();
   if (!baseAff) return byAff;
 
-  for (const row of (rows || [])) {
-    // 기준 지점이 아닌 행은 스킵 (이 화면은 '지점별 보기'니까, 혹시 모를 혼선을 방지)
-    if ((row?.affiliation || '') !== baseAff) continue;
+  for (const row of rows || []) {
+    // 기준 지점 명의로 수수료가 발행된 건만 집계
+    if (row.affiliation !== baseAff) continue;
 
     const pa = Array.isArray(row.performance_allocations)
       ? row.performance_allocations[0]
@@ -593,11 +594,12 @@ function computeTransfersByAff(rows, baseAff) {
       if (!sid) continue;
 
       const staffAff = STAFF_AFF_BY_ID.get(sid) || '';
-      if (!staffAff || staffAff === baseAff) continue; // 같은 지점이면 이체 없음
+      if (!staffAff || staffAff === baseAff) continue; // 같은 지점이면 스킵
 
-      const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
-      const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
-      const sum = buyerAmt + sellerAmt;
+      const savedInv  = numberOrZero(pa[`involvement_sales${i}`]);
+      const buyerAmt  = numberOrZero(pa[`buyer_amount${i}`]);
+      const sellerAmt = numberOrZero(pa[`seller_amount${i}`]);
+      const sum = savedInv > 0 ? savedInv : (buyerAmt + sellerAmt);
       if (sum <= 0) continue;
 
       byAff.set(staffAff, (byAff.get(staffAff) || 0) + sum);
@@ -605,6 +607,7 @@ function computeTransfersByAff(rows, baseAff) {
   }
   return byAff;
 }
+
 export function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
   const bd = document.getElementById('branchBreakdown');
@@ -614,16 +617,17 @@ export function updateSalesTotal() {
   const total = computeSalesTotalForCurrentContext();
   el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
 
-  // 지점별 breakdown
-  const branchSums = computeBranchBreakdown(rows);
-
-  // [변경] flex 컨테이너로 구성
   bd.innerHTML = '';
-  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8'; // ← 가로간격, 줄바꿈 허용
-  for (const [aff, sum] of Object.entries(branchSums)) {
-    const span = document.createElement('span');
-    span.textContent = `${aff}: ${formatNumberWithCommas(sum)}원`;
-    bd.appendChild(span);
+  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8 text-base font-medium';
+
+  const baseAff = window.__selectedAffiliation || '';
+  if (baseAff) {
+    const transfers = computeTransfersByAff(rows, baseAff);
+    for (const [aff, sum] of [...transfers.entries()].sort((a,b)=>b[1]-a[1])) {
+      const span = document.createElement('span');
+      span.textContent = `${aff}: ${formatNumberWithCommas(sum)}원`;
+      bd.appendChild(span);
+    }
   }
 }
 
