@@ -5,6 +5,8 @@ import { showToastGreenRed } from '../../modules/ui/toast.js';
 
 const $  = (sel, doc = document) => doc.querySelector(sel);
 const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
+// [ADD] 급여율: 관여매출의 50%
+const PAYROLL_RATE = 0.5;
 
 /** 숫자 콤마 */
 function fmt(n) {
@@ -135,9 +137,10 @@ async function loadBranchMonthlySales(affiliation) {
           const inv = Number(row[`involvement_sales${k}`] || 0);
           // 잔금매출(모든 건)
           salesMap[ym] = (salesMap[ym] || 0) + inv;
-          // 총 급여(확정만)
+          // 총 급여(확정만) = 관여매출의 50%
           if (status === true) {
-            payrollMap[ym] = (payrollMap[ym] || 0) + inv;
+            const payroll = Math.round(inv * PAYROLL_RATE);
+            payrollMap[ym] = (payrollMap[ym] || 0) + payroll;
           }
         }
       }
