@@ -439,6 +439,64 @@
     window.supabase = client;
     document.dispatchEvent(new Event('supabase-ready'));
     
+    // === 정산 탭 제어(권한별 표시/차단) ===
+    (async () => {
+      try {
+        await waitForSupabase();
+        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr) console.warn('세션 조회 에러:', sessionErr);
+
+        const user = sessionData?.session?.user;
+        const tab = document.getElementById('settlement-tab');
+        if (!tab) return;
+
+        // 로그인 아니면 굳이 보일 필요 없음
+        if (!user?.id) {
+          tab.style.display = 'none';
+          return;
+        }
+
+        const { data: me, error: authErr } = await supabase
+          .from('staff_profiles')
+          .select('authority')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (authErr) {
+          console.warn('authority 조회 실패:', authErr);
+          // 실패 시 기본 숨김 유지
+          tab.style.display = 'none';
+          return;
+        }
+
+        // 직원 클릭 가드 (혹시 일시적으로 보였을 때 대비)
+        const guardClick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const toast = document.getElementById('toast');
+          if (toast) {
+            toast.textContent = '직원 권한은 정산 메뉴에 접근할 수 없습니다.';
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+          }
+        };
+
+        if (me?.authority?.trim() === '직원') {
+          // 직원: 숨김 + 클릭 방지(중복 등록 방지 포함)
+          tab.style.display = 'none';
+          tab.removeEventListener('click', guardClick);
+          tab.addEventListener('click', guardClick, { once: false });
+        } else {
+          // 관리자/지점장: 노출 + 기존 guard 제거
+          tab.style.removeProperty('display');
+          // 모든 기존 리스너 초기화(가드 제거 목적)
+          tab.replaceWith(tab.cloneNode(true));
+        }
+      } catch (e) {
+        console.warn('정산 탭 제어 중 예외:', e);
+      }
+    })();
+
     import {
       STAFF_NAME_BY_ID,
     } from './performance.js';
