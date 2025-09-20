@@ -605,7 +605,7 @@ function computeTransfersByAff(rows, baseAff) {
   }
   return byAff;
 }
-function updateSalesTotal() {
+export function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
   const bd = document.getElementById('branchBreakdown');
   if (!el || !bd) return;
