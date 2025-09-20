@@ -606,29 +606,46 @@ function computeTransfersByAff(rows, baseAff) {
   return byAff;
 }
 
-/** #salesTotal 텍스트 갱신 (지점 이체 표시 포함) */
-export function updateSalesTotal() {
+function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
-  if (!el) return;
+  const bd = document.getElementById('branchBreakdown');
+  if (!el || !bd) return;
 
   const rows = window.__RENDERED_ROWS || [];
   const total = computeSalesTotalForCurrentContext();
+  el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
 
-  // 기본 합계
-  let text = '합계: ' + formatNumberWithCommas(total) + '원';
+  // 지점별 breakdown
+  const branchSums = computeBranchBreakdown(rows);
+  const parts = Object.entries(branchSums).map(
+    ([aff, sum]) => `${aff}: ${formatNumberWithCommas(sum)}원`
+  );
+  bd.textContent = parts.join('   '); // ← gap을 위해 띄어쓰기 3칸
+}
 
-  // 지점 보기일 때만 타지점 이체 표시
-  const baseAff = (typeof window.__selectedAffiliation !== 'undefined' && window.__selectedAffiliation) ? String(window.__selectedAffiliation) : '';
-  if (baseAff) {
-    const transfers = computeTransfersByAff(rows, baseAff);
-    if (transfers.size > 0) {
-      // 금액 큰 순으로 정렬해서 붙이기
-      const parts = [...transfers.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([aff, amt]) => `${aff}: ${formatNumberWithCommas(amt)}원`);
-      text += '   ' + parts.join('  ');
+/** 지점별 금액 합계 계산 */
+function computeBranchBreakdown(rows) {
+  const branchSums = {};
+  for (const row of rows) {
+    const pa = Array.isArray(row.performance_allocations)
+      ? row.performance_allocations[0]
+      : row.performance_allocations;
+    if (!pa) continue;
+
+    for (let i = 1; i <= 4; i++) {
+      const sid = pa[`staff_id${i}`];
+      if (!sid) continue;
+
+      // staff id → affiliation 찾기
+      const aff = window.STAFF_AFF_BY_ID?.get(sid);
+      if (!aff) continue;
+
+      const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
+      const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
+      const sum = buyerAmt + sellerAmt;
+
+      branchSums[aff] = (branchSums[aff] || 0) + sum;
     }
   }
-
-  el.textContent = text;
+  return branchSums;
 }
