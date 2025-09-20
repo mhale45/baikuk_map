@@ -651,11 +651,7 @@
       let role = user?.user_metadata?.role || user?.app_metadata?.role;
 
       if (!role && user?.id) {
-        const { data: prof } = await supabase
-          .from('staff_profiles')
-          .select('authority')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const { data: prof } = await supabase.from('staff_profiles').select('role').eq('auth_user_id', user.id).maybeSingle();
         role = prof?.authority;
       }
 
@@ -933,6 +929,7 @@
       return Math.round(sum);
     }
 
+
     /** #salesTotal 텍스트 갱신 */
     function updateSalesTotal() {
       const el = document.getElementById('salesTotal');
@@ -941,8 +938,6 @@
       const total = computeSalesTotalForCurrentContext();
       el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
     }
-    // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
-    window.__updateSalesTotalFromIndex = updateSalesTotal;
 
     // === [REPLACE] 권한별(직원/지점장/기타) + 선택직원/선택지점 필터 적용 로딩 함수 ===
     async function loadPerformanceTable() {
