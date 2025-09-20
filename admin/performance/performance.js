@@ -605,7 +605,6 @@ function computeTransfersByAff(rows, baseAff) {
   }
   return byAff;
 }
-
 function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
   const bd = document.getElementById('branchBreakdown');
@@ -617,10 +616,15 @@ function updateSalesTotal() {
 
   // 지점별 breakdown
   const branchSums = computeBranchBreakdown(rows);
-  const parts = Object.entries(branchSums).map(
-    ([aff, sum]) => `${aff}: ${formatNumberWithCommas(sum)}원`
-  );
-  bd.textContent = parts.join('   '); // ← gap을 위해 띄어쓰기 3칸
+
+  // [변경] flex 컨테이너로 구성
+  bd.innerHTML = '';
+  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8'; // ← 가로간격, 줄바꿈 허용
+  for (const [aff, sum] of Object.entries(branchSums)) {
+    const span = document.createElement('span');
+    span.textContent = `${aff}: ${formatNumberWithCommas(sum)}원`;
+    bd.appendChild(span);
+  }
 }
 
 /** 지점별 금액 합계 계산 */
