@@ -132,7 +132,7 @@ async function renderBranchList() {
 async function loadMonthlySettlement(affiliation, startYM, endYM) {
   if (!affiliation || !startYM || !endYM) return [];
 
-  const startDate = firstDayOf(startYM);
+  const startDate = startOfMonth(startYM);
   const endExcl   = nextMonthStart(endYM);
 
   // 0) 지점 소속 직원 ID set
@@ -149,7 +149,7 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
     .eq('affiliation', affiliation)
     .not('balance_date', 'is', null)
     .gte('balance_date', startDate)
-    .lte('balance_date', endExcl);
+    .lt('balance_date', endExcl);
     // .eq('status', true)  // 확정 건만 집계하려면 주석 해제
 
   if (perfErr) {
@@ -219,7 +219,7 @@ async function loadMonthlySettlement(affiliation, startYM, endYM) {
     .select('period_month, affiliation, confirmed_income')
     .eq('affiliation', affiliation)
     .gte('period_month', startDate)
-    .lte('period_month', endExcl);
+    .lt('period_month', endExcl);
 
   if (incErr) {
     console.error('staff_settlement_incomes query error:', incErr);
