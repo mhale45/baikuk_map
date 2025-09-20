@@ -458,3 +458,73 @@ export async function initSalesLocationSelects(preset = {}) {
     fillSelect(districtEl, d2, '');
   };
 }
+
+// ==== 합계 계산/표시 (index.html에서 사용) ====
+// 전제: index.html이 rows를 window.__RENDERED_ROWS 에 보관하고,
+//       선택 컨텍스트를 __selectedStaffId / __selectedAffiliation 에 보관합니다.
+
+function numberOrZero(v) {
+  return (typeof v === 'number' && isFinite(v)) ? v : 0;
+}
+
+/**
+ * 전달된 staffId 집합(staffIdSet)에 속하는 슬롯만 buyer/seller 금액 합산
+ * rows: performance 행 배열 (각 행은 performance_allocations 1:1)
+ * staffIdSet: Set<string>
+ */
+export function sumForStaffIds(rows, staffIdSet) {
+  let sum = 0;
+
+  for (const row of (rows || [])) {
+    const pa = Array.isArray(row.performance_allocations)
+      ? row.performance_allocations[0]
+      : row.performance_allocations;
+    if (!pa) continue;
+
+    for (let i = 1; i <= 4; i++) {
+      const sid = pa?.[`staff_id${i}`];
+      if (!sid) continue;
+      if (!staffIdSet.has(String(sid))) continue;
+
+      const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
+      const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
+      sum += (buyerAmt + sellerAmt);
+    }
+  }
+  return sum;
+}
+
+/**
+ * 현재 선택 컨텍스트(직원/지점)에 맞는 합계 계산
+ * - 직원 선택시: 그 직원의 관여매출 합
+ * - 지점 선택시: 그 지점 소속 직원들의 관여매출 합
+ * - 아무것도 선택 안 되면 0
+ */
+export function computeSalesTotalForCurrentContext() {
+  const rows = window.__RENDERED_ROWS || [];
+  if (!rows.length) return 0;
+
+  // 1) 직원 단일 선택이 최우선
+  if (typeof window.__selectedStaffId !== 'undefined' && window.__selectedStaffId != null) {
+    const only = new Set([String(window.__selectedStaffId)]);
+    return sumForStaffIds(rows, only);
+  }
+
+  // 2) 지점 선택 시: 해당 지점 소속 직원들만 합산
+  if (typeof window.__selectedAffiliation !== 'undefined' && window.__selectedAffiliation) {
+    const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[window.__selectedAffiliation]) || null;
+    if (!set || set.size === 0) return 0;
+    return sumForStaffIds(rows, set);
+  }
+
+  // 3) 전체 모드(선택 없음) → 0
+  return 0;
+}
+
+/** #salesTotal 텍스트 갱신 */
+export function updateSalesTotal() {
+  const el = document.getElementById('salesTotal');
+  if (!el) return;
+  const total = computeSalesTotalForCurrentContext();
+  el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
+}

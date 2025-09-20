@@ -509,7 +509,7 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock,
+      updateSalesTotal, computeSalesTotalForCurrentContext, sumForStaffIds, registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock,
       populateAffiliationSelect,   // ← 추가
     } from './performance.js';
     window.updateHighlight = updateHighlight;
@@ -925,87 +925,6 @@
       currentPerformanceId = null;
     }
 
-    /* =========================================================
-    * 합계 계산/표시 유틸: 현재 "보이는 데이터" + 선택 컨텍스트 기준
-    * - 직원 클릭 상태(__selectedStaffId)가 있으면: 그 직원의 관여매출만 합산
-    * - 지점 클릭 상태(__selectedAffiliation)만 있으면: 그 지점 소속 직원들의 관여매출 합산
-    * - 둘 다 없으면: 테이블의 "관여매출" 전체(모든 직원 분배) 합산
-    *   (= 각 행의 직원별 관여매출 합계를 전부 더함)
-    * ---------------------------------------------------------*/
-
-    function numberOrZero(v) {
-      return (typeof v === 'number' && isFinite(v)) ? v : 0;
-    }
-
-    /** 각 allocation row에서 i번째 슬롯의 "관여매출" 값을 안전하게 구한다 */
-    function getInvForSlot(pa, i) {
-      const saved = pa?.[`involvement_sales${i}`];
-      if (typeof saved === 'number' && !Number.isNaN(saved)) return saved;
-      const buyerAmt = numberOrZero(pa?.[`buyer_amount${i}`]);
-      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
-      return buyerAmt + sellerAmt;
-    }
-
-    /** 각 슬롯의 buyer+seller 금액 합을 안전하게 구한다 */
-    function getBuyerSellerSumForSlot(pa, i) {
-      const buyerAmt  = numberOrZero(pa?.[`buyer_amount${i}`]);
-      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
-      return buyerAmt + sellerAmt;
-    }
-
-    // [NEW] 공통 합산 유틸: 전달된 staffId 집합에 속하는 슬롯만 buyer/seller 금액 합산
-    function sumForStaffIds(rows, staffIdSet) {
-      let sum = 0;
-
-      for (const row of rows) {
-        const pa = Array.isArray(row.performance_allocations)
-          ? row.performance_allocations[0]
-          : row.performance_allocations;
-        if (!pa) continue;
-
-        for (let i = 1; i <= 4; i++) {
-          const sid = pa?.[`staff_id${i}`];
-          if (!sid) continue;
-          if (!staffIdSet.has(String(sid))) continue;
-
-          const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
-          const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
-          sum += (buyerAmt + sellerAmt);
-        }
-      }
-      return sum;
-    }
-
-    // [REPLACE] 지점 선택 시 해당 지점 직원들만 합계에 포함
-    function computeSalesTotalForCurrentContext() {
-      const rows = window.__RENDERED_ROWS || [];
-      if (!rows.length) return 0;
-
-      // 1) 직원 단일 선택이 최우선
-      if (__selectedStaffId != null) {
-        const only = new Set([String(__selectedStaffId)]);
-        return sumForStaffIds(rows, only);
-      }
-
-      // 2) 지점이 선택돼 있다면: 그 지점 소속 직원(ID 세트)만 합산
-      if (__selectedAffiliation) {
-        const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[__selectedAffiliation]) || null;
-        if (!set || set.size === 0) return 0;
-        return sumForStaffIds(rows, set);
-      }
-
-      // 3) 둘 다 없으면(전체 모드): 타지점 제외 요구사항에 맞춰 0 반환
-      return 0;
-    }
-
-    /** #salesTotal 텍스트 갱신 */
-    function updateSalesTotal() {
-      const el = document.getElementById('salesTotal');
-      if (!el) return;
-
-      const total = computeSalesTotalForCurrentContext();
-      el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
-    }
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
 
