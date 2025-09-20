@@ -184,6 +184,7 @@
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
             <span id="salesTotal" class="ml-8" style="font-weight:600; font-size:1.25rem;">합계: 0원</span>
+            <span id="branchBreakdown" class="ml-6 text-sm text-gray-700"></span>
           </div>
         </div>
         <!-- [/ADD] -->
@@ -390,8 +391,8 @@
               </label>
             </div>
             <div class="mt-4">
-              <label for="f_affiliation" class="block text-sm font-medium text-gray-700 mb-1">
-                담당 지점
+              <label for="f_affiliation" class="block text-sm text-red-600 mb-1">
+                담당 지점*
               </label>
               <select id="f_affiliation" class="w-full border rounded-lg p-2">
                 <option value="">-- 지점 선택 --</option>
@@ -509,9 +510,31 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock,
-      populateAffiliationSelect,   // ← 추가
+      updateSalesTotal,
+      computeSalesTotalForCurrentContext,
+      sumForStaffIds,
+      registerPerformanceRenderer,
+      setPerformanceRows,
+      enforceComputedReadOnly,
+      initSalesLocationSelects,
+      fetchAllPCD,
+      createAllocationItem,
+      resetForm,
+      collectAllocationPayloadRow,
+      collectPerformancePayload,
+      enableAutoGrowTextArea,
+      validateTotalWeight,
+      updateHighlight,
+      calculateDownPaymentAndBalance,
+      ensureStaffNameMap,
+      calculateFees,
+      recalcPerformanceFromFees,
+      populateAllStaffSelects,
+      buildDateBlock,
+      buildPriceBlock,
+      populateAffiliationSelect,
     } from './performance.js';
+
     window.updateHighlight = updateHighlight;
 
     import {
@@ -610,13 +633,13 @@
           header.title = '이 지점의 모든 매출 보기';
           header.addEventListener('click', () => {
             // 토글: 같은 지점을 다시 누르면 해제
-            if (__selectedAffiliation === aff) {
-              __selectedAffiliation = null;
+            if (window.__selectedAffiliation === aff) {
+              window.__selectedAffiliation = null;
               header.classList.remove('ring-2', 'ring-yellow-400');
             } else {
-              __selectedAffiliation = aff;
+              window.__selectedAffiliation = aff;
               // 지점 필터를 켜면 직원 단일 선택은 해제
-              __selectedStaffId = null;
+              window.__selectedStaffId = null;
               // 헤더 하이라이트 갱신
               container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
               header.classList.add('ring-2', 'ring-yellow-400');
@@ -685,8 +708,8 @@
 
       // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
       function setActiveStaff(staffId) {
-        __selectedStaffId = staffId;
-        __selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
+        window.__selectedStaffId = staffId;
+        window.__selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
 
         // UI 하이라이트
         container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
@@ -759,14 +782,10 @@
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
-    let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
-    let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
+    window.__selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
+    window.__selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     // [FIX] 지점(affiliation) -> 해당 직원 ID Set 캐시 (window 전역과 동기화)
     const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
-
-
-
-
     
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
@@ -925,87 +944,6 @@
       currentPerformanceId = null;
     }
 
-    /* =========================================================
-    * 합계 계산/표시 유틸: 현재 "보이는 데이터" + 선택 컨텍스트 기준
-    * - 직원 클릭 상태(__selectedStaffId)가 있으면: 그 직원의 관여매출만 합산
-    * - 지점 클릭 상태(__selectedAffiliation)만 있으면: 그 지점 소속 직원들의 관여매출 합산
-    * - 둘 다 없으면: 테이블의 "관여매출" 전체(모든 직원 분배) 합산
-    *   (= 각 행의 직원별 관여매출 합계를 전부 더함)
-    * ---------------------------------------------------------*/
-
-    function numberOrZero(v) {
-      return (typeof v === 'number' && isFinite(v)) ? v : 0;
-    }
-
-    /** 각 allocation row에서 i번째 슬롯의 "관여매출" 값을 안전하게 구한다 */
-    function getInvForSlot(pa, i) {
-      const saved = pa?.[`involvement_sales${i}`];
-      if (typeof saved === 'number' && !Number.isNaN(saved)) return saved;
-      const buyerAmt = numberOrZero(pa?.[`buyer_amount${i}`]);
-      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
-      return buyerAmt + sellerAmt;
-    }
-
-    /** 각 슬롯의 buyer+seller 금액 합을 안전하게 구한다 */
-    function getBuyerSellerSumForSlot(pa, i) {
-      const buyerAmt  = numberOrZero(pa?.[`buyer_amount${i}`]);
-      const sellerAmt = numberOrZero(pa?.[`seller_amount${i}`]);
-      return buyerAmt + sellerAmt;
-    }
-
-    // [NEW] 공통 합산 유틸: 전달된 staffId 집합에 속하는 슬롯만 buyer/seller 금액 합산
-    function sumForStaffIds(rows, staffIdSet) {
-      let sum = 0;
-
-      for (const row of rows) {
-        const pa = Array.isArray(row.performance_allocations)
-          ? row.performance_allocations[0]
-          : row.performance_allocations;
-        if (!pa) continue;
-
-        for (let i = 1; i <= 4; i++) {
-          const sid = pa?.[`staff_id${i}`];
-          if (!sid) continue;
-          if (!staffIdSet.has(String(sid))) continue;
-
-          const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
-          const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
-          sum += (buyerAmt + sellerAmt);
-        }
-      }
-      return sum;
-    }
-
-    // [REPLACE] 지점 선택 시 해당 지점 직원들만 합계에 포함
-    function computeSalesTotalForCurrentContext() {
-      const rows = window.__RENDERED_ROWS || [];
-      if (!rows.length) return 0;
-
-      // 1) 직원 단일 선택이 최우선
-      if (__selectedStaffId != null) {
-        const only = new Set([String(__selectedStaffId)]);
-        return sumForStaffIds(rows, only);
-      }
-
-      // 2) 지점이 선택돼 있다면: 그 지점 소속 직원(ID 세트)만 합산
-      if (__selectedAffiliation) {
-        const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[__selectedAffiliation]) || null;
-        if (!set || set.size === 0) return 0;
-        return sumForStaffIds(rows, set);
-      }
-
-      // 3) 둘 다 없으면(전체 모드): 타지점 제외 요구사항에 맞춰 0 반환
-      return 0;
-    }
-
-    /** #salesTotal 텍스트 갱신 */
-    function updateSalesTotal() {
-      const el = document.getElementById('salesTotal');
-      if (!el) return;
-
-      const total = computeSalesTotalForCurrentContext();
-      el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
-    }
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
 
@@ -1033,8 +971,8 @@
         catch (e) { console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message); }
 
         // 선택 상태
-        let selectedId  = __selectedStaffId;
-        let selectedAff = __selectedAffiliation;
+        let selectedId  = window.__selectedStaffId;
+        let selectedAff = window.__selectedAffiliation;
 
         // 직원은 무조건 자기 자신만
         if (me?.isStaff) {
@@ -1366,7 +1304,7 @@
         const me = await getMyAuthorityAndStaffId(); // { staffId, authority, ... }
         if (me?.staffId) {
           // 어떤 권한이든 '내 스태프ID'로 먼저 필터링해서 내 관여 매출만 보이게
-          __selectedStaffId = me.staffId;
+          window.__selectedStaffId = me.staffId;
         }
       } catch (e) {
         console.warn('기본 직원 선택 실패:', e?.message);
@@ -1376,9 +1314,9 @@
       // (선택) 좌측 목록에서 내 이름 하이라이트
       try {
         const container = document.getElementById('staff-list');
-        if (container && __selectedStaffId != null) {
+        if (container && window.__selectedStaffId != null) {
           container.querySelectorAll('.name-item').forEach(el => {
-            if (String(el.dataset.staffId) === String(__selectedStaffId) && el.dataset.disabled !== '1') {
+            if (String(el.dataset.staffId) === String(window.__selectedStaffId) && el.dataset.disabled !== '1') {
               el.classList.add('bg-yellow-200');
             } else {
               el.classList.remove('bg-yellow-200');
@@ -1533,7 +1471,12 @@
         }
 
         // (1) 가중치 합 검사
-        if (!validateTotalWeight()) return;
+        if (!validateTotalWeight()) {
+          const btn = document.getElementById('save-sales');
+          btn?.classList.add('animate-bounce');
+          setTimeout(() => btn?.classList.remove('animate-bounce'), 600);
+          return;
+        }
 
         // (2) 계산 최신화 (수수료→매출, 계약금/잔금)
         try {
@@ -1590,24 +1533,32 @@
           if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        // (4) 페이로드 수집 + 담당 지점 주입(방어적)
+        // (4) 페이로드 수집 + 담당 지점 강제 보정
         const payload = collectPerformancePayload();
-        const affEl = document.getElementById('f_affiliation');
-        if (affEl) {
-          const v = (affEl.value || '').trim();
-          // 비어있으면 null, 있으면 문자열로 저장
-          payload.affiliation = v || null;
+        {
+          const affEl = document.getElementById('f_affiliation');
+          const raw = typeof payload.affiliation === 'string'
+            ? payload.affiliation
+            : (affEl?.value ?? '');
+          const v = String(raw || '').trim();
+          payload.affiliation = v === '' ? null : v;
+
+          // ❗(필요시 해제) 만약 실제 컬럼명이 다르면 아래 매핑을 사용하세요.
+          // payload.branch_affiliation = payload.affiliation; delete payload.affiliation;
         }
 
         // (5) 저장/수정
         let perfId = currentPerformanceId;
+
         if (perfId) {
-          // UPDATE
-          const { error: upErr } = await window.supabase
+          // UPDATE (반환값으로 affiliation 확인)
+          const { data: upd, error: upErr } = await window.supabase
             .from('performance')
             .update(payload)
-            .eq('id', perfId);
+            .eq('id', perfId)
+            .select('id, affiliation');   // ✅ 반영 확인
           if (upErr) { showToastGreenRed('매출 수정 실패: ' + upErr.message); return; }
+          console.debug('[performance UPDATE] id=', perfId, 'affiliation=', upd?.[0]?.affiliation ?? null);
 
           const allocRow = collectAllocationPayloadRow(perfId);
           const anySelected = [1,2,3,4].some(i => !!allocRow[`staff_id${i}`]);
@@ -1623,18 +1574,19 @@
               .upsert(allocRow, { onConflict: 'performance_id', ignoreDuplicates: false });
             if (upsertErr) { showToastGreenRed('분배 저장 실패: ' + upsertErr.message); return; }
           }
-
           showToastGreenRed('수정 완료!', { ok: true });
+
         } else {
-          // INSERT
+          // INSERT (반환값으로 affiliation 확인)
           const { data: perfInsert, error: perfErr } = await window.supabase
             .from('performance')
             .insert(payload)
-            .select('id')
+            .select('id, affiliation')     // ✅ 반영 확인
             .single();
           if (perfErr) { showToastGreenRed('매출 저장 실패: ' + perfErr.message); return; }
 
           perfId = perfInsert?.id;
+          console.debug('[performance INSERT] id=', perfId, 'affiliation=', perfInsert?.affiliation ?? null);
           if (!perfId) { showToastGreenRed('생성된 매출 ID를 확인할 수 없습니다.'); return; }
 
           const allocRow = collectAllocationPayloadRow(perfId);
@@ -1649,9 +1601,10 @@
               return;
             }
           }
-
           showToastGreenRed('저장 완료!', { ok: true });
         }
+
+        
 
         currentPerformanceId = null;
         resetForm();
