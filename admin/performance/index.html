@@ -912,17 +912,17 @@
     }
 
     function openDrawer() {
-        overlay.classList.remove('hidden');
-        requestAnimationFrame(() => {
-        drawer.classList.remove('translate-x-full');
-        });
-        initSalesLocationSelects();
-        populateAffiliationSelect?.();
+      overlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+      drawer.classList.remove('translate-x-full');
+      });
+      initSalesLocationSelects();
+      populateAffiliationSelect?.();
     }
     function closeDrawer() {
-        drawer.classList.add('translate-x-full');
-        overlay.classList.add('hidden');
-        currentPerformanceId = null;
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('hidden');
+      currentPerformanceId = null;
     }
 
     /* =========================================================
@@ -1510,6 +1510,9 @@
       resetForm();
       openDrawer();
       setFormEditable(true); // ← [ADD] 신규 작성은 항상 편집 가능
+      // 담당 지점 초기화(옵션 목록은 openDrawer에서 populateAffiliationSelect가 채움)
+      const affEl = document.getElementById('f_affiliation');
+      if (affEl) affEl.value = '';
     });
 
     document.getElementById('close-sales-drawer')?.addEventListener('click', closeDrawer);
@@ -1559,6 +1562,7 @@
           ['f_deal_type',      '거래유형'],
           ['f_contract_date',  '계약일'],
           ['f_balance_date',   '잔금일'],
+          ['f_affiliation',    '담당 지점'],
         ];
         for (const [id, label] of textRequired) {
           if (!textVal(id)) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
@@ -1586,8 +1590,14 @@
           if (numVal(id) == null) { if (fail(id, `${label}을(를) 입력하세요.`)) return; }
         }
 
-        // (4) 페이로드 수집
+        // (4) 페이로드 수집 + 담당 지점 주입(방어적)
         const payload = collectPerformancePayload();
+        const affEl = document.getElementById('f_affiliation');
+        if (affEl) {
+          const v = (affEl.value || '').trim();
+          // 비어있으면 null, 있으면 문자열로 저장
+          payload.affiliation = v || null;
+        }
 
         // (5) 저장/수정
         let perfId = currentPerformanceId;
