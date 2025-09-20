@@ -79,7 +79,7 @@ async function loadBranchMonthlySales(affiliation) {
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date, status')
-      .eq('status', true)
+      // .eq('status', true)
       .not('balance_date', 'is', null);
     if (perfErr) throw perfErr;
 
