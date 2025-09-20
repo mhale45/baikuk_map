@@ -910,10 +910,10 @@
             continue;
           }
 
-          // 2) 아니면 buyer/seller 금액 합으로 대체
-          const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
-          const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
-          sum += (buyerAmt + sellerAmt);
+          // involvement_sales{i}가 있으면 그것을 우선 사용하고,
+          // 없으면 buyer/seller amount 합을 사용
+          const inv = Number(getInvForSlot(pa, i) || 0);
+          sum += inv;
         }
       }
 
@@ -1217,11 +1217,26 @@
           }
 
           function resetFilter() {
-            if (startEl) startEl.value = '';
-            if (endEl)   endEl.value = '';
-            // 기준 필드는 유지(사용자 선택 존중)
-            window.__RENDER_PERF?.(window.__PERF_ROWS || []);
-            updateSalesTotal();
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+            const toYMD = (d) => {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              return `${y}-${m}-${day}`;
+            };
+
+            // 기준을 '잔금일'로 고정
+            if (fieldEl) fieldEl.value = 'balance_date';
+            // 이번 달 1일 ~ 말일로 설정
+            if (startEl) startEl.value = toYMD(first);
+            if (endEl)   endEl.value   = toYMD(last);
+
+            // 바로 적용
+            // (렌더 → 합계 갱신까지)
+            applyFilter();
           }
 
           applyEl?.addEventListener('click', applyFilter);
