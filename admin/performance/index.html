@@ -1179,7 +1179,6 @@
           // [ADD] 현재 화면에 렌더된 원본 데이터 보관
           window.__RENDERED_ROWS = rows || [];
           (rows || []).forEach(row => {
-            console.debug('[render row]', row.id, row.affiliation);
             const pa = Array.isArray(row.performance_allocations)
               ? row.performance_allocations[0]
               : row.performance_allocations;
