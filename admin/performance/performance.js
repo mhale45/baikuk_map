@@ -618,7 +618,7 @@ export function updateSalesTotal() {
   el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
 
   bd.innerHTML = '';
-  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8';
+  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8 text-base font-medium';
 
   const baseAff = window.__selectedAffiliation || '';
   if (baseAff) {
