@@ -20,32 +20,34 @@ function ymKey(dateStr) {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
-/** 테이블 렌더 */
-function renderMonthlyTable({ titleAffiliation, monthlyMap }) {
+function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap }) {
   const titleEl = $('#branch-monthly-title');
   const tbody   = $('#branch-monthly-tbody');
   if (titleEl) titleEl.textContent = titleAffiliation ? `지점: ${titleAffiliation}` : '지점을 선택하세요';
   if (!tbody) return;
 
-  // 비움
   tbody.innerHTML = '';
 
-  const keys = Object.keys(monthlyMap).sort(); // 오름차순
+  const ymSet = new Set([...Object.keys(salesMap || {}), ...Object.keys(payrollMap || {})]);
+  const keys = Array.from(ymSet).sort(); // 오름차순
+
   if (keys.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td class="border px-2 py-3 text-center text-gray-500" colspan="2">데이터가 없습니다</td>
+        <td class="border px-2 py-3 text-center text-gray-500" colspan="3">데이터가 없습니다</td>
       </tr>
     `;
     return;
   }
 
   for (const ym of keys) {
-    const total = monthlyMap[ym] || 0;
+    const sales   = salesMap[ym]   || 0; // 확정/미확정 포함
+    const payroll = payrollMap[ym] || 0; // ✅ 확정만
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(total)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payroll)}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -61,7 +63,7 @@ async function loadBranchMonthlySales(affiliation) {
   try {
     if (!affiliation) return;
 
-    // 1) 소속 직원 id
+    // 1) 소속 재직자 id
     const { data: staffRows, error: staffErr } = await supabase
       .from('staff_profiles')
       .select('id')
@@ -71,71 +73,77 @@ async function loadBranchMonthlySales(affiliation) {
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     if (staffIds.size === 0) {
-      renderMonthlyTable({ titleAffiliation: affiliation, monthlyMap: {} });
+      renderMonthlyTable({ titleAffiliation: affiliation, salesMap: {}, payrollMap: {} });
       return;
     }
 
-    // 2) 확정 + 잔금일 존재하는 performance
+    // 2) 잔금일 있는 performance (확정/미확정 모두)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date, status')
-      // .eq('status', true)
       .not('balance_date', 'is', null);
     if (perfErr) throw perfErr;
 
     if (!perfRows || perfRows.length === 0) {
-      renderMonthlyTable({ titleAffiliation: affiliation, monthlyMap: {} });
+      renderMonthlyTable({ titleAffiliation: affiliation, salesMap: {}, payrollMap: {} });
       return;
     }
 
-    const perfIdToYM = new Map();
+    const perfIdTo = new Map(); // id -> { ym, status }
     const perfIds = [];
     for (const p of perfRows) {
       const ym = ymKey(p.balance_date);
       if (!ym) continue;
-      perfIdToYM.set(String(p.id), ym);
+      const pid = String(p.id);
+      perfIdTo.set(pid, { ym, status: !!p.status });
       perfIds.push(p.id);
     }
     if (perfIds.length === 0) {
-      renderMonthlyTable({ titleAffiliation: affiliation, monthlyMap: {} });
+      renderMonthlyTable({ titleAffiliation: affiliation, salesMap: {}, payrollMap: {} });
       return;
     }
 
-    // 3) allocations 조회 (IN 조건은 1000개 제한 고려 → 배치)
+    // 3) allocations 조회 & 합산
     const BATCH = 800;
-    const monthlyMap = {}; // { 'YYYY-MM': sum }
+    const salesMap   = {}; // 모든 건 합계 (잔금매출)
+    const payrollMap = {}; // ✅ 확정 건만 합계 (총 급여)
     for (let i = 0; i < perfIds.length; i += BATCH) {
       const chunk = perfIds.slice(i, i + BATCH);
       const { data: allocRows, error: allocErr } = await supabase
         .from('performance_allocations')
         .select(`
           performance_id,
-          staff_id1, buyer_weight1, seller_weight1, buyer_amount1, seller_amount1, involvement_sales1,
-          staff_id2, buyer_weight2, seller_weight2, buyer_amount2, seller_amount2, involvement_sales2,
-          staff_id3, buyer_weight3, seller_weight3, buyer_amount3, seller_amount3, involvement_sales3,
-          staff_id4, buyer_weight4, seller_weight4, buyer_amount4, seller_amount4, involvement_sales4
+          staff_id1, involvement_sales1,
+          staff_id2, involvement_sales2,
+          staff_id3, involvement_sales3,
+          staff_id4, involvement_sales4
         `)
         .in('performance_id', chunk);
       if (allocErr) throw allocErr;
 
       for (const row of (allocRows || [])) {
-        const perfId = String(row.performance_id);
-        const ym = perfIdToYM.get(perfId);
-        if (!ym) continue;
+        const pid = String(row.performance_id);
+        const meta = perfIdTo.get(pid);
+        if (!meta) continue;
+        const { ym, status } = meta;
 
-        // 1~4 슬롯 검사
         for (let k = 1; k <= 4; k++) {
           const sid = row[`staff_id${k}`];
           if (!sid) continue;
           if (!staffIds.has(String(sid))) continue;
 
           const inv = Number(row[`involvement_sales${k}`] || 0);
-          monthlyMap[ym] = (monthlyMap[ym] || 0) + inv;
+          // 잔금매출(모든 건)
+          salesMap[ym] = (salesMap[ym] || 0) + inv;
+          // 총 급여(확정만)
+          if (status === true) {
+            payrollMap[ym] = (payrollMap[ym] || 0) + inv;
+          }
         }
       }
     }
 
-    renderMonthlyTable({ titleAffiliation: affiliation, monthlyMap });
+    renderMonthlyTable({ titleAffiliation: affiliation, salesMap, payrollMap });
   } catch (e) {
     console.error('월별 합계 로딩 실패:', e);
     showToastGreenRed?.('월별 합계 로딩 실패');
