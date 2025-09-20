@@ -509,7 +509,8 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock
+      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm, collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight, calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees, populateAllStaffSelects, buildDateBlock, buildPriceBlock,
+      populateAffiliationSelect,   // ← 추가
     } from './performance.js';
     window.updateHighlight = updateHighlight;
 
@@ -1400,6 +1401,7 @@
       // 2) 내 소속 우선 직원 옵션 채우기
       const myAff = await getMyAffiliation();
       await populateAllStaffSelects(myAff);
+      await populateAffiliationSelect();  // ← 추가: 담당 지점 셀렉트 옵션 채우기
 
       // 3) 헬퍼: 분배칸(클로징/매물확보 %) 재계산 트리거
       function triggerAllocationRecalc() {
@@ -2045,8 +2047,11 @@
       // 분배율은 현재 정책(직원은 30 고정)이 있으므로 값 그대로 두거나 필요 시 조정
       recalcPerformanceFromFees();
 
-      // 특약사항
-      setField('f_special_contract', row.special_contract);
+      // 담당 지점
+      setField('f_affiliation', row.affiliation);
+
+      // 메모
+      setField('f_special_contract', row.special_contract);    
     }
 
     // ✅ 분배 드로어 채우기: staff/weights + 합계 매출(involvement_sales) 표시
