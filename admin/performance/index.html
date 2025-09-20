@@ -632,13 +632,13 @@
           header.title = '이 지점의 모든 매출 보기';
           header.addEventListener('click', () => {
             // 토글: 같은 지점을 다시 누르면 해제
-            if (__selectedAffiliation === aff) {
-              __selectedAffiliation = null;
+            if (window.__selectedAffiliation === aff) {
+              window.__selectedAffiliation = null;
               header.classList.remove('ring-2', 'ring-yellow-400');
             } else {
-              __selectedAffiliation = aff;
+              window.__selectedAffiliation = aff;
               // 지점 필터를 켜면 직원 단일 선택은 해제
-              __selectedStaffId = null;
+              window.__selectedStaffId = null;
               // 헤더 하이라이트 갱신
               container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
               header.classList.add('ring-2', 'ring-yellow-400');
@@ -707,8 +707,8 @@
 
       // 5) 직원 클릭 → 단일 직원 필터 (지점 필터 해제)
       function setActiveStaff(staffId) {
-        __selectedStaffId = staffId;
-        __selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
+        window.__selectedStaffId = staffId;
+        window.__selectedAffiliation = null; // 직원 선택 시 지점 필터 해제
 
         // UI 하이라이트
         container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
@@ -781,14 +781,10 @@
     let __saving = false; // 중복 저장 방지 플래그
     let isDownPaymentAutoFilled = false;
     let currentCustomerId = null;
-    let __selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
-    let __selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
+    window.__selectedStaffId = null; // ← [ADD] 왼쪽 패널에서 선택한 직원 ID(문자열/숫자). null이면 '전체' 의미
+    window.__selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     // [FIX] 지점(affiliation) -> 해당 직원 ID Set 캐시 (window 전역과 동기화)
     const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
-
-
-
-
     
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
@@ -974,8 +970,8 @@
         catch (e) { console.warn('[getMyAuthorityAndStaffId] 경고:', e?.message); }
 
         // 선택 상태
-        let selectedId  = __selectedStaffId;
-        let selectedAff = __selectedAffiliation;
+        let selectedId  = window.__selectedStaffId;
+        let selectedAff = window.__selectedAffiliation;
 
         // 직원은 무조건 자기 자신만
         if (me?.isStaff) {
@@ -1307,7 +1303,7 @@
         const me = await getMyAuthorityAndStaffId(); // { staffId, authority, ... }
         if (me?.staffId) {
           // 어떤 권한이든 '내 스태프ID'로 먼저 필터링해서 내 관여 매출만 보이게
-          __selectedStaffId = me.staffId;
+          window.__selectedStaffId = me.staffId;
         }
       } catch (e) {
         console.warn('기본 직원 선택 실패:', e?.message);
@@ -1317,9 +1313,9 @@
       // (선택) 좌측 목록에서 내 이름 하이라이트
       try {
         const container = document.getElementById('staff-list');
-        if (container && __selectedStaffId != null) {
+        if (container && window.__selectedStaffId != null) {
           container.querySelectorAll('.name-item').forEach(el => {
-            if (String(el.dataset.staffId) === String(__selectedStaffId) && el.dataset.disabled !== '1') {
+            if (String(el.dataset.staffId) === String(window.__selectedStaffId) && el.dataset.disabled !== '1') {
               el.classList.add('bg-yellow-200');
             } else {
               el.classList.remove('bg-yellow-200');
