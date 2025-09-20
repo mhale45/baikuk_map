@@ -1039,6 +1039,30 @@
           }
         }
 
+        // 5.5) 직원 단일 보기일 때: 이번 달(1일~말일) 범위만 자동 적용 (잔금일 기준)
+        if (selectedId) {
+          const now = new Date();
+          const first = new Date(now.getFullYear(), now.getMonth(), 1);
+          const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          const toYMD = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+
+          // 🔎 DB 조회 단계에서 이번 달로 제한 (잔금일 기준)
+          query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
+
+          // 🧭 UI 필터에도 동일 값 동기화 (사용자가 보면 이해 쉬움)
+          const fieldEl = document.getElementById('filter-date-field');
+          const startEl = document.getElementById('filter-start-date');
+          const endEl   = document.getElementById('filter-end-date');
+          if (fieldEl) fieldEl.value = 'balance_date';
+          if (startEl) startEl.value = toYMD(first);
+          if (endEl)   endEl.value   = toYMD(last);
+        }
+
         // 6) 실행
         const { data, error } = await query;
         if (error) {
@@ -1168,11 +1192,6 @@
           const fieldEl = $('filter-date-field');
           const applyEl = $('apply-filter');
           const resetEl = $('reset-filter');
-
-          // 원본 행/렌더러를 전역에 보관 (loadPerformanceTable에서 셋)
-          // - 아래 두 줄은 loadPerformanceTable()의 초기 렌더 직후에도 세팅해둡니다.
-          //   window.__PERF_ROWS   = data || [];
-          //   window.__RENDER_PERF = renderPerformanceTable;
 
           function parseYMD(s) {
             // 'YYYY-MM-DD' → Date(로컬 00:00)

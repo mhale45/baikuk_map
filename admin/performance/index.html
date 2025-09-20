@@ -552,7 +552,9 @@
               // 직원 선택 하이라이트 제거
               container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
             }
-            loadPerformanceTable();
+            Promise.resolve(loadPerformanceTable()).then(() => {
+              window.__updateSalesTotalFromIndex?.();
+            });
           });
         } else {
           header.classList.add('opacity-60');
@@ -626,8 +628,10 @@
           }
         });
 
-        // 테이블 갱신
-        loadPerformanceTable();
+        // 테이블 갱신 + 합계 즉시 갱신
+        Promise.resolve(loadPerformanceTable()).then(() => {
+          window.__updateSalesTotalFromIndex?.();
+        });
       }
       container.addEventListener('click', (e) => {
         const el = e.target.closest('.name-item');
@@ -877,20 +881,8 @@
       return buyerAmt + sellerAmt;
     }
 
-    // 직원 관여매출 합계만 표시(선택된 직원 없으면 0)
-    // - 직원/지점장/관리자 모두: 좌측에서 직원 하나를 선택했을 때만 합계 계산
-    // - '직원' 권한은 자동으로 본인 선택이 들어오므로 그대로 동작
-    function computeSalesTotalForCurrentContext() {
-      const rows = window.__RENDERED_ROWS || [];
-      if (!rows.length) return 0;
-
-      // 우선순위: 좌측에서 선택한 직원 → (없으면) 직원권한이면 본인 → (없으면) 0
-      let staffId = (__selectedStaffId != null) ? String(__selectedStaffId) : null;
-      if (!staffId && window.__isStaff && window.__userRole === '직원' && window.__MY_STAFF_ID) {
-        staffId = String(window.__MY_STAFF_ID);
-      }
-      if (!staffId) return 0;
-
+    // [NEW] 공통 합산 유틸: 전달된 staffId 집합에 속하는 슬롯만 buyer/seller 금액 합산
+    function sumForStaffIds(rows, staffIdSet) {
       let sum = 0;
 
       for (const row of rows) {
@@ -900,24 +892,38 @@
         if (!pa) continue;
 
         for (let i = 1; i <= 4; i++) {
-          const sid = pa[`staff_id${i}`];
-          if (sid == null || String(sid) !== staffId) continue;
+          const sid = pa?.[`staff_id${i}`];
+          if (!sid) continue;
+          if (!staffIdSet.has(String(sid))) continue;
 
-          // 1) involvement_sales{i}가 저장돼 있으면 그걸 우선 사용
-          const invSaved = pa[`involvement_sales${i}`];
-          if (typeof invSaved === 'number' && isFinite(invSaved)) {
-            sum += invSaved;
-            continue;
-          }
-
-          // involvement_sales{i}가 있으면 그것을 우선 사용하고,
-          // 없으면 buyer/seller amount 합을 사용
-          const inv = Number(getInvForSlot(pa, i) || 0);
-          sum += inv;
+          const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
+          const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
+          sum += (buyerAmt + sellerAmt);
         }
       }
+      return sum;
+    }
 
-      return Math.round(sum);
+    // [REPLACE] 지점 선택 시 해당 지점 직원들만 합계에 포함
+    function computeSalesTotalForCurrentContext() {
+      const rows = window.__RENDERED_ROWS || [];
+      if (!rows.length) return 0;
+
+      // 1) 직원 단일 선택이 최우선
+      if (__selectedStaffId != null) {
+        const only = new Set([String(__selectedStaffId)]);
+        return sumForStaffIds(rows, only);
+      }
+
+      // 2) 지점이 선택돼 있다면: 그 지점 소속 직원(ID 세트)만 합산
+      if (__selectedAffiliation) {
+        const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[__selectedAffiliation]) || null;
+        if (!set || set.size === 0) return 0;
+        return sumForStaffIds(rows, set);
+      }
+
+      // 3) 둘 다 없으면(전체 모드): 타지점 제외 요구사항에 맞춰 0 반환
+      return 0;
     }
 
     /** #salesTotal 텍스트 갱신 */
@@ -1055,6 +1061,30 @@
           query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
 
           // 🧭 UI 필터에도 동일 값 동기화 (사용자가 보면 이해 쉬움)
+          const fieldEl = document.getElementById('filter-date-field');
+          const startEl = document.getElementById('filter-start-date');
+          const endEl   = document.getElementById('filter-end-date');
+          if (fieldEl) fieldEl.value = 'balance_date';
+          if (startEl) startEl.value = toYMD(first);
+          if (endEl)   endEl.value   = toYMD(last);
+        }
+
+        // 5.6) 지점 보기일 때도: 이번 달(1일~말일) 범위 자동 적용 (잔금일 기준)
+        if (!selectedId && selectedAff) {
+          const now = new Date();
+          const first = new Date(now.getFullYear(), now.getMonth(), 1);
+          const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          const toYMD = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+
+          // 🔎 DB 조회 단계에서 이번 달로 제한 (잔금일 기준)
+          query = query.gte('balance_date', toYMD(first)).lte('balance_date', toYMD(last));
+
+          // 🧭 UI 필터에도 동일 값 동기화
           const fieldEl = document.getElementById('filter-date-field');
           const startEl = document.getElementById('filter-start-date');
           const endEl   = document.getElementById('filter-end-date');
