@@ -486,9 +486,16 @@ export function sumForStaffIds(rows, staffIdSet) {
       if (!sid) continue;
       if (!staffIdSet.has(String(sid))) continue;
 
+      const inv = Number(pa?.[`involvement_sales${i}`]);
       const buyerAmt  = Number(pa?.[`buyer_amount${i}`]  || 0);
       const sellerAmt = Number(pa?.[`seller_amount${i}`] || 0);
-      sum += (buyerAmt + sellerAmt);
+
+      // involvement_sales 가 숫자로 채워져 있으면 그걸 우선 사용
+      if (!Number.isNaN(inv) && inv > 0) {
+        sum += inv;
+      } else {
+        sum += (buyerAmt + sellerAmt);
+      }
     }
   }
   return sum;
