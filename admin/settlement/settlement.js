@@ -22,7 +22,7 @@ function ymKey(dateStr) {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
-function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap }) {
+function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap, costMap }) {
   const titleEl = $('#branch-monthly-title');
   const tbody   = $('#branch-monthly-tbody');
   if (titleEl) titleEl.textContent = titleAffiliation ? `지점: ${titleAffiliation}` : '지점을 선택하세요';
@@ -30,26 +30,35 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap }) {
 
   tbody.innerHTML = '';
 
-  const ymSet = new Set([...Object.keys(salesMap || {}), ...Object.keys(payrollMap || {})]);
-  const keys = Array.from(ymSet).sort(); // 오름차순
+  const ymSet = new Set([
+    ...Object.keys(salesMap || {}),
+    ...Object.keys(payrollMap || {}),
+    ...Object.keys(costMap || {}),
+  ]);
+  const keys = Array.from(ymSet).sort();
 
   if (keys.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td class="border px-2 py-3 text-center text-gray-500" colspan="3">데이터가 없습니다</td>
+        <td class="border px-2 py-3 text-center text-gray-500" colspan="5">데이터가 없습니다</td>
       </tr>
     `;
     return;
   }
 
   for (const ym of keys) {
-    const sales   = salesMap[ym]   || 0; // 확정/미확정 포함
-    const payroll = payrollMap[ym] || 0; // ✅ 확정만
+    const sales   = Number(salesMap?.[ym]   || 0); // 잔금매출(확정/미확정 전체)
+    const payroll = Number(payrollMap?.[ym] || 0); // 총 급여(관여매출 50%)
+    const cost    = Number(costMap?.[ym]    || 0); // 총 비용(지금은 0, 추후 연동)
+    const profit  = Math.max(sales - payroll - cost, 0); // 음수 허용 원하면 Math.max 제거
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payroll)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(profit)}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -109,6 +118,7 @@ async function loadBranchMonthlySales(affiliation) {
     const BATCH = 800;
     const salesMap   = {}; // 모든 건 합계 (잔금매출)
     const payrollMap = {}; // ✅ 확정 건만 합계 (총 급여)
+    const costMap    = {}; // ✅ 총 비용(월별). 지금은 0으로 두고, 추후 불러오기/저장 연동
     for (let i = 0; i < perfIds.length; i += BATCH) {
       const chunk = perfIds.slice(i, i + BATCH);
       const { data: allocRows, error: allocErr } = await supabase
@@ -153,7 +163,7 @@ async function loadBranchMonthlySales(affiliation) {
       }
     }
 
-    renderMonthlyTable({ titleAffiliation: affiliation, salesMap, payrollMap });
+    renderMonthlyTable({ titleAffiliation: affiliation, salesMap, payrollMap, costMap });
   } catch (e) {
     console.error('월별 합계 로딩 실패:', e);
     showToastGreenRed?.('월별 합계 로딩 실패');
