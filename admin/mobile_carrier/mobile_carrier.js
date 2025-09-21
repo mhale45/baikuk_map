@@ -65,9 +65,20 @@ export async function initMobileCarrier() {
           return;
         }
 
-        showToastGreenRed('통신사 체크 기록 완료!', true);
-        // 필요시 입력 초기화
-        // phoneEl.value = '';
+        showToastGreenRed('통신사 체크 기록 완료!', { ok: true });
+
+        try {
+          await fetch('/api/run-crawler', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ phone })
+          });
+        } catch (e) {
+          console.error('크롤러 실행 실패:', e);
+          showToastGreenRed('크롤러 실행에 실패했습니다.', false);
+        }
       } catch (err) {
         console.error(err);
         showToastGreenRed('알 수 없는 오류가 발생했습니다.', false);
