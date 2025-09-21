@@ -565,27 +565,32 @@ async function handleExpenseFiles(files) {
   }
 }
 
-// 실제 업로드 (expense 버킷 / 영문지점 폴더)
+// [REPLACE] 실제 업로드 (expense 버킷 / 영문지점 폴더)
 async function uploadExpenseFile(file, ym, onTick) {
-  if (!window.supabase) throw new Error('Supabase 클라이언트가 없습니다.');
-  // 권한 가드: 지점장 또는 관리자만 허용하고 싶다면 아래 주석 해제
-  if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
+  // 권한 가드가 필요하면 주석 해제
+  // if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
 
   const affEn = (__LAST_AFFILIATION_EN || '').trim()
               || String(__LAST_AFFILIATION || '').trim(); // fallback
+  if (!affEn) throw new Error('지점 정보가 없습니다.');
+
   const path = makeExpensePath(file.name, affEn, ym);
 
-  const { error } = await window.supabase
-    .storage.from(EXPENSE_BUCKET)
+  // ✅ import된 supabase 클라이언트를 사용
+  const { error } = await supabase
+    .storage
+    .from(EXPENSE_BUCKET)
     .upload(path, file, { upsert: false });
+
   if (error) throw error;
   if (typeof onTick === 'function') onTick(1);
 
-  // Private 버킷 가정 → 서명 URL 발급
+  // Private 버킷 → 서명 URL 발급
   let signedUrl = null;
   try {
-    const { data: sig, error: sigErr } = await window.supabase
-      .storage.from(EXPENSE_BUCKET)
+    const { data: sig, error: sigErr } = await supabase
+      .storage
+      .from(EXPENSE_BUCKET)
       .createSignedUrl(path, 60 * 60); // 1시간
     if (!sigErr) signedUrl = sig?.signedUrl || null;
   } catch (_) {}
