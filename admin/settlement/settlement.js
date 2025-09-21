@@ -551,11 +551,15 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   const listEl = $id('d_payroll_breakdown');
   if (listEl) {
     const rows = (staffList || []).map(s => {
-      const val = Number(pmap?.[s.id] || 0);
+      const val = Number(pmap?.[s.id] || 0); // 급여
+      const deposit = Math.round(val * 0.967); // 입금액
       return `
         <div class="flex items-center justify-between px-3 py-1 border-t first:border-t-0">
           <span class="text-sm text-gray-700">${s.name}</span>
-          <span class="text-sm font-medium text-right">${fmtKR(val)}</span>
+          <span class="text-sm font-medium text-right">
+            ${fmtKR(val)}
+            <span class="text-xs text-blue-600 ml-1">(${fmtKR(deposit)})</span>
+          </span>
         </div>
       `;
     }).join('');
