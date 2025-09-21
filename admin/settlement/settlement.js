@@ -49,6 +49,22 @@ let __CURRENT_DRAWER_YM = null;      // [ADD] 드로어에 열린 YYYY-MM
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
+// 금액 포맷터 (있으면 생략)
+function formatKRW(n) {
+  try {
+    return Number(n || 0).toLocaleString('ko-KR');
+  } catch (_) {
+    return '0';
+  }
+}
+
+// 금액 파서 (있으면 생략)
+function parseKRW(v) {
+  if (typeof v === 'number') return v;
+  if (!v) return 0;
+  return Number(String(v).replace(/[^\d.-]/g, '')) || 0;
+}
+
 // 문자열(₩,콤마 포함) → 숫자
 function toNumberKR(v) {
   return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
@@ -577,7 +593,11 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     __LAST_COST_MAP[ym] = c;
     const profit = Number(sales || 0) - Number(payrollTotal || 0) - c;
     $id('d_profit').value = fmtKR(profit);
+
+    // ✅ 순이익 변동 시 지점자율금도 함께 업데이트
+    updateAutonomousAmount();
   };
+
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
@@ -1044,4 +1064,80 @@ function renderCostHints() {
       ? COST_EXCLUDE_HINTS.map(v => `<li>${v}</li>`).join('')
       : `<li class="text-gray-400">없음</li>`);
   }
+}
+
+// 지점의 autonomous-rate를 Supabase에서 읽어옵니다. (affiliation 기준)
+async function fetchAutonomousRate(affiliation) {
+  const rateLabel = document.getElementById('d_autonomous_rate');
+
+  if (!affiliation) {
+    if (rateLabel) rateLabel.textContent = '(rate: —)';
+    return 0;
+  }
+
+  const { data, error } = await supabase
+    .from('branch_info')
+    .select('"autonomous-rate"')   // 하이픈 컬럼은 큰따옴표로 감싸기
+    .eq('affiliation', affiliation)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to load autonomous-rate', error);
+    if (rateLabel) rateLabel.textContent = '(rate: —)';
+    return 0;
+  }
+
+  const rate = Number(data?.['autonomous-rate'] ?? 0);
+  if (rateLabel) rateLabel.textContent = `(rate: ${(rate * 100).toFixed(1)}%)`;
+  return rate; // 0.1 = 10%
+}
+
+// 지점의 autonomous-rate를 Supabase에서 읽어옵니다.
+async function fetchAutonomousRate(branchId) {
+  if (!branchId) {
+    // 지점 선택 전에는 0으로 간주
+    document.getElementById('d_autonomous_rate')?.textContent = '(rate: —)';
+    return 0;
+  }
+  const { data, error } = await supabase
+    .from('branch_info')
+    .select('"autonomous-rate"') // 하이픈 컬럼은 따옴표 필수
+    .eq('id', branchId)         // 프로젝트 스키마에 맞게 컬럼명이 'id'인지 확인
+    .single();
+
+  if (error) {
+    console.error('Failed to load autonomous-rate', error);
+    document.getElementById('d_autonomous_rate')?.textContent = '(rate: —)';
+    return 0;
+  }
+
+  const rate = Number(data?.['autonomous-rate'] ?? 0);
+  // 0.1 => 10.0% 표기
+  document.getElementById('d_autonomous_rate')?.textContent =
+    `(rate: ${(rate * 100).toFixed(1)}%)`;
+  return rate;
+}
+
+async function updateAutonomousAmount() {
+  // 1) 현재 지점명으로 rate 읽기
+  const affiliation = getCurrentBranchId();          // 이제 affiliation 문자열 반환
+  const rate = await fetchAutonomousRate(affiliation); // 0 ~ 1
+
+  // 2) (매출합계 − 총 급여 − 총 비용)
+  const salesEl    = document.getElementById('d_sales');
+  const expensesEl = document.getElementById('d_cost');
+  const payrollEl  = document.getElementById('d_payroll');
+
+  const sales    = parseKRW(salesEl?.value);
+  const payroll  = parseKRW(payrollEl?.value);
+  const expenses = parseKRW(expensesEl?.value);
+
+  const netProfit = (sales - payroll - expenses);
+
+  // 3) 음수 보정(원치 않으면 제거)
+  const amount = Math.max(0, Math.floor(netProfit * rate));
+
+  // 4) 렌더
+  const out = document.getElementById('d_autonomous_amount');
+  if (out) out.value = formatKRW(amount);
 }

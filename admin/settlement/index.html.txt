@@ -74,7 +74,7 @@
         <span id="d_branch" class="ml-2 text-sm text-gray-500"></span>
         <!-- [ADD] 정산확정 버튼 -->
         <button id="settlement-confirm-btn"
-                class="ml-auto px-3 py-1.5 rounded bg-amber-500 text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed">
+                class="ml-auto px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
           정산확정
         </button>
         <button id="close-settlement-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
@@ -110,6 +110,22 @@
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
             <input id="d_cost" type="text" inputmode="numeric" placeholder="0"
                   class="border rounded px-3 py-2 text-right">
+            <!-- [ADD] 총 비용 항목 안내 (참고/제외) -->
+            <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
+              <div class="text-sm font-semibold text-amber-800 mb-2">총 비용 항목 안내</div>
+
+              <!-- 참고항목 -->
+              <div class="text-sm">
+                <div class="font-semibold text-gray-800 mb-1">참고항목</div>
+                <ul id="d_cost_includes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
+              </div>
+
+              <!-- 제외항목 (참고항목 아래) -->
+              <div class="text-sm mt-3">
+                <div class="font-semibold text-gray-800 mb-1">제외항목</div>
+                <ul id="d_cost_excludes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
+              </div>
+            </div>
           </label>
 
           <label class="flex flex-col gap-1 col-span-2">
