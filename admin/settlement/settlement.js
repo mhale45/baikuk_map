@@ -7,6 +7,7 @@ const $  = (sel, doc = document) => doc.querySelector(sel);
 const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
+
 // [ADD] 월별 합계/브레이크다운 캐시(드로어/테이블에서 재사용)
 let __LAST_AFFILIATION = null;
 // 합계
@@ -25,6 +26,66 @@ let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
 let __MY_AFFILIATION = null;    // 지점장/직원일 때 본인 지점명
 
 
+
+// ===== Expense 업로더 설정 =====
+const EXPENSE_BUCKET = 'expense';
+const EXP_ALLOWED_EXT = ['.xlsx', '.xls', '.csv'];
+const EXP_MAX_MB = 20;
+
+let __LAST_AFFILIATION_EN = null;   // [ADD] 현재 선택 지점의 영문명
+let __CURRENT_DRAWER_YM = null;      // [ADD] 드로어에 열린 YYYY-MM
+
+function expValidate(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const okExt = EXP_ALLOWED_EXT.some(ext => name.endsWith(ext));
+  const okSize = (file?.size || 0) <= EXP_MAX_MB * 1024 * 1024;
+  return okExt && okSize;
+}
+
+// 'YYYY-MM' → {yyyy, mm}
+function ymToParts(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+  return m ? { yyyy: m[1], mm: m[2] } : null;
+}
+
+// 저장 경로: [영문지점]/YYYY/MM/DD/timestamp_파일명
+function makeExpensePath(fileName, affiliationEn, ym) {
+  const parts = ymToParts(ym);
+  if (!parts) throw new Error('invalid ym');
+  const aff = String(affiliationEn || '').trim() || 'Unknown';
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const sanitized = String(fileName || '').replace(/[^\w.\-()가-힣\[\]\s]/g, '_');
+  return `${aff}/${parts.yyyy}/${parts.mm}/${dd}/${Date.now()}_${sanitized}`;
+}
+
+function expShowProgress(percent, label) {
+  const box = document.getElementById('expUploadProgress');
+  const bar = document.getElementById('expUploadBar');
+  const lab = document.getElementById('expUploadLabel');
+  if (!box || !bar || !lab) return;
+  box.classList.remove('hidden');
+  bar.style.width = `${percent}%`;
+  lab.textContent = label || '';
+}
+
+function expAppendResult({ name, url, path, error }) {
+  const box = document.getElementById('expUploadList');
+  const ul = document.getElementById('expUploadItems');
+  if (!box || !ul) return;
+  box.classList.remove('hidden');
+
+  const li = document.createElement('li');
+  li.className = "flex items-center justify-between border rounded-lg px-3 py-2 bg-white";
+  li.innerHTML = `
+    <div class="truncate">
+      ${error ? `❌ <b>${name}</b> · <span class="text-red-500">${error}</span>`
+              : `✅ <b>${name}</b> · <code class="text-slate-500">${path || ''}</code>`}
+    </div>
+    <div>${url ? `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}</div>
+  `;
+  ul.appendChild(li);
+}
 
 /** 숫자 콤마 */
 function fmt(n) {
@@ -154,6 +215,20 @@ async function loadBranchMonthlySales(affiliation) {
       .eq('affiliation', affiliation)
       .is('leave_date', null);
     if (staffErr) throw staffErr;
+
+    // [ADD] 영문 지점명 로드
+    try {
+      const { data: bi, error: biErr } = await supabase
+        .from('branch_info')
+        .select('affiliation, affiliation_en')
+        .eq('affiliation', affiliation)
+        .maybeSingle();
+      if (biErr) throw biErr;
+      __LAST_AFFILIATION_EN = (bi?.affiliation_en || '').trim() || null;
+    } catch (e) {
+      console.warn('affiliation_en 조회 실패:', e?.message || e);
+      __LAST_AFFILIATION_EN = null;
+    }
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
@@ -354,6 +429,7 @@ export async function initSettlement() {
 
 function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost, staffList }) {
   __LAST_COST_MAP[ym] = Number(cost || 0); // 캐시 동기화
+  __CURRENT_DRAWER_YM = ym; // [ADD] 현재 드로어의 YYYY-MM
 
   const drawer = document.getElementById('settlement-drawer');
   const overlay = document.getElementById('settlement-overlay');
@@ -423,6 +499,98 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // 오픈
   overlay.classList.remove('hidden');
   drawer.classList.remove('translate-x-full');
+
+  // [ADD] 업로더 이벤트 바인딩(1회)
+  (function wireExpenseUploaderOnce() {
+    const pick = document.getElementById('expFilePickBtn');
+    const input = document.getElementById('expFileInput');
+    const drop = document.getElementById('expDropZone');
+    if (!pick || !input || !drop) return;
+    if (pick.dataset.wired === '1') return;
+    pick.dataset.wired = '1';
+
+    pick.addEventListener('click', () => input.click());
+    input.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length) await handleExpenseFiles(files);
+      e.target.value = '';
+    });
+
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add('bg-indigo-50', 'border-indigo-400');
+    }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.remove('bg-indigo-50', 'border-indigo-400');
+    }));
+    drop.addEventListener('drop', async (e) => {
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length) await handleExpenseFiles(files);
+    });
+  })();
+}
+
+async function handleExpenseFiles(files) {
+  try {
+    const ym = __CURRENT_DRAWER_YM;
+    if (!ym) throw new Error('기간(YYYY-MM)이 없습니다.');
+    if (!__LAST_AFFILIATION_EN && !__LAST_AFFILIATION) {
+      throw new Error('지점 정보를 확인할 수 없습니다.');
+    }
+
+    const valid = files.filter(expValidate);
+    if (!valid.length) {
+      showToastGreenRed?.('허용되지 않는 형식/크기의 파일입니다.');
+      return;
+    }
+
+    expShowProgress(0, '업로드 시작…');
+    for (let i=0; i<valid.length; i++) {
+      const f = valid[i];
+      try {
+        const { path, signedUrl } = await uploadExpenseFile(f, ym, (ratio) => {
+          const overall = Math.round(((i + ratio) / valid.length) * 100);
+          expShowProgress(overall, `업로드 중… (${overall}%)`);
+        });
+        expAppendResult({ name: f.name, url: signedUrl, path });
+      } catch (err) {
+        console.error('[expense] upload failed:', err);
+        expAppendResult({ name: f.name, error: err?.message || '업로드 실패' });
+      }
+    }
+    expShowProgress(100, '완료');
+  } catch (e) {
+    showToastGreenRed?.(e?.message || '업로드 준비 실패');
+  }
+}
+
+// 실제 업로드 (expense 버킷 / 영문지점 폴더)
+async function uploadExpenseFile(file, ym, onTick) {
+  if (!window.supabase) throw new Error('Supabase 클라이언트가 없습니다.');
+  // 권한 가드: 지점장 또는 관리자만 허용하고 싶다면 아래 주석 해제
+  if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
+
+  const affEn = (__LAST_AFFILIATION_EN || '').trim()
+              || String(__LAST_AFFILIATION || '').trim(); // fallback
+  const path = makeExpensePath(file.name, affEn, ym);
+
+  const { error } = await window.supabase
+    .storage.from(EXPENSE_BUCKET)
+    .upload(path, file, { upsert: false });
+  if (error) throw error;
+  if (typeof onTick === 'function') onTick(1);
+
+  // Private 버킷 가정 → 서명 URL 발급
+  let signedUrl = null;
+  try {
+    const { data: sig, error: sigErr } = await window.supabase
+      .storage.from(EXPENSE_BUCKET)
+      .createSignedUrl(path, 60 * 60); // 1시간
+    if (!sigErr) signedUrl = sig?.signedUrl || null;
+  } catch (_) {}
+
+  return { path, signedUrl };
 }
 
 function closeSettlementDrawer() {
