@@ -253,7 +253,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
   for (const ym of yms) {
     const sales = Number(salesMap?.[ym] || 0);
-    const cost  = Number(costMap?.[ym] || 0);
+    const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
     const pmap = payrollByStaff?.[ym] || {};
     let payrollTotal = 0;
