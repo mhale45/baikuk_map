@@ -1,8 +1,5 @@
 /**
  * 토스트 메시지를 화면에 표시
- * @param {string} msg - 표시할 메시지
- * @param {object} [opts]
- * @param {boolean} [opts.ok=false] - true면 초록색, false면 빨간색
  */
 export function showToastGreenRed(msg, { ok=false } = {}) {
   const el = document.getElementById('toast');
