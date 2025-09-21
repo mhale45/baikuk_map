@@ -7,6 +7,7 @@ const $  = (sel, doc = document) => doc.querySelector(sel);
 const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
+
 // [ADD] 월별 합계/브레이크다운 캐시(드로어/테이블에서 재사용)
 let __LAST_AFFILIATION = null;
 // 합계
@@ -25,6 +26,151 @@ let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
 let __MY_AFFILIATION = null;    // 지점장/직원일 때 본인 지점명
 
 
+
+// ===== Expense 업로더 설정 =====
+const EXPENSE_BUCKET = 'expense';
+const EXP_ALLOWED_EXT = ['.xlsx', '.xls', '.csv'];
+const EXP_MAX_MB = 20;
+
+let __LAST_AFFILIATION_EN = null;   // [ADD] 현재 선택 지점의 영문명
+let __CURRENT_DRAWER_YM = null;      // [ADD] 드로어에 열린 YYYY-MM
+
+function expValidate(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const okExt = EXP_ALLOWED_EXT.some(ext => name.endsWith(ext));
+  const okSize = (file?.size || 0) <= EXP_MAX_MB * 1024 * 1024;
+  return okExt && okSize;
+}
+
+// 'YYYY-MM' → {yyyy, mm}
+function ymToParts(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+  return m ? { yyyy: m[1], mm: m[2] } : null;
+}
+
+// 저장 경로: [영문지점]/YYYY/MM/DD/timestamp_파일명
+function makeExpensePath(fileName, affiliationEn, ym) {
+  const parts = ymToParts(ym);
+  if (!parts) throw new Error('invalid ym');
+  const aff = String(affiliationEn || '').trim() || 'Unknown';
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const sanitized = String(fileName || '').replace(/[^\w.\-()가-힣\[\]\s]/g, '_');
+  return `${aff}/${parts.yyyy}/${parts.mm}/${dd}/${Date.now()}_${sanitized}`;
+}
+
+// 목록 prefix: [영문지점]/YYYY/MM
+function makeMonthPrefix(affiliationEn, ym) {
+  const parts = ymToParts(ym);
+  if (!parts) throw new Error('invalid ym');
+  const aff = String(affiliationEn || '').trim() || 'Unknown';
+  return `${aff}/${parts.yyyy}/${parts.mm}`;
+}
+
+function expShowProgress(percent, label) {
+  const box = document.getElementById('expUploadProgress');
+  const bar = document.getElementById('expUploadBar');
+  const lab = document.getElementById('expUploadLabel');
+  if (!box || !bar || !lab) return;
+  box.classList.remove('hidden');
+  bar.style.width = `${percent}%`;
+  lab.textContent = label || '';
+}
+
+function expAppendResult({ name, url, path, error }) {
+  const box = document.getElementById('expUploadList');
+  const ul = document.getElementById('expUploadItems');
+  if (!box || !ul) return;
+  box.classList.remove('hidden');
+
+  const li = document.createElement('li');
+  li.className = "flex items-center justify-between border rounded-lg px-3 py-2 bg-white";
+  li.innerHTML = `
+    <div class="truncate">
+      ${error ? `❌ <b>${name}</b> · <span class="text-red-500">${error}</span>`
+              : `✅ <b>${name}</b> · <code class="text-slate-500">${path || ''}</code>`}
+    </div>
+    <div>${url ? `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}</div>
+  `;
+  ul.appendChild(li);
+}
+
+// [REPLACE] 저장된 파일 목록 불러오기(+일자 폴더까지 내려가서 파일 수집)
+async function loadExpenseFileList(affiliationEn, ym) {
+  try {
+    const ul = document.getElementById('expFileList');
+    const empty = document.getElementById('expFileEmpty');
+    if (!ul || !empty) return;
+
+    ul.innerHTML = '';
+    empty.classList.add('hidden');
+
+    const monthPrefix = makeMonthPrefix(affiliationEn, ym); // ex) Mokdong/2025/09
+
+    // 1) 월 폴더 1레벨 목록
+    const { data: monthEntries, error: monthErr } = await supabase
+      .storage.from(EXPENSE_BUCKET)
+      .list(monthPrefix, { limit: 1000, sortBy: { column: 'name', order: 'desc' } });
+    if (monthErr) throw monthErr;
+
+    // helper: 파일 렌더
+    const renderFile = async (fullPath, name, size) => {
+      let signedUrl = null;
+      try {
+        const { data: sig, error: sigErr } = await supabase
+          .storage.from(EXPENSE_BUCKET)
+          .createSignedUrl(fullPath, 60 * 60); // 1시간
+        if (!sigErr) signedUrl = sig?.signedUrl || null;
+      } catch (_) {}
+
+      const li = document.createElement('li');
+      li.className = 'flex items-center justify-between border rounded-lg px-3 py-2 bg-white';
+      li.innerHTML = `
+        <div class="truncate">
+          📄 <b class="truncate">${name}</b>
+          ${typeof size === 'number' ? `<span class="ml-2 text-xs text-slate-400">${size.toLocaleString()} B</span>` : ''}
+        </div>
+        <div>${signedUrl ? `<a href="${signedUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}</div>
+      `;
+      ul.appendChild(li);
+    };
+
+    // 2) 월 폴더에 파일이 직접 있을 수도 있으니 먼저 그 파일들 렌더
+    for (const e of (monthEntries || [])) {
+      // 파일이면 metadata가 있음, 폴더면 metadata가 null
+      if (e?.name && e?.metadata && e.name !== '.keep') {
+        const fullPath = `${monthPrefix}/${e.name}`;
+        await renderFile(fullPath, e.name, e.metadata.size ?? null);
+      }
+    }
+
+    // 3) 월 폴더 아래 하위 폴더(=일자: 01~31)를 다시 list 해서 파일 렌더
+    for (const e of (monthEntries || [])) {
+      if (!e?.name || e?.metadata) continue; // metadata가 없으면 폴더
+      const dayPrefix = `${monthPrefix}/${e.name}`; // ex) Mokdong/2025/09/21
+      const { data: dayEntries, error: dayErr } = await supabase
+        .storage.from(EXPENSE_BUCKET)
+        .list(dayPrefix, { limit: 1000, sortBy: { column: 'name', order: 'desc' } });
+      if (dayErr) continue;
+
+      for (const f of (dayEntries || [])) {
+        if (!f?.name || f.name === '.keep') continue;
+        const fullPath = `${dayPrefix}/${f.name}`;
+        await renderFile(fullPath, `${e.name}/${f.name}`, f?.metadata?.size ?? null); // 표시: "21/파일명"
+      }
+    }
+
+    // 4) 아무것도 없으면 빈 메시지
+    if (!ul.children.length) {
+      empty.textContent = '아직 업로드된 파일이 없습니다.';
+      empty.classList.remove('hidden');
+    }
+  } catch (e) {
+    console.warn('[expense] list load failed:', e?.message || e);
+    const empty = document.getElementById('expFileEmpty');
+    if (empty) { empty.textContent = '파일 목록을 불러오지 못했습니다.'; empty.classList.remove('hidden'); }
+  }
+}
 
 /** 숫자 콤마 */
 function fmt(n) {
@@ -154,6 +300,20 @@ async function loadBranchMonthlySales(affiliation) {
       .eq('affiliation', affiliation)
       .is('leave_date', null);
     if (staffErr) throw staffErr;
+
+    // [ADD] 영문 지점명 로드
+    try {
+      const { data: bi, error: biErr } = await supabase
+        .from('branch_info')
+        .select('affiliation, affiliation_en')
+        .eq('affiliation', affiliation)
+        .maybeSingle();
+      if (biErr) throw biErr;
+      __LAST_AFFILIATION_EN = (bi?.affiliation_en || '').trim() || null;
+    } catch (e) {
+      console.warn('affiliation_en 조회 실패:', e?.message || e);
+      __LAST_AFFILIATION_EN = null;
+    }
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
@@ -354,6 +514,7 @@ export async function initSettlement() {
 
 function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost, staffList }) {
   __LAST_COST_MAP[ym] = Number(cost || 0); // 캐시 동기화
+  __CURRENT_DRAWER_YM = ym; // [ADD] 현재 드로어의 YYYY-MM
 
   const drawer = document.getElementById('settlement-drawer');
   const overlay = document.getElementById('settlement-overlay');
@@ -423,6 +584,117 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // 오픈
   overlay.classList.remove('hidden');
   drawer.classList.remove('translate-x-full');
+
+  // [ADD] 업로더 이벤트 바인딩(1회)
+  (function wireExpenseUploaderOnce() {
+    const pick = document.getElementById('expFilePickBtn');
+    const input = document.getElementById('expFileInput');
+    const drop = document.getElementById('expDropZone');
+    if (!pick || !input || !drop) return;
+    if (pick.dataset.wired === '1') return;
+    pick.dataset.wired = '1';
+
+    pick.addEventListener('click', () => input.click());
+    input.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length) await handleExpenseFiles(files);
+      e.target.value = '';
+    });
+
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add('bg-indigo-50', 'border-indigo-400');
+    }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.remove('bg-indigo-50', 'border-indigo-400');
+    }));
+    drop.addEventListener('drop', async (e) => {
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length) await handleExpenseFiles(files);
+    });
+  })();
+    
+  // [ADD] 드로어 열릴 때, 해당 달 저장된 파일 목록 로딩
+  if (__LAST_AFFILIATION_EN) {
+    loadExpenseFileList(__LAST_AFFILIATION_EN, ym);
+  } else if (__LAST_AFFILIATION) {
+    // affiliation_en이 없으면 한글명으로 폴백(폴더도 한글로 만든 경우 대비)
+    loadExpenseFileList(__LAST_AFFILIATION, ym);
+  }
+}
+
+async function handleExpenseFiles(files) {
+  try {
+    const ym = __CURRENT_DRAWER_YM;
+    if (!ym) throw new Error('기간(YYYY-MM)이 없습니다.');
+    if (!__LAST_AFFILIATION_EN && !__LAST_AFFILIATION) {
+      throw new Error('지점 정보를 확인할 수 없습니다.');
+    }
+
+    const valid = files.filter(expValidate);
+    if (!valid.length) {
+      showToastGreenRed?.('허용되지 않는 형식/크기의 파일입니다.');
+      return;
+    }
+
+    expShowProgress(0, '업로드 시작…');
+    for (let i=0; i<valid.length; i++) {
+      const f = valid[i];
+      try {
+        const { path, signedUrl } = await uploadExpenseFile(f, ym, (ratio) => {
+          const overall = Math.round(((i + ratio) / valid.length) * 100);
+          expShowProgress(overall, `업로드 중… (${overall}%)`);
+        });
+        expAppendResult({ name: f.name, url: signedUrl, path });
+      } catch (err) {
+        console.error('[expense] upload failed:', err);
+        expAppendResult({ name: f.name, error: err?.message || '업로드 실패' });
+      }
+    }
+    expShowProgress(100, '완료');
+  } catch (e) {
+    showToastGreenRed?.(e?.message || '업로드 준비 실패');
+  }
+
+  // 업로드 후 목록 다시 불러오기
+  const affEn = (__LAST_AFFILIATION_EN || __LAST_AFFILIATION);
+  if (affEn && __CURRENT_DRAWER_YM) {
+    loadExpenseFileList(affEn, __CURRENT_DRAWER_YM);
+  }
+}
+
+// [REPLACE] 실제 업로드 (expense 버킷 / 영문지점 폴더)
+async function uploadExpenseFile(file, ym, onTick) {
+  // 권한 가드가 필요하면 주석 해제
+  if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
+
+  const affEn = (__LAST_AFFILIATION_EN || '').trim()
+              || String(__LAST_AFFILIATION || '').trim(); // fallback
+  if (!affEn) throw new Error('지점 정보가 없습니다.');
+
+  const path = makeExpensePath(file.name, affEn, ym);
+
+  // ✅ import된 supabase 클라이언트를 사용
+  const { error } = await supabase
+    .storage
+    .from(EXPENSE_BUCKET)
+    .upload(path, file, { upsert: false });
+
+  if (error) throw error;
+  if (typeof onTick === 'function') onTick(1);
+
+  // Private 버킷 → 서명 URL 발급
+  let signedUrl = null;
+  try {
+    const { data: sig, error: sigErr } = await supabase
+      .storage
+      .from(EXPENSE_BUCKET)
+      .createSignedUrl(path, 60 * 60); // 1시간
+    if (!sigErr) signedUrl = sig?.signedUrl || null;
+  } catch (_) {}
+
+  return { path, signedUrl };
 }
 
 function closeSettlementDrawer() {
