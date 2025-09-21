@@ -13,7 +13,7 @@ async def run_crawler(request: Request):
         return {"error": "전화번호가 없습니다."}
 
     try:
-        subprocess.Popen(["python3", "../crawlers/tworld_crawler.py", phone])
+        subprocess.Popen(["python3", "api/tworld_crawler.py", phone])
         return {"status": "크롤러 실행됨"}
     except Exception as e:
         return {"error": str(e)}
