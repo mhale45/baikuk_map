@@ -53,15 +53,7 @@
 
       <section class="bg-white rounded-xl shadow p-4 border border-gray-200">
         <table class="w-full table-fixed border-collapse text-sm">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="border px-2 py-2 w-32">기간(YYYY-MM)</th>
-              <th class="border px-2 py-2 w-48">잔금매출 합계</th>
-              <th class="border px-2 py-2 w-48">총 급여(50%)</th>
-              <th class="border px-2 py-2 w-40">총 비용</th>
-              <th class="border px-2 py-2 w-48">순이익</th>
-            </tr>
-          </thead>
+          <thead id="monthly-thead" class="bg-gray-100"></thead>
           <tbody id="branch-monthly-tbody">
             <tr>
               <td class="border px-2 py-3 text-center text-gray-500" colspan="5">지점을 선택하세요</td>
@@ -73,6 +65,75 @@
 
     <!-- 어두운 오버레이 -->
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
+    <!-- [ADD] 정산 상세 드로어 -->
+    <div id="settlement-drawer"
+        class="fixed inset-y-0 right-0 w-[32rem] bg-white shadow-2xl border-l border-gray-200 translate-x-full transition-transform duration-300 ease-out z-[1100] flex flex-col">
+      <!-- 헤더 -->
+      <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+        <h2 class="text-lg font-bold">월별 정산</h2>
+        <span id="d_branch" class="ml-2 text-sm text-gray-500"></span>
+        <button id="close-settlement-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
+      </div>
+
+      <!-- 내용 -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">기간(YYYY-MM)</span>
+            <input id="d_period" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-gray-600">
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">매출합계</span>
+            <input id="d_sales" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+          </label>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
+            </div>
+          </div>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 비용</span>
+            <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
+            <input id="d_cost" type="text" inputmode="numeric" placeholder="0"
+                  class="border rounded px-3 py-2 text-right">
+          </label>
+
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 총 비용</span>
+            <input id="d_profit" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
+          </label>
+        </div>
+        <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
+        <div class="px-5 pb-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">메모</span>
+            <textarea id="d_memo" rows="4" class="border rounded px-3 py-2 w-full resize-none overflow-hidden"></textarea>
+          </label>
+        </div>
+      </div>
+
+      <!-- 푸터: 저장/닫기 -->
+      <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button id="settlement-drawer-save" class="px-4 py-2 rounded bg-[#00b74a] text-white hover:brightness-110 active:brightness-90">
+          저장
+        </button>
+        <button id="settlement-drawer-close" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">닫기</button>
+      </div>
+    </div>
+
+    <!-- [ADD] 드로어 오버레이 -->
+    <div id="settlement-overlay" class="fixed inset-0 bg-black/30 z-[1090] hidden"></div>
+
   </div>
   <script type="module">
     import { client as supabase } from '../../modules/core/supabase.js';

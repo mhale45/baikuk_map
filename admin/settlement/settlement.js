@@ -422,37 +422,14 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     memo: (memo ?? '').trim(),
   };
 
-  // 4) 수동 UPSERT: 존재여부 확인 → update or insert
-  const { data: existing, error: selErr } = await supabase
+  // 4) 권장: onConflict 업서트 (DB에 UNIQUE (branch_info_id, period_month) 권장)
+  const { error: upsertErr } = await supabase
     .from('branch_settlement_expenses')
-    .select('id')
-    .eq('branch_info_id', branch_info_id)
-    .eq('period_month', period_month)
-    .maybeSingle();
+    .upsert(payload, { onConflict: 'branch_info_id,period_month' }); // ✅ 컬럼명만
 
-  if (selErr && selErr.code !== 'PGRST116') {
-    // PGRST116: no rows
-    showToastGreenRed?.('저장 실패(조회 오류)');
-    throw selErr;
-  }
-
-  if (existing?.id) {
-    const { error: updErr } = await supabase
-      .from('branch_settlement_expenses')
-      .update(payload)
-      .eq('id', existing.id);
-    if (updErr) {
-      showToastGreenRed?.('저장 실패(업데이트 오류)');
-      throw updErr;
-    }
-  } else {
-    const { error: insErr } = await supabase
-      .from('branch_settlement_expenses')
-      .insert(payload);
-    if (insErr) {
-      showToastGreenRed?.('저장 실패(추가 오류)');
-      throw insErr;
-    }
+  if (upsertErr) {
+    showToastGreenRed?.('저장 실패(업서트 오류)');
+    throw upsertErr;
   }
   return true;
 }

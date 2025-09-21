@@ -5,6 +5,7 @@ period_month : date
 branch_info_id : uuid
 total_expense : numeric
 memo : text
+affiliation : text
 
 - ad_baikuk_listings
 ad_listing_id : int8
