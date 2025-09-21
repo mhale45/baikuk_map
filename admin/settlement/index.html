@@ -53,15 +53,7 @@
 
       <section class="bg-white rounded-xl shadow p-4 border border-gray-200">
         <table class="w-full table-fixed border-collapse text-sm">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="border px-2 py-2 w-32">기간(YYYY-MM)</th>
-              <th class="border px-2 py-2 w-48">잔금매출 합계</th>
-              <th class="border px-2 py-2 w-48">총 급여(50%)</th>
-              <th class="border px-2 py-2 w-40">총 비용</th>
-              <th class="border px-2 py-2 w-48">순이익</th>
-            </tr>
-          </thead>
+          <thead id="monthly-thead" class="bg-gray-100"></thead>
           <tbody id="branch-monthly-tbody">
             <tr>
               <td class="border px-2 py-3 text-center text-gray-500" colspan="5">지점을 선택하세요</td>
@@ -98,11 +90,15 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
           </label>
 
-          <label class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">총 급여(50%)</span>
             <input id="d_payroll" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
-          </label>
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
+            </div>
+          </div>
 
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">총 비용</span>
