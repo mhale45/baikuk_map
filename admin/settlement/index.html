@@ -113,17 +113,18 @@
             <!-- [ADD] 총 비용 항목 안내 (참고/제외) -->
             <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
               <div class="text-sm font-semibold text-amber-800 mb-2">총 비용 항목 안내</div>
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div class="font-semibold text-gray-800 mb-1">참고항목</div>
-                  <ul id="d_cost_includes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-800 mb-1">제외항목</div>
-                  <ul id="d_cost_excludes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
-                </div>
+
+              <!-- 참고항목 -->
+              <div class="text-sm">
+                <div class="font-semibold text-gray-800 mb-1">참고항목</div>
+                <ul id="d_cost_includes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
               </div>
-              <p class="mt-2 text-xs text-gray-500">항목은 settlement.js의 배열에서 관리합니다.</p>
+
+              <!-- 제외항목 (참고항목 아래) -->
+              <div class="text-sm mt-3">
+                <div class="font-semibold text-gray-800 mb-1">제외항목</div>
+                <ul id="d_cost_excludes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
+              </div>
             </div>
           </label>
 
