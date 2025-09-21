@@ -17,6 +17,10 @@ let __LAST_COST_MAP = {};
 let __LAST_STAFF_LIST = []; // [{id, name}]
 let __LAST_PAYROLL_BY_STAFF = {}; // { 'YYYY-MM': { staffId: amount(급여, 50%적용) } }
 
+// [ADD] 월별 메모 캐시 (미리보기/저장 후 재표시용)
+let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
+
+
 /** 숫자 콤마 */
 function fmt(n) {
   const x = Number(n || 0);
@@ -351,11 +355,20 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   const recompute = () => {
     const c = Math.max(toNumber(costEl.value), 0);
     __LAST_COST_MAP[ym] = c;
-    const profit = sales - payrollTotal - c;
+    const profit = Number(sales || 0) - Number(payrollTotal || 0) - c;
     $id('d_profit').value = fmtKR(profit);
   };
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
+
+  // 메모 표시/동기화
+  const memoEl = $id('d_memo');
+  if (memoEl) {
+    memoEl.value = __LAST_MEMO_MAP[ym] || '';
+    memoEl.oninput = () => {
+      __LAST_MEMO_MAP[ym] = memoEl.value;
+    };
+  }
 
   // 최초 계산
   recompute();
@@ -373,10 +386,101 @@ function closeSettlementDrawer() {
   overlay.classList.add('hidden');
 }
 
+// YYYY-MM -> YYYY-MM-01 로 변환
+function firstDayOfMonth(ym) {
+  // ym: 'YYYY-MM'
+  const m = /^(\d{4})-(\d{2})$/.exec(ym);
+  if (!m) return null;
+  return `${m[1]}-${m[2]}-01`;
+}
+
+// [ADD] 저장(업서트)
+// - branch_info.affiliation == 지점명 으로 branch_info_id 조회
+// - branch_settlement_expenses 에 upsert
+async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo }) {
+  // 1) affiliation -> branch_info_id
+  const { data: br, error: brErr } = await supabase
+    .from('branch_info')
+    .select('id')
+    .eq('affiliation', affiliation)
+    .maybeSingle();
+  if (brErr || !br?.id) {
+    showToastGreenRed?.('지점 정보를 찾을 수 없습니다.');
+    throw brErr || new Error('branch_info not found');
+  }
+  const branch_info_id = br.id;
+
+  // 2) period_month
+  const period_month = firstDayOfMonth(ym);
+  if (!period_month) throw new Error('invalid period_month');
+
+  // 3) upsert
+  const payload = {
+    branch_info_id,
+    period_month,
+    total_expense: Number(totalExpense || 0),
+    memo: (memo ?? '').trim(),
+  };
+
+  // onConflict는 DB 유니크키(예: (branch_info_id, period_month))가 설정되어 있어야 동작함
+  const { error: upErr } = await supabase
+    .from('branch_settlement_expenses')
+    .upsert(payload, { onConflict: 'branch_info_id,period_month' });
+
+  if (upErr) {
+    showToastGreenRed?.('저장 실패');
+    throw upErr;
+  }
+  return true;
+}
+
 // 닫기 버튼/오버레이 클릭 연결 (초기 1회 바인딩)
 document.addEventListener('DOMContentLoaded', () => {
   const c1 = document.getElementById('close-settlement-drawer');
   const c2 = document.getElementById('settlement-drawer-close');
   const ov = document.getElementById('settlement-overlay');
   [c1, c2, ov].forEach(el => el && el.addEventListener('click', closeSettlementDrawer));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const saveBtn = document.getElementById('settlement-drawer-save');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      try {
+        const ym   = document.getElementById('d_period')?.value;
+        const cost = Number(String(document.getElementById('d_cost')?.value || '0').replace(/[^\d.-]/g, '')) || 0;
+        const memo = document.getElementById('d_memo')?.value || '';
+        const aff  = (__LAST_AFFILIATION || '').trim();
+
+        if (!ym || !aff) {
+          showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
+          return;
+        }
+
+        await saveBranchMonthlyExpense({
+          affiliation: aff,
+          ym,
+          totalExpense: cost,
+          memo,
+        });
+
+        // 캐시 반영 및 토스트
+        __LAST_COST_MAP[ym] = cost;
+        __LAST_MEMO_MAP[ym] = memo;
+        showToastGreenRed?.('저장되었습니다.');
+
+        // 저장 후 테이블 즉시 반영(이 달만 다시 계산해서 렌더 호출)
+        // 간단하게 전체 렌더를 다시 호출
+        renderMonthlyTable({
+          titleAffiliation: __LAST_AFFILIATION,
+          salesMap: __LAST_SALES_MAP,
+          payrollByStaff: __LAST_PAYROLL_BY_STAFF,
+          costMap: __LAST_COST_MAP,
+          staffList: __LAST_STAFF_LIST,
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
 });

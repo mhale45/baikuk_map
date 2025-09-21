@@ -120,8 +120,19 @@
         </div>
       </div>
 
-      <!-- 푸터 (저장 버튼은 나중에) -->
+      <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
+      <div class="px-5 pb-2">
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-gray-600">메모</span>
+          <textarea id="d_memo" rows="4" class="border rounded px-3 py-2 w-full"></textarea>
+        </label>
+      </div>
+
+      <!-- 푸터: 저장/닫기 -->
       <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button id="settlement-drawer-save" class="px-4 py-2 rounded bg-[#00b74a] text-white hover:brightness-110 active:brightness-90">
+          저장
+        </button>
         <button id="settlement-drawer-close" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">닫기</button>
       </div>
     </div>
