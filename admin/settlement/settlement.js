@@ -558,8 +558,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
           <span class="text-sm text-gray-700">${s.name}</span>
           <span class="text-sm text-blue-700 font-medium text-right">
             ${fmtKR(deposit)}
-            <span class="text-sm ml-1">(${fmtKR(val)})</span>
           </span>
+          <span class="text-sm ml-1">(${fmtKR(val)})</span>
         </div>
       `;
     }).join('');
