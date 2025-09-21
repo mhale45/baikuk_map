@@ -68,7 +68,7 @@ export async function initMobileCarrier() {
         showToastGreenRed('통신사 체크 기록 완료!', { ok: true });
 
         try {
-          await fetch('modules/api/run-crawler', {
+          await fetch('../modules/api/run-crawler', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

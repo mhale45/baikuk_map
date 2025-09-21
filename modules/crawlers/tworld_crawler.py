@@ -3,10 +3,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import sys
 
 # 드라이버 실행
 driver = uc.Chrome(headless=False)
 driver.get("https://www.tworld.co.kr/web/home")
+
+# CLI 인자로 받은 번호
+phone_number = sys.argv[1] if len(sys.argv) > 1 else ''
+if not phone_number:
+    print("번호 인자가 없습니다.")
+    exit()
 
 try:
     # 최대 10초 동안 대기 → 요소가 나타나면 클릭
@@ -79,7 +86,7 @@ try:
     )
     # 값 입력
     input_box.clear()   # 혹시 기존 값이 있다면 지우기
-    input_box.send_keys("여기에번호입력")
+    input_box.send_keys("phone_number")
     print("번호 입력 완료!")
 except Exception as e:
     print("번호를 찾지 못했거나 입력 실패:", e)
