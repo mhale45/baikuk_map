@@ -103,6 +103,15 @@
             <div id="d_payroll_breakdown" class="mt-2 border rounded">
               <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
             </div>
+            <!-- 지점자율금 -->
+            <div class="mt-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">지점자율금</span>
+                <span id="d_autonomous_rate" class="text-xs text-gray-500">(rate: —)</span>
+              </div>
+              <input id="d_autonomous_amount" type="text" readonly
+                    class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
+            </div>
           </div>
 
           <label class="flex flex-col gap-1">

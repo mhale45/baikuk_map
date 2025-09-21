@@ -46,6 +46,9 @@ const EXP_MAX_MB = 20;
 let __LAST_AFFILIATION_EN = null;   // [ADD] 현재 선택 지점의 영문명
 let __CURRENT_DRAWER_YM = null;      // [ADD] 드로어에 열린 YYYY-MM
 
+// [ADD] 현재 선택 지점의 자율금 비율(0.0 ~ 1.0)
+let __LAST_AUTONOMOUS_RATE = 0;
+
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
@@ -233,7 +236,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     ${staff.map(s => `<th class="border px-2 py-2 whitespace-nowrap">급여-${s.name}</th>`).join('')}
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 비용</th>
-    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
+    <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
+    <th class="border px-2 py-2 whitespace-nowrap">최종 순이익</th>
   `;
   thead.innerHTML = '';
   thead.appendChild(headRow);
@@ -242,7 +246,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   tbody.innerHTML = '';
   if (yms.length === 0) {
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="${5 + staff.length}">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="${6 + staff.length}">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -251,7 +255,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const sales = Number(salesMap?.[ym] || 0);
     const cost  = Number(costMap?.[ym] || 0);
 
-    const pmap = payrollByStaff?.[ym] || {}; // {staffId: amount(50%)}
+    const pmap = payrollByStaff?.[ym] || {};
     let payrollTotal = 0;
 
     const staffCells = staff.map(s => {
@@ -260,7 +264,15 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       return `<td class="border px-2 py-2 text-right">${fmt(val)}</td>`;
     }).join('');
 
-    const profit = sales - payrollTotal - cost;
+    // 1차 순이익(자율금 차감 전)
+    const profitBefore = sales - payrollTotal - cost;
+
+    // 지점자율금 = profitBefore × autonomous-rate
+    const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
+    const autonomousFee = Math.round(profitBefore * ar);
+
+    // 최종 순이익 = 1차 순이익 - 지점자율금
+    const finalProfit = profitBefore - autonomousFee;
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
@@ -270,7 +282,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       ${staffCells}
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(profit)}</td>
+      <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈 (직원별 브레이크다운 전달)
@@ -324,11 +337,13 @@ async function loadBranchMonthlySales(affiliation) {
     try {
       const { data: bi, error: biErr } = await supabase
         .from('branch_info')
-        .select('affiliation, affiliation_en')
+        .select('affiliation, affiliation_en, autonomous-rate')
         .eq('affiliation', affiliation)
         .maybeSingle();
       if (biErr) throw biErr;
       __LAST_AFFILIATION_EN = (bi?.affiliation_en || '').trim() || null;
+      // [ADD] 자율금 비율 캐시 (컬럼명이 하이픈이라 bracket-access)
+      __LAST_AUTONOMOUS_RATE = Number(bi?.['autonomous-rate'] ?? 0) || 0;
     } catch (e) {
       console.warn('affiliation_en 조회 실패:', e?.message || e);
       __LAST_AFFILIATION_EN = null;
@@ -569,15 +584,28 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
   // 비용 입력 핸들러/재계산
   const costEl = $id('d_cost');
+  // [ADD] 자율금/비율 표시 요소(없으면 null)
+  const autoRateEl = $id('d_autonomous_rate'); // e.g. "20%" 같은 텍스트 노출 용도
+  const autoFeeEl  = $id('d_autonomous_fee');  // 금액 입력/출력(readonly 권장)
+
   costEl.value = __LAST_COST_MAP[ym] ? fmtKR(__LAST_COST_MAP[ym]) : '0';
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
     const c = Math.max(toNumber(costEl.value), 0);
     __LAST_COST_MAP[ym] = c;
-    const profit = Number(sales || 0) - Number(payrollTotal || 0) - c;
-    $id('d_profit').value = fmtKR(profit);
+
+    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c;
+    const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
+    const aFee = Math.round(profitBefore * ar);
+    const finalProfit = profitBefore - aFee;
+
+    if (autoRateEl) autoRateEl.textContent = `${Math.round(ar * 100)}%`;
+    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
+
+    $id('d_profit').value = fmtKR(finalProfit);
   };
+
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
@@ -598,6 +626,11 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       autoGrow(memoEl); // 입력할 때마다 높이 재조정
     });
   }
+  
+  // [ADD] 초기 비율/자율금 표시
+  const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
+  if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = `${Math.round(ar * 100)}%`;
+  if ($id('d_autonomous_fee'))  $id('d_autonomous_fee').value = '0';
 
   // 최초 계산
   recompute();
