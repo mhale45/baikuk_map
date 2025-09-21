@@ -587,6 +587,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // [ADD] 자율금/비율 표시 요소(없으면 null)
   const autoRateEl = $id('d_autonomous_rate'); // e.g. "20%" 같은 텍스트 노출 용도
   const autoFeeEl  = $id('d_autonomous_fee');  // 금액 입력/출력(readonly 권장)
+  const autoAmtEl  = $id('d_autonomous_amount'); // ← 이 인풋에도 동일 값 표시
 
   costEl.value = __LAST_COST_MAP[ym] ? fmtKR(__LAST_COST_MAP[ym]) : '0';
 
@@ -602,6 +603,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     if (autoRateEl) autoRateEl.textContent = `${Math.round(ar * 100)}%`;
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
+    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
     $id('d_profit').value = fmtKR(finalProfit);
   };
@@ -626,11 +628,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       autoGrow(memoEl); // 입력할 때마다 높이 재조정
     });
   }
-  
+
   // [ADD] 초기 비율/자율금 표시
   const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
   if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = `${Math.round(ar * 100)}%`;
   if ($id('d_autonomous_fee'))  $id('d_autonomous_fee').value = '0';
+  if ($id('d_autonomous_amount')) $id('d_autonomous_amount').value = '0';
 
   // 최초 계산
   recompute();
