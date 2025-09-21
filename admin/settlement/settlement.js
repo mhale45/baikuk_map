@@ -331,6 +331,9 @@ async function loadBranchMonthlySales(affiliation) {
       .select('id, name')
       .eq('affiliation', affiliation)
       .is('leave_date', null);
+
+    await loadBranchExpenseCache(affiliation); // ← [ADD] 월별 총비용 캐시 선로딩
+
     if (staffErr) throw staffErr;
 
     // [ADD] 영문 지점명 로드
@@ -786,6 +789,32 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
+// === [ADD] 지점 월별 총비용 캐시 선로딩 ===
+async function loadBranchExpenseCache(affiliation) {
+  try {
+    const { data, error } = await supabase
+      .from('branch_settlement_expenses')
+      .select('period_month, total_expense')
+      .eq('affiliation', affiliation);
+
+    if (error) throw error;
+
+    const map = {};
+    for (const row of (data || [])) {
+      // period_month: 'YYYY-MM-DD' → 'YYYY-MM'
+      const ym = ymKey(String(row.period_month));
+      if (!ym) continue;
+      map[ym] = Number(row.total_expense || 0);
+    }
+
+    __LAST_COST_MAP = map;    // ✅ 전역 캐시에 반영
+    return map;
+  } catch (e) {
+    console.warn('[settlement] expense cache load failed:', e?.message || e);
+    return {};
+  }
+}
+
 // [ADD] 현재 로그인 사용자의 권한과 지점명 로드
 async function resolveMyAuthority() {
   try {
@@ -1019,6 +1048,17 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     }
 
     applyLockUI(__LAST_CONFIRMED_MAP[ym] === true);
+    // [ADD] 표도 DB값 반영되도록 즉시 재렌더
+    try {
+      renderMonthlyTable({
+        titleAffiliation: __LAST_AFFILIATION,
+        salesMap: __LAST_SALES_MAP,
+        payrollByStaff: __LAST_PAYROLL_BY_STAFF,
+        costMap: __LAST_COST_MAP,  // ← 방금 갱신된 캐시 사용
+        staffList: __LAST_STAFF_LIST,
+      });
+    } catch (_) {}
+
   } catch (e) {
     console.warn('[settlement] fetch state failed:', e?.message || e);
     applyLockUI(false);
