@@ -7,6 +7,11 @@ const $  = (sel, doc = document) => doc.querySelector(sel);
 const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
+// [ADD] 월별 합계 캐시(드로어에서 참조)
+let __LAST_AFFILIATION = null;
+let __LAST_SALES_MAP = {};
+let __LAST_PAYROLL_MAP = {};
+let __LAST_COST_MAP = {};
 
 /** 숫자 콤마 */
 function fmt(n) {
@@ -47,12 +52,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap, costMap })
   }
 
   for (const ym of keys) {
-    const sales   = Number(salesMap?.[ym]   || 0); // 잔금매출(확정/미확정 전체)
-    const payroll = Number(payrollMap?.[ym] || 0); // 총 급여(관여매출 50%)
-    const cost    = Number(costMap?.[ym]    || 0); // 총 비용(지금은 0, 추후 연동)
-    const profit  = Math.max(sales - payroll - cost, 0); // 음수 허용 원하면 Math.max 제거
+    const sales   = Number(salesMap?.[ym]   || 0);
+    const payroll = Number(payrollMap?.[ym] || 0);
+    const cost    = Number(costMap?.[ym]    || 0);
+    const profit  = sales - payroll - cost;
 
     const tr = document.createElement('tr');
+    tr.className = 'hover:bg-yellow-50 cursor-pointer';
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
@@ -60,8 +66,21 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollMap, costMap })
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(profit)}</td>
     `;
+
+    // [핵심] 행 클릭 → 드로어 오픈
+    tr.addEventListener('click', () => {
+      openSettlementDrawer({
+        affiliation: __LAST_AFFILIATION,
+        ym,
+        sales,
+        payroll,
+        cost: __LAST_COST_MAP[ym] ?? cost, // 사용자가 바꿨다면 캐시 우선
+      });
+    });
+
     tbody.appendChild(tr);
   }
+
 }
 
 /**
@@ -163,7 +182,12 @@ async function loadBranchMonthlySales(affiliation) {
       }
     }
 
-    renderMonthlyTable({ titleAffiliation: affiliation, salesMap, payrollMap, costMap });
+    // 전역 캐시 보관 (드로어/후속 클릭에서 사용)
+    __LAST_SALES_MAP   = salesMap;
+    __LAST_PAYROLL_MAP = payrollMap;
+    __LAST_COST_MAP    = { ...costMap, ...__LAST_COST_MAP }; // 사용자가 드로어에서 임시 수정했을 수도 있으니 merge
+
+    renderMonthlyTable({ titleAffiliation: affiliation, salesMap, payrollMap, costMap: __LAST_COST_MAP });
   } catch (e) {
     console.error('월별 합계 로딩 실패:', e);
     showToastGreenRed?.('월별 합계 로딩 실패');
@@ -217,3 +241,69 @@ export async function initSettlement() {
   await renderBranchList();
   // 최초엔 “지점을 선택하세요” 상태로 대기
 }
+
+function openSettlementDrawer({ affiliation, ym, sales, payroll, cost }) {
+  __LAST_COST_MAP[ym] = Number(cost || 0); // 편집 전에 캐시에 동기화
+
+  const drawer = document.getElementById('settlement-drawer');
+  const overlay = document.getElementById('settlement-overlay');
+  if (!drawer || !overlay) return;
+
+  // 채우기
+  const fmtKR = (n) => Number(n || 0).toLocaleString('ko-KR');
+  const $id = (i) => document.getElementById(i);
+
+  $id('d_branch').textContent = affiliation ? `(${affiliation})` : '';
+  $id('d_period').value   = ym;
+  $id('d_sales').value    = fmtKR(sales);
+  $id('d_payroll').value  = fmtKR(payroll);
+  $id('d_cost').value     = __LAST_COST_MAP[ym] ? fmtKR(__LAST_COST_MAP[ym]) : '0';
+
+  const recompute = () => {
+    const rawCost = String($id('d_cost').value || '0').replace(/[^\d.-]/g, '');
+    const c = Math.max(Number(rawCost || 0), 0);
+    const p = Math.max(Number(payroll || 0), 0);
+    const s = Math.max(Number(sales || 0), 0);
+    const profit = s - p - c; // 음수 허용
+    $id('d_profit').value = fmtKR(profit);
+  };
+
+  // 비용 입력 시 즉시 재계산(미저장)
+  const costEl = $id('d_cost');
+  // 입력을 숫자만 허용 + 천단위 포맷
+  const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
+  const format = (v) => toNumber(v).toLocaleString('ko-KR');
+
+  costEl.oninput = () => { // 입력 중엔 포맷 없이 계산
+    recompute();
+  };
+  costEl.onblur = () => {  // 포맷 적용 및 캐시 반영
+    const c = toNumber(costEl.value);
+    __LAST_COST_MAP[ym] = c;
+    costEl.value = format(c);
+    recompute();
+  };
+
+  // 최초 계산
+  recompute();
+
+  // 오픈
+  overlay.classList.remove('hidden');
+  drawer.classList.remove('translate-x-full');
+}
+
+function closeSettlementDrawer() {
+  const drawer = document.getElementById('settlement-drawer');
+  const overlay = document.getElementById('settlement-overlay');
+  if (!drawer || !overlay) return;
+  drawer.classList.add('translate-x-full');
+  overlay.classList.add('hidden');
+}
+
+// 닫기 버튼/오버레이 클릭 연결 (초기 1회 바인딩)
+document.addEventListener('DOMContentLoaded', () => {
+  const c1 = document.getElementById('close-settlement-drawer');
+  const c2 = document.getElementById('settlement-drawer-close');
+  const ov = document.getElementById('settlement-overlay');
+  [c1, c2, ov].forEach(el => el && el.addEventListener('click', closeSettlementDrawer));
+});

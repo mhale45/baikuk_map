@@ -73,6 +73,66 @@
 
     <!-- 어두운 오버레이 -->
     <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
+    <!-- [ADD] 정산 상세 드로어 -->
+    <div id="settlement-drawer"
+        class="fixed inset-y-0 right-0 w-[32rem] bg-white shadow-2xl border-l border-gray-200 translate-x-full transition-transform duration-300 ease-out z-[1100] flex flex-col">
+      <!-- 헤더 -->
+      <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+        <h2 class="text-lg font-bold">월별 정산</h2>
+        <span id="d_branch" class="ml-2 text-sm text-gray-500"></span>
+        <button id="close-settlement-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
+      </div>
+
+      <!-- 내용 -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">기간(YYYY-MM)</span>
+            <input id="d_period" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-gray-600">
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">매출합계</span>
+            <input id="d_sales" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 비용</span>
+            <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
+            <input id="d_cost" type="text" inputmode="numeric" placeholder="0"
+                  class="border rounded px-3 py-2 text-right">
+          </label>
+
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 총 비용</span>
+            <input id="d_profit" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
+          </label>
+        </div>
+
+        <!-- 추후: 월별 세부 항목 리스트/메모/첨부 등 확장 영역 -->
+        <div class="mt-2 text-xs text-gray-500">
+          ※ 총 비용은 현재 로컬 미저장 미리보기입니다. 나중에 저장 연동 예정.
+        </div>
+      </div>
+
+      <!-- 푸터 (저장 버튼은 나중에) -->
+      <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button id="settlement-drawer-close" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">닫기</button>
+      </div>
+    </div>
+
+    <!-- [ADD] 드로어 오버레이 -->
+    <div id="settlement-overlay" class="fixed inset-0 bg-black/30 z-[1090] hidden"></div>
+
   </div>
   <script type="module">
     import { client as supabase } from '../../modules/core/supabase.js';
