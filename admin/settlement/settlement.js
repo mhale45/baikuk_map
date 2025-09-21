@@ -20,6 +20,11 @@ let __LAST_PAYROLL_BY_STAFF = {}; // { 'YYYY-MM': { staffId: amount(급여, 50%�
 // [ADD] 월별 메모 캐시 (미리보기/저장 후 재표시용)
 let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
 
+// [ADD] 로그인 사용자의 권한/소속 지점
+let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
+let __MY_AFFILIATION = null;    // 지점장/직원일 때 본인 지점명
+
+
 
 /** 숫자 콤마 */
 function fmt(n) {
@@ -129,6 +134,17 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 async function loadBranchMonthlySales(affiliation) {
   try {
     if (!affiliation) return;
+
+    // [ADD] 권한 가드
+    if (__MY_ROLE === '직원') {
+      showToastGreenRed?.('권한이 없습니다.');
+      return;
+    }
+    if (__MY_ROLE === '지점장' && affiliation !== __MY_AFFILIATION) {
+      showToastGreenRed?.('본인 지점만 조회할 수 있습니다.');
+      return;
+    }
+
     __LAST_AFFILIATION = affiliation;
 
     // 1) 이 지점 재직자(id, name)
@@ -266,41 +282,62 @@ async function loadBranchMonthlySales(affiliation) {
   }
 }
 
-// === 지점 리스트 렌더 ===
+// === 지점 리스트 렌더 (권한 적용) ===
 async function renderBranchList() {
   try {
+    // 내 권한/지점이 준비되어 있지 않다면 보장
+    if (!__MY_ROLE) await resolveMyAuthority();
+
     const { data: branches, error } = await supabase
       .from('branch_info')
       .select('affiliation')
       .order('affiliation', { ascending: true });
-
     if (error) throw error;
 
     const container = $('#branch-list');
     if (!container) return;
 
-    container.innerHTML = ''; // 기존 내용 제거
+    container.innerHTML = '';
 
     for (const branch of (branches || [])) {
       const aff = branch.affiliation;
       if (!aff) continue;
 
+      // 권한별 클릭 가능 여부
+      const canClick =
+        (__MY_ROLE === '관리자') ||
+        (__MY_ROLE === '지점장' && __MY_AFFILIATION === aff);
+
       const div = document.createElement('div');
-      div.className = 'px-3 py-2 text-sm font-medium hover:bg-yellow-100 cursor-pointer';
       div.textContent = aff;
       div.dataset.affiliation = aff;
+      div.className = [
+        'px-3 py-2 text-sm font-medium',
+        canClick ? 'hover:bg-yellow-100 cursor-pointer'
+                 : 'opacity-50 cursor-not-allowed pointer-events-none'
+      ].join(' ');
 
-      div.addEventListener('click', () => {
-        // 선택 스타일 초기화
-        $$('#branch-list > div').forEach(el => el.classList.remove('bg-yellow-200'));
-        // 현재 선택 표시
-        div.classList.add('bg-yellow-200');
+      if (canClick) {
+        div.addEventListener('click', () => {
+          // 선택 스타일 초기화
+          $$('#branch-list > div').forEach(el => el.classList.remove('bg-yellow-200'));
+          div.classList.add('bg-yellow-200');
 
-        // 월별 합계 로딩
-        loadBranchMonthlySales(aff);
-      });
+          // 월별 합계 로딩
+          loadBranchMonthlySales(aff);
+        });
+      }
 
       container.appendChild(div);
+    }
+
+    // 지점장이라면 본인 지점을 자동 선택해서 로딩(선택 표시 포함)
+    if (__MY_ROLE === '지점장' && __MY_AFFILIATION) {
+      const myEl = $(`#branch-list > div[data-affiliation="${CSS.escape(__MY_AFFILIATION)}"]`);
+      if (myEl) {
+        myEl.classList.add('bg-yellow-200');
+        loadBranchMonthlySales(__MY_AFFILIATION);
+      }
     }
   } catch (e) {
     console.error('지점 목록 로딩 실패:', e);
@@ -310,8 +347,9 @@ async function renderBranchList() {
 
 // === 초기화 ===
 export async function initSettlement() {
-  await renderBranchList();
-  // 최초엔 “지점을 선택하세요” 상태로 대기
+  await resolveMyAuthority();  // [ADD] 권한/소속 로드
+  await renderBranchList();    // [CHANGE] 권한 반영하여 렌더
+  // 지점장일 경우 본인 지점이 자동 선택/로딩됨 (renderBranchList에서 처리)
 }
 
 function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost, staffList }) {
@@ -401,6 +439,46 @@ function firstDayOfMonth(ym) {
   const m = /^(\d{4})-(\d{2})$/.exec(ym);
   if (!m) return null;
   return `${m[1]}-${m[2]}-01`;
+}
+
+// [ADD] 현재 로그인 사용자의 권한과 지점명 로드
+async function resolveMyAuthority() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      __MY_ROLE = '직원';
+      __MY_AFFILIATION = null;
+      return;
+    }
+
+    const { data: rows, error } = await supabase
+      .from('staff_profiles')
+      .select('authority, affiliation')
+      .eq('user_id', user.id)
+      .is('leave_date', null);
+
+    if (error) throw error;
+
+    // 기본값
+    __MY_ROLE = '직원';
+    __MY_AFFILIATION = null;
+
+    // 여러 행이 있을 수 있으니 우선순위로 결정
+    for (const r of (rows || [])) {
+      if (r.authority === '관리자') {
+        __MY_ROLE = '관리자';
+      } else if (r.authority === '지점장' && __MY_ROLE !== '관리자') {
+        __MY_ROLE = '지점장';
+        __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
+      } else if (r.authority === '직원' && !__MY_AFFILIATION) {
+        __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
+      }
+    }
+  } catch (e) {
+    console.error('권한 조회 실패:', e);
+    __MY_ROLE = '직원';
+    __MY_AFFILIATION = null;
+  }
 }
 
 // [REPLACE-ALT] 저장(수동 upsert) - affiliation(지점명)으로 저장
