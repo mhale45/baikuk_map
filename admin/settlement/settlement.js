@@ -1066,6 +1066,11 @@ function renderCostHints() {
   }
 }
 
+// 현재 선택된 지점 "명(affiliation)"을 반환
+function getCurrentBranchId() {
+  return (__LAST_AFFILIATION || '').trim() || null;
+}
+
 // 지점의 autonomous-rate를 Supabase에서 읽어옵니다. (affiliation 기준)
 async function fetchAutonomousRate(affiliation) {
   const rateLabel = document.getElementById('d_autonomous_rate');
@@ -1077,7 +1082,7 @@ async function fetchAutonomousRate(affiliation) {
 
   const { data, error } = await supabase
     .from('branch_info')
-    .select('"autonomous-rate"')   // 하이픈 컬럼은 큰따옴표로 감싸기
+    .select('"autonomous-rate"')
     .eq('affiliation', affiliation)
     .maybeSingle();
 
@@ -1089,7 +1094,7 @@ async function fetchAutonomousRate(affiliation) {
 
   const rate = Number(data?.['autonomous-rate'] ?? 0);
   if (rateLabel) rateLabel.textContent = `(rate: ${(rate * 100).toFixed(1)}%)`;
-  return rate; // 0.1 = 10%
+  return rate;
 }
 
 // 지점의 autonomous-rate를 Supabase에서 읽어옵니다.
