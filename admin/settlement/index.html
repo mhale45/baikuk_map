@@ -110,13 +110,19 @@
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
             <input id="d_cost" type="text" inputmode="numeric" placeholder="0"
                   class="border rounded px-3 py-2 text-right">
-            <!-- [ADD] 총 비용 세부 항목 안내 박스 -->
-            <div class="border rounded px-3 py-2 bg-amber-50/60">
-              <div class="text-sm font-semibold text-amber-800 mb-1">총 비용 참고 항목</div>
-              <ul id="d_cost_hints" class="list-disc ml-5 text-sm text-gray-700 space-y-1">
-                <!-- JS에서 렌더링됩니다 -->
-              </ul>
-              <p class="mt-2 text-xs text-gray-500">필요한 항목을 자유롭게 추가/수정하세요.</p>
+            <!-- [ADD] 총 비용 항목 안내 (참고/제외) -->
+            <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
+              <div class="text-sm font-semibold text-amber-800 mb-2">총 비용 항목 안내</div>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div class="font-semibold text-gray-800 mb-1">참고항목</div>
+                  <ul id="d_cost_includes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
+                </div>
+                <div>
+                  <div class="font-semibold text-gray-800 mb-1">제외항목</div>
+                  <ul id="d_cost_excludes" class="list-disc ml-5 space-y-1 text-gray-700"></ul>
+                </div>
+              </div>
             </div>
           </label>
 

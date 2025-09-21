@@ -11,7 +11,14 @@ const PAYROLL_RATE = 0.5;
 // [ADD] 총 비용 안내 항목(원하는 만큼 추가/수정)
 const COST_HINTS = [
   '월세, 관리비, 공과금',
-  '네이버 광고 충전비, 현수막, 명함, 봉투',
+  '네이버 광고, 현수막, 명함, 봉투',
+  '식대(만원), 사무용품',
+  '통신비, 정수기, 프린터, 주차비',
+  '직원들 대목 선물',
+];
+
+const COST_EXCLUDE_HINTS = [
+  '회식비, 교통비, 경조사비',
 ];
 
 // [ADD] 월별 합계/브레이크다운 캐시(드로어/테이블에서 재사용)
@@ -594,7 +601,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   recompute();
 
   renderCostHints();
-  
+
   // 오픈
   overlay.classList.remove('hidden');
   drawer.classList.remove('translate-x-full');
@@ -1013,11 +1020,18 @@ async function confirmSettlement(affiliation, ym) {
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
 }
 
-// [ADD] 총 비용 안내 항목 렌더
+// [ADD] 참고/제외 항목 렌더링
 function renderCostHints() {
-  const ul = document.getElementById('d_cost_hints');
-  if (!ul) return;
-  ul.innerHTML = (COST_HINTS || [])
-    .map(item => `<li>${item}</li>`)
-    .join('');
+  const inc = document.getElementById('d_cost_includes');
+  const exc = document.getElementById('d_cost_excludes');
+  if (inc) {
+    inc.innerHTML = (COST_INCLUDE_HINTS.length
+      ? COST_INCLUDE_HINTS.map(v => `<li>${v}</li>`).join('')
+      : `<li class="text-gray-400">없음</li>`);
+  }
+  if (exc) {
+    exc.innerHTML = (COST_EXCLUDE_HINTS.length
+      ? COST_EXCLUDE_HINTS.map(v => `<li>${v}</li>`).join('')
+      : `<li class="text-gray-400">없음</li>`);
+  }
 }
