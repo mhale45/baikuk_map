@@ -394,49 +394,42 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
-// [ADD] 저장(업서트)
-// - branch_info.affiliation == 지점명 으로 branch_info_id 조회
-// - branch_settlement_expenses 에 upsert
+// YYYY-MM -> YYYY-MM-01
+function firstDayOfMonth(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(ym);
+  return m ? `${m[1]}-${m[2]}-01` : null;
+}
+
+// [FIX] affiliation 컬럼 기준으로 수동 UPSERT
 async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo }) {
-  // 1) affiliation -> branch_info_id
-  const { data: br, error: brErr } = await supabase
-    .from('branch_info')
-    .select('id')
-    .eq('affiliation', affiliation)
-    .maybeSingle();
-  if (brErr || !br?.id) {
-    showToastGreenRed?.('지점 정보를 찾을 수 없습니다.');
-    throw brErr || new Error('branch_info not found');
-  }
-  const branch_info_id = br.id;
-
-  // 2) period_month
   const period_month = firstDayOfMonth(ym);
-  if (!period_month) throw new Error('invalid period_month');
-
-  // 3) payload
+  if (!period_month) {
+    showToastGreenRed?.('기간 형식이 올바르지 않습니다.');
+    throw new Error('invalid period_month');
+  }
   const payload = {
-    branch_info_id,
-    period_month, // 'YYYY-MM-01' (date)
+    affiliation,                             // ✅ 지점명 컬럼 사용
+    period_month,                            // date: 'YYYY-MM-01'
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
   };
 
-  // 4) 수동 UPSERT: 존재여부 확인 → update or insert
+  // 존재 여부 확인 (affiliation + period_month)
   const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
     .select('id')
-    .eq('branch_info_id', branch_info_id)
+    .eq('affiliation', affiliation)
     .eq('period_month', period_month)
     .maybeSingle();
 
+  // PGRST116 = no rows (문제 없음). 그 외 에러만 처리
   if (selErr && selErr.code !== 'PGRST116') {
-    // PGRST116: no rows
     showToastGreenRed?.('저장 실패(조회 오류)');
     throw selErr;
   }
 
   if (existing?.id) {
+    // UPDATE
     const { error: updErr } = await supabase
       .from('branch_settlement_expenses')
       .update(payload)
@@ -446,6 +439,7 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
       throw updErr;
     }
   } else {
+    // INSERT
     const { error: insErr } = await supabase
       .from('branch_settlement_expenses')
       .insert(payload);
