@@ -117,7 +117,7 @@
         <div class="px-5">
           <div class="border border-gray-200 rounded-xl p-4 bg-white">
             <div class="flex items-center justify-between gap-2">
-              <div class="font-semibold">지점 경비 파일 업로드</div>
+              <div class="font-semibold">지점관련 통장내역 파일 업로드</div>
               <div class="flex items-center gap-2">
                 <input id="expFileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
                 <button id="expFilePickBtn" class="px-3 py-1.5 rounded-lg border bg-gray-50 hover:bg-gray-100">불러오기</button>
@@ -143,7 +143,14 @@
             </div>
           </div>
         </div>
-
+        <!-- 이미 저장되어 있던 파일 목록 -->
+        <div id="expFilesSection" class="mt-4">
+          <div class="font-semibold mb-1">이 달의 저장된 파일</div>
+          <ul id="expFileList" class="space-y-1 text-sm text-slate-700">
+            <!-- JS로 렌더링 -->
+          </ul>
+          <div id="expFileEmpty" class="text-sm text-slate-400 hidden">아직 업로드된 파일이 없습니다.</div>
+        </div>
         <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
         <div class="px-5 pb-2">
           <label class="flex flex-col gap-1">

@@ -59,6 +59,14 @@ function makeExpensePath(fileName, affiliationEn, ym) {
   return `${aff}/${parts.yyyy}/${parts.mm}/${dd}/${Date.now()}_${sanitized}`;
 }
 
+// 목록 prefix: [영문지점]/YYYY/MM
+function makeMonthPrefix(affiliationEn, ym) {
+  const parts = ymToParts(ym);
+  if (!parts) throw new Error('invalid ym');
+  const aff = String(affiliationEn || '').trim() || 'Unknown';
+  return `${aff}/${parts.yyyy}/${parts.mm}`;
+}
+
 function expShowProgress(percent, label) {
   const box = document.getElementById('expUploadProgress');
   const bar = document.getElementById('expUploadBar');
@@ -85,6 +93,63 @@ function expAppendResult({ name, url, path, error }) {
     <div>${url ? `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}</div>
   `;
   ul.appendChild(li);
+}
+
+// [NEW] 저장된 파일 목록 불러오기(+렌더)
+async function loadExpenseFileList(affiliationEn, ym) {
+  try {
+    const ul = document.getElementById('expFileList');
+    const empty = document.getElementById('expFileEmpty');
+    if (!ul || !empty) return;
+
+    ul.innerHTML = '';
+    empty.classList.add('hidden');
+
+    const prefix = makeMonthPrefix(affiliationEn, ym); // ex) Mokdong/2025/09
+    // prefix 디렉토리의 모든 파일/폴더 나열
+    const { data: entries, error } = await supabase
+      .storage.from(EXPENSE_BUCKET)
+      .list(prefix, { limit: 200, sortBy: { column: 'name', order: 'desc' } });
+
+    if (error) throw error;
+
+    // .keep 제외하고 파일만
+    const files = (entries || []).filter(e => e.name && e.name !== '.keep');
+    if (!files.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    // 각 파일에 대해 서명 URL 생성해서 렌더
+    for (const f of files) {
+      const fullPath = `${prefix}/${f.name}`;
+
+      let signedUrl = null;
+      try {
+        const { data: sig, error: sigErr } = await supabase
+          .storage.from(EXPENSE_BUCKET)
+          .createSignedUrl(fullPath, 60 * 60); // 1시간
+        if (!sigErr) signedUrl = sig?.signedUrl || null;
+      } catch (_) {}
+
+      const li = document.createElement('li');
+      li.className = 'flex items-center justify-between border rounded-lg px-3 py-2 bg-white';
+      li.innerHTML = `
+        <div class="truncate">
+          📄 <b class="truncate">${f.name}</b>
+          <span class="ml-2 text-xs text-slate-400">${(f?.metadata?.size || 0).toLocaleString()} B</span>
+        </div>
+        <div>
+          ${signedUrl ? `<a href="${signedUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}
+        </div>
+      `;
+      ul.appendChild(li);
+    }
+  } catch (e) {
+    console.warn('[expense] list load failed:', e?.message || e);
+    const empty = document.getElementById('expFileEmpty');
+    if (empty) { empty.textContent = '파일 목록을 불러오지 못했습니다.'; empty.classList.remove('hidden'); }
+  }
 }
 
 /** 숫자 콤마 */
@@ -529,6 +594,14 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       if (files.length) await handleExpenseFiles(files);
     });
   })();
+    
+  // [ADD] 드로어 열릴 때, 해당 달 저장된 파일 목록 로딩
+  if (__LAST_AFFILIATION_EN) {
+    loadExpenseFileList(__LAST_AFFILIATION_EN, ym);
+  } else if (__LAST_AFFILIATION) {
+    // affiliation_en이 없으면 한글명으로 폴백(폴더도 한글로 만든 경우 대비)
+    loadExpenseFileList(__LAST_AFFILIATION, ym);
+  }
 }
 
 async function handleExpenseFiles(files) {
@@ -563,12 +636,18 @@ async function handleExpenseFiles(files) {
   } catch (e) {
     showToastGreenRed?.(e?.message || '업로드 준비 실패');
   }
+
+  // 업로드 후 목록 다시 불러오기
+  const affEn = (__LAST_AFFILIATION_EN || __LAST_AFFILIATION);
+  if (affEn && __CURRENT_DRAWER_YM) {
+    loadExpenseFileList(affEn, __CURRENT_DRAWER_YM);
+  }
 }
 
 // [REPLACE] 실제 업로드 (expense 버킷 / 영문지점 폴더)
 async function uploadExpenseFile(file, ym, onTick) {
   // 권한 가드가 필요하면 주석 해제
-  // if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
+  if (!['지점장','관리자'].includes(__MY_ROLE)) throw new Error('업로드 권한이 없습니다.');
 
   const affEn = (__LAST_AFFILIATION_EN || '').trim()
               || String(__LAST_AFFILIATION || '').trim(); // fallback
