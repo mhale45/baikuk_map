@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
         __LAST_MEMO_MAP[ym] = memo;
-        showToastGreenRed?.('저장되었습니다.');
+        showToastGreenRed?.('저장되었습니다.', { ok: true });
 
         // 저장 후 테이블 즉시 반영(이 달만 다시 계산해서 렌더 호출)
         // 간단하게 전체 렌더를 다시 호출
