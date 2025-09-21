@@ -394,43 +394,59 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
-// [ADD] 저장(업서트)
-// - branch_info.affiliation == 지점명 으로 branch_info_id 조회
-// - branch_settlement_expenses 에 upsert
+// [REPLACE-ALT] 저장(수동 upsert) - affiliation(지점명)으로 저장
 async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo }) {
-  // 1) affiliation -> branch_info_id
-  const { data: br, error: brErr } = await supabase
-    .from('branch_info')
-    .select('id')
-    .eq('affiliation', affiliation)
-    .maybeSingle();
-  if (brErr || !br?.id) {
-    showToastGreenRed?.('지점 정보를 찾을 수 없습니다.');
-    throw brErr || new Error('branch_info not found');
+  const aff = (affiliation || '').trim();
+  if (!aff) {
+    showToastGreenRed?.('지점명을 확인해주세요.');
+    throw new Error('invalid affiliation');
   }
-  const branch_info_id = br.id;
 
-  // 2) period_month
   const period_month = firstDayOfMonth(ym);
-  if (!period_month) throw new Error('invalid period_month');
+  if (!period_month) {
+    showToastGreenRed?.('기간(YYYY-MM)을 확인해주세요.');
+    throw new Error('invalid period_month');
+  }
 
-  // 3) payload
   const payload = {
-    branch_info_id,
-    period_month, // 'YYYY-MM-01' (date)
+    affiliation: aff,                         // ✅ 지점명 컬럼
+    period_month,                             // ✅ DATE 'YYYY-MM-01'
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
   };
 
-  // 4) 권장: onConflict 업서트 (DB에 UNIQUE (branch_info_id, period_month) 권장)
-  const { error: upsertErr } = await supabase
+  // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
+  const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
-    .upsert(payload, { onConflict: 'branch_info_id,period_month' }); // ✅ 컬럼명만
+    .select('id')
+    .eq('affiliation', aff)                   // ✅ FK 대신 지점명으로 매칭
+    .eq('period_month', period_month)         // ✅ 날짜 컬럼
+    .maybeSingle();
 
-  if (upsertErr) {
-    showToastGreenRed?.('저장 실패(업서트 오류)');
-    throw upsertErr;
+  if (selErr) {
+    showToastGreenRed?.('저장 실패(조회 오류)');
+    throw selErr;
   }
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase
+      .from('branch_settlement_expenses')
+      .update(payload)
+      .eq('id', existing.id);
+    if (updErr) {
+      showToastGreenRed?.('저장 실패(업데이트 오류)');
+      throw updErr;
+    }
+  } else {
+    const { error: insErr } = await supabase
+      .from('branch_settlement_expenses')
+      .insert(payload);
+    if (insErr) {
+      showToastGreenRed?.('저장 실패(추가 오류)');
+      throw insErr;
+    }
+  }
+
   return true;
 }
 
