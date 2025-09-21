@@ -414,22 +414,45 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const period_month = firstDayOfMonth(ym);
   if (!period_month) throw new Error('invalid period_month');
 
-  // 3) upsert
+  // 3) payload
   const payload = {
     branch_info_id,
-    period_month,
+    period_month, // 'YYYY-MM-01' (date)
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
   };
 
-  // onConflict는 DB 유니크키(예: (branch_info_id, period_month))가 설정되어 있어야 동작함
-  const { error: upErr } = await supabase
+  // 4) 수동 UPSERT: 존재여부 확인 → update or insert
+  const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
-    .upsert(payload, { onConflict: 'branch_info_id,period_month' });
+    .select('id')
+    .eq('branch_info_id', branch_info_id)
+    .eq('period_month', period_month)
+    .maybeSingle();
 
-  if (upErr) {
-    showToastGreenRed?.('저장 실패');
-    throw upErr;
+  if (selErr && selErr.code !== 'PGRST116') {
+    // PGRST116: no rows
+    showToastGreenRed?.('저장 실패(조회 오류)');
+    throw selErr;
+  }
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase
+      .from('branch_settlement_expenses')
+      .update(payload)
+      .eq('id', existing.id);
+    if (updErr) {
+      showToastGreenRed?.('저장 실패(업데이트 오류)');
+      throw updErr;
+    }
+  } else {
+    const { error: insErr } = await supabase
+      .from('branch_settlement_expenses')
+      .insert(payload);
+    if (insErr) {
+      showToastGreenRed?.('저장 실패(추가 오류)');
+      throw insErr;
+    }
   }
   return true;
 }
