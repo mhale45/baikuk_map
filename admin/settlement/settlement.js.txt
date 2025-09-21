@@ -25,8 +25,6 @@ let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
 let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
 let __MY_AFFILIATION = null;    // 지점장/직원일 때 본인 지점명
 
-
-
 // ===== Expense 업로더 설정 =====
 const EXPENSE_BUCKET = 'expense';
 const EXP_ALLOWED_EXT = ['.xlsx', '.xls', '.csv'];
@@ -34,6 +32,14 @@ const EXP_MAX_MB = 20;
 
 let __LAST_AFFILIATION_EN = null;   // [ADD] 현재 선택 지점의 영문명
 let __CURRENT_DRAWER_YM = null;      // [ADD] 드로어에 열린 YYYY-MM
+
+// 확정 상태 캐시: { 'YYYY-MM': true }
+let __LAST_CONFIRMED_MAP = {};
+
+// 문자열(₩,콤마 포함) → 숫자
+function toNumberKR(v) {
+  return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
+}
 
 function expValidate(file) {
   const name = String(file?.name || '').toLowerCase();
@@ -585,6 +591,20 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   overlay.classList.remove('hidden');
   drawer.classList.remove('translate-x-full');
 
+  // 권한에 따라 확정 버튼 표시/숨김
+  const confirmBtn = document.getElementById('settlement-confirm-btn');
+  if (confirmBtn) {
+    if (!['지점장','관리자'].includes(__MY_ROLE)) {
+      confirmBtn.classList.add('hidden');
+    } else {
+      confirmBtn.classList.remove('hidden');
+    }
+  }
+
+  // DB에서 확정/저장 값 반영 후 UI 잠금 적용
+  fetchAndApplySettlementState(affiliation, ym);
+
+
   // [ADD] 업로더 이벤트 바인딩(1회)
   (function wireExpenseUploaderOnce() {
     const pick = document.getElementById('expFilePickBtn');
@@ -831,6 +851,10 @@ document.addEventListener('DOMContentLoaded', () => {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
           return;
         }
+        if (__LAST_CONFIRMED_MAP[ym]) {
+          showToastGreenRed?.('이미 확정된 달입니다. 수정할 수 없습니다.');
+          return;
+        }
 
         await saveBranchMonthlyExpense({
           affiliation: aff,
@@ -859,3 +883,124 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('settlement-confirm-btn');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      try {
+        const ym  = document.getElementById('d_period')?.value;
+        const aff = (__LAST_AFFILIATION || '').trim();
+        if (!ym || !aff) return;
+        if (__LAST_CONFIRMED_MAP[ym]) return; // 이미 확정
+        await confirmSettlement(aff, ym);
+      } catch (e) {
+        console.error('[settlement] confirm failed:', e);
+        showToastGreenRed?.('정산확정에 실패했습니다.');
+      }
+    });
+  }
+});
+
+function applyLockUI(locked) {
+  const costEl = document.getElementById('d_cost');
+  const memoEl = document.getElementById('d_memo');
+  const saveBtn = document.getElementById('settlement-drawer-save');
+  const confirmBtn = document.getElementById('settlement-confirm-btn');
+
+  if (costEl) {
+    costEl.readOnly = locked;
+    costEl.disabled = locked;
+    costEl.classList.toggle('bg-gray-50', locked);
+  }
+  if (memoEl) {
+    memoEl.readOnly = locked;
+    memoEl.disabled = locked;
+    memoEl.classList.toggle('bg-gray-50', locked);
+  }
+  if (saveBtn) {
+    saveBtn.disabled = locked;
+    saveBtn.classList.toggle('opacity-50', locked);
+    saveBtn.classList.toggle('cursor-not-allowed', locked);
+  }
+  if (confirmBtn) {
+    confirmBtn.disabled = locked;
+    confirmBtn.textContent = locked ? '확정됨' : '정산확정';
+  }
+}
+
+async function fetchAndApplySettlementState(affiliation, ym) {
+  try {
+    const period_month = firstDayOfMonth(ym);
+    const { data: row, error } = await supabase
+      .from('branch_settlement_expenses')
+      .select('id, total_expense, memo, is_confirmed')
+      .eq('affiliation', affiliation)
+      .eq('period_month', period_month)
+      .maybeSingle();
+    if (error) throw error;
+
+    const costEl = document.getElementById('d_cost');
+    const memoEl = document.getElementById('d_memo');
+
+    if (row) {
+      if (typeof row.total_expense === 'number' && costEl) {
+        __LAST_COST_MAP[ym] = row.total_expense;
+        costEl.value = Number(row.total_expense).toLocaleString('ko-KR');
+      }
+      if (typeof row.memo === 'string' && memoEl) {
+        __LAST_MEMO_MAP[ym] = row.memo;
+        memoEl.value = row.memo;
+      }
+      __LAST_CONFIRMED_MAP[ym] = !!row.is_confirmed;
+    } else {
+      __LAST_CONFIRMED_MAP[ym] = false;
+    }
+
+    applyLockUI(__LAST_CONFIRMED_MAP[ym] === true);
+  } catch (e) {
+    console.warn('[settlement] fetch state failed:', e?.message || e);
+    applyLockUI(false);
+  }
+}
+
+async function confirmSettlement(affiliation, ym) {
+  const ok = window.confirm('정산을 확정하면 총 비용과 메모가 잠깁니다. 계속 진행할까요?');
+  if (!ok) return;
+
+  const costEl = document.getElementById('d_cost');
+  const memoEl = document.getElementById('d_memo');
+
+  const cost = toNumberKR(costEl?.value);
+  const memo = (memoEl?.value || '').trim();
+  const period_month = firstDayOfMonth(ym);
+
+  // upsert 형태: 있으면 update, 없으면 insert(확정)
+  const { data: existing, error: selErr } = await supabase
+    .from('branch_settlement_expenses')
+    .select('id')
+    .eq('affiliation', affiliation)
+    .eq('period_month', period_month)
+    .maybeSingle();
+  if (selErr) throw selErr;
+
+  if (existing?.id) {
+    const { error: upErr } = await supabase
+      .from('branch_settlement_expenses')
+      .update({ total_expense: cost, memo, is_confirmed: true })
+      .eq('id', existing.id);
+    if (upErr) throw upErr;
+  } else {
+    const { error: insErr } = await supabase
+      .from('branch_settlement_expenses')
+      .insert({ affiliation, period_month, total_expense: cost, memo, is_confirmed: true });
+    if (insErr) throw insErr;
+  }
+
+  // 캐시/UI 반영
+  __LAST_COST_MAP[ym] = cost;
+  __LAST_MEMO_MAP[ym] = memo;
+  __LAST_CONFIRMED_MAP[ym] = true;
+  applyLockUI(true);
+  showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
+}

@@ -72,6 +72,11 @@
       <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
         <h2 class="text-lg font-bold">월별 정산</h2>
         <span id="d_branch" class="ml-2 text-sm text-gray-500"></span>
+        <!-- [ADD] 정산확정 버튼 -->
+        <button id="settlement-confirm-btn"
+                class="ml-auto px-3 py-1.5 rounded bg-amber-500 text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed">
+          정산확정
+        </button>
         <button id="close-settlement-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
       </div>
 
