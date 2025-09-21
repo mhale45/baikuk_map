@@ -361,13 +361,22 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
-  // 메모 표시/동기화
+  // 메모 표시/동기화 + 자동 높이
   const memoEl = $id('d_memo');
   if (memoEl) {
-    memoEl.value = __LAST_MEMO_MAP[ym] || '';
-    memoEl.oninput = () => {
-      __LAST_MEMO_MAP[ym] = memoEl.value;
+    const autoGrow = (el) => {
+      // 내용 길이에 맞춰 높이 자동 조절
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
     };
+
+    memoEl.value = __LAST_MEMO_MAP[ym] || '';
+    autoGrow(memoEl); // 초기 표시 시 높이 맞춤
+
+    memoEl.addEventListener('input', () => {
+      __LAST_MEMO_MAP[ym] = memoEl.value;
+      autoGrow(memoEl); // 입력할 때마다 높이 재조정
+    });
   }
 
   // 최초 계산
