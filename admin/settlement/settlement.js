@@ -9,7 +9,7 @@ const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 const PAYROLL_RATE = 0.5;
 
 // [ADD] 총 비용 안내 항목(원하는 만큼 추가/수정)
-const COST_HINTS = [
+const COST_INCLUDE_HINTS  = [
   '월세, 관리비, 공과금',
   '네이버 광고, 현수막, 명함, 봉투',
   '식대(만원), 사무용품',
