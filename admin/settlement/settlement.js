@@ -8,6 +8,12 @@ const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
 
+// [ADD] 총 비용 안내 항목(원하는 만큼 추가/수정)
+const COST_HINTS = [
+  '월세, 관리비, 공과금',
+  '네이버 광고 충전비, 현수막, 명함, 봉투',
+];
+
 // [ADD] 월별 합계/브레이크다운 캐시(드로어/테이블에서 재사용)
 let __LAST_AFFILIATION = null;
 // 합계
@@ -587,6 +593,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // 최초 계산
   recompute();
 
+  renderCostHints();
+  
   // 오픈
   overlay.classList.remove('hidden');
   drawer.classList.remove('translate-x-full');
@@ -1003,4 +1011,13 @@ async function confirmSettlement(affiliation, ym) {
   __LAST_CONFIRMED_MAP[ym] = true;
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
+}
+
+// [ADD] 총 비용 안내 항목 렌더
+function renderCostHints() {
+  const ul = document.getElementById('d_cost_hints');
+  if (!ul) return;
+  ul.innerHTML = (COST_HINTS || [])
+    .map(item => `<li>${item}</li>`)
+    .join('');
 }

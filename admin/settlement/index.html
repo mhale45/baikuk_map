@@ -110,10 +110,14 @@
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
             <input id="d_cost" type="text" inputmode="numeric" placeholder="0"
                   class="border rounded px-3 py-2 text-right">
-            <p class="text-xs text-gray-400 mt-1">
-              - 월세, 관리비, 공과금
-              - 네이버 광고 충전비, 현수막, 명함, 봉투
-            </p>
+            <!-- [ADD] 총 비용 세부 항목 안내 박스 -->
+            <div class="border rounded px-3 py-2 bg-amber-50/60">
+              <div class="text-sm font-semibold text-amber-800 mb-1">총 비용 참고 항목</div>
+              <ul id="d_cost_hints" class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+                <!-- JS에서 렌더링됩니다 -->
+              </ul>
+              <p class="mt-2 text-xs text-gray-500">필요한 항목을 자유롭게 추가/수정하세요.</p>
+            </div>
           </label>
 
           <label class="flex flex-col gap-1 col-span-2">
