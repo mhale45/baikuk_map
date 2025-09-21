@@ -113,6 +113,14 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
           </label>
         </div>
+        <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
+        <div class="px-5 pb-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">메모</span>
+            <textarea id="d_memo" rows="4" class="border rounded px-3 py-2 w-full resize-none overflow-hidden leading-6"></textarea>
+          </label>
+        </div>
+        
         <!-- [ADD] Expense 파일 업로더 (메모 위) -->
         <div class="px-5">
           <div class="border border-gray-200 rounded-xl p-4 bg-white">
@@ -145,18 +153,11 @@
         </div>
         <!-- 이미 저장되어 있던 파일 목록 -->
         <div id="expFilesSection" class="mt-4">
-          <div class="font-semibold mb-1">이 달의 저장된 파일</div>
+          <div class="font-semibold mb-1">저장된 파일</div>
           <ul id="expFileList" class="space-y-1 text-sm text-slate-700">
             <!-- JS로 렌더링 -->
           </ul>
           <div id="expFileEmpty" class="text-sm text-slate-400 hidden">아직 업로드된 파일이 없습니다.</div>
-        </div>
-        <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
-        <div class="px-5 pb-2">
-          <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">메모</span>
-            <textarea id="d_memo" rows="4" class="border rounded px-3 py-2 w-full resize-none overflow-hidden leading-6"></textarea>
-          </label>
         </div>
       </div>
 

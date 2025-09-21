@@ -95,7 +95,7 @@ function expAppendResult({ name, url, path, error }) {
   ul.appendChild(li);
 }
 
-// [NEW] 저장된 파일 목록 불러오기(+렌더)
+// [REPLACE] 저장된 파일 목록 불러오기(+일자 폴더까지 내려가서 파일 수집)
 async function loadExpenseFileList(affiliationEn, ym) {
   try {
     const ul = document.getElementById('expFileList');
@@ -105,25 +105,16 @@ async function loadExpenseFileList(affiliationEn, ym) {
     ul.innerHTML = '';
     empty.classList.add('hidden');
 
-    const prefix = makeMonthPrefix(affiliationEn, ym); // ex) Mokdong/2025/09
-    // prefix 디렉토리의 모든 파일/폴더 나열
-    const { data: entries, error } = await supabase
+    const monthPrefix = makeMonthPrefix(affiliationEn, ym); // ex) Mokdong/2025/09
+
+    // 1) 월 폴더 1레벨 목록
+    const { data: monthEntries, error: monthErr } = await supabase
       .storage.from(EXPENSE_BUCKET)
-      .list(prefix, { limit: 200, sortBy: { column: 'name', order: 'desc' } });
+      .list(monthPrefix, { limit: 1000, sortBy: { column: 'name', order: 'desc' } });
+    if (monthErr) throw monthErr;
 
-    if (error) throw error;
-
-    // .keep 제외하고 파일만
-    const files = (entries || []).filter(e => e.name && e.name !== '.keep');
-    if (!files.length) {
-      empty.classList.remove('hidden');
-      return;
-    }
-
-    // 각 파일에 대해 서명 URL 생성해서 렌더
-    for (const f of files) {
-      const fullPath = `${prefix}/${f.name}`;
-
+    // helper: 파일 렌더
+    const renderFile = async (fullPath, name, size) => {
       let signedUrl = null;
       try {
         const { data: sig, error: sigErr } = await supabase
@@ -136,14 +127,43 @@ async function loadExpenseFileList(affiliationEn, ym) {
       li.className = 'flex items-center justify-between border rounded-lg px-3 py-2 bg-white';
       li.innerHTML = `
         <div class="truncate">
-          📄 <b class="truncate">${f.name}</b>
-          <span class="ml-2 text-xs text-slate-400">${(f?.metadata?.size || 0).toLocaleString()} B</span>
+          📄 <b class="truncate">${name}</b>
+          ${typeof size === 'number' ? `<span class="ml-2 text-xs text-slate-400">${size.toLocaleString()} B</span>` : ''}
         </div>
-        <div>
-          ${signedUrl ? `<a href="${signedUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}
-        </div>
+        <div>${signedUrl ? `<a href="${signedUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">열기</a>` : ''}</div>
       `;
       ul.appendChild(li);
+    };
+
+    // 2) 월 폴더에 파일이 직접 있을 수도 있으니 먼저 그 파일들 렌더
+    for (const e of (monthEntries || [])) {
+      // 파일이면 metadata가 있음, 폴더면 metadata가 null
+      if (e?.name && e?.metadata && e.name !== '.keep') {
+        const fullPath = `${monthPrefix}/${e.name}`;
+        await renderFile(fullPath, e.name, e.metadata.size ?? null);
+      }
+    }
+
+    // 3) 월 폴더 아래 하위 폴더(=일자: 01~31)를 다시 list 해서 파일 렌더
+    for (const e of (monthEntries || [])) {
+      if (!e?.name || e?.metadata) continue; // metadata가 없으면 폴더
+      const dayPrefix = `${monthPrefix}/${e.name}`; // ex) Mokdong/2025/09/21
+      const { data: dayEntries, error: dayErr } = await supabase
+        .storage.from(EXPENSE_BUCKET)
+        .list(dayPrefix, { limit: 1000, sortBy: { column: 'name', order: 'desc' } });
+      if (dayErr) continue;
+
+      for (const f of (dayEntries || [])) {
+        if (!f?.name || f.name === '.keep') continue;
+        const fullPath = `${dayPrefix}/${f.name}`;
+        await renderFile(fullPath, `${e.name}/${f.name}`, f?.metadata?.size ?? null); // 표시: "21/파일명"
+      }
+    }
+
+    // 4) 아무것도 없으면 빈 메시지
+    if (!ul.children.length) {
+      empty.textContent = '아직 업로드된 파일이 없습니다.';
+      empty.classList.remove('hidden');
     }
   } catch (e) {
     console.warn('[expense] list load failed:', e?.message || e);
