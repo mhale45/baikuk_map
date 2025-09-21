@@ -556,9 +556,9 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       return `
         <div class="flex items-center justify-between px-3 py-1 border-t first:border-t-0">
           <span class="text-sm text-gray-700">${s.name}</span>
-          <span class="text-sm font-medium text-right">
+          <span class="text-sm text-blue-700 font-medium text-right">
             ${fmtKR(deposit)}
-            <span class="text-xs text-blue-600 ml-1">(${fmtKR(val)})</span>
+            <span class="text-sm ml-1">(${fmtKR(val)})</span>
           </span>
         </div>
       `;
