@@ -943,6 +943,14 @@ function applyLockUI(locked) {
   if (confirmBtn) {
     confirmBtn.disabled = locked;
     confirmBtn.textContent = locked ? '확정됨' : '정산확정';
+
+    if (locked) {
+      confirmBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+      confirmBtn.classList.add('bg-gray-400', 'hover:bg-gray-400');
+    } else {
+      confirmBtn.classList.remove('bg-gray-400', 'hover:bg-gray-400');
+      confirmBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+    }
   }
 }
 
