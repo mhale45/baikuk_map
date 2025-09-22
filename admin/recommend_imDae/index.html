@@ -650,7 +650,9 @@
         .from('customers_recommendations')
         .select('*')
         .eq('customers_id', currentCustomerId)
-        .order('order', { ascending: true });
+        .order('order', { ascending: true })
+        .order('order', { ascending: true, nullsFirst: false })
+        .order('id', { ascending: true });  
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -658,16 +660,28 @@
         return;
       }
 
-      listings.forEach((listing) => {
-        const index = listing.order;  // 🔹 DB 저장된 순서
-        const leftInput = document.querySelector(`input[data-index="${index}"]`);
-        if (leftInput) leftInput.value = listing.listing_id;
+      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
+      let nextIndex = 1;
 
+      listings.forEach((listing) => {
+        // 1) 인덱스 결정
+        const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
+          ? listing.order          // order가 있으면 그대로 사용
+          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
+
+        // 2) 왼쪽 매물번호 채우기
+        const leftInput = document.querySelector(`input[data-index="${index}"]`);
+        if (leftInput) leftInput.value = listing.listing_id ?? '';
+
+        // 3) 오른쪽 표 행 확보/확장
         updateListingsTableByInputs();
 
+        // 4) 필드 주입
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (el) el.value = value ?? '';
+          if (!el) return;
+          if (el.tagName === 'SPAN') el.textContent = value ?? '';
+          else el.value = value ?? '';
         };
 
         setField('listing_title', listing.listing_title);
@@ -678,7 +692,18 @@
         setField('premium_price', listing.premium_price);
         setField('area_py', listing.area_py);
         setField('description', listing.contents);
+
+        // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
+        //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
+        if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
+          nextIndex = Math.max(nextIndex, listing.order + 1);
+        }
       });
+
+      // 높이/스트라이프 정리
+      syncRowHeights?.();
+      applyRowStriping?.();
+
 
       syncRowHeights?.();
       applyRowStriping?.();
