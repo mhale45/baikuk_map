@@ -649,7 +649,8 @@
       const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', currentCustomerId);
+        .eq('customers_id', currentCustomerId)
+        .order('order', { ascending: true });
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -657,12 +658,13 @@
         return;
       }
 
-      listings.forEach((listing, i) => {
-        const index = i + 1;
+      listings.forEach((listing) => {
+        const index = listing.order;  // 🔹 DB 저장된 순서
         const leftInput = document.querySelector(`input[data-index="${index}"]`);
         if (leftInput) leftInput.value = listing.listing_id;
 
-        updateListingsTableByInputs(); // 행 수 확장
+        updateListingsTableByInputs();
+
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
           if (el) el.value = value ?? '';
@@ -1568,7 +1570,8 @@
               monthly_rent,
               premium_price,
               area_py,
-              contents: description
+              contents: description,
+              order: rowIndex
             });
           }
         }
