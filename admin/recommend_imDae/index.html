@@ -683,7 +683,7 @@
           else el.value = value ?? '';
         };
 
-        setField('listing_title', listing.listing_title);
+        setField('listing_title', cleanListingTitle(listing.listing_title));
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
         setField('deposit_price', listing.deposit_price);
@@ -1048,6 +1048,30 @@
         }
         return num.toLocaleString();
     }
+
+    // === Listing Title Cleaner ===
+    // 규칙: 괄호 안에 '숫자'와 '호'가 함께 있으면 그 괄호 묶음만 제거.
+    // 그 외의 괄호(예: '(전,소담스레김치찌개)')는 유지.
+    function cleanListingTitle(raw) {
+      if (!raw) return '';
+      let s = String(raw);
+
+      // 모든 괄호 묶음을 순회하면서, 내부에 숫자(\d)와 '호'가 모두 있으면 제거
+      s = s.replace(/\s*\(([^)]*)\)\s*/g, (match, inside) => {
+        const hasDigit = /\d/.test(inside);
+        const hasHo = /호/.test(inside);
+        // 101~103호 같은 범위도 자연스럽게 포함됨(숫자+호)
+        return (hasDigit && hasHo) ? '' : ` (${inside.trim()}) `;
+      });
+
+      // 남은 공백/중복 공백 정리
+      s = s.replace(/\s{2,}/g, ' ').trim();
+
+      // 빈 괄호가 남았으면 제거
+      s = s.replace(/\(\s*\)/g, '').trim();
+
+      return s;
+    }
     
     async function preloadBuildingInfo() {
       const { data: buildings, error } = await supabase
@@ -1166,9 +1190,9 @@
       // 3. 표시할 데이터 정리
       const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
       const dataToDisplay = {
-        listing_title: listing.listing_title,
+        listing_title: cleanListingTitle(listing.listing_title), // 👈 여기!
         full_address: listing.full_address,
-        combined_unit: combinedUnit, // 새 필드
+        combined_unit: combinedUnit,
         deposit_price: listing.deposit_price,
         monthly_rent: listing.monthly_rent,
         premium_price: listing.premium_price,
