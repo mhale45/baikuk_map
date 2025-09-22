@@ -645,14 +645,13 @@
       const listingsBody = document.getElementById('listings-body');
       listingsBody.innerHTML = '';
 
-      // ✅ 추천 매물 목록 불러오기
+      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
       const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', currentCustomerId)
-        .order('order', { ascending: true })
-        .order('order', { ascending: true, nullsFirst: false })
-        .order('id', { ascending: true });  
+        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -1586,8 +1585,8 @@
           // 번호가 있거나 의미 있는 데이터가 있는 행만 저장
           if (listingId || hasMeaningful) {
             rowsToInsert.push({
-              customers_id: currentCustomerId,
-              listing_id: listingId, // 없으면 null 저장
+              customers_id: String(currentCustomerId), // ← text 컬럼에 맞춰 문자열로 저장
+              listing_id: listingId,                   // 없으면 null 저장
               listing_title,
               full_address,
               building_detail_info: combined_unit,
@@ -1596,7 +1595,7 @@
               premium_price,
               area_py,
               contents: description,
-              order: rowIndex
+              order: index // ← 오타 수정: for 루프의 index 사용
             });
           }
         }
@@ -1820,7 +1819,7 @@
 
           if (listingId || hasMeaningful) {
             rowsToInsert.push({
-              customers_id: customerId,
+              customers_id: String(customerId), // ← 문자열로
               listing_id: listingId,
               listing_title,
               full_address,
