@@ -213,13 +213,13 @@
       }
       if (!sessionRes?.session) {
         console.warn("로그인 세션 없음 → /map으로 이동");
-        location.replace("/admin/listings/");
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
         return;
       }
 
       const user = sessionRes.session.user;
       if (!user?.id) {
-        location.replace("/admin/listings/");
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
         return;
       }
 

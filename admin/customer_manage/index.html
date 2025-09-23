@@ -44,13 +44,13 @@
         if (sessionError) console.warn("세션 조회 에러:", sessionError);
         if (!sessionData?.session) {
           console.warn("로그인 세션 없음 → /admin/listings 로 이동");
-          location.replace("/admin/listings/");
+          location.replace("https://baikuk-map.netlify.app/admin/listings/");
           return;
         }
 
         if (!user?.id) {
           console.warn("유저 정보 없음 → /admin/listings 로 이동");
-          location.replace("/admin/listings/");
+          location.replace("https://baikuk-map.netlify.app/admin/listings/");
           return;
         }
 

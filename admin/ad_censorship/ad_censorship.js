@@ -1109,7 +1109,7 @@ export async function initAdCensorship() {
     await waitForSupabase();
     const { data } = await supabase.auth.getSession();
     if (!data?.session) {
-      location.replace('/admin/listings/');
+      location.replace('https://baikuk-map.netlify.app/admin/listings/');
       return;
     }
   } catch (e) {
