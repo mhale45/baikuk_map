@@ -43,15 +43,14 @@
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) console.warn("세션 조회 에러:", sessionError);
         if (!sessionData?.session) {
-          console.warn("로그인 세션 없음 → https://baikuk.com/map 으로 이동");
-          location.replace("https://baikuk.com/map");
+          console.warn("로그인 세션 없음 → /admin/listings 로 이동");
+          location.replace("/admin/listings/");
           return;
         }
 
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) {
-          console.warn("유저 정보 없음 → https://baikuk.com/map 으로 이동");
-          location.replace("https://baikuk.com/map");
+          console.warn("유저 정보 없음 → /admin/listings 로 이동");
+          location.replace("/admin/listings/");
           return;
         }
 
@@ -97,7 +96,7 @@
         }
       } catch (e) {
         console.warn("로그인/권한 확인 중 예외:", e);
-        location.replace("https://baikuk.com/map");
+        location.replace("/admin/listings/");
       }
     })();
 

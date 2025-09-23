@@ -58,7 +58,7 @@
         if (error) console.warn("세션 조회 에러:", error);
         if (!data?.session) {
           console.warn("로그인 세션 없음 → /map 으로 이동");
-          location.replace("https://baikuk.com/map");
+          location.replace("/admin/listings/");
           return;
         }
 
