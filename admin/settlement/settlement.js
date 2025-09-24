@@ -368,11 +368,13 @@ async function loadBranchMonthlySales(affiliation) {
       return;
     }
 
-    // 2) 잔금일 있는 performance (확정/미확정 모두)
+    // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date')
+      .eq('status', true)
       .not('balance_date', 'is', null);
+
     if (perfErr) throw perfErr;
 
     if (!perfRows || perfRows.length === 0) {

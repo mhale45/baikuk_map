@@ -253,7 +253,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
   for (const ym of yms) {
     const sales = Number(salesMap?.[ym] || 0);
-    const cost  = Number(costMap?.[ym] || 0);
+    const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
     const pmap = payrollByStaff?.[ym] || {};
     let payrollTotal = 0;
@@ -331,6 +331,9 @@ async function loadBranchMonthlySales(affiliation) {
       .select('id, name')
       .eq('affiliation', affiliation)
       .is('leave_date', null);
+
+    await loadBranchExpenseCache(affiliation); // ← [ADD] 월별 총비용 캐시 선로딩
+
     if (staffErr) throw staffErr;
 
     // [ADD] 영문 지점명 로드
@@ -587,6 +590,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // [ADD] 자율금/비율 표시 요소(없으면 null)
   const autoRateEl = $id('d_autonomous_rate'); // e.g. "20%" 같은 텍스트 노출 용도
   const autoFeeEl  = $id('d_autonomous_fee');  // 금액 입력/출력(readonly 권장)
+  const autoAmtEl  = $id('d_autonomous_amount'); // ← 이 인풋에도 동일 값 표시
 
   costEl.value = __LAST_COST_MAP[ym] ? fmtKR(__LAST_COST_MAP[ym]) : '0';
 
@@ -602,6 +606,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     if (autoRateEl) autoRateEl.textContent = `${Math.round(ar * 100)}%`;
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
+    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
     $id('d_profit').value = fmtKR(finalProfit);
   };
@@ -626,11 +631,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       autoGrow(memoEl); // 입력할 때마다 높이 재조정
     });
   }
-  
+
   // [ADD] 초기 비율/자율금 표시
   const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
   if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = `${Math.round(ar * 100)}%`;
   if ($id('d_autonomous_fee'))  $id('d_autonomous_fee').value = '0';
+  if ($id('d_autonomous_amount')) $id('d_autonomous_amount').value = '0';
 
   // 최초 계산
   recompute();
@@ -781,6 +787,32 @@ function firstDayOfMonth(ym) {
   const m = /^(\d{4})-(\d{2})$/.exec(ym);
   if (!m) return null;
   return `${m[1]}-${m[2]}-01`;
+}
+
+// === [ADD] 지점 월별 총비용 캐시 선로딩 ===
+async function loadBranchExpenseCache(affiliation) {
+  try {
+    const { data, error } = await supabase
+      .from('branch_settlement_expenses')
+      .select('period_month, total_expense')
+      .eq('affiliation', affiliation);
+
+    if (error) throw error;
+
+    const map = {};
+    for (const row of (data || [])) {
+      // period_month: 'YYYY-MM-DD' → 'YYYY-MM'
+      const ym = ymKey(String(row.period_month));
+      if (!ym) continue;
+      map[ym] = Number(row.total_expense || 0);
+    }
+
+    __LAST_COST_MAP = map;    // ✅ 전역 캐시에 반영
+    return map;
+  } catch (e) {
+    console.warn('[settlement] expense cache load failed:', e?.message || e);
+    return {};
+  }
 }
 
 // [ADD] 현재 로그인 사용자의 권한과 지점명 로드
@@ -1016,6 +1048,17 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     }
 
     applyLockUI(__LAST_CONFIRMED_MAP[ym] === true);
+    // [ADD] 표도 DB값 반영되도록 즉시 재렌더
+    try {
+      renderMonthlyTable({
+        titleAffiliation: __LAST_AFFILIATION,
+        salesMap: __LAST_SALES_MAP,
+        payrollByStaff: __LAST_PAYROLL_BY_STAFF,
+        costMap: __LAST_COST_MAP,  // ← 방금 갱신된 캐시 사용
+        staffList: __LAST_STAFF_LIST,
+      });
+    } catch (_) {}
+
   } catch (e) {
     console.warn('[settlement] fetch state failed:', e?.message || e);
     applyLockUI(false);

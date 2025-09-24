@@ -104,14 +104,12 @@
               <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
             </div>
             <!-- 지점자율금 -->
-            <div class="mt-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">지점자율금</span>
-                <span id="d_autonomous_rate" class="text-xs text-gray-500">(rate: —)</span>
-              </div>
-              <input id="d_autonomous_amount" type="text" readonly
-                    class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
+            <div class="mt-5 flex items-center justify-between">
+              <span class="text-sm text-gray-600">지점자율금</span>
+              <span id="d_autonomous_rate" class="text-xs text-gray-500">(rate: —)</span>
             </div>
+            <input id="d_autonomous_amount" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
           </div>
 
           <label class="flex flex-col gap-1">
@@ -138,7 +136,7 @@
           </label>
 
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 총 비용</span>
+            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 총 비용 − 지점자율금</span>
             <input id="d_profit" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
           </label>
@@ -215,13 +213,13 @@
       }
       if (!sessionRes?.session) {
         console.warn("로그인 세션 없음 → /map으로 이동");
-        location.replace("https://baikuk.com/map");
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
         return;
       }
 
       const user = sessionRes.session.user;
       if (!user?.id) {
-        location.replace("https://baikuk.com/map");
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
         return;
       }
 
