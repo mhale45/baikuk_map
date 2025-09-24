@@ -208,6 +208,7 @@ function ymKey(dateStr) {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
+// 기존 renderMonthlyTable 전체 삭제 후 아래로 교체
 function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMap, staffList }) {
   const titleEl = $('#branch-monthly-title');
   const thead   = $('#monthly-thead');
@@ -215,7 +216,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   if (titleEl) titleEl.textContent = titleAffiliation ? `지점: ${titleAffiliation}` : '지점을 선택하세요';
   if (!thead || !tbody) return;
 
-  // 키 수집
+  // 사용되는 월 키 수집
   const ymSet = new Set([
     ...Object.keys(salesMap || {}),
     ...Object.keys(costMap || {}),
@@ -223,17 +224,12 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   ]);
   const yms = Array.from(ymSet).sort();
 
-  // 직원 컬럼(이 지점 재직자) 정렬
-  const staff = Array.isArray(staffList) ? [...staffList] : [];
-  staff.sort((a,b) => String(a.name).localeCompare(String(b.name), 'ko'));
-
-  // === THEAD 동적 구성 ===
-  // 기간 / 잔금매출 / (직원별 급여 …) / 총급여 / 총비용 / 순이익
+  // === THEAD: 직원별 급여 열 제거 ===
+  // 기간 / 잔금매출 합계 / 총 급여 / 총 비용 / 지점자율금 / 최종 순이익
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
-    ${staff.map(s => `<th class="border px-2 py-2 whitespace-nowrap">급여-${s.name}</th>`).join('')}
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
@@ -245,8 +241,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   // === TBODY ===
   tbody.innerHTML = '';
   if (yms.length === 0) {
+    // 직원별 급여 열을 없앴으므로 colspan은 고정 6
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="${6 + staff.length}">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="6">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -255,14 +252,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const sales = Number(salesMap?.[ym] || 0);
     const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
+    // 직원별 급여 열은 렌더링하지 않지만, 총 급여 계산은 유지
     const pmap = payrollByStaff?.[ym] || {};
-    let payrollTotal = 0;
-
-    const staffCells = staff.map(s => {
-      const val = Number(pmap[s.id] || 0);
-      payrollTotal += val;
-      return `<td class="border px-2 py-2 text-right">${fmt(val)}</td>`;
-    }).join('');
+    const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
     // 1차 순이익(자율금 차감 전)
     const profitBefore = sales - payrollTotal - cost;
@@ -279,23 +271,22 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
-      ${staffCells}
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
     `;
 
-    // 행 클릭 → 드로어 오픈 (직원별 브레이크다운 전달)
+    // 행 클릭 → 드로어 오픈 (드로어에서는 직원별 브레이크다운 계속 표시)
     tr.addEventListener('click', () => {
       openSettlementDrawer({
         affiliation: __LAST_AFFILIATION,
         ym,
         sales,
         payrollTotal,
-        pmap, // 직원별 급여
+        pmap, // 직원별 급여(표에는 안 보이지만 드로어에서 사용)
         cost: __LAST_COST_MAP[ym] ?? cost,
-        staffList: staff
+        staffList: __LAST_STAFF_LIST
       });
     });
 
