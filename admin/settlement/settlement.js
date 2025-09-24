@@ -532,14 +532,37 @@ async function renderBranchList() {
       container.appendChild(div);
     }
 
-    // 지점장이라면 본인 지점을 자동 선택해서 로딩(선택 표시 포함)
-    if (__MY_ROLE === '지점장' && __MY_AFFILIATION) {
-      const myEl = $(`#branch-list > div[data-affiliation="${CSS.escape(__MY_AFFILIATION)}"]`);
-      if (myEl) {
-        myEl.classList.add('bg-yellow-200');
-        loadBranchMonthlySales(__MY_AFFILIATION);
+    // [CHANGE] 초기 자동 선택: ① 내 소속 지점이 목록에 있으면 그 지점, ② 없으면 첫 번째 클릭 가능 지점
+    (function autoSelectDefaultBranch() {
+      // 후보: 내 소속 지점 → 없으면 첫 번째 지점
+      let targetAff = null;
+
+      // 1) 내 소속 지점이 있으면 우선
+      if (__MY_AFFILIATION) {
+        const el = $(`#branch-list > div[data-affiliation="${CSS.escape(__MY_AFFILIATION)}"]`);
+        if (el && !el.classList.contains('pointer-events-none')) {
+          targetAff = __MY_AFFILIATION;
+        }
       }
-    }
+
+      // 2) 없으면(관리자 등) 클릭 가능한 첫 번째 지점
+      if (!targetAff) {
+        const firstClickable = $$('#branch-list > div')
+          .find(el => !el.classList.contains('pointer-events-none'));
+        if (firstClickable) {
+          targetAff = firstClickable.dataset.affiliation || null;
+        }
+      }
+
+      if (!targetAff) return;
+
+      // 선택 표시 초기화 후, 대상 지점 선택/로딩
+      $$('#branch-list > div').forEach(el => el.classList.remove('bg-yellow-200'));
+      const targetEl = $(`#branch-list > div[data-affiliation="${CSS.escape(targetAff)}"]`);
+      if (targetEl) targetEl.classList.add('bg-yellow-200');
+
+      loadBranchMonthlySales(targetAff);
+    })();
   } catch (e) {
     console.error('지점 목록 로딩 실패:', e);
     showToastGreenRed?.('지점 목록 로딩 실패');
@@ -850,6 +873,10 @@ async function resolveMyAuthority() {
     for (const r of (rows || [])) {
       if (r.authority === '관리자') {
         __MY_ROLE = '관리자';
+        // [ADD] 관리자라도 소속이 있으면 기본 선택 지점으로 활용
+        if (!__MY_AFFILIATION && r.affiliation) {
+          __MY_AFFILIATION = r.affiliation;
+        }
       } else if (r.authority === '지점장' && __MY_ROLE !== '관리자') {
         __MY_ROLE = '지점장';
         __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
