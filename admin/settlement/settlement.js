@@ -356,19 +356,7 @@ async function loadBranchMonthlySales(affiliation) {
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
-    if (staffIds.size === 0) {
-      __LAST_SALES_MAP = {};
-      __LAST_PAYROLL_TOTAL_MAP = {};
-      __LAST_PAYROLL_BY_STAFF = {};
-      renderMonthlyTable({
-        titleAffiliation: affiliation,
-        salesMap: {},
-        payrollByStaff: {},
-        costMap: __LAST_COST_MAP || {},
-        staffList: __LAST_STAFF_LIST
-      });
-      return;
-    }
+    const hasStaff = staffIds.size > 0; // ✅ 직원이 없어도 VAT/비용은 보여야 하므로 계속 진행
 
     // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
@@ -416,6 +404,8 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_SALES_MAP = {};
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
+      __LAST_VAT_MAP = vatMap; // ✅ 이 달의 부가세 합계(없으면 0 맵)
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -425,7 +415,6 @@ async function loadBranchMonthlySales(affiliation) {
       });
       return;
     }
-
     // 3) allocations 조회 & 합산(관여매출 50% = 급여)
     const BATCH = 800;
     const salesMap = {};               // 월별 잔금매출(=관여매출 합)
@@ -456,14 +445,16 @@ async function loadBranchMonthlySales(affiliation) {
           const sidStr = String(sid);
           if (!staffIds.has(sidStr)) continue;
 
-          const inv = Number(row[`involvement_sales${k}`] || 0);
-          // 잔금매출(모든 직원의 관여매출 합)
-          salesMap[ym] = (salesMap[ym] || 0) + inv;
+          if (hasStaff) {
+            const inv = Number(row[`involvement_sales${k}`] || 0);
+            // 잔금매출(모든 직원의 관여매출 합)
+            salesMap[ym] = (salesMap[ym] || 0) + inv;
 
-          // 급여(=관여×50%)를 직원별로 적립
-          const pay = Math.round(inv * PAYROLL_RATE);
-          (payrollByStaff[ym] ||= {});
-          payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
+            // 급여(=관여×50%)를 직원별로 적립
+            const pay = Math.round(inv * PAYROLL_RATE);
+            (payrollByStaff[ym] ||= {});
+            payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
+          }
         }
       }
     }
@@ -479,6 +470,7 @@ async function loadBranchMonthlySales(affiliation) {
     __LAST_PAYROLL_BY_STAFF = payrollByStaff;
     __LAST_PAYROLL_TOTAL_MAP = payrollTotalMap;
     __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) }; // 유지
+    __LAST_VAT_MAP = vatMap; // ✅ 부가세 캐시 저장 (누락되었던 부분)
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
