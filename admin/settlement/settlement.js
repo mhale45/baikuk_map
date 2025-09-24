@@ -570,6 +570,10 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   $id('d_period').value  = ym;
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
+  // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
+  const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
+  const vatEl = $id('d_vat');
+  if (vatEl) vatEl.value = fmtKR(vatVal);
 
   // 직원별 급여 목록 렌더
   const listEl = $id('d_payroll_breakdown');
@@ -605,7 +609,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const c = Math.max(toNumber(costEl.value), 0);
     __LAST_COST_MAP[ym] = c;
 
-    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c;
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
+    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c - vatVal;
     const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
     const aFee = Math.round(profitBefore * ar);
     const finalProfit = profitBefore - aFee;
