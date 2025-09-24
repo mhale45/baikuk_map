@@ -105,12 +105,12 @@
       font-size: 0.875rem; /* text-sm */
     }
 
-    /* 보강용 (선택) */
-    table thead th {
+    /* 헤더 스타일 */
+    thead {
+      background-color: #f3f4f6; /* bg-gray-100 */
       position: sticky;
       top: 0;
-      z-index: 11;
-      background: #f3f4f6;
+      z-index: 10;
     }
 
     /* 짝수/홀수 줄 배경 */
@@ -191,9 +191,12 @@
             </button>
           </div>
           <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
-            <div class="mb-2 text-right">
+            <div class="mb-2 text-right flex gap-2 justify-end">
               <button id="toggle-edit-btn" class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded">
                 저장
+              </button>
+              <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-3 py-1 rounded">
+                지우기
               </button>
             </div>
             <div id="table-container" class="border rounded-md">
@@ -1427,6 +1430,21 @@
 
       // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
       switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
+
+      // === '매물번호' 일괄 지우기 버튼 ===
+      document.getElementById('clear-left-btn')?.addEventListener('click', () => {
+        const inputs = document.querySelectorAll('input[data-index]');
+        let touched = 0;
+        inputs.forEach(inp => {
+          if (inp.value && inp.value.trim() !== '') {
+            inp.value = '';
+            // 기존 change 핸들러가 clearListingRow(index)를 호출하도록 이벤트 발생
+            inp.dispatchEvent(new Event('change'));
+            touched++;
+          }
+        });
+        showToast(touched > 0 ? '매물번호를 모두 지웠습니다.' : '지울 매물번호가 없습니다.');
+      });
     });
 
     // 👉 창 리사이즈 시에도 높이 동기화
