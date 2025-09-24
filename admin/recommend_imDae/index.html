@@ -866,8 +866,8 @@
         return;
       }
 
-      // F 등급 고객은 걸러냄
-      const filteredCustomers = customers.filter(c => ['A', 'B', 'C'].includes((c.grade || '').toUpperCase()));
+      // A/B/C/F만 표시 (F는 아래에서 접은 상태로 렌더)
+      const filteredCustomers = customers.filter(c => ['A', 'B', 'C', 'F'].includes((c.grade || '').toUpperCase()));
 
       // 등급 그룹핑
       const grouped = filteredCustomers.reduce((acc, c) => {
@@ -883,26 +883,47 @@
         ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g))
       ];
 
-      // 섹션별 렌더
+      // 섹션별 렌더 (F는 기본 접힘)
       sortedGrades.forEach(grade => {
         const list = grouped[grade] || [];
         if (!list.length) return;
 
-        // 섹션 헤더
-        const header = document.createElement('div');
-        header.className = 'grade-header';
-        header.textContent = grade; // 필요하면 `${grade} (${list.length}명)` 로 변경 가능
-        container.appendChild(header);
+        // 래퍼(섹션) 생성
+        const section = document.createElement('div');
+        section.className = 'mb-1';
+        container.appendChild(section);
 
-        // 이름들 (이름만, 역할/뱃지 제거)
+        // 헤더 (클릭으로 접기/펼치기)
+        const header = document.createElement('div');
+        header.className = 'grade-header flex items-center justify-between cursor-pointer select-none';
+        const countText = `${grade} (${list.length})`;
+        header.innerHTML = `
+          <span>${countText}</span>
+          <span class="caret text-gray-600 transition-transform duration-200">▼</span>
+        `;
+        section.appendChild(header);
+
+        // 목록 컨테이너
+        const listBox = document.createElement('div');
+        listBox.className = 'mt-1';
+        section.appendChild(listBox);
+
+        // F는 기본 접힘
+        const isF = (grade || '').toUpperCase() === 'F';
+        if (isF) {
+          listBox.style.display = 'none';
+          const caret = header.querySelector('.caret');
+          caret.style.transform = 'rotate(-90deg)';
+        }
+
+        // 이름들 렌더
         list
           .sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || '', 'ko'))
           .forEach(cust => {
             const nameBtn = document.createElement('div');
             nameBtn.className = 'name-item';
-            const other = otherNameMap.get(cust.id); // 다른 담당자 이름 (있으면)
+            const other = otherNameMap.get(cust.id);
 
-            // ✅ 여기부터 교체
             const label = document.createElement('span');
             label.textContent = cust.customer_name || '-';
 
@@ -910,9 +931,7 @@
             sub.className = 'mr-1 text-sm text-gray-500';
             sub.textContent = other ? `(${other})` : '';
 
-            nameBtn.innerHTML = '';
             nameBtn.append(sub, label);
-            // ✅ 여기까지 교체
 
             // 접근성: 키보드 선택 지원
             nameBtn.setAttribute('role', 'button');
@@ -926,10 +945,17 @@
               }
             });
 
-            container.appendChild(nameBtn);
+            listBox.appendChild(nameBtn);
           });
-      });
 
+        // 토글 동작
+        header.addEventListener('click', () => {
+          const visible = listBox.style.display !== 'none';
+          listBox.style.display = visible ? 'none' : '';
+          const caret = header.querySelector('.caret');
+          caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
+        });
+      });
       
     }
 
