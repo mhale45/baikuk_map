@@ -2178,6 +2178,93 @@
       loadCustomersForCurrentStaff();
     });
 
+    // === 손님 삭제 버튼 ===
+    document.getElementById('delete-customer')?.addEventListener('click', async () => {
+      try {
+        if (!currentCustomerId) { showToast('먼저 고객을 선택해주세요.'); return; }
+
+        // 권한 체크: 대표/보조만 삭제 가능
+        if (!(await isMyAssignedCustomer(currentCustomerId))) {
+          showToast('담당자가 아닌 고객은 삭제할 수 없습니다.');
+          return;
+        }
+
+        const name = (document.getElementById('top-row-input')?.value || '').trim();
+        const ok = confirm(`정말로 "${name || '이 고객'}"을(를) 삭제할까요?\n추천 매물/담당 배정 등 관련 데이터도 함께 삭제됩니다.`);
+        if (!ok) return;
+
+        // 1) 연관 데이터부터 삭제 (FK 충돌 방지)
+        const { error: recErr } = await supabase
+          .from('customers_recommendations')
+          .delete()
+          .eq('customers_id', String(currentCustomerId)); // text 컬럼이라 문자열 비교
+
+        if (recErr) {
+          console.error('추천매물 삭제 실패:', recErr);
+          showToast('추천 매물 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        const { error: assErr } = await supabase
+          .from('customer_assignees')
+          .delete()
+          .eq('customer_id', currentCustomerId);
+
+        if (assErr) {
+          console.error('담당 배정 삭제 실패:', assErr);
+          showToast('담당 배정 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        // 2) 고객 삭제
+        const { error: custErr } = await supabase
+          .from('customers')
+          .delete()
+          .eq('id', currentCustomerId);
+
+        if (custErr) {
+          console.error('고객 삭제 실패:', custErr);
+          showToast('고객 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        // 3) UI 초기화
+        currentCustomerId = null;
+
+        // 입력값들 초기화
+        document.getElementById('top-row-input').value = '';
+        document.getElementById('customer-phone').value = '';
+        document.getElementById('customer-grade').value = 'F';
+        document.getElementById('memo-textarea').value = '';
+
+        // 왼쪽 매물번호 전체 비우기(+change 디스패치로 오른쪽도 정리)
+        document.querySelectorAll('input[data-index]').forEach(inp => {
+          if (inp.value && inp.value.trim() !== '') {
+            inp.value = '';
+            inp.dispatchEvent(new Event('change'));
+          }
+        });
+
+        // 오른쪽 표 강제 초기화(보호적)
+        const listingsBodyEl = document.getElementById('listings-body');
+        if (listingsBodyEl) listingsBodyEl.innerHTML = '';
+
+        // 직원 표시/선택 UI 정리
+        document.getElementById('staff-info')?.classList.add('hidden');
+        document.getElementById('staff-select')?.classList.add('hidden');
+
+        // 왼쪽 고객 목록 새로고침
+        loadCustomersForCurrentStaff?.();
+
+        showToast('고객을 삭제했습니다.');
+      } catch (e) {
+        console.error('삭제 처리 중 예외:', e);
+        showToast('삭제 처리 중 오류가 발생했습니다.');
+      }
+      
+      loadCustomersForCurrentStaff();
+    });
+
      // ✅ 버튼 이벤트
     document.getElementById('copy-link-btn')?.addEventListener('click', () => {
       const text = buildAllMessages();
