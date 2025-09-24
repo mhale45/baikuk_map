@@ -92,13 +92,20 @@
       border: 1px solid #e5e7eb; /* 테두리(선택) */
       border-radius: 0.375rem;   /* rounded-md */
     }
-
     /* === sticky 헤더 === */
     .table-scroll thead {
       position: sticky;
       top: 0;
       z-index: 30;               /* 카드 안에서 항상 위로 */
       background-color: #f3f4f6; /* 헤더 배경 유지 */
+    }
+    /* 사파리 등 호환성 보강: 각 헤더 셀도 sticky */
+    .table-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 31;                 /* thead(30)보다 1 높게 */
+      background-color: #f3f4f6;   /* 스크롤 중 배경 유지 */
+      background-clip: padding-box;
     }
   </style>
   <style>
