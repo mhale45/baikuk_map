@@ -341,7 +341,41 @@
     let rowObserver;           // ResizeObserver 인스턴스
 
     // 스크립트 시작
+    // === [저장 개선] 단순 덮어쓰기 모달 ===
+    const OverwriteModal = {
+      root: null,
+      btnOverwrite: null,
+      btnCancel: null,
+      targetId: null,
+    };
 
+    function initOverwriteModalRefs() {
+      OverwriteModal.root = document.getElementById('dup-customer-modal');
+      OverwriteModal.btnOverwrite = document.getElementById('dup-overwrite');
+      OverwriteModal.btnCancel = document.getElementById('dup-cancel');
+    }
+
+    function openOverwriteModal(targetId, onConfirm) {
+      if (!OverwriteModal.root) initOverwriteModalRefs();
+      OverwriteModal.targetId = targetId;
+
+      // 버튼 핸들러 재바인딩
+      OverwriteModal.btnOverwrite.onclick = async () => {
+        try { await onConfirm?.(OverwriteModal.targetId); }
+        finally { closeOverwriteModal(); }
+      };
+      OverwriteModal.btnCancel.onclick = () => closeOverwriteModal();
+
+      OverwriteModal.root.classList.remove('hidden');
+      OverwriteModal.root.classList.add('flex');
+    }
+
+    function closeOverwriteModal() {
+      if (!OverwriteModal.root) initOverwriteModalRefs();
+      OverwriteModal.root.classList.add('hidden');
+      OverwriteModal.root.classList.remove('flex');
+      OverwriteModal.targetId = null;
+    }
 
     // 현재 있는 모든 행을 관찰
     function observeRows() {
@@ -1526,8 +1560,116 @@
           .eq('customer_name', customerName)
           .neq('id', currentCustomerId)
           .maybeSingle();
-        if (duplicateCustomer) {
-          showToast(`이미 "${customerName}" 고객이 존재합니다.`);
+        
+        if (existingCustomer) {
+          // ❗동명이인이 하나 이상 있어도 maybeSingle()가 1건만 반환하므로 그 id를 대상
+          openOverwriteModal(existingCustomer.id, async (targetId) => {
+            // 덮어쓸 페이로드
+            const today = new Date().toISOString().split('T')[0];
+            const overwriteData = {
+              customer_name: customerName,
+              customer_phone_number: customerPhone,
+              phone_last4: customerPhone ? customerPhone.replace(/\D/g,'').slice(-4) : null,
+              grade: customerGrade,
+              memo: memoText,
+              registered_at: today,        // 필요 없으면 이 줄 삭제
+              staff_profiles_id: staffId   // 내 계정으로 대표자 교체 원치 않으면 이 줄 삭제
+            };
+
+            // 1) 고객 UPDATE
+            const { error: updErr } = await supabase
+              .from('customers')
+              .update(overwriteData)
+              .eq('id', targetId);
+
+            if (updErr) {
+              console.error('❌ 고객 덮어쓰기 실패:', updErr);
+              showToast('덮어쓰기 실패');
+              return;
+            }
+
+            // 2) 추천매물 갈아끼우기 (DELETE → INSERT)
+            const rowCount = document.querySelectorAll('#listings-body tr').length;
+
+            const getListingIdByIndex = (index) => {
+              const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
+              const num = Number(raw.replace(/[^\d]/g, ''));
+              return isNaN(num) ? null : num;
+            };
+            const getNumericFromField = (field, index) => {
+              const el = document.querySelector(`[data-field="${field}_${index}"]`);
+              if (!el) return null;
+              const val = (el.tagName === 'SPAN' ? el.textContent : el.value || '').replace(/,/g, '').trim();
+              const n = Number(val);
+              return isNaN(n) ? null : n;
+            };
+            const getStringFromField = (field, index) => {
+              const el = document.querySelector(`[data-field="${field}_${index}"]`);
+              if (!el) return '';
+              const v = el.tagName === 'SPAN' ? (el.textContent || '') : (el.value || '');
+              return v.trim();
+            };
+
+            const rowsToInsert = [];
+            for (let index = 1; index <= rowCount; index++) {
+              const listingId      = getListingIdByIndex(index);
+              const listing_title  = getStringFromField('listing_title', index);
+              const full_address   = getStringFromField('full_address', index);
+              const combined_unit  = getStringFromField('combined_unit', index);
+              const description    = getStringFromField('description', index);
+              const deposit_price  = getNumericFromField('deposit_price', index);
+              const monthly_rent   = getNumericFromField('monthly_rent', index);
+              const premium_price  = getNumericFromField('premium_price', index);
+              const area_py        = getNumericFromField('area_py', index);
+
+              const hasMeaningful =
+                (listing_title || full_address || combined_unit || description ||
+                deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
+
+              if (listingId || hasMeaningful) {
+                rowsToInsert.push({
+                  customers_id: String(targetId),
+                  listing_id: listingId,
+                  listing_title,
+                  full_address,
+                  building_detail_info: combined_unit,
+                  deposit_price,
+                  monthly_rent,
+                  premium_price,
+                  area_py,
+                  contents: description
+                });
+              }
+            }
+
+            const { error: delErr } = await supabase
+              .from('customers_recommendations')
+              .delete()
+              .eq('customers_id', targetId);
+            if (delErr) {
+              console.error('❌ 기존 추천 매물 삭제 실패:', delErr);
+              showToast('추천 매물 삭제 실패');
+              return;
+            }
+
+            if (rowsToInsert.length > 0) {
+              const { error: insErr } = await supabase
+                .from('customers_recommendations')
+                .insert(rowsToInsert);
+              if (insErr) {
+                console.error('❌ 추천 매물 삽입 실패:', insErr);
+                showToast('추천 매물 저장 실패');
+                return;
+              }
+            }
+
+            // 상태/목록 갱신
+            currentCustomerId = targetId;
+            showToast(`"${customerName}" 고객 정보를 덮어썼습니다.`);
+            loadCustomersForCurrentStaff?.();
+          });
+
+          // 모달 흐름으로 넘어갔으므로 여기서 return
           return;
         }
       }
@@ -1946,5 +2088,28 @@
       setTimeout(cleanupPrintPortal, 0);
     });
   </script>
+
+  <!-- === [저장 개선] 중복 고객 선택 모달 === -->
+  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
+    <div class="bg-white w-[540px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
+      <div class="px-5 py-3 border-b font-semibold text-lg">
+        같은 이름의 고객이 이미 있습니다
+      </div>
+      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
+        <p class="text-sm text-gray-600">
+          덮어쓸 고객을 선택하거나, 새 고객으로 별도 저장을 선택하세요.
+        </p>
+        <div id="dup-customer-list" class="space-y-2"></div>
+      </div>
+      <div class="px-5 py-4 border-t flex items-center gap-2 justify-end bg-gray-50">
+        <button id="dup-overwrite" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+          선택한 고객에 덮어쓰기
+        </button>
+        <button id="dup-cancel" class="px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-200 text-sm">
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
