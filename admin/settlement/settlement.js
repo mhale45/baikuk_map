@@ -265,15 +265,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // 1차 순이익(자율금 차감 전) — ※ 요청에 '부가세'를 비용에 포함하라는 언급이 없어서
-    // 기존 공식을 유지합니다: 매출합계 − 총 급여 − 총 비용
-    const profitBefore = sales - payrollTotal - cost;
+    // [CHANGE] 드로어와 동일한 계산 적용
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0); // 부가세도 반영
+    const profitBefore = sales - payrollTotal - cost - vatVal;
 
-    // 지점자율금 = profitBefore × autonomous-rate
     const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
     const autonomousFee = Math.round(profitBefore * ar);
 
-    // 최종 순이익 = 1차 순이익 - 지점자율금
     const finalProfit = profitBefore - autonomousFee;
 
     const tr = document.createElement('tr');
