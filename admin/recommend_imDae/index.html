@@ -164,7 +164,7 @@
               id="top-row-input"
             />
             <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded font-bold">
-              신규저장
+              저장
             </button>
           </div>            
           <div class="flex mt-[0.5rem]">
@@ -283,7 +283,7 @@
         if (error) console.warn("세션 조회 에러:", error);
         if (!data?.session) {
           console.warn("로그인 세션 없음 → /map 으로 이동");
-          location.replace("https://baikuk.com/map");
+          location.replace("https://baikuk-map.netlify.app/admin/listings/");
           return;
         }
 

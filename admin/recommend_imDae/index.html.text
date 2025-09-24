@@ -283,7 +283,7 @@
         if (error) console.warn("세션 조회 에러:", error);
         if (!data?.session) {
           console.warn("로그인 세션 없음 → /map 으로 이동");
-          location.replace("https://baikuk.com/map");
+          location.replace("https://baikuk-map.netlify.app/admin/listings/");
           return;
         }
 
@@ -645,11 +645,13 @@
       const listingsBody = document.getElementById('listings-body');
       listingsBody.innerHTML = '';
 
-      // ✅ 추천 매물 목록 불러오기
+      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
       const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', currentCustomerId);
+        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -657,18 +659,31 @@
         return;
       }
 
-      listings.forEach((listing, i) => {
-        const index = i + 1;
-        const leftInput = document.querySelector(`input[data-index="${index}"]`);
-        if (leftInput) leftInput.value = listing.listing_id;
+      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
+      let nextIndex = 1;
 
-        updateListingsTableByInputs(); // 행 수 확장
+      listings.forEach((listing) => {
+        // 1) 인덱스 결정
+        const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
+          ? listing.order          // order가 있으면 그대로 사용
+          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
+
+        // 2) 왼쪽 매물번호 채우기
+        const leftInput = document.querySelector(`input[data-index="${index}"]`);
+        if (leftInput) leftInput.value = listing.listing_id ?? '';
+
+        // 3) 오른쪽 표 행 확보/확장
+        updateListingsTableByInputs();
+
+        // 4) 필드 주입
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (el) el.value = value ?? '';
+          if (!el) return;
+          if (el.tagName === 'SPAN') el.textContent = value ?? '';
+          else el.value = value ?? '';
         };
 
-        setField('listing_title', listing.listing_title);
+        setField('listing_title', cleanListingTitle(listing.listing_title));
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
         setField('deposit_price', listing.deposit_price);
@@ -676,7 +691,18 @@
         setField('premium_price', listing.premium_price);
         setField('area_py', listing.area_py);
         setField('description', listing.contents);
+
+        // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
+        //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
+        if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
+          nextIndex = Math.max(nextIndex, listing.order + 1);
+        }
       });
+
+      // 높이/스트라이프 정리
+      syncRowHeights?.();
+      applyRowStriping?.();
+
 
       syncRowHeights?.();
       applyRowStriping?.();
@@ -1022,6 +1048,30 @@
         }
         return num.toLocaleString();
     }
+
+    // === Listing Title Cleaner ===
+    // 규칙: 괄호 안에 '숫자'와 '호'가 함께 있으면 그 괄호 묶음만 제거.
+    // 그 외의 괄호(예: '(전,소담스레김치찌개)')는 유지.
+    function cleanListingTitle(raw) {
+      if (!raw) return '';
+      let s = String(raw);
+
+      // 모든 괄호 묶음을 순회하면서, 내부에 숫자(\d)와 '호'가 모두 있으면 제거
+      s = s.replace(/\s*\(([^)]*)\)\s*/g, (match, inside) => {
+        const hasDigit = /\d/.test(inside);
+        const hasHo = /호/.test(inside);
+        // 101~103호 같은 범위도 자연스럽게 포함됨(숫자+호)
+        return (hasDigit && hasHo) ? '' : ` (${inside.trim()}) `;
+      });
+
+      // 남은 공백/중복 공백 정리
+      s = s.replace(/\s{2,}/g, ' ').trim();
+
+      // 빈 괄호가 남았으면 제거
+      s = s.replace(/\(\s*\)/g, '').trim();
+
+      return s;
+    }
     
     async function preloadBuildingInfo() {
       const { data: buildings, error } = await supabase
@@ -1140,9 +1190,9 @@
       // 3. 표시할 데이터 정리
       const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
       const dataToDisplay = {
-        listing_title: listing.listing_title,
+        listing_title: cleanListingTitle(listing.listing_title), // 👈 여기!
         full_address: listing.full_address,
-        combined_unit: combinedUnit, // 새 필드
+        combined_unit: combinedUnit,
         deposit_price: listing.deposit_price,
         monthly_rent: listing.monthly_rent,
         premium_price: listing.premium_price,
@@ -1559,8 +1609,8 @@
           // 번호가 있거나 의미 있는 데이터가 있는 행만 저장
           if (listingId || hasMeaningful) {
             rowsToInsert.push({
-              customers_id: currentCustomerId,
-              listing_id: listingId, // 없으면 null 저장
+              customers_id: String(currentCustomerId), // ← text 컬럼에 맞춰 문자열로 저장
+              listing_id: listingId,                   // 없으면 null 저장
               listing_title,
               full_address,
               building_detail_info: combined_unit,
@@ -1568,7 +1618,8 @@
               monthly_rent,
               premium_price,
               area_py,
-              contents: description
+              contents: description,
+              order: index // ← 오타 수정: for 루프의 index 사용
             });
           }
         }
@@ -1792,7 +1843,7 @@
 
           if (listingId || hasMeaningful) {
             rowsToInsert.push({
-              customers_id: customerId,
+              customers_id: String(customerId), // ← 문자열로
               listing_id: listingId,
               listing_title,
               full_address,
