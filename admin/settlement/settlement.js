@@ -1033,8 +1033,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // [ADD] 잔고 캐시도 반영
         const $main = document.getElementById('input-main-balance');
         const $sub  = document.getElementById('input-sub-balance');
-        __LAST_MAIN_BAL_MAP[ym] = Number(($main && $main.value) ? $main.value : 0);
-        __LAST_SUB_BAL_MAP[ym]  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
+        __LAST_MAIN_BAL_MAP[ym] = toNumberKR($main?.value);
+        __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
@@ -1165,9 +1165,8 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       // [ADD] 드로어 input 기본값 채우기
       const $main = document.getElementById('input-main-balance');
       const $sub  = document.getElementById('input-sub-balance');
-      if ($main) $main.value = String(Number(row.main_balance || 0));
-      if ($sub)  $sub.value  = String(Number(row.sub_balance  || 0));
-
+      if ($main) $main.value = Number(row.main_balance || 0).toLocaleString('ko-KR');
+      if ($sub)  $sub.value  = Number(row.sub_balance  || 0).toLocaleString('ko-KR');
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;
     }
