@@ -238,13 +238,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
+    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
+    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
-    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
-    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
   `;
   thead.innerHTML = '';
   thead.appendChild(headRow);
@@ -289,13 +289,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈 (드로어에서는 직원별 브레이크다운 계속 표시)
