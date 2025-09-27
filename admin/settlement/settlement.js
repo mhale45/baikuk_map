@@ -242,7 +242,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
-    <th class="border px-2 py-2 whitespace-nowrap">최종 순이익</th>
+    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
   `;
