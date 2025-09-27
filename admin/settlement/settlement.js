@@ -275,7 +275,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 유보금 차감 후 40/60 분배
     const RESERVE = 10_000_000;
-    const base = Math.max(profitBefore - RESERVE, 0);
+    const base = profitBefore - RESERVE;
 
     const autonomousFee = Math.round(base * 0.4);
     const finalProfit   = Math.round(base * 0.6);
@@ -647,7 +647,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 유보금 차감 후 40/60 분배
     const RESERVE = 10_000_000;
-    const base = Math.max(profitBefore - RESERVE, 0);
+    const base = profitBefore - RESERVE;
 
     const aFee = Math.round(base * 0.4);   // 지점자율금(40%)
     const finalProfit = Math.round(base * 0.6); // 순이익(60%)
