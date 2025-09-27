@@ -270,16 +270,18 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // [CHANGE] 지점자율금 = (매출합계 − 총 급여 − 총 비용 − 부가세 − 10,000,000) × 0.4
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
     const profitBefore = sales - payrollTotal - cost - vatVal;
+
+    // 유보금 차감 후 40/60 분배
     const RESERVE = 10_000_000;
-    const autonomousFee = Math.round((profitBefore - RESERVE) * 0.4);
+    const base = Math.max(profitBefore - RESERVE, 0);
+
+    const autonomousFee = Math.round(base * 0.4);
+    const finalProfit   = Math.round(base * 0.6);
+
     const mainBal = Number(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
-
-    const finalProfit = profitBefore - autonomousFee;
-
 
     const tr = document.createElement('tr');
 
@@ -643,10 +645,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
     const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c - vatVal;
 
-    // 지점자율금 = (profitBefore - 10,000,000) × 0.4
+    // 유보금 차감 후 40/60 분배
     const RESERVE = 10_000_000;
-    const aFee = Math.round((profitBefore - RESERVE) * 0.4);
-    const finalProfit = profitBefore - aFee;
+    const base = Math.max(profitBefore - RESERVE, 0);
+
+    const aFee = Math.round(base * 0.4);   // 지점자율금(40%)
+    const finalProfit = Math.round(base * 0.6); // 순이익(60%)
 
     // 고정 40% 표기
     if (autoRateEl) autoRateEl.textContent = '40%';
