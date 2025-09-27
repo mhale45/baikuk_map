@@ -656,6 +656,28 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
+  // [ADD] 순이익 아래/메모 위에 동적으로 삽입
+  {
+    const memoEl = document.getElementById('d_memo');
+    if (memoEl && !document.getElementById('input-main-balance')) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mt-3 grid grid-cols-2 gap-3';
+      wrap.innerHTML = `
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">계좌 잔고1 (main_balance)</label>
+          <input id="input-main-balance" type="number" inputmode="decimal"
+                class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
+          <input id="input-sub-balance" type="number" inputmode="decimal"
+                class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
+        </div>
+      `;
+      memoEl.parentElement.insertBefore(wrap, memoEl);
+    }
+  }
+
   // 메모 표시/동기화 + 자동 높이
   const memoEl = $id('d_memo');
   if (memoEl) {
@@ -923,11 +945,21 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     throw new Error('invalid period_month');
   }
 
+  // [ADD] 드로어 input 값 읽기
+  const $main = document.getElementById('input-main-balance');
+  const $sub  = document.getElementById('input-sub-balance');
+
+  const mainBalance = Number(($main && $main.value) ? $main.value : 0);
+  const subBalance  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
+
   const payload = {
-    affiliation: aff,                         // ✅ 지점명 컬럼
-    period_month,                             // ✅ DATE 'YYYY-MM-01'
+    affiliation: aff,
+    period_month,
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
+    // [ADD]
+    main_balance: mainBalance,
+    sub_balance:  subBalance,
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
@@ -999,6 +1031,12 @@ document.addEventListener('DOMContentLoaded', () => {
           memo,
         });
 
+        // [ADD] 잔고 캐시도 반영
+        const $main = document.getElementById('input-main-balance');
+        const $sub  = document.getElementById('input-sub-balance');
+        __LAST_MAIN_BAL_MAP[ym] = Number(($main && $main.value) ? $main.value : 0);
+        __LAST_SUB_BAL_MAP[ym]  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
+
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
         __LAST_MEMO_MAP[ym] = memo;
@@ -1043,6 +1081,8 @@ function applyLockUI(locked) {
   const memoEl = document.getElementById('d_memo');
   const saveBtn = document.getElementById('settlement-drawer-save');
   const confirmBtn = document.getElementById('settlement-confirm-btn');
+  const mainEl = document.getElementById('input-main-balance');
+  const subEl  = document.getElementById('input-sub-balance');
 
   if (costEl) {
     costEl.readOnly = locked;
@@ -1070,6 +1110,18 @@ function applyLockUI(locked) {
       confirmBtn.classList.remove('bg-gray-400', 'hover:bg-gray-400');
       confirmBtn.classList.add('bg-red-600', 'hover:bg-red-700');
     }
+  }
+
+  // [ADD] 계좌 잔고 입력칸도 잠금
+  if (mainEl) {
+    mainEl.readOnly = locked;
+    mainEl.disabled = locked;
+    mainEl.classList.toggle('bg-gray-50', locked);
+  }
+  if (subEl) {
+    subEl.readOnly = locked;
+    subEl.disabled = locked;
+    subEl.classList.toggle('bg-gray-50', locked);
   }
 }
 
@@ -1099,6 +1151,12 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       __LAST_MAIN_BAL_MAP[ym] = Number(row.main_balance || 0);
       __LAST_SUB_BAL_MAP[ym]  = Number(row.sub_balance  || 0);
       __LAST_CONFIRMED_MAP[ym] = !!row.is_confirmed;
+      // [ADD] 드로어 input 기본값 채우기
+      const $main = document.getElementById('input-main-balance');
+      const $sub  = document.getElementById('input-sub-balance');
+      if ($main) $main.value = String(Number(row.main_balance || 0));
+      if ($sub)  $sub.value  = String(Number(row.sub_balance  || 0));
+
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;
     }
@@ -1131,6 +1189,11 @@ async function confirmSettlement(affiliation, ym) {
   const cost = toNumberKR(costEl?.value);
   const memo = (memoEl?.value || '').trim();
   const period_month = firstDayOfMonth(ym);
+  // [ADD] 계좌 잔고 값도 같이 저장
+  const $main = document.getElementById('input-main-balance');
+  const $sub  = document.getElementById('input-sub-balance');
+  const mainBalance = Number(($main && $main.value) ? $main.value : 0);
+  const subBalance  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
 
   // upsert 형태: 있으면 update, 없으면 insert(확정)
   const { data: existing, error: selErr } = await supabase
@@ -1144,13 +1207,27 @@ async function confirmSettlement(affiliation, ym) {
   if (existing?.id) {
     const { error: upErr } = await supabase
       .from('branch_settlement_expenses')
-      .update({ total_expense: cost, memo, is_confirmed: true })
+      .update({
+        total_expense: cost,
+        memo,
+        is_confirmed: true,
+        main_balance: mainBalance,
+        sub_balance:  subBalance,
+      })
       .eq('id', existing.id);
     if (upErr) throw upErr;
   } else {
     const { error: insErr } = await supabase
       .from('branch_settlement_expenses')
-      .insert({ affiliation, period_month, total_expense: cost, memo, is_confirmed: true });
+      .insert({
+        affiliation,
+        period_month,
+        total_expense: cost,
+        memo,
+        is_confirmed: true,
+        main_balance: mainBalance,
+        sub_balance:  subBalance,
+      })
     if (insErr) throw insErr;
   }
 
@@ -1158,6 +1235,10 @@ async function confirmSettlement(affiliation, ym) {
   __LAST_COST_MAP[ym] = cost;
   __LAST_MEMO_MAP[ym] = memo;
   __LAST_CONFIRMED_MAP[ym] = true;
+  // [ADD] 확정 시점 값으로 캐시 고정
+  __LAST_MAIN_BAL_MAP[ym] = mainBalance;
+  __LAST_SUB_BAL_MAP[ym]  = subBalance;
+
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
 }
