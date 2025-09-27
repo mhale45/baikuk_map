@@ -1074,6 +1074,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  const $main = document.getElementById('input-main-balance');
+  const $sub  = document.getElementById('input-sub-balance');
+
+  const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
+  const fmtKR = (n) => Number(n || 0).toLocaleString('ko-KR');
+
+  [$main, $sub].forEach(input => {
+    if (!input) return;
+    input.addEventListener('blur', () => {
+      input.value = fmtKR(toNumber(input.value));
+    });
+  });
 });
 
 function applyLockUI(locked) {
