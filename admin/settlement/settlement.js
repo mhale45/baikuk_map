@@ -29,6 +29,9 @@ let __LAST_PAYROLL_TOTAL_MAP = {};
 let __LAST_COST_MAP = {};
 // [ADD] 월별 부가세 합계 캐시
 let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
+// [ADD] 월별 계좌 잔고 캐시
+let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
+let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
 
 
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
@@ -240,6 +243,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">총 비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">최종 순이익</th>
+    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
+    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
   `;
   thead.innerHTML = '';
   thead.appendChild(headRow);
@@ -249,7 +254,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   if (yms.length === 0) {
     // 열 개수: 7
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="7">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="9">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -271,10 +276,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
     const autonomousFee = Math.round(profitBefore * ar);
+    const mainBal = Number(__LAST_MAIN_BAL_MAP?.[ym] || 0);
+    const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
 
     const finalProfit = profitBefore - autonomousFee;
 
     const tr = document.createElement('tr');
+
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
@@ -284,6 +292,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈 (드로어에서는 직원별 브레이크다운 계속 표시)
@@ -826,21 +836,29 @@ async function loadBranchExpenseCache(affiliation) {
   try {
     const { data, error } = await supabase
       .from('branch_settlement_expenses')
-      .select('period_month, total_expense')
+      .select('period_month, total_expense, main_balance, sub_balance')
       .eq('affiliation', affiliation);
 
     if (error) throw error;
 
-    const map = {};
+    const costMap = {};
+    const mainBalMap = {};
+    const subBalMap  = {};
+
     for (const row of (data || [])) {
-      // period_month: 'YYYY-MM-DD' → 'YYYY-MM'
       const ym = ymKey(String(row.period_month));
       if (!ym) continue;
-      map[ym] = Number(row.total_expense || 0);
+
+      costMap[ym]    = Number(row.total_expense || 0);
+      mainBalMap[ym] = Number(row.main_balance  || 0);
+      subBalMap[ym]  = Number(row.sub_balance   || 0);
     }
 
-    __LAST_COST_MAP = map;    // ✅ 전역 캐시에 반영
-    return map;
+    __LAST_COST_MAP       = costMap;
+    __LAST_MAIN_BAL_MAP   = mainBalMap;
+    __LAST_SUB_BAL_MAP    = subBalMap;
+
+    return costMap;
   } catch (e) {
     console.warn('[settlement] expense cache load failed:', e?.message || e);
     return {};
@@ -1060,7 +1078,7 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     const period_month = firstDayOfMonth(ym);
     const { data: row, error } = await supabase
       .from('branch_settlement_expenses')
-      .select('id, total_expense, memo, is_confirmed')
+      .select('id, total_expense, memo, is_confirmed, main_balance, sub_balance')
       .eq('affiliation', affiliation)
       .eq('period_month', period_month)
       .maybeSingle();
@@ -1078,6 +1096,8 @@ async function fetchAndApplySettlementState(affiliation, ym) {
         __LAST_MEMO_MAP[ym] = row.memo;
         memoEl.value = row.memo;
       }
+      __LAST_MAIN_BAL_MAP[ym] = Number(row.main_balance || 0);
+      __LAST_SUB_BAL_MAP[ym]  = Number(row.sub_balance  || 0);
       __LAST_CONFIRMED_MAP[ym] = !!row.is_confirmed;
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;

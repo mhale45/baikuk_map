@@ -27,6 +27,10 @@ let __LAST_AFFILIATION = null;
 let __LAST_SALES_MAP = {};
 let __LAST_PAYROLL_TOTAL_MAP = {};
 let __LAST_COST_MAP = {};
+// [ADD] 월별 부가세 합계 캐시
+let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
+
+
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
 let __LAST_STAFF_LIST = []; // [{id, name}]
 let __LAST_PAYROLL_BY_STAFF = {}; // { 'YYYY-MM': { staffId: amount(급여, 50%적용) } }
@@ -208,6 +212,7 @@ function ymKey(dateStr) {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
+// 기존 renderMonthlyTable 전체 삭제 후 아래로 교체
 function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMap, staffList }) {
   const titleEl = $('#branch-monthly-title');
   const thead   = $('#monthly-thead');
@@ -215,26 +220,23 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   if (titleEl) titleEl.textContent = titleAffiliation ? `지점: ${titleAffiliation}` : '지점을 선택하세요';
   if (!thead || !tbody) return;
 
-  // 키 수집
+  // 사용되는 월 키 수집
   const ymSet = new Set([
     ...Object.keys(salesMap || {}),
     ...Object.keys(costMap || {}),
     ...Object.keys(payrollByStaff || {}),
+    ...Object.keys(__LAST_VAT_MAP || {}),
   ]);
   const yms = Array.from(ymSet).sort();
 
-  // 직원 컬럼(이 지점 재직자) 정렬
-  const staff = Array.isArray(staffList) ? [...staffList] : [];
-  staff.sort((a,b) => String(a.name).localeCompare(String(b.name), 'ko'));
-
-  // === THEAD 동적 구성 ===
-  // 기간 / 잔금매출 / (직원별 급여 …) / 총급여 / 총비용 / 순이익
+  // === THEAD: 직원별 급여 열 제거 + '부가세' 열 추가 ===
+  // 기간 / 잔금매출 합계 / 총 급여 / 부가세 / 총 비용 / 지점자율금 / 최종 순이익
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
-    ${staff.map(s => `<th class="border px-2 py-2 whitespace-nowrap">급여-${s.name}</th>`).join('')}
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
+    <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">최종 순이익</th>
@@ -245,8 +247,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   // === TBODY ===
   tbody.innerHTML = '';
   if (yms.length === 0) {
+    // 열 개수: 7
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="${6 + staff.length}">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="7">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -255,23 +258,20 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const sales = Number(salesMap?.[ym] || 0);
     const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
+    // 총 급여는 기존 로직 유지
     const pmap = payrollByStaff?.[ym] || {};
-    let payrollTotal = 0;
+    const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
-    const staffCells = staff.map(s => {
-      const val = Number(pmap[s.id] || 0);
-      payrollTotal += val;
-      return `<td class="border px-2 py-2 text-right">${fmt(val)}</td>`;
-    }).join('');
+    // 부가세(월별 합계)
+    const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // 1차 순이익(자율금 차감 전)
-    const profitBefore = sales - payrollTotal - cost;
+    // [CHANGE] 드로어와 동일한 계산 적용
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0); // 부가세도 반영
+    const profitBefore = sales - payrollTotal - cost - vatVal;
 
-    // 지점자율금 = profitBefore × autonomous-rate
     const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
     const autonomousFee = Math.round(profitBefore * ar);
 
-    // 최종 순이익 = 1차 순이익 - 지점자율금
     const finalProfit = profitBefore - autonomousFee;
 
     const tr = document.createElement('tr');
@@ -279,23 +279,23 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
-      ${staffCells}
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
     `;
 
-    // 행 클릭 → 드로어 오픈 (직원별 브레이크다운 전달)
+    // 행 클릭 → 드로어 오픈 (드로어에서는 직원별 브레이크다운 계속 표시)
     tr.addEventListener('click', () => {
       openSettlementDrawer({
         affiliation: __LAST_AFFILIATION,
         ym,
         sales,
         payrollTotal,
-        pmap, // 직원별 급여
+        pmap, // 드로어에서 사용
         cost: __LAST_COST_MAP[ym] ?? cost,
-        staffList: staff
+        staffList: __LAST_STAFF_LIST
       });
     });
 
@@ -354,31 +354,22 @@ async function loadBranchMonthlySales(affiliation) {
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
-    if (staffIds.size === 0) {
-      __LAST_SALES_MAP = {};
-      __LAST_PAYROLL_TOTAL_MAP = {};
-      __LAST_PAYROLL_BY_STAFF = {};
-      renderMonthlyTable({
-        titleAffiliation: affiliation,
-        salesMap: {},
-        payrollByStaff: {},
-        costMap: __LAST_COST_MAP || {},
-        staffList: __LAST_STAFF_LIST
-      });
-      return;
-    }
+    const hasStaff = staffIds.size > 0; // ✅ 직원이 없어도 VAT/비용은 보여야 하므로 계속 진행
 
-    // 2) 잔금일 있는 performance (확정/미확정 모두)
+    // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
-      .select('id, balance_date')
+      .select('id, balance_date, buyer_tax, seller_tax')
+      // .eq('status', true)              // ✅ 확정된 매출만
       .not('balance_date', 'is', null);
+
     if (perfErr) throw perfErr;
 
     if (!perfRows || perfRows.length === 0) {
       __LAST_SALES_MAP = {};
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
+      __LAST_VAT_MAP = {};
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -392,16 +383,27 @@ async function loadBranchMonthlySales(affiliation) {
     // perf id → ym
     const perfIdToYM = new Map();
     const perfIds = [];
+    const vatMap = {}; 
+
     for (const p of perfRows) {
       const ym = ymKey(p.balance_date);
       if (!ym) continue;
+
       perfIdToYM.set(String(p.id), ym);
       perfIds.push(p.id);
+
+      // 부가세 = (buyer_tax + seller_tax) / 1.1 * 0.1
+      const bt = Number(p.buyer_tax || 0);
+      const st = Number(p.seller_tax || 0);
+      const vat = Math.round(((bt + st) / 1.1) * 0.1);
+      vatMap[ym] = (vatMap[ym] || 0) + vat;
     }
     if (perfIds.length === 0) {
       __LAST_SALES_MAP = {};
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
+      __LAST_VAT_MAP = vatMap; // ✅ 이 달의 부가세 합계(없으면 0 맵)
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -411,7 +413,6 @@ async function loadBranchMonthlySales(affiliation) {
       });
       return;
     }
-
     // 3) allocations 조회 & 합산(관여매출 50% = 급여)
     const BATCH = 800;
     const salesMap = {};               // 월별 잔금매출(=관여매출 합)
@@ -442,14 +443,16 @@ async function loadBranchMonthlySales(affiliation) {
           const sidStr = String(sid);
           if (!staffIds.has(sidStr)) continue;
 
-          const inv = Number(row[`involvement_sales${k}`] || 0);
-          // 잔금매출(모든 직원의 관여매출 합)
-          salesMap[ym] = (salesMap[ym] || 0) + inv;
+          if (hasStaff) {
+            const inv = Number(row[`involvement_sales${k}`] || 0);
+            // 잔금매출(모든 직원의 관여매출 합)
+            salesMap[ym] = (salesMap[ym] || 0) + inv;
 
-          // 급여(=관여×50%)를 직원별로 적립
-          const pay = Math.round(inv * PAYROLL_RATE);
-          (payrollByStaff[ym] ||= {});
-          payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
+            // 급여(=관여×50%)를 직원별로 적립
+            const pay = Math.round(inv * PAYROLL_RATE);
+            (payrollByStaff[ym] ||= {});
+            payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
+          }
         }
       }
     }
@@ -465,6 +468,7 @@ async function loadBranchMonthlySales(affiliation) {
     __LAST_PAYROLL_BY_STAFF = payrollByStaff;
     __LAST_PAYROLL_TOTAL_MAP = payrollTotalMap;
     __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) }; // 유지
+    __LAST_VAT_MAP = vatMap; // ✅ 부가세 캐시 저장 (누락되었던 부분)
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
@@ -528,14 +532,37 @@ async function renderBranchList() {
       container.appendChild(div);
     }
 
-    // 지점장이라면 본인 지점을 자동 선택해서 로딩(선택 표시 포함)
-    if (__MY_ROLE === '지점장' && __MY_AFFILIATION) {
-      const myEl = $(`#branch-list > div[data-affiliation="${CSS.escape(__MY_AFFILIATION)}"]`);
-      if (myEl) {
-        myEl.classList.add('bg-yellow-200');
-        loadBranchMonthlySales(__MY_AFFILIATION);
+    // [CHANGE] 초기 자동 선택: ① 내 소속 지점이 목록에 있으면 그 지점, ② 없으면 첫 번째 클릭 가능 지점
+    (function autoSelectDefaultBranch() {
+      // 후보: 내 소속 지점 → 없으면 첫 번째 지점
+      let targetAff = null;
+
+      // 1) 내 소속 지점이 있으면 우선
+      if (__MY_AFFILIATION) {
+        const el = $(`#branch-list > div[data-affiliation="${CSS.escape(__MY_AFFILIATION)}"]`);
+        if (el && !el.classList.contains('pointer-events-none')) {
+          targetAff = __MY_AFFILIATION;
+        }
       }
-    }
+
+      // 2) 없으면(관리자 등) 클릭 가능한 첫 번째 지점
+      if (!targetAff) {
+        const firstClickable = $$('#branch-list > div')
+          .find(el => !el.classList.contains('pointer-events-none'));
+        if (firstClickable) {
+          targetAff = firstClickable.dataset.affiliation || null;
+        }
+      }
+
+      if (!targetAff) return;
+
+      // 선택 표시 초기화 후, 대상 지점 선택/로딩
+      $$('#branch-list > div').forEach(el => el.classList.remove('bg-yellow-200'));
+      const targetEl = $(`#branch-list > div[data-affiliation="${CSS.escape(targetAff)}"]`);
+      if (targetEl) targetEl.classList.add('bg-yellow-200');
+
+      loadBranchMonthlySales(targetAff);
+    })();
   } catch (e) {
     console.error('지점 목록 로딩 실패:', e);
     showToastGreenRed?.('지점 목록 로딩 실패');
@@ -564,6 +591,10 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   $id('d_period').value  = ym;
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
+  // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
+  const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
+  const vatEl = $id('d_vat');
+  if (vatEl) vatEl.value = fmtKR(vatVal);
 
   // 직원별 급여 목록 렌더
   const listEl = $id('d_payroll_breakdown');
@@ -599,7 +630,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const c = Math.max(toNumber(costEl.value), 0);
     __LAST_COST_MAP[ym] = c;
 
-    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c;
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
+    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c - vatVal;
     const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
     const aFee = Math.round(profitBefore * ar);
     const finalProfit = profitBefore - aFee;
@@ -841,6 +873,10 @@ async function resolveMyAuthority() {
     for (const r of (rows || [])) {
       if (r.authority === '관리자') {
         __MY_ROLE = '관리자';
+        // [ADD] 관리자라도 소속이 있으면 기본 선택 지점으로 활용
+        if (!__MY_AFFILIATION && r.affiliation) {
+          __MY_AFFILIATION = r.affiliation;
+        }
       } else if (r.authority === '지점장' && __MY_ROLE !== '관리자') {
         __MY_ROLE = '지점장';
         __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
