@@ -8,7 +8,7 @@ const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
 
-// [ADD] 총 비용 안내 항목(원하는 만큼 추가/수정)
+// [ADD] 비용 안내 항목(원하는 만큼 추가/수정)
 const COST_INCLUDE_HINTS  = [
   '월세, 관리비, 공과금',
   '네이버 광고, 현수막, 명함, 봉투',
@@ -233,14 +233,14 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   const yms = Array.from(ymSet).sort();
 
   // === THEAD: 직원별 급여 열 제거 + '부가세' 열 추가 ===
-  // 기간 / 잔금매출 합계 / 총 급여 / 부가세 / 총 비용 / 지점자율금 / 최종 순이익
+  // 기간 / 잔금매출 합계 / 총 급여 / 부가세 / 비용 / 지점자율금 / 최종 순이익
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
-    <th class="border px-2 py-2 whitespace-nowrap">총 비용</th>
+    <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">최종 순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
@@ -270,16 +270,16 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // [CHANGE] 드로어와 동일한 계산 적용
-    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0); // 부가세도 반영
+    // [CHANGE] 지점자율금 = (매출합계 − 총 급여 − 총 비용 − 부가세 − 10,000,000) × 0.4
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
     const profitBefore = sales - payrollTotal - cost - vatVal;
-
-    const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const autonomousFee = Math.round(profitBefore * ar);
+    const RESERVE = 10_000_000;
+    const autonomousFee = Math.round((profitBefore - RESERVE) * 0.4);
     const mainBal = Number(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
 
     const finalProfit = profitBefore - autonomousFee;
+
 
     const tr = document.createElement('tr');
 
@@ -642,11 +642,14 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
     const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c - vatVal;
-    const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const aFee = Math.round(profitBefore * ar);
+
+    // 지점자율금 = (profitBefore - 10,000,000) × 0.4
+    const RESERVE = 10_000_000;
+    const aFee = Math.round((profitBefore - RESERVE) * 0.4);
     const finalProfit = profitBefore - aFee;
 
-    if (autoRateEl) autoRateEl.textContent = `${Math.round(ar * 100)}%`;
+    // 고정 40% 표기
+    if (autoRateEl) autoRateEl.textContent = '40%';
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
     if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
@@ -656,7 +659,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
-  // [ADD] 잔고 초기값 반영 (총 비용과 동일한 표시 형식)
+  // [ADD] 잔고 초기값 반영 (비용과 동일한 표시 형식)
   {
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
@@ -704,9 +707,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     });
   }
 
-  // [ADD] 초기 비율/자율금 표시
-  const ar = Number(__LAST_AUTONOMOUS_RATE || 0);
-  if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = `${Math.round(ar * 100)}%`;
+  // [CHANGE] 초기 비율/자율금 표시 (고정 40%)
+  if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = '40%';
   if ($id('d_autonomous_fee'))  $id('d_autonomous_fee').value = '0';
   if ($id('d_autonomous_amount')) $id('d_autonomous_amount').value = '0';
 
@@ -1198,7 +1200,7 @@ async function fetchAndApplySettlementState(affiliation, ym) {
 }
 
 async function confirmSettlement(affiliation, ym) {
-  const ok = window.confirm('정산을 확정하면 총 비용과 메모가 잠깁니다. 계속 진행할까요?');
+  const ok = window.confirm('정산을 확정하면 비용과 메모가 잠깁니다. 계속 진행할까요?');
   if (!ok) return;
 
   const costEl = document.getElementById('d_cost');

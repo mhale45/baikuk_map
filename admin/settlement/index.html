@@ -121,12 +121,12 @@
           </div>
 
           <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">총 비용</span>
+            <span class="text-sm text-gray-600">비용</span>
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
             <input id="d_cost" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right">
-            <!-- [ADD] 총 비용 항목 안내 (참고/제외) -->
+            <!-- [ADD] 비용 항목 안내 (참고/제외) -->
             <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
-              <div class="text-sm font-semibold text-amber-800 mb-2">총 비용 항목 안내</div>
+              <div class="text-sm font-semibold text-amber-800 mb-2">※ 비용 항목 안내</div>
 
               <!-- 참고항목 -->
               <div class="text-sm">
@@ -143,7 +143,7 @@
           </label>
 
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 총 비용 − 부가세 − 지점자율금</span>
+            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 비용 − 부가세 − 지점자율금</span>
             <input id="d_profit" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
           </label>
