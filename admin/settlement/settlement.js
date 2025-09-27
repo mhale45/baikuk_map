@@ -665,12 +665,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       wrap.innerHTML = `
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고1 (main_balance)</label>
-          <input id="input-main-balance" type="number" inputmode="decimal"
+          <input id="input-main-balance" type="text" inputmode="decimal"
                 class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
         </div>
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
-          <input id="input-sub-balance" type="number" inputmode="decimal"
+          <input id="input-sub-balance" type="text" inputmode="decimal"
                 class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
         </div>
       `;
@@ -948,9 +948,8 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   // [ADD] 드로어 input 값 읽기
   const $main = document.getElementById('input-main-balance');
   const $sub  = document.getElementById('input-sub-balance');
-
-  const mainBalance = Number(($main && $main.value) ? $main.value : 0);
-  const subBalance  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
+  const mainBalance = toNumberKR($main?.value);
+  const subBalance  = toNumberKR($sub?.value);
 
   const payload = {
     affiliation: aff,
@@ -1204,8 +1203,8 @@ async function confirmSettlement(affiliation, ym) {
   // [ADD] 계좌 잔고 값도 같이 저장
   const $main = document.getElementById('input-main-balance');
   const $sub  = document.getElementById('input-sub-balance');
-  const mainBalance = Number(($main && $main.value) ? $main.value : 0);
-  const subBalance  = Number(($sub  && $sub.value)  ? $sub.value  : 0);
+  const mainBalance = toNumberKR($main?.value);
+  const subBalance  = toNumberKR($sub?.value);
 
   // upsert 형태: 있으면 update, 없으면 insert(확정)
   const { data: existing, error: selErr } = await supabase
