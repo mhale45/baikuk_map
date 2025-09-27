@@ -656,6 +656,16 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
 
+  // [ADD] 잔고 초기값 반영 (총 비용과 동일한 표시 형식)
+  {
+    const mainEl = document.getElementById('input-main-balance');
+    const subEl  = document.getElementById('input-sub-balance');
+    const fmtKR  = (n) => Number(n || 0).toLocaleString('ko-KR');
+
+    if (mainEl) mainEl.value = fmtKR(__LAST_MAIN_BAL_MAP?.[ym] || 0);
+    if (subEl)  subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
+  }
+
   // [ADD] 순이익 아래/메모 위에 동적으로 삽입
   {
     const memoEl = document.getElementById('d_memo');
@@ -665,13 +675,11 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       wrap.innerHTML = `
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고1 (main_balance)</label>
-          <input id="input-main-balance" type="text" inputmode="decimal"
-                class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
+          <input id="input-main-balance" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right"/>
         </div>
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
-          <input id="input-sub-balance" type="text" inputmode="decimal"
-                class="w-full border rounded px-2 py-1 text-right" placeholder="0" />
+          <input id="input-sub-balance" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right"/>
         </div>
       `;
       memoEl.parentElement.insertBefore(wrap, memoEl);
