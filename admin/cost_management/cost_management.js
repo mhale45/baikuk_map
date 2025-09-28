@@ -608,7 +608,7 @@ function renderCostList(rows) {
     ${chipsHTML}
     <div class="bg-white rounded-xl shadow border border-gray-200">
       <div class="overflow-x-auto">
-        <table class="min-w-full table-auto text-sm">
+        <table class="min-w-[60rem] table-auto text-sm">
           <thead class="bg-gray-100 text-gray-700">
             <tr>
               <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
