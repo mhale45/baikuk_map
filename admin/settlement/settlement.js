@@ -342,6 +342,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 최종 배당금
     const finalProfit = Math.round(netIncome - autonomousFee);
+    // ▼▼▼ 추가: 음수는 표시만 0으로
+    const dispAutonomousFee = Math.max(0, autonomousFee);
+    const dispFinalProfit   = Math.max(0, finalProfit);
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
@@ -355,8 +358,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
-      <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(finalProfit)}</td>
+      <td class="border px-2 py-2 text-right text-purple-700">${fmt(dispAutonomousFee)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
@@ -749,8 +752,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (netEl) netEl.value = fmtKR(netIncome);
 
     if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
-    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
-    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
+    const aFeeDisplay = Math.max(0, aFee);
+    const finalProfitDisplay = Math.max(0, finalProfit);
+
+    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFeeDisplay);
+    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFeeDisplay);
+    $id('d_profit').value = fmtKR(finalProfitDisplay);
 
     // 계산식 표시(순이익/배당금)
     const netFormulaEl = document.getElementById('d_netincome_formula');
@@ -765,8 +772,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       formulaEl.textContent =
         `순이익 × ${Math.round(rate * 100)}%`;
     }
-
-    $id('d_profit').value = fmtKR(finalProfit);
   };
 
   // 잔고 입력 변경 → 재계산
@@ -1329,7 +1334,7 @@ function applyLockUI(locked) {
     mainEl.disabled = locked;
     mainEl.classList.toggle('bg-gray-50', locked);
   }
-  
+
   // 계좌 잔고2는 잠금상태와 무관하게 항상 수정 불가
   if (subEl) {
     subEl.readOnly = true;
