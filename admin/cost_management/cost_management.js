@@ -98,8 +98,8 @@ async function loadBranchesIntoSelect(selectEl) {
 
     selectEl.innerHTML = '';
 
-    // [CHANGED] 관리자와 지점장 모두 "전체 지점" 제공
-    if (__MY_ROLE === '관리자' || __MY_ROLE === '지점장') {
+    // [ADMIN 전용] "전체 지점" 옵션
+    if (__MY_ROLE === '관리자') {
       const allOpt = document.createElement('option');
       allOpt.value = '__ALL__';
       allOpt.textContent = '전체 지점';
@@ -114,29 +114,17 @@ async function loadBranchesIntoSelect(selectEl) {
       selectEl.appendChild(opt);
     }
 
-    // 기본값
-    if (__MY_ROLE === '관리자') {
-      // 관리자 기본값: 기존 로직 유지 (원하면 "__ALL__"로 시작하게 이전 선택 옵션 패치 적용 가능)
-      if (__MY_AFFILIATION && [...selectEl.options].some(o => o.value === __MY_AFFILIATION)) {
-        selectEl.value = __MY_AFFILIATION;
-      }
-    } else if (__MY_ROLE === '지점장') {
-      // 지점장 기본값: 본인 지점
-      if (__MY_AFFILIATION && [...selectEl.options].some(o => o.value === __MY_AFFILIATION)) {
-        selectEl.value = __MY_AFFILIATION;
-      }
-    } else if (__MY_ROLE === '직원') {
-      // 직원은 본인 지점
-      if (__MY_AFFILIATION && [...selectEl.options].some(o => o.value === __MY_AFFILIATION)) {
-        selectEl.value = __MY_AFFILIATION;
-      }
+    // 기본값 세팅
+    if (__MY_AFFILIATION && [...selectEl.options].some(o => o.value === __MY_AFFILIATION)) {
+      selectEl.value = __MY_AFFILIATION;
     }
 
-    // [CHANGED] 직원만 비활성화, 지점장은 활성화(관리자와 동일)
-    if (__MY_ROLE === '직원') {
+    // [중요 변경] 직원/지점장 모두 비활성화 (본인 지점만 고정)
+    if (__MY_ROLE === '직원' || __MY_ROLE === '지점장') {
       selectEl.disabled = true;
       selectEl.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
     } else {
+      // 관리자만 활성화
       selectEl.disabled = false;
       selectEl.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
     }
@@ -288,8 +276,8 @@ function initInputBar() {
   // 직원 select 로딩 (권한/지점에 따라)
   loadStaffIntoSelect($staff, $branch?.value || null);
 
-  // 관리자/지점장: 지점 변경 시 직원 목록도 동기화 (전체 지점 지원)
-    if ($branch && (__MY_ROLE === '관리자' || __MY_ROLE === '지점장')) {
+  // 관리자: 지점 변경 시 직원 목록도 동기화 (전체 지점 지원)
+    if ($branch && __MY_ROLE === '관리자') {
         $branch.addEventListener('change', () => {
             const v = $branch.value || '__ALL__'; // 빈 값 방지
             loadStaffIntoSelect($staff, v);
