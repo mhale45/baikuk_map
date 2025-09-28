@@ -608,7 +608,7 @@ function renderCostList(rows) {
     ${chipsHTML}
     <div class="bg-white rounded-xl shadow border border-gray-200">
       <div class="overflow-x-auto">
-        <table class="min-w-[full] table-auto text-sm">
+        <table class="min-w-full table-auto text-sm">
           <thead class="bg-gray-100 text-gray-700">
             <tr>
               <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
@@ -616,7 +616,7 @@ function renderCostList(rows) {
               <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
               <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[10rem]">구분</th>
               <th class="px-3 py-2 text-right w-[8rem]">금액</th>
-              <th class="px-3 py-2 text-left min-w-[full]">메모</th>
+              <th class="px-3 py-2 text-left min-w-full">메모</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
