@@ -134,45 +134,52 @@ async function loadBranchesIntoSelect(selectEl) {
 async function loadStaffIntoSelect(selectEl, currentBranchValue) {
   if (!selectEl) return;
 
-  // optgroup 렌더 헬퍼
-  const renderGrouped = (el, rows) => {
-    el.innerHTML = '';
-    // placeholder
-    const ph = document.createElement('option');
-    ph.value = '';
-    ph.textContent = '직원 선택';
-    ph.disabled = true;
-    ph.selected = true;
-    el.appendChild(ph);
+    const renderGrouped = (el, rows) => {
+        el.innerHTML = '';
 
-    // affiliation -> [rows] 맵
-    const groupMap = new Map();
-    for (const r of (rows || [])) {
-      const aff = r.affiliation || '미지정';
-      if (!groupMap.has(aff)) groupMap.set(aff, []);
-      groupMap.get(aff).push(r);
-    }
+        // affiliation -> [rows] 맵
+        const groupMap = new Map();
+        for (const r of (rows || [])) {
+            const aff = r.affiliation || '미지정';
+            if (!groupMap.has(aff)) groupMap.set(aff, []);
+            groupMap.get(aff).push(r);
+        }
 
-    // 내 지점을 최상단으로 오게 정렬
-    const affs = Array.from(groupMap.keys()).sort((a, b) => {
-      if (a === __MY_AFFILIATION) return -1;
-      if (b === __MY_AFFILIATION) return 1;
-      return a.localeCompare(b, 'ko');
-    });
+        // 내 지점을 최상단으로 오게 정렬
+        const affs = Array.from(groupMap.keys()).sort((a, b) => {
+            if (a === __MY_AFFILIATION) return -1;
+            if (b === __MY_AFFILIATION) return 1;
+            return a.localeCompare(b, 'ko');
+        });
 
-    for (const aff of affs) {
-      const og = document.createElement('optgroup');
-      og.label = aff;
-      const list = groupMap.get(aff).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-      for (const r of list) {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = r.name;
-        og.appendChild(opt);
-      }
-      el.appendChild(og);
-    }
-  };
+        let hasSelected = false;
+
+        for (const aff of affs) {
+            const og = document.createElement('optgroup');
+            og.label = aff;
+            const list = groupMap.get(aff).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+            for (const r of list) {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.name;
+
+                // [NEW] 로그인 사용자의 staff_id면 기본 선택
+                if (r.id === __MY_STAFF_ID) {
+                    opt.selected = true;
+                    hasSelected = true;
+                }
+
+                og.appendChild(opt);
+            }
+                el.appendChild(og);
+        }
+
+        // 만약 내 계정을 찾지 못했으면 → 첫 번째 옵션을 선택
+        if (!hasSelected && el.options.length > 0) {
+            el.options[0].selected = true;
+        }
+    };
+
 
   try {
     // ===== 권한별 처리 =====
