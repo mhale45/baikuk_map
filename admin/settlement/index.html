@@ -145,9 +145,18 @@
             </div>
           </label>
 
+          <!-- [ADD] 순이익 (자율금 산정 전, 유보금까지 차감한 값) -->
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">
+              순이익 = 계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
+            </span>
+            <input id="d_netincome" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-emerald-700">
+          </label>
+
           <!-- 지점자율금 -->          
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">지점자율금</span>
+            <span class="text-sm text-purple-600">지점자율금</span>
             <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
             <input id="d_autonomous_amount" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">            

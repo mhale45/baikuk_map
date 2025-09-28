@@ -244,7 +244,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
-    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
+    <th class="border px-2 py-2 whitespace-nowrap">배당금</th>
   `;
   thead.innerHTML = '';
   thead.appendChild(headRow);
@@ -664,20 +664,27 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE;
     const aFee = Math.round(baseForAuto * rate);
 
+    // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
+    // ※ 자율금은 빼지 않습니다(자율금 산정 전에 보는 값).
+    const netIncome = Math.round(baseForAuto);
+
     const finalProfit = Math.round(
       balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
     );
 
-    // 표시는 기존 그대로(d_sales 유지). 잔고합계 별도 필드가 없으므로 표시 갱신은 생략.
+    // 표시 업데이트
+    const netEl = document.getElementById('d_netincome');
+    if (netEl) netEl.value = fmtKR(netIncome);
+
     if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
     if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
-    // 계산식 표시 업데이트
+    // 계산식 표시(자율금)
     const formulaEl = document.getElementById('d_autonomous_formula');
     if (formulaEl) {
       formulaEl.textContent =
-        `(계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금) × ${Math.round(rate * 100)}%`;
+        `순이익 × ${Math.round(rate * 100)}%`;
     }
 
     $id('d_profit').value = fmtKR(finalProfit);
