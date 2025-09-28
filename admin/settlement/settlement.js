@@ -794,13 +794,14 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (mainEl) mainEl.value = fmtKR(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     if (subEl) {
       subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
-      // 항상 수정 불가(비용과 동일)
+      // 항상 수정 불가(비용과 동일) + 굵게
       subEl.readOnly = true;
       subEl.disabled = true;
-      subEl.classList.add('bg-gray-50');
+      subEl.classList.add('bg-gray-50', 'font-semibold');
       subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
     }
   }
+
   // [ADD] 순이익 아래/메모 위에 동적으로 삽입
   {
     const memoEl = document.getElementById('d_memo');
@@ -814,13 +815,13 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
         </div>
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
-          <!-- 항상 수정 불가 -->
+          <!-- 항상 수정 불가 + 굵게 표시 -->
           <input
             id="input-sub-balance"
             type="text"
             inputmode="numeric"
             placeholder="0"
-            class="border rounded px-3 py-2 text-right bg-gray-50"
+            class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
             title="계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
@@ -1328,11 +1329,12 @@ function applyLockUI(locked) {
     mainEl.disabled = locked;
     mainEl.classList.toggle('bg-gray-50', locked);
   }
+  
   // 계좌 잔고2는 잠금상태와 무관하게 항상 수정 불가
   if (subEl) {
     subEl.readOnly = true;
     subEl.disabled = true;
-    subEl.classList.add('bg-gray-50');
+    subEl.classList.add('bg-gray-50', 'font-semibold');
     subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
   }
 }
