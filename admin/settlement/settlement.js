@@ -2,7 +2,6 @@
 
 import { client as supabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
-import { waitForSupabase } from '../../modules/core/supabase.js';
 
 const $  = (sel, doc = document) => doc.querySelector(sel);
 const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
@@ -68,7 +67,7 @@ const STAFF_AFF_BY_ID = new Map();
 async function ensureStaffAffMap() {
   if (STAFF_AFF_BY_ID.size > 0) return;
   await waitForSupabase();
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('staff_profiles')
     .select('id, affiliation')
     .is('leave_date', null);
@@ -122,7 +121,7 @@ async function fetchPerformanceRowsForSettlementRange({ start, end }) {
   await waitForSupabase();
   // settlement의 조회 기간 필터와 동일하게 맞추세요.
   // (status=true만 집계할지 정책에 맞춰 조건 추가 가능)
-  let q = supabase
+  let q = window.supabase
     .from('performance')
     .select(`
       id, affiliation, balance_date, contract_date,
@@ -156,58 +155,6 @@ async function buildTransfersMapForAllBranches({ start, end }) {
     map.set(aff, total);
   });
   return map;
-}
-
-// [ADD] 특정 지점(baseAff)의 월별 "타지점" 금액 맵 생성: { 'YYYY-MM': sum }
-async function buildTransfersByMonthForAff(baseAff) {
-  if (!baseAff) return {};
-  await ensureStaffAffMap();
-  await waitForSupabase();
-
-  // 선택 지점 명의로 발행된 건만 조회 (잔금일 존재)
-  const { data: rows, error } = await supabase
-    .from('performance')
-    .select(`
-      id, affiliation, balance_date,
-      performance_allocations(
-        staff_id1, staff_id2, staff_id3, staff_id4,
-        buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
-        seller_amount1, seller_amount2, seller_amount3, seller_amount4,
-        involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
-      )
-    `)
-    .eq('affiliation', baseAff)
-    .not('balance_date', 'is', null);
-
-  if (error || !rows) return {};
-
-  const byMonth = {}; // { ym: sum }
-  for (const row of rows) {
-    const ym = ymKey(row.balance_date);
-    if (!ym) continue;
-
-    const pa = Array.isArray(row.performance_allocations)
-      ? row.performance_allocations[0]
-      : row.performance_allocations;
-    if (!pa) continue;
-
-    for (let i = 1; i <= 4; i++) {
-      const sid = pa[`staff_id${i}`];
-      if (!sid) continue;
-
-      const staffAff = STAFF_AFF_BY_ID.get(sid) || '';
-      if (!staffAff || staffAff === baseAff) continue; // 타지점만
-
-      const savedInv  = Number(pa[`involvement_sales${i}`] || 0);
-      const buyerAmt  = Number(pa[`buyer_amount${i}`]      || 0);
-      const sellerAmt = Number(pa[`seller_amount${i}`]     || 0);
-      const amt = savedInv > 0 ? savedInv : (buyerAmt + sellerAmt);
-      if (amt <= 0) continue;
-
-      byMonth[ym] = (byMonth[ym] || 0) + amt;
-    }
-  }
-  return byMonth;
 }
 
 // === [CHANGE] 드로어 비용값 주입(매출합계와 동일한 표시 스타일/속성) ===
@@ -413,8 +360,8 @@ function ymKey(dateStr) {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
-// [REPLACE] 기존 renderMonthlyTable 전체를 이 블록으로 교체
-async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMap, staffList }) {
+// 기존 renderMonthlyTable 전체 삭제 후 아래로 교체
+function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMap, staffList }) {
   const titleEl = $('#branch-monthly-title');
   const thead   = $('#monthly-thead');
   const tbody   = $('#branch-monthly-tbody');
@@ -430,14 +377,8 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
   ]);
   const yms = Array.from(ymSet).sort();
 
-  // [ADD] 월별 "타지점" 금액 맵 가져오기 (지점이 선택된 경우에만)
-  let otherByMonth = {};
-  if (titleAffiliation) {
-    otherByMonth = await buildTransfersByMonthForAff(titleAffiliation);
-  }
-
-  // === THEAD: '타지점' 열을 '총 급여'와 '부가세' 사이에 추가 ===
-  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 비용 / 총 급여 / 타지점 / 부가세 / 순이익 / 총비용 / 지점자율금 / 배당금
+  // === THEAD: 순이익 열 추가 (비용과 지점자율금 사이) ===
+  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
@@ -446,7 +387,6 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
-    <th class="border px-2 py-2 whitespace-nowrap">타지점</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
@@ -459,9 +399,9 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
   // === TBODY ===
   tbody.innerHTML = '';
   if (yms.length === 0) {
-    // 열 개수: 12 (타지점 포함)
+    // 열 개수: 10
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="12">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="11">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -474,9 +414,6 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
     const pmap = payrollByStaff?.[ym] || {};
     const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
-    // [ADD] 타지점 (이 지점 명의 매출 중 타지점 직원 몫)
-    const otherTransfer = Number(otherByMonth?.[ym] || 0);
-
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
@@ -488,20 +425,22 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
     // 유보금(고정)
     const RESERVE = 10_000_000;
 
-    // 자율금 계산 기반
+    // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
     const baseForAuto = balanceTotal - payrollTotal - cost - vat - RESERVE;
 
-    // 순이익(자율금 산정 전)
+    // [NEW] 순이익(자율금 산정 전)
     const netIncome = Math.round(baseForAuto);
-
-    // 총비용 = 매출합계 - 총급여 - 순이익
+    
+    // [NEW] 총비용 = 매출합계 - 총급여 - 순이익 (드로어와 동일한 정의)
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
 
-    // 지점자율금/배당금
+    // 지점자율금 = 순이익 × 비율
     const autonomousFee = Math.round(netIncome * autonomousRate);
-    const finalProfit = Math.round(netIncome - autonomousFee);
 
+    // 최종 배당금
+    const finalProfit = Math.round(netIncome - autonomousFee);
+    // ▼▼▼ 추가: 음수는 표시만 0으로
     const dispAutonomousFee = Math.max(0, autonomousFee);
     const dispFinalProfit   = Math.max(0, finalProfit);
 
@@ -514,7 +453,6 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
-      <td class="border px-2 py-2 text-right text-rose-700">${fmt(otherTransfer)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
@@ -533,6 +471,7 @@ async function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, 
         cost: __LAST_COST_MAP[ym] ?? cost,
         staffList: __LAST_STAFF_LIST
       });
+      // [ADD] 드로어 비용(해당 월 사용비용 합계) 주입 + 입력잠금
       setDrawerCostByYM(ym);
     });
 
