@@ -275,12 +275,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
     const balanceTotal = mainBal + subBal;
 
-    // 유보금(현행 유지)
+    // 유보금(고정)
     const RESERVE = 10_000_000;
 
-    // 지점자율금 = 잔고합계 × 비율
+    // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세) × 비율
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const autonomousFee  = Math.round(balanceTotal * autonomousRate);
+    const baseForAuto = balanceTotal - payrollTotal - cost - vat;
+    const autonomousFee = Math.round(baseForAuto * autonomousRate);
 
     // 순이익(잔고 기준)
     const finalProfit = Math.round(
@@ -658,9 +659,10 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     // 유보금(현행 유지)
     const RESERVE = 10_000_000;
 
-    // 지점자율금 = 잔고합계 × 비율
+    // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세) × 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const aFee = Math.round(balanceTotalNow * rate);
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - c - vatVal;
+    const aFee = Math.round(baseForAuto * rate);
 
     const finalProfit = Math.round(
       balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
