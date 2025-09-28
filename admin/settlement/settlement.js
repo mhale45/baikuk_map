@@ -678,7 +678,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const netIncome = Math.round(baseForAuto);
 
     // [CHANGE] 총비용 = 매출합계 - 총급여 - 부가세 - 순이익
-    const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - vat - netIncome);
+    const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - vatVal - netIncome);
 
     // 표시 업데이트
     const totalCostEl = document.getElementById('d_totalcost');
