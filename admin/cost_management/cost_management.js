@@ -323,6 +323,88 @@ function initInputBar() {
     if (!el) return;
     el.classList.add('w-auto');
   });
+
+    // 저장 버튼 클릭 → 저장 로직 호출
+  const $saveBtn = $('#cm-save-btn');
+  if ($saveBtn) {
+    $saveBtn.addEventListener('click', async () => {
+      try {
+        $saveBtn.disabled = true;
+        $saveBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        await saveCostRow();
+      } finally {
+        $saveBtn.disabled = false;
+        $saveBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+      }
+    });
+  }
+}
+
+// === 저장 로직: cost_management 테이블에 한 행 저장 ===
+async function saveCostRow() {
+  try {
+    const $branch   = $('#cm-branch');
+    const $date     = $('#cm-date');
+    const $division = $('#cm-division');
+    const $amount   = $('#cm-amount');
+    const $memo     = $('#cm-memo');
+    const $staff    = $('#cm-staff');
+
+    // 값 읽기/검증
+    const affiliation = $branch?.value || '';
+    if (!affiliation || affiliation === '__ALL__') {
+      showToastGreenRed?.('지점을 선택하세요');
+      return;
+    }
+
+    const dateVal  = $date?.value || todayStr();
+    const division = $division?.value || '사용비용';
+    const amount   = toNumberKR($amount?.value);
+    if (!amount) {
+      showToastGreenRed?.('금액을 입력하세요');
+      return;
+    }
+
+    // 직원 id: select에 이미 staff_profiles.id가 value로 들어감
+    const staff_id = $staff?.value || __MY_STAFF_ID;
+    if (!staff_id) {
+      showToastGreenRed?.('직원 선택 정보를 확인할 수 없습니다');
+      return;
+    }
+
+    const memo = String($memo?.value || '').trim();
+
+    // title/status 는 UI에 없으므로 생략(서버 디폴트 또는 NULL)
+    const payload = {
+      affiliation,
+      date: dateVal,     // date 컬럼
+      division,          // text
+      amount,            // numeric
+      memo,              // text
+      staff_id           // uuid
+    };
+
+    const { error } = await supabase
+      .from('cost_management')
+      .insert(payload);
+
+    if (error) {
+      console.error('[cost_management] insert error:', error);
+      showToastGreenRed?.('저장 실패');
+      return;
+    }
+
+    showToastGreenRed?.('저장 완료');
+    // 입력값 리셋(금액/메모만)
+    if ($amount) $amount.value = '';
+    if ($memo)   $memo.value   = '';
+
+    // TODO: 아래 영역에 리스트를 그릴 예정이면 여기서 재로딩 호출
+    // await reloadCostList();  // (추후 구현)
+  } catch (e) {
+    console.error('[cost_management] save failed:', e);
+    showToastGreenRed?.('저장 중 오류가 발생했습니다');
+  }
 }
 
 // 4) 초기화
