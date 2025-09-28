@@ -673,6 +673,13 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
     if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
+    // 계산식 표시 업데이트
+    const formulaEl = document.getElementById('d_autonomous_formula');
+    if (formulaEl) {
+      formulaEl.textContent =
+        `(계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금) × ${Math.round(rate * 100)}%`;
+    }
+
     $id('d_profit').value = fmtKR(finalProfit);
   };
 

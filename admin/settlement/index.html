@@ -123,12 +123,16 @@
             </div>
 
             <!-- 지점자율금 -->
-            <div class="mt-5 flex items-center justify-between">
-              <span class="text-sm text-gray-600">지점자율금</span>
-              <span id="d_autonomous_rate" class="text-xs text-gray-500">(rate: —)</span>
+            <div class="mt-5">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">지점자율금</span>
+                <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
+              </div>
+              <input id="d_autonomous_amount" type="text" readonly
+                    class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
+              <!-- 계산식 표시 -->
+              <div id="d_autonomous_formula" class="text-[11px] text-gray-400 mt-1"></div>
             </div>
-            <input id="d_autonomous_amount" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
           </div>
 
           <label class="flex flex-col gap-1">
