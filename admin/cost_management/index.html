@@ -36,6 +36,58 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
+        <!-- 메인 컬럼: 상단 입력바 -->
+    <div class="w-[94%] bg-gray-50 pt-[5rem] px-6">
+      <!-- 입력바 -->
+      <section class="bg-white rounded-xl shadow p-4 border border-gray-200 sticky top-0 z-10">
+        <div class="grid grid-cols-6 gap-3 items-end">
+          <!-- 1. 지점 선택 (기본값: 로그인 사용자의 지점, 직원/지점장은 수정 불가) -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">지점</span>
+            <select id="cm-branch" class="border rounded px-3 py-2 bg-white"></select>
+          </label>
+
+          <!-- 2. 날짜 (기본값: 오늘) -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">날짜</span>
+            <input id="cm-date" type="date" class="border rounded px-3 py-2 bg-white" />
+          </label>
+
+          <!-- 3. 구분 (기본값: 사용비용, 직원은 수정 불가) -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">구분</span>
+            <select id="cm-division" class="border rounded px-3 py-2 bg-white">
+              <option value="사용비용" selected>사용비용</option>
+              <option value="통장 입출금">통장 입출금</option>
+            </select>
+          </label>
+
+          <!-- 4. 제목 -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">제목</span>
+            <input id="cm-title" type="text" placeholder="제목" class="border rounded px-3 py-2" />
+          </label>
+
+          <!-- 5. 금액 (숫자만) -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">금액</span>
+            <input id="cm-amount" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right" />
+          </label>
+
+          <!-- 6. 메모 -->
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">메모</span>
+            <input id="cm-memo" type="text" placeholder="메모" class="border rounded px-3 py-2" />
+          </label>
+        </div>
+      </section>
+
+      <!-- (필요 시) 이 아래로 목록/테이블 들어갈 영역 -->
+      <div id="cm-list-area" class="mt-4">
+        <!-- 추후 리스트/테이블 구현 -->
+      </div>
+    </div>
+
   </div>
   <script type="module" src="./cost_management.js"></script>
 </body>
