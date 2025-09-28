@@ -97,6 +97,15 @@ async function loadBranchesIntoSelect(selectEl) {
     if (error) throw error;
 
     selectEl.innerHTML = '';
+
+    // [NEW] 관리자면 "전체 지점" 옵션 추가
+    if (__MY_ROLE === '관리자') {
+      const allOpt = document.createElement('option');
+      allOpt.value = '__ALL__';
+      allOpt.textContent = '전체 지점';
+      selectEl.appendChild(allOpt);
+    }
+
     for (const row of (data || [])) {
       if (!row?.affiliation) continue;
       const opt = document.createElement('option');
@@ -105,8 +114,10 @@ async function loadBranchesIntoSelect(selectEl) {
       selectEl.appendChild(opt);
     }
 
-    // 기본값: 로그인 사용자의 소속
-    if (__MY_AFFILIATION) selectEl.value = __MY_AFFILIATION;
+    // 기본값: 로그인 사용자의 소속 (없으면 그대로)
+    if (__MY_AFFILIATION && [...selectEl.options].some(o => o.value === __MY_AFFILIATION)) {
+      selectEl.value = __MY_AFFILIATION;
+    }
 
     // 직원/지점장 비활성화 (선택 못 하게)
     if (['직원', '지점장'].includes(__MY_ROLE)) {
@@ -119,54 +130,105 @@ async function loadBranchesIntoSelect(selectEl) {
   }
 }
 
-// 직원 목록 로드 → select 옵션 구성 (정산 드로어와 동일 기준)
+// 직원 목록 로드 → select 옵션 구성 (지점별 optgroup, 내 지점 그룹을 맨 위로)
 async function loadStaffIntoSelect(selectEl, currentBranchValue) {
   if (!selectEl) return;
-  try {
-    let query = supabase
-      .from('staff_profiles')
-      .select('id, name, affiliation')
-      .is('leave_date', null)
-      .order('name', { ascending: true });
 
-    // 권한별 필터
+  // optgroup 렌더 헬퍼
+  const renderGrouped = (el, rows) => {
+    el.innerHTML = '';
+    // placeholder
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = '직원 선택';
+    ph.disabled = true;
+    ph.selected = true;
+    el.appendChild(ph);
+
+    // affiliation -> [rows] 맵
+    const groupMap = new Map();
+    for (const r of (rows || [])) {
+      const aff = r.affiliation || '미지정';
+      if (!groupMap.has(aff)) groupMap.set(aff, []);
+      groupMap.get(aff).push(r);
+    }
+
+    // 내 지점을 최상단으로 오게 정렬
+    const affs = Array.from(groupMap.keys()).sort((a, b) => {
+      if (a === __MY_AFFILIATION) return -1;
+      if (b === __MY_AFFILIATION) return 1;
+      return a.localeCompare(b, 'ko');
+    });
+
+    for (const aff of affs) {
+      const og = document.createElement('optgroup');
+      og.label = aff;
+      const list = groupMap.get(aff).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      for (const r of list) {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name;
+        og.appendChild(opt);
+      }
+      el.appendChild(og);
+    }
+  };
+
+  try {
+    // ===== 권한별 처리 =====
     if (__MY_ROLE === '직원') {
       // 본인만
-      const { data, error } = await query.eq('id', __MY_STAFF_ID);
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('id, name, affiliation')
+        .eq('id', __MY_STAFF_ID)
+        .is('leave_date', null)
+        .maybeSingle();
       if (error) throw error;
+
       selectEl.innerHTML = '';
       const opt = document.createElement('option');
-      opt.value = data?.[0]?.id || __MY_STAFF_ID || '';
-      opt.textContent = data?.[0]?.name || __MY_NAME || '본인';
+      opt.value = data?.id || __MY_STAFF_ID || '';
+      opt.textContent = data?.name || __MY_NAME || '본인';
       selectEl.appendChild(opt);
+
       // 직원은 변경 불가
       selectEl.disabled = true;
       selectEl.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
       return;
     }
 
+    // 지점장: 본인 지점만
     if (__MY_ROLE === '지점장') {
-      query = query.eq('affiliation', __MY_AFFILIATION);
-    } else if (__MY_ROLE === '관리자') {
-      // 관리자는 지점 select가 있으면 그 값으로 필터, 없으면 전체
-      if (currentBranchValue) {
-        query = query.eq('affiliation', currentBranchValue);
-      }
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('id, name, affiliation')
+        .eq('affiliation', __MY_AFFILIATION)
+        .is('leave_date', null)
+        .order('name', { ascending: true });
+      if (error) throw error;
+      renderGrouped(selectEl, data || []);
+      selectEl.disabled = false;
+      selectEl.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+      return;
     }
+
+    // 관리자: currentBranchValue에 따라 필터/전체
+    let query = supabase
+      .from('staff_profiles')
+      .select('id, name, affiliation')
+      .is('leave_date', null);
+
+    if (currentBranchValue && currentBranchValue !== '__ALL__') {
+      query = query.eq('affiliation', currentBranchValue);
+    }
+    // 정렬: 지점, 이름
+    query = query.order('affiliation', { ascending: true }).order('name', { ascending: true });
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // 옵션 렌더
-    selectEl.innerHTML = '<option value="">직원 선택</option>';
-    for (const row of (data || [])) {
-      const opt = document.createElement('option');
-      opt.value = row.id;
-      opt.textContent = row.name + (row.affiliation ? ` (${row.affiliation})` : '');
-      selectEl.appendChild(opt);
-    }
-
-    // 지점장/관리자: 선택 가능 (활성화)
+    renderGrouped(selectEl, data || []);
     selectEl.disabled = false;
     selectEl.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
   } catch (e) {
