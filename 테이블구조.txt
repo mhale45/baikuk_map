@@ -1,4 +1,16 @@
 ▶ 테이블 컬럼명시
+- cost_management
+id : int8
+created_at : timestamptz
+affiliation : text
+date : date
+division : text
+title : text
+amount : numeric
+memo : text
+staff_id : uuid 
+status : bool
+
 - branch_settlement_expenses
 id : uuid
 period_month : date
