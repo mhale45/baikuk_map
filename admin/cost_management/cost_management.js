@@ -616,7 +616,7 @@ function renderCostList(rows) {
               <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
               <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[10rem]">구분</th>
               <th class="px-3 py-2 text-right w-[8rem]">금액</th>
-              <th class="px-3 py-2 text-left">메모</th>
+              <th class="px-3 py-2 text-left w-full">메모</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
