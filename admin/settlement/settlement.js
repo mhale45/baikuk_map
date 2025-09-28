@@ -232,8 +232,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   ]);
   const yms = Array.from(ymSet).sort();
 
-  // === THEAD: 직원별 급여 열 제거 + '부가세' 열 추가 ===
-  // 기간 / 잔금매출 합계 / 총 급여 / 부가세 / 비용 / 지점자율금 / 최종 순이익
+  // === THEAD: 순이익 열 추가 (비용과 지점자율금 사이) ===
+  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
@@ -243,6 +243,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
+    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">배당금</th>
   `;
@@ -252,25 +253,25 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   // === TBODY ===
   tbody.innerHTML = '';
   if (yms.length === 0) {
-    // 열 개수: 7
+    // 열 개수: 10
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="9">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="10">데이터가 없습니다</td></tr>
     `;
     return;
   }
 
   for (const ym of yms) {
-    const sales = Number(salesMap?.[ym] || 0); // ← 표시는 그대로 사용
+    const sales = Number(salesMap?.[ym] || 0);
     const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
-    // 총 급여는 기존 로직 유지
+    // 총 급여
     const pmap = payrollByStaff?.[ym] || {};
     const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // 잔고 합계 계산
+    // 잔고 합계
     const mainBal = Number(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
     const balanceTotal = mainBal + subBal;
@@ -278,18 +279,20 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     // 유보금(고정)
     const RESERVE = 10_000_000;
 
-    // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
+    // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
     const baseForAuto = balanceTotal - payrollTotal - cost - vat - RESERVE;
-    const autonomousFee = Math.round(baseForAuto * autonomousRate);
 
-    // 순이익(잔고 기준)
-    const finalProfit = Math.round(
-      balanceTotal - payrollTotal - cost - vat - RESERVE - autonomousFee
-    );
+    // [NEW] 순이익(자율금 산정 전)
+    const netIncome = Math.round(baseForAuto);
+
+    // 지점자율금 = 순이익 × 비율
+    const autonomousFee = Math.round(netIncome * autonomousRate);
+
+    // 최종 배당금
+    const finalProfit = Math.round(netIncome - autonomousFee);
 
     const tr = document.createElement('tr');
-
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
@@ -299,18 +302,19 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-emerald-700">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(finalProfit)}</td>
     `;
 
-    // 행 클릭 → 드로어 오픈 (드로어에서는 직원별 브레이크다운 계속 표시)
+    // 행 클릭 → 드로어 오픈
     tr.addEventListener('click', () => {
       openSettlementDrawer({
         affiliation: __LAST_AFFILIATION,
         ym,
         sales,
         payrollTotal,
-        pmap, // 드로어에서 사용
+        pmap,
         cost: __LAST_COST_MAP[ym] ?? cost,
         staffList: __LAST_STAFF_LIST
       });
