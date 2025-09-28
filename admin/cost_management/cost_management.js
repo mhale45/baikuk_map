@@ -134,12 +134,14 @@ async function loadBranchesIntoSelect(selectEl) {
   }
 }
 
-// 직원 목록 로드 → select 옵션 구성 (지점별 optgroup, 내 지점 그룹 최상단, 내 이름 기본 선택)
-// 지점장도 관리자와 동일한 동작
+// 직원 목록 로드 → select 옵션 구성
+// - 직원: 본인만 (비활성화)
+// - 지점장: 본인 지점 직원만 (활성화, 선택 가능)
+// - 관리자: 선택 지점(또는 전체 지점) 직원 (optgroup), 내 지점 그룹 우선, 내 이름 기본 선택
 async function loadStaffIntoSelect(selectEl, currentBranchValue) {
   if (!selectEl) return;
 
-  // optgroup 렌더 헬퍼
+  // optgroup 렌더 헬퍼 (관리자용)
   const renderGrouped = (el, rows) => {
     el.innerHTML = '';
 
@@ -151,7 +153,7 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
       groupMap.get(aff).push(r);
     }
 
-    // 내 지점을 최상단으로 오게 정렬
+    // 내 지점을 최상단으로
     const affs = Array.from(groupMap.keys()).sort((a, b) => {
       if (a === __MY_AFFILIATION) return -1;
       if (b === __MY_AFFILIATION) return 1;
@@ -168,26 +170,23 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
         const opt = document.createElement('option');
         opt.value = r.id;
         opt.textContent = r.name;
-
-        // 로그인 사용자의 staff_id면 기본 선택
         if (r.id === __MY_STAFF_ID) {
           opt.selected = true;
           hasSelected = true;
         }
-
         og.appendChild(opt);
       }
       el.appendChild(og);
     }
 
-    // 내 계정을 찾지 못했으면 → 첫 번째 옵션 선택
+    // 내 계정을 찾지 못했으면 첫 옵션 선택
     if (!hasSelected && el.options.length > 0) {
       el.options[0].selected = true;
     }
   };
 
   try {
-    // 직원: 본인만 (변경 불가)
+    // 1) 직원: 본인만
     if (__MY_ROLE === '직원') {
       const { data, error } = await supabase
         .from('staff_profiles')
@@ -209,7 +208,44 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
       return;
     }
 
-    // [CHANGED] 지점장도 아래의 "관리자 로직" 사용
+    // 2) 지점장: 본인 지점 직원만 (활성화)
+    if (__MY_ROLE === '지점장') {
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('id, name, affiliation')
+        .eq('affiliation', __MY_AFFILIATION)
+        .is('leave_date', null)
+        .order('name', { ascending: true });
+      if (error) throw error;
+
+      // 단일 지점이지만 보기 좋게 optgroup 유지
+      selectEl.innerHTML = '';
+      const og = document.createElement('optgroup');
+      og.label = __MY_AFFILIATION || '미지정';
+
+      let hasSelected = false;
+      for (const r of (data || [])) {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name;
+        if (r.id === __MY_STAFF_ID) {
+          opt.selected = true;
+          hasSelected = true;
+        }
+        og.appendChild(opt);
+      }
+      selectEl.appendChild(og);
+
+      if (!hasSelected && selectEl.options.length > 0) {
+        selectEl.options[0].selected = true;
+      }
+
+      selectEl.disabled = false; // 지점장은 본인 지점 내에서 선택 가능
+      selectEl.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+      return;
+    }
+
+    // 3) 관리자: 선택 지점/전체 지점
     let query = supabase
       .from('staff_profiles')
       .select('id, name, affiliation')
@@ -218,8 +254,6 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
     if (currentBranchValue && currentBranchValue !== '__ALL__') {
       query = query.eq('affiliation', currentBranchValue);
     }
-
-    // 정렬: 지점, 이름
     query = query.order('affiliation', { ascending: true }).order('name', { ascending: true });
 
     const { data, error } = await query;
