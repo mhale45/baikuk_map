@@ -244,6 +244,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
+    <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">배당금</th>
   `;
@@ -255,7 +256,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   if (yms.length === 0) {
     // 열 개수: 10
     tbody.innerHTML = `
-      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="10">데이터가 없습니다</td></tr>
+      <tr><td class="border px-2 py-3 text-center text-gray-500" colspan="11">데이터가 없습니다</td></tr>
     `;
     return;
   }
@@ -285,6 +286,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // [NEW] 순이익(자율금 산정 전)
     const netIncome = Math.round(baseForAuto);
+    
+    // [NEW] 총비용 = 매출합계 - 총급여 - 순이익 (드로어와 동일한 정의)
+    const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
 
     // 지점자율금 = 순이익 × 비율
     const autonomousFee = Math.round(netIncome * autonomousRate);
@@ -303,6 +307,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-emerald-700">${fmt(netIncome)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-sky-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(finalProfit)}</td>
     `;
