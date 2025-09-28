@@ -451,7 +451,7 @@ async function fetchCostRows() {
   }));
 }
 
-// === 목록 렌더링: 표로 출력 ===
+// === 목록 렌더링: 표로 출력 + 행 클릭 시 삭제 ===
 function renderCostList(rows) {
   const $area = $('#cm-list-area');
   if (!$area) return;
@@ -461,6 +461,8 @@ function renderCostList(rows) {
       <div class="bg-white rounded-xl shadow border border-gray-200 p-6 text-center text-gray-500">
         표시할 내역이 없습니다.
       </div>`;
+    // 기존 클릭 핸들러 제거
+    $area.onclick = null;
     return;
   }
 
@@ -485,7 +487,11 @@ function renderCostList(rows) {
           </thead>
           <tbody class="divide-y divide-gray-100">
             ${rows.map(r => `
-              <tr class="hover:bg-gray-50">
+              <tr class="hover:bg-gray-50 cursor-pointer"
+                  data-id="${r.id}"
+                  data-affiliation="${escapeHTML(r.affiliation)}"
+                  data-staff-id="${escapeHTML(r.staff_id || '')}"
+                  title="클릭하여 삭제">
                 <td class="px-3 py-2">${escapeHTML(r.affiliation)}</td>
                 <td class="px-3 py-2 whitespace-nowrap">${escapeHTML(r.date)}</td>
                 <td class="px-3 py-2">${escapeHTML(r.staff_name)}</td>
@@ -500,6 +506,29 @@ function renderCostList(rows) {
     </div>
   `;
   $area.innerHTML = html;
+
+  // 이벤트 위임으로 "행 클릭 → 삭제" 처리 (중복 바인딩 방지: 한 번만 설정)
+  $area.onclick = async (ev) => {
+    const tr = ev.target.closest('tr[data-id]');
+    if (!tr) return;
+
+    const rowId        = tr.getAttribute('data-id');
+    const affiliation  = tr.getAttribute('data-affiliation');
+    const staff_id     = tr.getAttribute('data-staff-id') || null;
+
+    // 권한 체크
+    if (!canDeleteRow({ affiliation, staff_id })) {
+      showToastGreenRed?.('삭제 권한이 없습니다');
+      return;
+    }
+
+    // 확인창
+    const ok = window.confirm('해당 내역을 삭제하시겠습니까?');
+    if (!ok) return;
+
+    // 삭제
+    await deleteCostRowById(rowId);
+  };
 }
 
 // === 목록 리로드(로딩 → 렌더) ===
@@ -511,6 +540,33 @@ async function reloadCostList() {
     console.error('[cost_management] 목록 로딩 실패:', e);
     showToastGreenRed?.('목록 로딩 실패');
   }
+}
+
+// === 삭제: 단일 행 삭제 ===
+async function deleteCostRowById(rowId) {
+  try {
+    const { error } = await supabase
+      .from('cost_management')
+      .delete()
+      .eq('id', rowId);
+
+    if (error) throw error;
+
+    showToastGreenRed?.('삭제 완료');
+    await reloadCostList();
+  } catch (e) {
+    console.error('[cost_management] 삭제 실패:', e);
+    showToastGreenRed?.('삭제 실패');
+  }
+}
+
+// 권한 체크: 이 행을 내가 삭제할 수 있는가?
+function canDeleteRow({ affiliation, staff_id }) {
+  if (__MY_ROLE === '관리자') return true;
+  if (__MY_ROLE === '지점장') return affiliation === __MY_AFFILIATION;
+  // 직원: 본인 건만
+  if (__MY_ROLE === '직원') return staff_id === __MY_STAFF_ID;
+  return false;
 }
 
 // 4) 초기화
