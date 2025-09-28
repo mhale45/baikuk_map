@@ -561,7 +561,7 @@ function renderCostList(rows) {
   const total = (rows || []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
   const totalHTML = `
     <div class="mb-2">
-      <div class="flex items-center gap-3 bg-white rounded-xl shadow border border-gray-200 px-4 py-3">
+      <div class="flex items-center gap-3 bg-white rounded-xl shadow border border-gray-200 px-4 py-3 w-[20rem]">
         <span class="text-sm text-gray-600">총 합계</span>
         <span class="ml-auto text-lg font-bold ${total < 0 ? 'text-red-600' : 'text-gray-900'}">
           ${total < 0 ? '-' : ''}${Math.abs(total).toLocaleString('ko-KR')}
@@ -611,11 +611,11 @@ function renderCostList(rows) {
         <table class="min-w-full table-auto text-sm">
           <thead class="bg-gray-100 text-gray-700">
             <tr>
-              <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">지점</th>
-              <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">날짜</th>
+              <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
+              <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">날짜</th>
               <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
-              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">구분</th>
-              <th class="px-3 py-2 text-right w-[7rem]">금액</th>
+              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[10rem]">구분</th>
+              <th class="px-3 py-2 text-right w-[8rem]">금액</th>
               <th class="px-3 py-2 text-left">메모</th>
             </tr>
           </thead>
