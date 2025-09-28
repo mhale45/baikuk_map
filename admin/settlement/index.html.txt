@@ -84,7 +84,7 @@
       <div class="flex-1 overflow-y-auto p-5 space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">기간(YYYY-MM)</span>
+            <span class="text-sm text-gray-600">기간</span>
             <input id="d_period" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-gray-600">
           </label>
@@ -98,35 +98,18 @@
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">계좌 잔고1</span>
             <input id="input-main-balance" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+                  class="border rounded px-3 py-2 bg-gray-50 text-right">
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">계좌 잔고2</span>
             <input id="input-sub-balance" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+                  class="border rounded px-3 py-2 bg-gray-50 text-right">
           </label>
-
-          <div class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">총 급여(50%)</span>
-            <input id="d_payroll" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
-            <!-- 직원별 급여 브레이크다운 -->
-            <div id="d_payroll_breakdown" class="mt-2 border rounded">
-              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
-            </div>
-            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
-            <div class="mt-4">
-              <span class="text-sm text-gray-600">부가세</span>
-              <input id="d_vat" type="text" readonly
-                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
-              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
-            </div>
-          </div>
 
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">비용</span>
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
-            <input id="d_cost" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right">
+            <input id="d_cost" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right font-semibold ">
             <!-- [ADD] 비용 항목 안내 (참고/제외) -->
             <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
               <div class="text-sm font-semibold text-amber-800 mb-2">※ 비용 항목 안내</div>
@@ -145,30 +128,67 @@
             </div>
           </label>
 
-          <!-- [ADD] 순이익 (자율금 산정 전, 유보금까지 차감한 값) -->
-          <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">
-              순이익 = 계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
-            </span>
+          <div class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
+            </div>
+            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
+            <div class="mt-4">
+              <span class="text-sm text-gray-600">부가세</span>
+              <input id="d_vat" type="text" readonly
+                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
+              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
+            </div>
+          </div>
+
+          <!-- [CHANGE] 순이익: 제목만 표시 + 아래에 계산식 표시 -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">순이익</span>
             <input id="d_netincome" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-emerald-700">
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+            <!-- 계산식 표시 -->
+            <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
+              계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
+            </div>
+          </label>
+
+          <!-- [NEW] 총비용 -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총비용</span>
+            <input id="d_totalcost" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-600">
+            <div id="d_totalcost_formula" class="text-[11px] text-gray-400 mt-1">
+              매출합계 − 총 급여 − 순이익
+            </div>
           </label>
 
           <!-- 지점자율금 -->          
-          <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-purple-600">지점자율금</span>
-            <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
+          <label class="flex flex-col gap-1">
+            <div class="flex items-center gap-1">
+              <span class="text-sm text-gray-600">지점자율금</span>
+              <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
+            </div>
             <input id="d_autonomous_amount" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">            
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">            
             <!-- 계산식 표시 -->
             <div id="d_autonomous_formula" class="text-[11px] text-gray-400 mt-1"></div>
           </label>
 
-          <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">배당금 = 순이익 − 지점자율금</span>
+          <!-- [CHANGE] 배당금: 제목만 표시 + 아래에 계산식 표시 -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">배당금</span>
             <input id="d_profit" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-amber-700">
+            <!-- 계산식 표시 -->
+            <div id="d_profit_formula" class="text-[11px] text-gray-400 mt-1">
+              순이익 − 지점자율금
+            </div>
           </label>
+
         </div>
         <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
         <div class="px-5 pb-2">
