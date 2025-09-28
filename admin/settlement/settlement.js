@@ -260,7 +260,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   }
 
   for (const ym of yms) {
-    const sales = Number(salesMap?.[ym] || 0);
+    const sales = Number(salesMap?.[ym] || 0); // ← 표시는 그대로 사용
     const cost = Number(__LAST_COST_MAP?.[ym] ?? costMap?.[ym] ?? 0);
 
     // 총 급여는 기존 로직 유지
@@ -270,18 +270,22 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     // 부가세(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
-    const profitBefore = sales - payrollTotal - cost - vatVal;
-
-    // 유보금 차감 후 40/60 분배
-    const RESERVE = 10_000_000;
-    const base = profitBefore - RESERVE;
-
-    const autonomousFee = Math.round(base * 0.4);
-    const finalProfit   = Math.round(base * 0.6);
-
+    // 잔고 합계 계산
     const mainBal = Number(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
+    const balanceTotal = mainBal + subBal;
+
+    // 유보금(현행 유지)
+    const RESERVE = 10_000_000;
+
+    // 지점자율금 = 잔고합계 × 비율
+    const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
+    const autonomousFee  = Math.round(balanceTotal * autonomousRate);
+
+    // 순이익(잔고 기준)
+    const finalProfit = Math.round(
+      balanceTotal - payrollTotal - cost - vat - RESERVE - autonomousFee
+    );
 
     const tr = document.createElement('tr');
 
@@ -643,22 +647,45 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     __LAST_COST_MAP[ym] = c;
 
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
-    const profitBefore = Number(sales || 0) - Number(payrollTotal || 0) - c - vatVal;
 
-    // 유보금 차감 후 40/60 분배
+    // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
+    const mainEl = document.getElementById('input-main-balance');
+    const subEl  = document.getElementById('input-sub-balance');
+    const main = toNumber(mainEl?.value ?? __LAST_MAIN_BAL_MAP?.[ym] ?? 0);
+    const sub  = toNumber(subEl?.value  ?? __LAST_SUB_BAL_MAP?.[ym]  ?? 0);
+    const balanceTotalNow = main + sub;
+
+    // 유보금(현행 유지)
     const RESERVE = 10_000_000;
-    const base = profitBefore - RESERVE;
 
-    const aFee = Math.round(base * 0.4);   // 지점자율금(40%)
-    const finalProfit = Math.round(base * 0.6); // 순이익(60%)
+    // 지점자율금 = 잔고합계 × 비율
+    const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
+    const aFee = Math.round(balanceTotalNow * rate);
 
-    // 고정 40% 표기
-    if (autoRateEl) autoRateEl.textContent = '40%';
+    const finalProfit = Math.round(
+      balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
+    );
+
+    // 표시는 기존 그대로(d_sales 유지). 잔고합계 별도 필드가 없으므로 표시 갱신은 생략.
+    if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
     if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
 
     $id('d_profit').value = fmtKR(finalProfit);
   };
+
+  // 잔고 입력 변경 → 재계산
+  {
+    const mainEl = document.getElementById('input-main-balance');
+    const subEl  = document.getElementById('input-sub-balance');
+    const handler = () => recompute();
+
+    [mainEl, subEl].forEach((el) => {
+      if (!el) return;
+      el.addEventListener('input', handler);
+      el.addEventListener('blur', () => { el.value = fmtKR(toNumber(el.value)); handler(); });
+    });
+  }
 
   costEl.oninput = recompute;
   costEl.onblur  = () => { costEl.value = fmtKR(toNumber(costEl.value)); recompute(); };
@@ -711,8 +738,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     });
   }
 
-  // [CHANGE] 초기 비율/자율금 표시 (고정 40%)
-  if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = '40%';
+  // [CHANGE] 초기 비율/자율금 표시 (지점별 비율 사용)
+  if ($id('d_autonomous_rate')) $id('d_autonomous_rate').textContent = `${Math.round((__LAST_AUTONOMOUS_RATE||0)*100)}%`;
   if ($id('d_autonomous_fee'))  $id('d_autonomous_fee').value = '0';
   if ($id('d_autonomous_amount')) $id('d_autonomous_amount').value = '0';
 
