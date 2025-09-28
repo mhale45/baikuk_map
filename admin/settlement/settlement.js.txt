@@ -342,6 +342,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 최종 배당금
     const finalProfit = Math.round(netIncome - autonomousFee);
+    // ▼▼▼ 추가: 음수는 표시만 0으로
+    const dispAutonomousFee = Math.max(0, autonomousFee);
+    const dispFinalProfit   = Math.max(0, finalProfit);
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
@@ -355,8 +358,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
-      <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(finalProfit)}</td>
+      <td class="border px-2 py-2 text-right text-purple-700">${fmt(dispAutonomousFee)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
@@ -713,7 +716,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
     const main = toNumber(mainEl?.value ?? __LAST_MAIN_BAL_MAP?.[ym] ?? 0);
-    const sub  = toNumber(subEl?.value  ?? __LAST_SUB_BAL_MAP?.[ym]  ?? 0);
+    // sub_balance는 항상 집계값(캐시) 사용
+    const sub  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
     const balanceTotalNow = main + sub;
 
     // 유보금(현행 유지)
@@ -748,8 +752,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (netEl) netEl.value = fmtKR(netIncome);
 
     if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
-    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
-    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
+    const aFeeDisplay = Math.max(0, aFee);
+    const finalProfitDisplay = Math.max(0, finalProfit);
+
+    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFeeDisplay);
+    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFeeDisplay);
+    $id('d_profit').value = fmtKR(finalProfitDisplay);
 
     // 계산식 표시(순이익/배당금)
     const netFormulaEl = document.getElementById('d_netincome_formula');
@@ -764,8 +772,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       formulaEl.textContent =
         `순이익 × ${Math.round(rate * 100)}%`;
     }
-
-    $id('d_profit').value = fmtKR(finalProfit);
   };
 
   // 잔고 입력 변경 → 재계산
@@ -774,11 +780,14 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const subEl  = document.getElementById('input-sub-balance');
     const handler = () => recompute();
 
-    [mainEl, subEl].forEach((el) => {
-      if (!el) return;
-      el.addEventListener('input', handler);
-      el.addEventListener('blur', () => { el.value = fmtKR(toNumber(el.value)); handler(); });
-    });
+    // subEl은 항상 읽기 전용/비활성 → 이벤트 바인딩하지 않음
+    if (mainEl) {
+      mainEl.addEventListener('input', handler);
+      mainEl.addEventListener('blur', () => {
+        mainEl.value = fmtKR(toNumber(mainEl.value));
+        handler();
+      });
+    }
   }
 
   // [ADD] 잔고 초기값 반영 (비용과 동일한 표시 형식)
@@ -788,7 +797,14 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     const fmtKR  = (n) => Number(n || 0).toLocaleString('ko-KR');
 
     if (mainEl) mainEl.value = fmtKR(__LAST_MAIN_BAL_MAP?.[ym] || 0);
-    if (subEl)  subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
+    if (subEl) {
+      subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
+      // 항상 수정 불가(비용과 동일) + 굵게
+      subEl.readOnly = true;
+      subEl.disabled = true;
+      subEl.classList.add('bg-gray-50', 'font-semibold');
+      subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+    }
   }
 
   // [ADD] 순이익 아래/메모 위에 동적으로 삽입
@@ -804,7 +820,17 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
         </div>
         <div>
           <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
-          <input id="input-sub-balance" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right"/>
+          <!-- 항상 수정 불가 + 굵게 표시 -->
+          <input
+            id="input-sub-balance"
+            type="text"
+            inputmode="numeric"
+            placeholder="0"
+            class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
+            readonly
+            disabled
+            title="계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
+          />
         </div>
       `;
       memoEl.parentElement.insertBefore(wrap, memoEl);
@@ -987,16 +1013,16 @@ function firstDayOfMonth(ym) {
 
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
 // 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
-// 계좌잔고(main/sub)는 기존대로 branch_settlement_expenses에서 불러옵니다.
+// 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
+// 계좌잔고2(sub)는 cost_management에서 division='통장 입출금' 월합으로 대체합니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
-    // 1) 잔고는 기존 테이블에서 유지 로딩
+    // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
     let mainBalMap = {};
-    let subBalMap  = {};
     try {
       const { data: balRows, error: balErr } = await supabase
         .from('branch_settlement_expenses')
-        .select('period_month, main_balance, sub_balance')
+        .select('period_month, main_balance')
         .eq('affiliation', affiliation);
 
       if (balErr) throw balErr;
@@ -1005,13 +1031,12 @@ async function loadBranchExpenseCache(affiliation) {
         const ym = ymKey(String(row.period_month));
         if (!ym) continue;
         mainBalMap[ym] = Number(row.main_balance || 0);
-        subBalMap[ym]  = Number(row.sub_balance  || 0);
       }
     } catch (e) {
-      console.warn('[settlement] main/sub balance load failed:', e?.message || e);
+      console.warn('[settlement] main balance load failed:', e?.message || e);
     }
 
-    // 2) 비용은 cost_management에서 division='사용비용'만 월별 합산
+    // 2) 비용(cost): cost_management에서 division='사용비용' 월합
     const costMap = {};
     try {
       const { data: costRows, error: costErr } = await supabase
@@ -1023,20 +1048,40 @@ async function loadBranchExpenseCache(affiliation) {
       if (costErr) throw costErr;
 
       for (const row of (costRows || [])) {
-        // date 컬럼(YYYY-MM-DD) → 'YYYY-MM' 키
-        const ym = ymKey(String(row.date));
+        const ym = ymKey(String(row.date)); // 'YYYY-MM-DD' → 'YYYY-MM'
         if (!ym) continue;
         const amt = Number(row.amount || 0);
         costMap[ym] = (costMap[ym] || 0) + amt;
       }
     } catch (e) {
-      console.warn('[settlement] cost_management load failed:', e?.message || e);
+      console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 전역 캐시 갱신
-    __LAST_COST_MAP     = costMap;   // 🔁 비용은 이제 cost_management 기준
-    __LAST_MAIN_BAL_MAP = mainBalMap;
-    __LAST_SUB_BAL_MAP  = subBalMap;
+    // 3) 계좌잔고2(sub): cost_management에서 division='통장 입출금' 월합
+    const subCMMap = {};
+    try {
+      const { data: bankRows, error: bankErr } = await supabase
+        .from('cost_management')
+        .select('date, amount, affiliation, division')
+        .eq('affiliation', affiliation)
+        .eq('division', '통장 입출금');
+
+      if (bankErr) throw bankErr;
+
+      for (const row of (bankRows || [])) {
+        const ym = ymKey(String(row.date));
+        if (!ym) continue;
+        const amt = Number(row.amount || 0);
+        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
+      }
+    } catch (e) {
+      console.warn('[settlement] sub_balance from cost_management load failed:', e?.message || e);
+    }
+
+    // 4) 전역 캐시 갱신
+    __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
+    __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
+    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
 
     return costMap;
   } catch (e) {
@@ -1237,12 +1282,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const fmtKR = (n) => Number(n || 0).toLocaleString('ko-KR');
 
-  [$main, $sub].forEach(input => {
-    if (!input) return;
-    input.addEventListener('blur', () => {
-      input.value = fmtKR(toNumber(input.value));
+  // sub는 항상 읽기 전용 → 포맷터 불필요
+  if ($main) {
+    $main.addEventListener('blur', () => {
+      $main.value = fmtKR(toNumber($main.value));
     });
-  });
+  }
 });
 
 function applyLockUI(locked) {
@@ -1289,10 +1334,13 @@ function applyLockUI(locked) {
     mainEl.disabled = locked;
     mainEl.classList.toggle('bg-gray-50', locked);
   }
+
+  // 계좌 잔고2는 잠금상태와 무관하게 항상 수정 불가
   if (subEl) {
-    subEl.readOnly = locked;
-    subEl.disabled = locked;
-    subEl.classList.toggle('bg-gray-50', locked);
+    subEl.readOnly = true;
+    subEl.disabled = true;
+    subEl.classList.add('bg-gray-50', 'font-semibold');
+    subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
   }
 }
 
@@ -1320,13 +1368,12 @@ async function fetchAndApplySettlementState(affiliation, ym) {
         memoEl.value = row.memo;
       }
       __LAST_MAIN_BAL_MAP[ym] = Number(row.main_balance || 0);
-      __LAST_SUB_BAL_MAP[ym]  = Number(row.sub_balance  || 0);
       __LAST_CONFIRMED_MAP[ym] = !!row.is_confirmed;
       // [ADD] 드로어 input 기본값 채우기
       const $main = document.getElementById('input-main-balance');
       const $sub  = document.getElementById('input-sub-balance');
       if ($main) $main.value = Number(row.main_balance || 0).toLocaleString('ko-KR');
-      if ($sub)  $sub.value  = Number(row.sub_balance  || 0).toLocaleString('ko-KR');
+      if ($sub)  $sub.value  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0).toLocaleString('ko-KR');
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;
     }
