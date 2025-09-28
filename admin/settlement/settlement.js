@@ -304,10 +304,10 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-blue-700">${fmt(payrollTotal)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-emerald-700">${fmt(netIncome)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-sky-600">${fmt(totalCost)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(autonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(finalProfit)}</td>
     `;
