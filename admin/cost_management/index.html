@@ -42,38 +42,43 @@
       <section class="bg-white rounded-xl shadow p-4 border border-gray-200 sticky top-0 z-10">
         <div class="grid grid-cols-12 gap-3 items-end">
             <!-- 1. 지점 선택 (작게) -->
-            <label class="flex flex-col gap-1 col-span-2 w-auto min-w-[7rem] flex-shrink-0">
+            <label class="flex flex-col gap-1 col-span-2">
                 <span class="text-sm text-gray-600">지점</span>
-                <select id="cm-branch" class="border rounded px-2 py-1.5 bg-white"></select>
+                <select id="cm-branch"
+                class="border rounded px-2 py-1.5 bg-white w-auto min-w-[7rem]" />
             </label>
 
             <!-- 2. 날짜 (작게) -->
-            <label class="flex flex-col gap-1 col-span-2 w-auto min-w-[7rem] flex-shrink-0">
+            <label class="flex flex-col gap-1 col-span-2">
                 <span class="text-sm text-gray-600">날짜</span>
-                <input id="cm-date" type="date" class="border rounded px-2 py-1.5 bg-white" />
+                <input id="cm-date" type="date"
+                class="border rounded px-2 py-1.5 bg-white w-auto min-w-[7rem]" />
             </label>
 
             <!-- 3. 구분 (작게) -->
-            <label class="flex flex-col gap-1 col-span-2 w-auto min-w-[6rem] flex-shrink-0">
+            <label class="flex flex-col gap-1 col-span-2">
                 <span class="text-sm text-gray-600">구분</span>
-                <select id="cm-division" class="border rounded px-2 py-1.5 bg-white">
+                <select id="cm-division"
+                class="border rounded px-2 py-1.5 bg-white w-auto min-w-[6rem]">
                 <option value="사용비용" selected>사용비용</option>
                 <option value="통장 입출금">통장 입출금</option>
                 </select>
             </label>
 
             <!-- 5. 금액 (작게) -->
-            <label class="flex flex-col gap-1 col-span-2 w-auto min-w-[6rem] flex-shrink-0">
+            <label class="flex flex-col gap-1 col-span-2">
                 <span class="text-sm text-gray-600">금액</span>
-                <input id="cm-amount" type="text" inputmode="numeric" placeholder="0" class="border rounded px-2 py-1.5 text-right" />
+                <input id="cm-amount" type="text" inputmode="numeric" placeholder="0"
+                class="border rounded px-2 py-1.5 text-right w-auto min-w-[6rem]" />
             </label>
 
             <!-- 6. 메모 (넓게) -->
             <label class="flex flex-col gap-1 col-span-12">
                 <span class="text-sm text-gray-600">메모</span>
-                <input id="cm-memo" type="text" placeholder="메모" class="border rounded px-3 py-2 w-full" />
+                <input id="cm-memo" type="text" placeholder="메모"
+                class="border rounded px-3 py-2 w-full" />
             </label>
-            </div>
+        </div>
       </section>
 
       <!-- (필요 시) 이 아래로 목록/테이블 들어갈 영역 -->
