@@ -552,10 +552,23 @@ async function fetchCostRows() {
   return rows.map(r => ({ ...r, staff_name: nameMap.get(r.staff_id) || '-' }));
 }
 
-// === 목록 렌더링: 표 + 헤더 클릭 필터 + 행 클릭 삭제 ===
+// === 목록 렌더링: 표 + 헤더 클릭 필터 + 행 클릭 삭제 + 합계 표시 ===
 function renderCostList(rows) {
   const $area = $('#cm-list-area');
   if (!$area) return;
+
+  // ----- 합계 계산 -----
+  const total = (rows || []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+  const totalHTML = `
+    <div class="mb-2">
+      <div class="flex items-center gap-3 bg-white rounded-xl shadow border border-gray-200 px-4 py-3">
+        <span class="text-sm text-gray-600">총 합계</span>
+        <span class="ml-auto text-lg font-bold ${total < 0 ? 'text-red-600' : 'text-gray-900'}">
+          ${total < 0 ? '-' : ''}${Math.abs(total).toLocaleString('ko-KR')}
+        </span>
+      </div>
+    </div>
+  `;
 
   // 활성 필터 칩
   const chips = [];
@@ -570,15 +583,20 @@ function renderCostList(rows) {
       <button id="cm-filter-reset" class="ml-2 text-xs underline text-gray-600 hover:text-gray-900">필터 초기화</button>
     </div>` : '';
 
+  // ----- 비어있을 때 -----
   if (!rows || rows.length === 0) {
     $area.innerHTML = `
+      ${totalHTML}
       ${chipsHTML}
       <div class="bg-white rounded-xl shadow border border-gray-200 p-6 text-center text-gray-500">
         표시할 내역이 없습니다.
       </div>`;
     $area.onclick = null;
     const resetBtn = document.getElementById('cm-filter-reset');
-    if (resetBtn) resetBtn.onclick = () => { Object.assign(__FILTER, {affiliations:[], dateFrom:null, dateTo:null, staffIds:[], divisions:[]}); reloadCostList(); };
+    if (resetBtn) resetBtn.onclick = () => {
+      Object.assign(__FILTER, {affiliations:[], dateFrom:null, dateTo:null, staffIds:[], divisions:[]});
+      reloadCostList();
+    };
     return;
   }
 
@@ -586,6 +604,7 @@ function renderCostList(rows) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const html = `
+    ${totalHTML}
     ${chipsHTML}
     <div class="bg-white rounded-xl shadow border border-gray-200">
       <div class="overflow-x-auto">
