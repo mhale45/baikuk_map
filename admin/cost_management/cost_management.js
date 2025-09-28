@@ -279,12 +279,13 @@ function initInputBar() {
   // 직원 select 로딩 (권한/지점에 따라)
   loadStaffIntoSelect($staff, $branch?.value || null);
 
-  // 관리자: 지점 변경 시 직원 목록도 동기화
-  if ($branch && __MY_ROLE === '관리자') {
-    $branch.addEventListener('change', () => {
-      loadStaffIntoSelect($staff, $branch.value || null);
-    });
-  }
+  // 관리자: 지점 변경 시 직원 목록도 동기화 (전체 지점 지원)
+    if ($branch && __MY_ROLE === '관리자') {
+        $branch.addEventListener('change', () => {
+            const v = $branch.value || '__ALL__'; // 빈 값 방지
+            loadStaffIntoSelect($staff, v);
+        });
+    }
 
   // ❗ select / input 최소폭 유지 (텍스트 길이에 맞춤)
   [$branch, $date, $division, $amount, $staff].forEach(el => {
