@@ -121,14 +121,6 @@
                     class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
               <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
             </div>
-
-            <!-- 지점자율금 -->
-            <div class="mt-5 flex items-center justify-between">
-              <span class="text-sm text-gray-600">지점자율금</span>
-              <span id="d_autonomous_rate" class="text-xs text-gray-500">(rate: —)</span>
-            </div>
-            <input id="d_autonomous_amount" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">
           </div>
 
           <label class="flex flex-col gap-1">
@@ -153,8 +145,27 @@
             </div>
           </label>
 
+          <!-- [ADD] 순이익 (자율금 산정 전, 유보금까지 차감한 값) -->
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">순이익 = 매출합계 − 총 급여 − 비용 − 부가세 − 유보금 − 지점자율금</span>
+            <span class="text-sm text-gray-600">
+              순이익 = 계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
+            </span>
+            <input id="d_netincome" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-emerald-700">
+          </label>
+
+          <!-- 지점자율금 -->          
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-purple-600">지점자율금</span>
+            <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
+            <input id="d_autonomous_amount" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">            
+            <!-- 계산식 표시 -->
+            <div id="d_autonomous_formula" class="text-[11px] text-gray-400 mt-1"></div>
+          </label>
+
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">배당금 = 순이익 − 지점자율금</span>
             <input id="d_profit" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
           </label>
