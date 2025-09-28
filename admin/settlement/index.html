@@ -156,6 +156,16 @@
             </div>
           </label>
 
+          <!-- [NEW] 총비용 -->
+          <label class="flex flex-col gap-1 col-span-2">
+            <span class="text-sm text-gray-600">총비용</span>
+            <input id="d_totalcost" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-orange-600">
+            <div id="d_totalcost_formula" class="text-[11px] text-gray-400 mt-1">
+              매출합계 − 총 급여 − 순이익
+            </div>
+          </label>
+
           <!-- 지점자율금 -->          
           <label class="flex flex-col gap-1">
             <div class="flex items-center gap-1">

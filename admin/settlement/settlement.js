@@ -672,6 +672,17 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     // ※ 자율금은 빼지 않습니다(자율금 산정 전에 보는 값).
     const netIncome = Math.round(baseForAuto);
 
+    // [ADD] 총비용 = 매출합계 - 총급여 - 순이익
+    const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
+
+    // 표시 업데이트
+    const totalCostEl = document.getElementById('d_totalcost');
+    if (totalCostEl) totalCostEl.value = fmtKR(totalCost);
+
+    // 계산식 표시
+    const totalCostFormulaEl = document.getElementById('d_totalcost_formula');
+    if (totalCostFormulaEl) totalCostFormulaEl.textContent = '매출합계 − 총 급여 − 순이익';
+
     const finalProfit = Math.round(
       balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
     );
