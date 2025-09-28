@@ -59,17 +59,48 @@ let __LAST_AUTONOMOUS_RATE = 0;
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
-// === [ADD] 드로어 비용값 주입(해당 월 '사용비용' 합계 표시) ===
+// === [CHANGE] 드로어 비용값 주입(매출합계와 동일한 표시 스타일/속성) ===
 function setDrawerCostByYM(ym) {
   try {
-    const dCost = document.getElementById('d_cost');
+    const dCost  = document.getElementById('d_cost');
+    const dSales = document.getElementById('d_sales'); // 기준(매출합계) 인풋
     if (!dCost) return;
-    const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
-    // 금액 포맷터가 이미 있다면 그걸 사용하세요. (예: formatMoney / num 등)
-    dCost.value = (typeof formatMoney === 'function') ? formatMoney(cost) : String(cost);
-    // 잠금 보장
-    dCost.setAttribute('disabled', 'true');
+
+    // 1) 값(천단위 콤마) 주입
+    const costNum = Number((__LAST_COST_MAP || {})[ym] || 0);
+    const formatKR = (n) => Number(n || 0).toLocaleString('ko-KR');
+    dCost.value = formatKR(costNum);
+
+    // 2) '매출합계'와 같은 비주얼/속성 적용
+    if (dSales) {
+      // 동일 class 적용
+      dCost.className = dSales.className;
+
+      // 동일 inputmode/placeholder/text-align 등 기본 속성도 맞춤
+      const salesInputmode = dSales.getAttribute('inputmode');
+      if (salesInputmode) dCost.setAttribute('inputmode', salesInputmode);
+      else dCost.removeAttribute('inputmode');
+
+      // inline style text-align 맞춤(혹시 sales가 우측정렬일 때)
+      if (dSales.style && dSales.style.textAlign) {
+        dCost.style.textAlign = dSales.style.textAlign;
+      }
+      // 높이/패딩이 인라인 스타일로 지정돼 있으면 그대로 복사
+      if (dSales.style && dSales.style.height) dCost.style.height = dSales.style.height;
+      if (dSales.style && dSales.style.padding) dCost.style.padding = dSales.style.padding;
+    }
+
+    // 3) 항상 읽기 전용(편집 불가) + 안내 툴팁
+    dCost.readOnly = true;
+    dCost.disabled = true;
     dCost.title = '비용은 cost_management 집계값으로 자동 표시됩니다.';
+
+    // 4) 라벨 텍스트도 구분되게(선택)
+    const costLabel = document.querySelector('label[for="d_cost"]');
+    if (costLabel && !costLabel.dataset._autoTagged) {
+      costLabel.textContent = '비용(자동 집계)';
+      costLabel.dataset._autoTagged = '1';
+    }
   } catch (e) {
     console.warn('[settlement] setDrawerCostByYM failed:', e?.message || e);
   }
