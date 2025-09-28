@@ -663,6 +663,11 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     `;
   }
 
+  // [ADD] 자율금/비율 표시 요소(없으면 null)
+  const autoRateEl = $id('d_autonomous_rate'); // 예: "20%" 같은 텍스트
+  const autoFeeEl  = $id('d_autonomous_fee');  // 금액 표시용(readonly 권장)
+  const autoAmtEl  = $id('d_autonomous_amount'); // 동일 값 표시 (필요 시)
+
   // 비용 입력 핸들러/재계산
   const costEl = $id('d_cost'); // 값 세팅/잠금은 setDrawerCostByYM에서 처리
 
@@ -1317,11 +1322,12 @@ async function confirmSettlement(affiliation, ym) {
   const ok = window.confirm('정산을 확정하면 비용과 메모가 잠깁니다. 계속 진행할까요?');
   if (!ok) return;
 
-  const costEl = document.getElementById('d_cost');
   const memoEl = document.getElementById('d_memo');
 
-  const cost = toNumberKR(costEl?.value);
+  // 비용은 입력 불가: 캐시 고정 사용
+  const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
   const memo = (memoEl?.value || '').trim();
+  
   const period_month = firstDayOfMonth(ym);
   // [ADD] 계좌 잔고 값도 같이 저장
   const $main = document.getElementById('input-main-balance');
