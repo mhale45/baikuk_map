@@ -10,8 +10,13 @@ let __MY_AFFILIATION = null; // 로그인 사용자의 기본 지점
 
 // 숫자만 남기는 헬퍼
 function toNumberKR(v) {
-  return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
+  // 숫자 + 앞에 붙은 마이너스만 허용
+  const cleaned = String(v ?? '0').trim().replace(/[^\d-]/g, '');
+  // 중간에 -가 여러 개 있는 경우 첫 번째만 인정
+  const normalized = cleaned.replace(/(?!^)-/g, '');
+  return Number(normalized) || 0;
 }
+
 // YYYY-MM-DD (오늘, 로컬 기준)
 function todayStr() {
   const now = new Date();
@@ -298,9 +303,16 @@ function initInputBar() {
       $amount.value = n ? n.toLocaleString('ko-KR') : '';
     };
     $amount.addEventListener('input', () => {
-      const digits = String($amount.value).replace(/[^\d]/g,'');
-      $amount.value = digits;
-    });
+        let v = String($amount.value);
+
+        // 숫자와 -만 허용
+        v = v.replace(/[^\d-]/g, '');
+
+        // -가 여러 개 들어가면 첫 번째만 유지
+        v = v.replace(/(?!^)-/g, '');
+
+        $amount.value = v;
+        });
     $amount.addEventListener('blur', format);
   }
 
@@ -409,10 +421,12 @@ async function saveCostRow() {
 
 // === 목록 로딩: 권한 기준으로 cost_management 불러오기 + 직원 이름 매핑 ===
 async function fetchCostRows() {
+  // 기본 컬럼만 선택 (정렬: 날짜 내림차순 → id 내림차순 보조)
   let query = supabase
     .from('cost_management')
     .select('id, affiliation, date, division, amount, memo, staff_id')
     .order('date', { ascending: false })
+    .order('id', { ascending: false })
     .limit(500);
 
   // 권한별 필터
