@@ -145,13 +145,15 @@
             </div>
           </div>
 
-          <!-- [ADD] 순이익 (자율금 산정 전, 유보금까지 차감한 값) -->
+          <!-- [CHANGE] 순이익: 제목만 표시 + 아래에 계산식 표시 -->
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">
-              순이익 = 계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
-            </span>
+            <span class="text-sm text-gray-600">순이익</span>
             <input id="d_netincome" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-emerald-700">
+            <!-- 계산식 표시 -->
+            <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
+              계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
+            </div>
           </label>
 
           <!-- 지점자율금 -->          
@@ -164,11 +166,17 @@
             <div id="d_autonomous_formula" class="text-[11px] text-gray-400 mt-1"></div>
           </label>
 
+          <!-- [CHANGE] 배당금: 제목만 표시 + 아래에 계산식 표시 -->
           <label class="flex flex-col gap-1 col-span-2">
-            <span class="text-sm text-gray-600">배당금 = 순이익 − 지점자율금</span>
+            <span class="text-sm text-gray-600">배당금</span>
             <input id="d_profit" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-green-700">
+            <!-- 계산식 표시 -->
+            <div id="d_profit_formula" class="text-[11px] text-gray-400 mt-1">
+              순이익 − 지점자율금
+            </div>
           </label>
+
         </div>
         <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
         <div class="px-5 pb-2">

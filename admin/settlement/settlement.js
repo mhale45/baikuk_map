@@ -296,7 +296,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-red-700">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
@@ -683,6 +683,13 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
     if (autoFeeEl)  autoFeeEl.value = fmtKR(aFee);
     if (autoAmtEl)  autoAmtEl.value = fmtKR(aFee);
+
+    // 계산식 표시(순이익/배당금)
+    const netFormulaEl = document.getElementById('d_netincome_formula');
+    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금';
+
+    const profitFormulaEl = document.getElementById('d_profit_formula');
+    if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
 
     // 계산식 표시(자율금)
     const formulaEl = document.getElementById('d_autonomous_formula');
