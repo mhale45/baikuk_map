@@ -106,37 +106,6 @@ function setDrawerCostByYM(ym) {
   }
 }
 
-// === [ADD] 드로어 '계좌 잔고2' 자동 집계 표시 ===
-// cost_management에서 division='통장 입출금' 합계(__LAST_SUB_BAL_MAP)를 읽어 와 표시/잠금
-function setDrawerSubBalanceByYM(ym) {
-  try {
-    const el = document.getElementById('input-sub-balance');
-    if (!el) return;
-
-    // 값 주입 (천단위 콤마)
-    const n = Number((__LAST_SUB_BAL_MAP || {})[ym] || 0);
-    el.value = Number(n || 0).toLocaleString('ko-KR');
-
-    // '매출합계' 또는 '계좌 잔고1'과 같은 비주얼/속성 맞춤(선택)
-    const ref = document.getElementById('input-main-balance') || document.getElementById('d_sales');
-    if (ref) {
-      el.className = ref.className;
-      const im = ref.getAttribute('inputmode');
-      if (im) el.setAttribute('inputmode', im); else el.removeAttribute('inputmode');
-      if (ref.style && ref.style.textAlign) el.style.textAlign = ref.style.textAlign;
-      if (ref.style && ref.style.height)    el.style.height    = ref.style.height;
-      if (ref.style && ref.style.padding)   el.style.padding   = ref.style.padding;
-    }
-
-    // 항상 읽기 전용(편집 불가) + 안내 툴팁
-    el.readOnly = true;
-    el.disabled = true;
-    el.title = "계좌 잔고2는 cost_management의 '통장 입출금' 집계값으로 자동 표시됩니다.";
-  } catch (e) {
-    console.warn('[settlement] setDrawerSubBalanceByYM failed:', e?.message || e);
-  }
-}
-
 // 문자열(₩,콤마 포함) → 숫자
 function toNumberKR(v) {
   return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
@@ -821,8 +790,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (mainEl) mainEl.value = fmtKR(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     if (subEl)  subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
   }
-  // [ADD] 잔고2 자동표시/잠금 (통장 입출금 집계)
-  setDrawerSubBalanceByYM(ym);
 
   // [ADD] 순이익 아래/메모 위에 동적으로 삽입
   {
@@ -1023,42 +990,47 @@ function firstDayOfMonth(ym) {
 // 계좌잔고(main/sub)는 기존대로 branch_settlement_expenses에서 불러옵니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
-    // [KEEP] main_balance는 기존대로 branch_settlement_expenses에서 로드
+    // 1) 잔고는 기존 테이블에서 유지 로딩
     let mainBalMap = {};
+    let subBalMap  = {};
     try {
       const { data: balRows, error: balErr } = await supabase
         .from('branch_settlement_expenses')
-        .select('period_month, main_balance')
+        .select('period_month, main_balance, sub_balance')
         .eq('affiliation', affiliation);
+
       if (balErr) throw balErr;
+
       for (const row of (balRows || [])) {
         const ym = ymKey(String(row.period_month));
         if (!ym) continue;
         mainBalMap[ym] = Number(row.main_balance || 0);
+        subBalMap[ym]  = Number(row.sub_balance  || 0);
       }
     } catch (e) {
-      console.warn('[settlement] main balance load failed:', e?.message || e);
+      console.warn('[settlement] main/sub balance load failed:', e?.message || e);
     }
 
-    // [CHANGE] sub_balance는 cost_management에서 division='통장 입출금' 월별 합계로 대체
-    let subBalMap = {};
+    // 2) 비용은 cost_management에서 division='사용비용'만 월별 합산
+    const costMap = {};
     try {
-      const { data: transRows, error: transErr } = await supabase
+      const { data: costRows, error: costErr } = await supabase
         .from('cost_management')
-        .select('date, amount')
+        .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
-        .eq('division', '통장 입출금');
+        .eq('division', '사용비용');
 
-      if (transErr) throw transErr;
+      if (costErr) throw costErr;
 
-      for (const row of (transRows || [])) {
-        const ym = ymKey(String(row.date)); // 'YYYY-MM'
+      for (const row of (costRows || [])) {
+        // date 컬럼(YYYY-MM-DD) → 'YYYY-MM' 키
+        const ym = ymKey(String(row.date));
         if (!ym) continue;
         const amt = Number(row.amount || 0);
-        subBalMap[ym] = (subBalMap[ym] || 0) + amt;
+        costMap[ym] = (costMap[ym] || 0) + amt;
       }
     } catch (e) {
-      console.warn("[settlement] sub balance(load '통장 입출금') failed:", e?.message || e);
+      console.warn('[settlement] cost_management load failed:', e?.message || e);
     }
 
     // 3) 전역 캐시 갱신
