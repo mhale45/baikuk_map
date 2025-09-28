@@ -394,22 +394,129 @@ async function saveCostRow() {
       return;
     }
 
-    showToastGreenRed?.('저장 완료');
+    showToastGreenRed?.('저장 완료', { ok: true });
     // 입력값 리셋(금액/메모만)
     if ($amount) $amount.value = '';
     if ($memo)   $memo.value   = '';
 
     // TODO: 아래 영역에 리스트를 그릴 예정이면 여기서 재로딩 호출
-    // await reloadCostList();  // (추후 구현)
+    await reloadCostList();
   } catch (e) {
     console.error('[cost_management] save failed:', e);
     showToastGreenRed?.('저장 중 오류가 발생했습니다');
   }
 }
 
+// === 목록 로딩: 권한 기준으로 cost_management 불러오기 + 직원 이름 매핑 ===
+async function fetchCostRows() {
+  // 기본 컬럼만 선택 (정렬: 날짜 내림차순 → id 내림차순 보조)
+  let query = supabase
+    .from('cost_management')
+    .select('id, affiliation, date, division, amount, memo, staff_id')
+    .order('date', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(500);
+
+  // 권한별 필터
+  if (__MY_ROLE === '직원') {
+    query = query.eq('staff_id', __MY_STAFF_ID);
+  } else if (__MY_ROLE === '지점장') {
+    query = query.eq('affiliation', __MY_AFFILIATION);
+  } // 관리자: 필터 없음(전체)
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = data || [];
+
+  // 직원 이름 매핑 (FK가 없을 수도 있으니 별도 조회)
+  const staffIds = Array.from(new Set(rows.map(r => r.staff_id).filter(Boolean)));
+  let nameMap = new Map();
+  if (staffIds.length > 0) {
+    const { data: staffRows, error: staffErr } = await supabase
+      .from('staff_profiles')
+      .select('id, name')
+      .in('id', staffIds);
+    if (staffErr) {
+      console.warn('[cost_management] staff name fetch error:', staffErr);
+    } else {
+      for (const s of staffRows || []) nameMap.set(s.id, s.name);
+    }
+  }
+
+  // staff_name 합성
+  return rows.map(r => ({
+    ...r,
+    staff_name: nameMap.get(r.staff_id) || '-'
+  }));
+}
+
+// === 목록 렌더링: 표로 출력 ===
+function renderCostList(rows) {
+  const $area = $('#cm-list-area');
+  if (!$area) return;
+
+  if (!rows || rows.length === 0) {
+    $area.innerHTML = `
+      <div class="bg-white rounded-xl shadow border border-gray-200 p-6 text-center text-gray-500">
+        표시할 내역이 없습니다.
+      </div>`;
+    return;
+  }
+
+  const escapeHTML = (s) => String(s ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  const html = `
+    <div class="bg-white rounded-xl shadow border border-gray-200">
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-auto text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">지점</th>
+              <th class="px-3 py-2 text-left">날짜</th>
+              <th class="px-3 py-2 text-left">이름</th>
+              <th class="px-3 py-2 text-left">구분</th>
+              <th class="px-3 py-2 text-right">금액</th>
+              <th class="px-3 py-2 text-left">메모</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            ${rows.map(r => `
+              <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2">${escapeHTML(r.affiliation)}</td>
+                <td class="px-3 py-2 whitespace-nowrap">${escapeHTML(r.date)}</td>
+                <td class="px-3 py-2">${escapeHTML(r.staff_name)}</td>
+                <td class="px-3 py-2">${escapeHTML(r.division)}</td>
+                <td class="px-3 py-2 text-right">${Number(r.amount || 0).toLocaleString('ko-KR')}</td>
+                <td class="px-3 py-2">${escapeHTML(r.memo)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  $area.innerHTML = html;
+}
+
+// === 목록 리로드(로딩 → 렌더) ===
+async function reloadCostList() {
+  try {
+    const rows = await fetchCostRows();
+    renderCostList(rows);
+  } catch (e) {
+    console.error('[cost_management] 목록 로딩 실패:', e);
+    showToastGreenRed?.('목록 로딩 실패');
+  }
+}
+
 // 4) 초기화
 (async function init() {
-  const ok = await resolveMyAuthority();
-  if (!ok) return; // 내부에서 이동 처리됨
-  initInputBar();
+    const ok = await resolveMyAuthority();
+    if (!ok) return; // 내부에서 이동 처리됨
+    initInputBar();
+    await reloadCostList();
 })();
