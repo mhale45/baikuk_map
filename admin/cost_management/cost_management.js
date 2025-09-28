@@ -1,5 +1,4 @@
 // /admin/cost_management/cost_management.js
-
 import { client as supabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
 
@@ -13,18 +12,16 @@ let __MY_AFFILIATION = null; // 로그인 사용자의 기본 지점
 function toNumberKR(v) {
   return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
 }
-// yyyy-mm-dd 포매터 (KST 기준 오늘)
-function todayKST() {
+// YYYY-MM-DD (오늘, 로컬 기준)
+function todayStr() {
   const now = new Date();
-  // 브라우저가 KST면 그대로, 아니면 타임존 보정 필요. 여기서는 로컬 날짜를 사용.
-  // 한국 서비스 기준이면 대부분 KST 브라우저/서버일 가능성이 높아 간단화.
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth()+1).padStart(2,'0');
   const dd = String(now.getDate()).padStart(2,'0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// 1) 로그인 체크 및 권한/지점 확인 (미로그인 → listings로 이동)
+// 1) 로그인/권한 확인 (미로그인 → listings로 이동)
 async function resolveMyAuthority() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -56,13 +53,11 @@ async function resolveMyAuthority() {
       }
     }
 
-    // 소속 없으면 접근 제한 (listings로 이동)
     if (!__MY_AFFILIATION) {
       window.location.href = '/admin/listings/';
       return false;
     }
     return true;
-
   } catch (e) {
     console.error('권한 조회 실패:', e);
     showToastGreenRed?.('권한 확인 실패');
@@ -71,7 +66,7 @@ async function resolveMyAuthority() {
   }
 }
 
-// 2) 지점 목록 불러오기 → select 옵션 구성
+// 2) 지점 목록 로드 → select 옵션 구성
 async function loadBranchesIntoSelect(selectEl) {
   if (!selectEl) return;
   try {
@@ -91,23 +86,20 @@ async function loadBranchesIntoSelect(selectEl) {
     }
 
     // 기본값: 로그인 사용자의 소속
-    if (__MY_AFFILIATION) {
-      selectEl.value = __MY_AFFILIATION;
-    }
+    if (__MY_AFFILIATION) selectEl.value = __MY_AFFILIATION;
 
-    // 권한별 비활성화
+    // 직원/지점장 비활성화 (선택 못 하게)
     if (['직원', '지점장'].includes(__MY_ROLE)) {
       selectEl.disabled = true;
       selectEl.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
     }
-
   } catch (e) {
     console.error('지점 목록 로딩 실패', e);
     showToastGreenRed?.('지점 목록 로딩 실패');
   }
 }
 
-// 3) 입력바 기본값/권한반영
+// 3) 입력바 기본값/권한 반영 + 최소폭 유지용 클래스 보강
 function initInputBar() {
   const $branch   = $('#cm-branch');
   const $date     = $('#cm-date');
@@ -115,9 +107,9 @@ function initInputBar() {
   const $amount   = $('#cm-amount');
 
   // 날짜: 오늘
-  if ($date) $date.value = todayKST();
+  if ($date) $date.value = todayStr();
 
-  // 구분: 기본 '사용비용', 직원은 수정 불가
+  // 구분: 기본 '사용비용' (직원은 수정 불가)
   if ($division) {
     $division.value = '사용비용';
     if (__MY_ROLE === '직원') {
@@ -126,25 +118,31 @@ function initInputBar() {
     }
   }
 
-  // 금액: 숫자만 입력되도록 간단 필터
+  // 금액: 숫자만, blur 시 콤마
   if ($amount) {
     const format = () => {
       const n = toNumberKR($amount.value);
-      $amount.value = n.toLocaleString('ko-KR');
+      $amount.value = n ? n.toLocaleString('ko-KR') : '';
     };
     $amount.addEventListener('input', () => {
-      // 입력 중에는 숫자만 유지(콤마 제거)
+      // 입력 중에는 숫자만 유지
       const digits = String($amount.value).replace(/[^\d]/g,'');
       $amount.value = digits;
     });
     $amount.addEventListener('blur', format);
   }
 
-  // 지점 select 옵션 채우기
+  // 지점 select 로딩
   loadBranchesIntoSelect($branch);
+
+  // ❗ select / input 최소폭 유지 (텍스트 길이에 맞춤)
+  [$branch, $date, $division, $amount].forEach(el => {
+    if (!el) return;
+    el.classList.add('w-auto');  // fit width
+  });
 }
 
-// 4) 초기화 플로우
+// 4) 초기화
 (async function init() {
   const ok = await resolveMyAuthority();
   if (!ok) return; // 내부에서 이동 처리됨
