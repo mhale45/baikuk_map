@@ -611,11 +611,11 @@ function renderCostList(rows) {
         <table class="min-w-full table-auto text-sm">
           <thead class="bg-gray-100 text-gray-700">
             <tr>
-              <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none">지점</th>
-              <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none">날짜</th>
-              <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none">이름</th>
-              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none">구분</th>
-              <th class="px-3 py-2 text-right">금액</th>
+              <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">지점</th>
+              <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">날짜</th>
+              <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
+              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">구분</th>
+              <th class="px-3 py-2 text-right w-[7rem]">금액</th>
               <th class="px-3 py-2 text-left">메모</th>
             </tr>
           </thead>
