@@ -937,32 +937,58 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
-// === [ADD] 지점 월별 총비용 캐시 선로딩 ===
+// === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
+// 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
+// 계좌잔고(main/sub)는 기존대로 branch_settlement_expenses에서 불러옵니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
-    const { data, error } = await supabase
-      .from('branch_settlement_expenses')
-      .select('period_month, total_expense, main_balance, sub_balance')
-      .eq('affiliation', affiliation);
+    // 1) 잔고는 기존 테이블에서 유지 로딩
+    let mainBalMap = {};
+    let subBalMap  = {};
+    try {
+      const { data: balRows, error: balErr } = await supabase
+        .from('branch_settlement_expenses')
+        .select('period_month, main_balance, sub_balance')
+        .eq('affiliation', affiliation);
 
-    if (error) throw error;
+      if (balErr) throw balErr;
 
-    const costMap = {};
-    const mainBalMap = {};
-    const subBalMap  = {};
-
-    for (const row of (data || [])) {
-      const ym = ymKey(String(row.period_month));
-      if (!ym) continue;
-
-      costMap[ym]    = Number(row.total_expense || 0);
-      mainBalMap[ym] = Number(row.main_balance  || 0);
-      subBalMap[ym]  = Number(row.sub_balance   || 0);
+      for (const row of (balRows || [])) {
+        const ym = ymKey(String(row.period_month));
+        if (!ym) continue;
+        mainBalMap[ym] = Number(row.main_balance || 0);
+        subBalMap[ym]  = Number(row.sub_balance  || 0);
+      }
+    } catch (e) {
+      console.warn('[settlement] main/sub balance load failed:', e?.message || e);
     }
 
-    __LAST_COST_MAP       = costMap;
-    __LAST_MAIN_BAL_MAP   = mainBalMap;
-    __LAST_SUB_BAL_MAP    = subBalMap;
+    // 2) 비용은 cost_management에서 division='사용비용'만 월별 합산
+    const costMap = {};
+    try {
+      const { data: costRows, error: costErr } = await supabase
+        .from('cost_management')
+        .select('date, amount, affiliation, division')
+        .eq('affiliation', affiliation)
+        .eq('division', '사용비용');
+
+      if (costErr) throw costErr;
+
+      for (const row of (costRows || [])) {
+        // date 컬럼(YYYY-MM-DD) → 'YYYY-MM' 키
+        const ym = ymKey(String(row.date));
+        if (!ym) continue;
+        const amt = Number(row.amount || 0);
+        costMap[ym] = (costMap[ym] || 0) + amt;
+      }
+    } catch (e) {
+      console.warn('[settlement] cost_management load failed:', e?.message || e);
+    }
+
+    // 3) 전역 캐시 갱신
+    __LAST_COST_MAP     = costMap;   // 🔁 비용은 이제 cost_management 기준
+    __LAST_MAIN_BAL_MAP = mainBalMap;
+    __LAST_SUB_BAL_MAP  = subBalMap;
 
     return costMap;
   } catch (e) {
