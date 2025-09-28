@@ -22,6 +22,9 @@ function todayStr() {
 }
 
 // 1) 로그인/권한 확인 (미로그인 → listings로 이동)
+let __MY_STAFF_ID = null;
+let __MY_NAME = null;
+
 async function resolveMyAuthority() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -30,9 +33,10 @@ async function resolveMyAuthority() {
       return false;
     }
 
+    // id, name까지 조회 (본인 staff row 필요)
     const { data: rows, error } = await supabase
       .from('staff_profiles')
-      .select('authority, affiliation')
+      .select('id, name, authority, affiliation')
       .eq('user_id', user.id)
       .is('leave_date', null);
 
@@ -40,16 +44,31 @@ async function resolveMyAuthority() {
 
     __MY_ROLE = '직원';
     __MY_AFFILIATION = null;
+    __MY_STAFF_ID = null;
+    __MY_NAME = null;
 
+    // 우선순위: 관리자 > 지점장 > 직원
+    let picked = null;
     for (const r of (rows || [])) {
-      if (r.authority === '관리자') {
-        __MY_ROLE = '관리자';
-        if (!__MY_AFFILIATION && r.affiliation) __MY_AFFILIATION = r.affiliation;
-      } else if (r.authority === '지점장' && __MY_ROLE !== '관리자') {
-        __MY_ROLE = '지점장';
-        __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
-      } else if (r.authority === '직원' && !__MY_AFFILIATION) {
-        __MY_AFFILIATION = r.affiliation || __MY_AFFILIATION;
+      if (r.authority === '관리자') { __MY_ROLE = '관리자'; picked = picked || r; }
+    }
+    if (!picked) {
+      for (const r of (rows || [])) {
+        if (r.authority === '지점장') { __MY_ROLE = '지점장'; picked = picked || r; }
+      }
+    }
+    if (!picked && rows && rows.length) {
+      __MY_ROLE = '직원';
+      picked = rows[0];
+    }
+
+    if (picked) {
+      __MY_AFFILIATION = picked.affiliation || null;
+      __MY_STAFF_ID = picked.id || null;
+      __MY_NAME = picked.name || null;
+      // 관리자라도 소속이 있으면 기본 지점값으로 활용
+      if (!__MY_AFFILIATION && rows?.[0]?.affiliation) {
+        __MY_AFFILIATION = rows[0].affiliation;
       }
     }
 
@@ -58,6 +77,7 @@ async function resolveMyAuthority() {
       return false;
     }
     return true;
+
   } catch (e) {
     console.error('권한 조회 실패:', e);
     showToastGreenRed?.('권한 확인 실패');
@@ -99,12 +119,69 @@ async function loadBranchesIntoSelect(selectEl) {
   }
 }
 
+// 직원 목록 로드 → select 옵션 구성 (정산 드로어와 동일 기준)
+async function loadStaffIntoSelect(selectEl, currentBranchValue) {
+  if (!selectEl) return;
+  try {
+    let query = supabase
+      .from('staff_profiles')
+      .select('id, name, affiliation')
+      .is('leave_date', null)
+      .order('name', { ascending: true });
+
+    // 권한별 필터
+    if (__MY_ROLE === '직원') {
+      // 본인만
+      const { data, error } = await query.eq('id', __MY_STAFF_ID);
+      if (error) throw error;
+      selectEl.innerHTML = '';
+      const opt = document.createElement('option');
+      opt.value = data?.[0]?.id || __MY_STAFF_ID || '';
+      opt.textContent = data?.[0]?.name || __MY_NAME || '본인';
+      selectEl.appendChild(opt);
+      // 직원은 변경 불가
+      selectEl.disabled = true;
+      selectEl.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+      return;
+    }
+
+    if (__MY_ROLE === '지점장') {
+      query = query.eq('affiliation', __MY_AFFILIATION);
+    } else if (__MY_ROLE === '관리자') {
+      // 관리자는 지점 select가 있으면 그 값으로 필터, 없으면 전체
+      if (currentBranchValue) {
+        query = query.eq('affiliation', currentBranchValue);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // 옵션 렌더
+    selectEl.innerHTML = '<option value="">직원 선택</option>';
+    for (const row of (data || [])) {
+      const opt = document.createElement('option');
+      opt.value = row.id;
+      opt.textContent = row.name + (row.affiliation ? ` (${row.affiliation})` : '');
+      selectEl.appendChild(opt);
+    }
+
+    // 지점장/관리자: 선택 가능 (활성화)
+    selectEl.disabled = false;
+    selectEl.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+  } catch (e) {
+    console.error('직원 목록 로딩 실패', e);
+    showToastGreenRed?.('직원 목록 로딩 실패');
+  }
+}
+
 // 3) 입력바 기본값/권한 반영 + 최소폭 유지용 클래스 보강
 function initInputBar() {
   const $branch   = $('#cm-branch');
   const $date     = $('#cm-date');
   const $division = $('#cm-division');
   const $amount   = $('#cm-amount');
+  const $staff    = $('#cm-staff');    // [NEW: 이름 select]
 
   // 날짜: 오늘
   if ($date) $date.value = todayStr();
@@ -115,6 +192,9 @@ function initInputBar() {
     if (__MY_ROLE === '직원') {
       $division.disabled = true;
       $division.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+    } else {
+      $division.disabled = false;
+      $division.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
     }
   }
 
@@ -125,7 +205,6 @@ function initInputBar() {
       $amount.value = n ? n.toLocaleString('ko-KR') : '';
     };
     $amount.addEventListener('input', () => {
-      // 입력 중에는 숫자만 유지
       const digits = String($amount.value).replace(/[^\d]/g,'');
       $amount.value = digits;
     });
@@ -135,10 +214,20 @@ function initInputBar() {
   // 지점 select 로딩
   loadBranchesIntoSelect($branch);
 
+  // 직원 select 로딩 (권한/지점에 따라)
+  loadStaffIntoSelect($staff, $branch?.value || null);
+
+  // 관리자: 지점 변경 시 직원 목록도 동기화
+  if ($branch && __MY_ROLE === '관리자') {
+    $branch.addEventListener('change', () => {
+      loadStaffIntoSelect($staff, $branch.value || null);
+    });
+  }
+
   // ❗ select / input 최소폭 유지 (텍스트 길이에 맞춤)
-  [$branch, $date, $division, $amount].forEach(el => {
+  [$branch, $date, $division, $amount, $staff].forEach(el => {
     if (!el) return;
-    el.classList.add('w-auto');  // fit width
+    el.classList.add('w-auto');
   });
 }
 

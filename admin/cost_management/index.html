@@ -39,7 +39,7 @@
         <!-- 메인 컬럼: 상단 입력바 -->
     <div class="w-[94%] bg-gray-50 pt-[5rem] px-6">
         <!-- 저장 버튼 -->
-        <div class="flex justify-end mb-3">
+        <div class="flex justify-start mb-3">
             <button id="cm-save-btn"
                     class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition">
             저장
@@ -62,7 +62,16 @@
                     <input id="cm-date" type="date"
                         class="border rounded px-2 py-1.5 bg-white w-auto min-w-[7rem]" />
                 </div>
-
+                
+                <!-- 2-1) 이름 -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm text-gray-600">이름</span>
+                    <select id="cm-staff"
+                            class="border rounded px-2 py-1.5 bg-white w-auto min-w-[8rem]">
+                        <!-- JS로 직원 옵션 채워짐 -->
+                    </select>
+                </div>
+                
                 <!-- 3) 구분 -->
                 <div class="flex flex-col gap-1">
                     <span class="text-sm text-gray-600">구분</span>
