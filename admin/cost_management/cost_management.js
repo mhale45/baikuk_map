@@ -409,12 +409,10 @@ async function saveCostRow() {
 
 // === 목록 로딩: 권한 기준으로 cost_management 불러오기 + 직원 이름 매핑 ===
 async function fetchCostRows() {
-  // 기본 컬럼만 선택 (정렬: 날짜 내림차순 → id 내림차순 보조)
   let query = supabase
     .from('cost_management')
     .select('id, affiliation, date, division, amount, memo, staff_id')
     .order('date', { ascending: false })
-    .order('id', { ascending: false })
     .limit(500);
 
   // 권한별 필터
