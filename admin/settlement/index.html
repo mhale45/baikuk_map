@@ -106,23 +106,6 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
           </label>
 
-          <div class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">총 급여(50%)</span>
-            <input id="d_payroll" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
-            <!-- 직원별 급여 브레이크다운 -->
-            <div id="d_payroll_breakdown" class="mt-2 border rounded">
-              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
-            </div>
-            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
-            <div class="mt-4">
-              <span class="text-sm text-gray-600">부가세</span>
-              <input id="d_vat" type="text" readonly
-                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
-              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
-            </div>
-          </div>
-
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">비용</span>
             <!-- 나중에 저장 기능 붙일 예정. 지금은 입력만 가능(미저장) -->
@@ -144,6 +127,23 @@
               </div>
             </div>
           </label>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-700">
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
+            </div>
+            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
+            <div class="mt-4">
+              <span class="text-sm text-gray-600">부가세</span>
+              <input id="d_vat" type="text" readonly
+                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
+              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
+            </div>
+          </div>
 
           <!-- [ADD] 순이익 (자율금 산정 전, 유보금까지 차감한 값) -->
           <label class="flex flex-col gap-1 col-span-2">
