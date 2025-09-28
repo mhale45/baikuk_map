@@ -5,7 +5,6 @@ created_at : timestamptz
 affiliation : text
 date : date
 division : text
-title : text
 amount : numeric
 memo : text
 staff_id : uuid 
