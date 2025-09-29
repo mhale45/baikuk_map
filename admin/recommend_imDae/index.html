@@ -1316,6 +1316,7 @@
       applyRowStriping();  // ✅ 행 배경색 다시 적용      
     }
 
+
     window.addEventListener('DOMContentLoaded', () => {
       displayTodayDate();
       displayStaffInfo();
@@ -1448,6 +1449,10 @@
           }
         });
         showToast(touched > 0 ? '매물번호를 모두 지웠습니다.' : '지울 매물번호가 없습니다.');
+      });
+      // === '손님저장' 버튼 클릭 시 토스트 메시지 띄우기 ===
+      document.getElementById('save-new-customer')?.addEventListener('click', () => {
+        showToast('저장되었습니다.');
       });
     });
 
