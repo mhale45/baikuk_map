@@ -1607,7 +1607,65 @@
       const customerGrade = document.getElementById('customer-grade')?.value;
       const memoText = document.getElementById('memo-textarea')?.value.trim();
 
-      if (!currentCustomerId) { showToast('먼저 고객을 선택해주세요.'); return; }
+      // ✅ 선택된 고객이 없을 때: 이름으로 검색해서 없으면 신규 생성
+      if (!currentCustomerId) {
+        if (!customerName) { // 신규도 이름은 필수
+          showToast('고객 이름은 필수입니다.');
+          return;
+        }
+
+        // 1) 같은 이름 고객이 있는지 먼저 확인
+        const { data: existingByName, error: findErr } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('customer_name', customerName)
+          .maybeSingle();
+
+        if (findErr) {
+          console.error('❌ 고객 검색 실패:', findErr);
+          showToast('고객 검색 중 오류가 발생했습니다.');
+          return;
+        }
+
+        if (existingByName?.id) {
+          // 같은 이름 고객이 이미 있으면 그 고객을 선택한 것으로 간주하고 이후 로직 재사용
+          currentCustomerId = existingByName.id;
+        } else {
+          // 2) 같은 이름이 없다 → 신규 생성
+          const myStaffId = await getMyStaffId();
+          if (!myStaffId) {
+            showToast('직원 정보가 없습니다.');
+            return;
+          }
+
+          const today = new Date().toISOString().split('T')[0];
+          const newCustomer = {
+            customer_name: customerName,
+            customer_phone_number: customerPhone || null,
+            phone_last4: customerPhone ? customerPhone.replace(/\D/g,'').slice(-4) : null,
+            grade: customerGrade || 'F',
+            memo: memoText || null,
+            registered_at: today,
+            staff_profiles_id: myStaffId
+          };
+
+          const { data: inserted, error: insertError } = await supabase
+            .from('customers')
+            .insert([newCustomer])
+            .select()
+            .single();
+
+          if (insertError || !inserted) {
+            console.error('❌ 신규 고객 저장 실패:', insertError);
+            showToast('고객 저장 실패');
+            return;
+          }
+
+          currentCustomerId = inserted.id;
+          showToast(`"${customerName}" 고객 저장 완료`);
+        }
+      }
+
 
       // ✅ 권한 확인: 내가 이 고객의 대표/보조 배정자여야 함
       if (!(await isMyAssignedCustomer(currentCustomerId))) {
