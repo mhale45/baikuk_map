@@ -1575,7 +1575,7 @@
         // TD 안에서 textarea가 가져야 할 총 높이
         const innerTarget = Math.max(0, targetRowHeight - tdVertical);
 
-        const adjust = 1.3; // ← 높이 살짝 늘리는 보정값(px)
+        const adjust = 1.29; // ← 높이 살짝 늘리는 보정값(px)
         ta.style.height = isBorderBox
           ? `${innerTarget + adjust}px`
           : `${Math.max(0, innerTarget - taPadding - taBorder + adjust)}px`;
