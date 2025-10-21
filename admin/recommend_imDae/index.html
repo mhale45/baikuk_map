@@ -273,11 +273,7 @@
           </div>
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
-          <div class="mb-2 text-right flex gap-2 justify-end">
-          </div>
           <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 메모 테이블 전체 -->
-            <div class="mb-2 text-right flex gap-2 justify-end">
-            </div>
             <div id="table-container" class="border rounded-md">
               <table class="w-[7rem] text-sm text-left">
                 <thead class="bg-gray-100 sticky top-0 z-10">
@@ -301,12 +297,8 @@
                 </thead>
                 <tbody id="memo-body"></tbody>
               </table>
-              <div class="text-[11px] text-gray-500 mt-1">
-                * 입력 시 자동 저장됩니다. (행별)
-              </div>
             </div>
             <!-- ===== /오른쪽 메모 표 ===== -->
-
           </div>
         </div>     
       </div>
@@ -778,10 +770,7 @@
       });
 
       // 높이/스트라이프 정리
-      syncRowHeights?.();
-      applyRowStriping?.();
-
-
+      renderMemoPanel(listings);
       syncRowHeights?.();
       applyRowStriping?.();
       showToast(`고객 "${name}" 데이터 불러옴`);
