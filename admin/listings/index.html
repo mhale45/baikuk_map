@@ -165,12 +165,13 @@
 
     const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
     const filterInputs = [
-      { key: 'deposit_price', min: 'filter-deposit-min', max: 'filter-deposit-max' },
-      { key: 'monthly_rent', min: 'filter-rent-min', max: 'filter-rent-max' },
-      { key: 'premium_price', min: 'filter-premium-min', max: 'filter-premium-max' },
-      { key: 'area_py', min: 'filter-area-min', max: 'filter-area-max' },
-      { key: 'sale_price', min: 'filter-sale-min', max: 'filter-sale-max' },
-      { key: 'roi', min: 'filter-roi-min', max: 'filter-roi-max' }
+      { key: 'floor',         min: 'filter-floor-min',    max: 'filter-floor-max' },   // ⬅️ 추가
+      { key: 'deposit_price', min: 'filter-deposit-min',  max: 'filter-deposit-max' },
+      { key: 'monthly_rent',  min: 'filter-rent-min',     max: 'filter-rent-max' },
+      { key: 'premium_price', min: 'filter-premium-min',  max: 'filter-premium-max' },
+      { key: 'area_py',       min: 'filter-area-min',     max: 'filter-area-max' },
+      { key: 'sale_price',    min: 'filter-sale-min',     max: 'filter-sale-max' },
+      { key: 'roi',           min: 'filter-roi-min',      max: 'filter-roi-max' }
     ];
 
     // 스크립트 시작부분
@@ -251,14 +252,14 @@
 
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
     let filterConditions = {
-      deposit_price: { min: null, max: null }, // ✅ 보증금 필터 추가
+      floor:         { min: null, max: null }, // ⬅️ 추가
+      deposit_price: { min: null, max: null },
       premium_price: { min: null, max: null },
-      monthly_rent: { min: null, max: null },
-      area_py: { min: null, max: null },
-      sale_price: { min: null, max: null },
-      roi: { min: null, max: null } // ✅ ROI는 소수 단위
+      monthly_rent:  { min: null, max: null },
+      area_py:       { min: null, max: null },
+      sale_price:    { min: null, max: null },
+      roi:           { min: null, max: null } // ROI는 소수 단위
     };
-
 
     // 정렬 관련 함수
     function sortListingsDefault(list) {
@@ -800,6 +801,7 @@
         <div id="fixed-filter-box2" class="bg-gray-100 px-4 pt-2 pb-4">
           <!-- 제목줄 -->
           <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
+            <div class="w-[4rem] text-center">층</div>
             <div class="w-[6rem] text-center">보증금</div>
             <div class="w-[5rem] text-center">월세</div>
             <div class="w-[6rem] text-center">권리금</div>
@@ -810,6 +812,7 @@
 
           <!-- 이상 입력창 -->
           <div class="flex gap-4 mb-1">
+            <input id="filter-floor-min"    type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
             <input id="filter-deposit-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
             <input id="filter-rent-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[5rem]" />
             <input id="filter-premium-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
@@ -820,6 +823,7 @@
 
           <!-- 이하 입력창 -->
           <div class="flex gap-4">
+            <input id="filter-floor-max"    type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
             <input id="filter-deposit-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
             <input id="filter-rent-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[5rem]" />
             <input id="filter-premium-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
