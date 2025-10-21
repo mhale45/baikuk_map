@@ -1506,6 +1506,9 @@
         });
         showToast(touched > 0 ? '매물번호를 모두 지웠습니다.' : '지울 매물번호가 없습니다.');
       });
+      
+      // 최초 진입 시에도 메모 50줄 표시
+      renderMemoPanel([]);
     });
 
     // 👉 창 리사이즈 시에도 높이 동기화
@@ -1916,7 +1919,7 @@
 
         const rowsToInsert = [];
         for (let index = 1; index <= rowCount; index++) {
-          const listingId = getListingIdByIndex(index);
+          const listingId     = getListingIdByIndex(index);
 
           const listing_title = getStringFromField('listing_title', index);
           const full_address  = getStringFromField('full_address', index);
@@ -1928,8 +1931,13 @@
           const premium_price = getNumericFromField('premium_price', index);
           const area_py       = getNumericFromField('area_py', index);
 
+          // ✅ 새로 추가: 메모 50줄 패널에서 해당 줄 메모 값 읽기
+          const memoText = getMemoValue(index);
+
+          // ✅ 의미 있는 데이터 판정에 memo 포함
           const hasMeaningful =
-            (listing_title || full_address || combined_unit || description || deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
+            (listing_title || full_address || combined_unit || description || memoText ||
+            deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
 
           // 번호가 있거나 의미 있는 데이터가 있는 행만 저장
           if (listingId || hasMeaningful) {
@@ -1943,8 +1951,9 @@
               monthly_rent,
               premium_price,
               area_py,
-              contents: description,
-              order: index // ← 오타 수정: for 루프의 index 사용
+              contents: description ?? null, // '내용'은 contents로
+              memo: memoText || null,        // ✅ '메모'는 memo로
+              order: index
             });
           }
         }
@@ -1976,7 +1985,6 @@
 
         showToast('추천 매물 저장 완료');
       }
-
 
       // 왼쪽 고객 목록 갱신
       loadCustomersForCurrentStaff();
@@ -2124,6 +2132,10 @@
         // 오른쪽 표 강제 초기화(보호적)
         const listingsBodyEl = document.getElementById('listings-body');
         if (listingsBodyEl) listingsBodyEl.innerHTML = '';
+
+        // (추가) 메모 패널 비우기
+        const memoBody = document.getElementById('memo-body'); 
+        if (memoBody) memoBody.innerHTML = '';
 
         // 직원 표시/선택 UI 정리
         document.getElementById('staff-info')?.classList.add('hidden');
