@@ -536,7 +536,7 @@ async function loadBranchMonthlySales(affiliation) {
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date, buyer_tax, seller_tax')
-      // .eq('status', true)              // ✅ 확정된 매출만
+      .eq('status', true)              // ✅ 확정된 매출만
       .not('balance_date', 'is', null);
 
     if (perfErr) throw perfErr;

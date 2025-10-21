@@ -59,6 +59,104 @@ let __LAST_AUTONOMOUS_RATE = 0;
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
+// [ADD] ==== 타지점 이체금액 계산 유틸 ====
+
+// 직원ID -> 소속지점 맵
+const STAFF_AFF_BY_ID = new Map();
+
+async function ensureStaffAffMap() {
+  if (STAFF_AFF_BY_ID.size > 0) return;
+  await waitForSupabase();
+  const { data, error } = await window.supabase
+    .from('staff_profiles')
+    .select('id, affiliation')
+    .is('leave_date', null);
+  if (error || !data) return;
+  STAFF_AFF_BY_ID.clear();
+  data.forEach(({ id, affiliation }) => {
+    STAFF_AFF_BY_ID.set(id, affiliation || '');
+  });
+}
+
+/** 선택 지점(baseAff) 명의로 발행된 매출 중
+ *   타지점 직원들의 관여매출 합계 (= 이체해야 할 금액)
+ * rows: performance 행 배열 (performance_allocations 1:1 포함)
+ */
+function computeTransfersByAff(rows, baseAff) {
+  const byAff = new Map(); // 타지점별 합
+  if (!baseAff) return byAff;
+
+  for (const row of (rows || [])) {
+    if (row.affiliation !== baseAff) continue; // 이 지점 명의로 발행된 건만
+
+    const pa = Array.isArray(row.performance_allocations)
+      ? row.performance_allocations[0]
+      : row.performance_allocations;
+    if (!pa) continue;
+
+    for (let i = 1; i <= 4; i++) {
+      const sid = pa[`staff_id${i}`];
+      if (!sid) continue;
+
+      const staffAff = STAFF_AFF_BY_ID.get(sid) || '';
+      if (!staffAff || staffAff === baseAff) continue; // 같은 지점은 제외(타지점만)
+
+      const savedInv  = Number(pa[`involvement_sales${i}`] || 0);
+      const buyerAmt  = Number(pa[`buyer_amount${i}`]      || 0);
+      const sellerAmt = Number(pa[`seller_amount${i}`]     || 0);
+      const amt = savedInv > 0 ? savedInv : (buyerAmt + sellerAmt);
+      if (amt <= 0) continue;
+
+      byAff.set(staffAff, (byAff.get(staffAff) || 0) + amt);
+    }
+  }
+  // 총합만 필요하면 합계를 다시 합쳐 반환
+  let total = 0;
+  for (const v of byAff.values()) total += v;
+  return { byAff, total };
+}
+
+/** 정산(지점별 표) 기간에 맞춰 필요한 performance 행을 로드 */
+async function fetchPerformanceRowsForSettlementRange({ start, end }) {
+  await waitForSupabase();
+  // settlement의 조회 기간 필터와 동일하게 맞추세요.
+  // (status=true만 집계할지 정책에 맞춰 조건 추가 가능)
+  let q = window.supabase
+    .from('performance')
+    .select(`
+      id, affiliation, balance_date, contract_date,
+      performance_allocations(
+        staff_id1, staff_id2, staff_id3, staff_id4,
+        buyer_amount1, buyer_amount2, buyer_amount3, buyer_amount4,
+        seller_amount1, seller_amount2, seller_amount3, seller_amount4,
+        involvement_sales1, involvement_sales2, involvement_sales3, involvement_sales4
+      )
+    `);
+
+  if (start) q = q.gte('balance_date', start);
+  if (end)   q = q.lte('balance_date', end);
+
+  const { data, error } = await q;
+  if (error) {
+    console.warn('[settlement] performance 조회 실패:', error.message);
+    return [];
+  }
+  return data || [];
+}
+
+/** 기간 내 모든 지점의 "타지점" 금액을 미리 계산(Map<affiliation, total>) */
+async function buildTransfersMapForAllBranches({ start, end }) {
+  await ensureStaffAffMap();
+  const rows = await fetchPerformanceRowsForSettlementRange({ start, end });
+  const map = new Map();
+  const branchSet = new Set(rows.map(r => r.affiliation).filter(Boolean));
+  branchSet.forEach(aff => {
+    const { total } = computeTransfersByAff(rows, aff);
+    map.set(aff, total);
+  });
+  return map;
+}
+
 // === [CHANGE] 드로어 비용값 주입(매출합계와 동일한 표시 스타일/속성) ===
 function setDrawerCostByYM(ym) {
   try {
