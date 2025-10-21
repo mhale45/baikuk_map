@@ -365,59 +365,46 @@
     let rowObserver;           // ResizeObserver 인스턴스
 
     // 스크립트 시작
-    // ===== 메모 50줄 표 초기화 =====
-    function initMemoRows() {
+    function renderMemoPanel(listings = []) {
       const memoBody = document.getElementById('memo-body');
       if (!memoBody) return;
       memoBody.innerHTML = '';
+
+      // order → memo 매핑 (order가 없으면 인덱스로 가정)
+      const memoMap = new Map();
+      listings.forEach((it, idx) => {
+        const order = (typeof it.order === 'number' && !Number.isNaN(it.order)) ? it.order : (idx + 1);
+        memoMap.set(order, it.memo ?? it.contents ?? ''); // 과거 contents 사용분 호환
+      });
+
       for (let i = 1; i <= 50; i++) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="border-b border-gray-200 px-2 py-1">
-            <div class="flex items-center gap-2">
-              <div class="w-6 text-right text-gray-500">${i}</div>
-              <input
-                type="text"
-                class="flex-1 h-8 px-2 border border-gray-300 rounded text-sm outline-none"
+          <td class="py-1.5 border-b border-gray-200 align-top">
+            <div class="flex items-start gap-2">
+              <div class="text-gray-400 w-5 text-right select-none">${i}</div>
+              <textarea
+                class="w-[11rem] min-h-6 h-6 resize-y outline-none bg-transparent text-sm"
                 data-memo-index="${i}"
-                placeholder="메모 ${i}"
-              />
+                placeholder="메모 입력"
+                rows="1"
+              ></textarea>
             </div>
           </td>
         `;
         memoBody.appendChild(tr);
+
+        // 저장된 값 있으면 채움
+        const ta = tr.querySelector('textarea[data-memo-index]');
+        const val = memoMap.get(i);
+        if (ta && typeof val === 'string') ta.value = val;
       }
     }
 
-    // 50줄 값 → 배열로 수집
-    function getMemoLines() {
-      const lines = [];
-      for (let i = 1; i <= 50; i++) {
-        const input = document.querySelector(`input[data-memo-index="${i}"]`);
-        lines.push((input?.value || '').trim());
-      }
-      // 끝쪽의 공백줄들만 쭉 비어 있으면 깔끔하게 잘라서 저장(원하면 제거)
-      let last = lines.length - 1;
-      while (last >= 0 && lines[last] === '') last--;
-      return lines.slice(0, last + 1);
-    }
-
-    // DB에서 온 memo 문자열을 50칸에 채워 넣기
-    function setMemoLinesFromText(memoText) {
-      const arr = (memoText || '').split('\n');
-      for (let i = 1; i <= 50; i++) {
-        const input = document.querySelector(`input[data-memo-index="${i}"]`);
-        if (!input) continue;
-        input.value = arr[i - 1] ?? '';
-      }
-    }
-
-    // 메모 50줄 비우기(삭제 등에서 사용)
-    function clearMemoLines() {
-      for (let i = 1; i <= 50; i++) {
-        const input = document.querySelector(`input[data-memo-index="${i}"]`);
-        if (input) input.value = '';
-      }
+    /** 현재 화면의 메모 N행에서 문자열을 읽어옴 (없으면 빈문자열) */
+    function getMemoValue(index) {
+      const el = document.querySelector(`textarea[data-memo-index="${index}"]`);
+      return (el?.value || '').trim();
     }
 
     // === [저장 개선] 단순 덮어쓰기 모달 ===
@@ -750,7 +737,6 @@
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
       document.getElementById('memo-textarea').value = customer.memo || '';
-      setMemoLinesFromText(customer.memo || '');
 
       // 👉 왼쪽 매물번호 입력창 초기화
       document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
@@ -1394,7 +1380,6 @@
       loadCustomersForCurrentStaff();
       loadCurrentUserStaffInfo(); // 첫로드시 담당자정보 본인정보 표시
       loadStaffOptions();
-      initMemoRows();
 
       // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
       listingsBody = document.getElementById('listings-body');
@@ -1676,7 +1661,7 @@
       const customerName = document.getElementById('top-row-input')?.value.trim();
       const customerPhone = document.getElementById('customer-phone')?.value.trim();
       const customerGrade = document.getElementById('customer-grade')?.value;
-      const memoText = getMemoLines().join('\n');
+      const memoText = document.getElementById('memo-textarea')?.value.trim();
 
       // ✅ 선택된 고객이 없을 때: 이름으로 검색해서 없으면 신규 생성
       if (!currentCustomerId) {
@@ -1801,24 +1786,30 @@
 
             const rowsToInsert = [];
             for (let index = 1; index <= rowCount; index++) {
-              const listingId      = getListingIdByIndex(index);
-              const listing_title  = getStringFromField('listing_title', index);
-              const full_address   = getStringFromField('full_address', index);
-              const combined_unit  = getStringFromField('combined_unit', index);
-              const description    = getStringFromField('description', index);
-              const deposit_price  = getNumericFromField('deposit_price', index);
-              const monthly_rent   = getNumericFromField('monthly_rent', index);
-              const premium_price  = getNumericFromField('premium_price', index);
-              const area_py        = getNumericFromField('area_py', index);
+              const listingId = getListingIdByIndex(index);
 
+              const listing_title = getStringFromField('listing_title', index);
+              const full_address  = getStringFromField('full_address', index);
+              const combined_unit = getStringFromField('combined_unit', index);
+              const description   = getStringFromField('description', index);
+
+              const deposit_price = getNumericFromField('deposit_price', index);
+              const monthly_rent  = getNumericFromField('monthly_rent', index);
+              const premium_price = getNumericFromField('premium_price', index);
+              const area_py       = getNumericFromField('area_py', index);
+
+              // 👇 새로 추가: 메모 패널 값
+              const memoText = getMemoValue(index);
+
+              // 👇 의미 있는 데이터 판정에 메모도 포함
               const hasMeaningful =
-                (listing_title || full_address || combined_unit || description ||
+                (listing_title || full_address || combined_unit || description || memoText ||
                 deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
 
               if (listingId || hasMeaningful) {
                 rowsToInsert.push({
-                  customers_id: String(targetId),
-                  listing_id,
+                  customers_id: String(currentCustomerId),
+                  listing_id: listingId,
                   listing_title,
                   full_address,
                   building_detail_info: combined_unit,
@@ -1826,7 +1817,9 @@
                   monthly_rent,
                   premium_price,
                   area_py,
+                  // ✅ 과거 'contents' 사용분은 계속 두고(백워드 호환), 새 컬럼 memo에도 저장
                   contents: description,
+                  memo: memoText || null,
                   order: index
                 });
               }
@@ -2119,7 +2112,6 @@
         document.getElementById('customer-phone').value = '';
         document.getElementById('customer-grade').value = 'F';
         document.getElementById('memo-textarea').value = '';
-        clearMemoLines();
 
         // 왼쪽 매물번호 전체 비우기(+change 디스패치로 오른쪽도 정리)
         document.querySelectorAll('input[data-index]').forEach(inp => {
