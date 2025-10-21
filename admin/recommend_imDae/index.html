@@ -873,8 +873,7 @@
       syncRowHeights?.();
       applyRowStriping?.();
       showToast(`고객 "${name}" 데이터 불러옴`);
-
-      setSelectedCustomerTitle(name);
+      setDocumentTitle(name);
 
       // 무조건 읽기모드로 정리
       if (isEditMode) {
@@ -1230,11 +1229,9 @@
       }, duration);
     }
 
-    // 선택된 고객 이름을 상단 제목에 표시/초기화
-    function setSelectedCustomerTitle(name) {
-      const el = document.getElementById('selected-customer');
-      if (!el) return;
-      el.textContent = name ? `; ${name}` : '';
+    // 🧭 파비콘 옆 탭 제목 업데이트
+    function setDocumentTitle(name) {
+      document.title = (name && name.trim()) ? name.trim() : '임대추천';
     }
 
     // --- Formatting Helpers ---
@@ -1998,8 +1995,8 @@
         showToast('저장 중 오류 발생');
         return;
       }
-
-      setSelectedCustomerTitle(customerName);
+      
+      setDocumentTitle(customerName);
 
       // ✅ 입력된 매물번호 수집
       const allInputs = document.querySelectorAll('input[data-index]');
@@ -2243,7 +2240,7 @@
         document.getElementById('customer-grade').value = 'F';
         document.getElementById('memo-textarea').value = '';
 
-        setSelectedCustomerTitle('');
+        setDocumentTitle('');
 
         // 왼쪽 매물번호 전체 비우기(+change 디스패치로 오른쪽도 정리)
         document.querySelectorAll('input[data-index]').forEach(inp => {
