@@ -288,8 +288,7 @@
               </table>
             </div>
           </div>
-        </div>
-          
+        </div>          
       </div>
     </div>
   </div>  
@@ -1471,29 +1470,26 @@
     window.addEventListener('resize', syncRowHeights);
 
     function syncRowHeights() {
-      const rightRows = document.querySelectorAll('#listings-body tr');
-      const leftRows  = document.querySelectorAll('#left-tbody tr');
+      const midRows = document.querySelectorAll('#listings-body tr'); // 가운데 표
+      const leftRows = document.querySelectorAll('#left-tbody tr');   // 매물번호 표
 
-      const len = Math.min(rightRows.length, leftRows.length);
+      const len = Math.min(midRows.length, leftRows.length);
       for (let i = 0; i < len; i++) {
-        const r = rightRows[i];
-        const l = leftRows[i];
-        if (!r || !l) continue;
+        const mid = midRows[i];
+        const left = leftRows[i];
+        if (!mid || !left) continue;
 
-        // 높이 재설정
-        l.style.height = 'auto';
-        r.style.height = 'auto';
+        // 초기화
+        mid.style.height = 'auto';
+        left.style.height = 'auto';
 
-        const lh = l.getBoundingClientRect().height;
-        const rh = r.getBoundingClientRect().height;
+        const mh = mid.getBoundingClientRect().height;
+        const lh = left.getBoundingClientRect().height;
+        const h = Math.max(36, Math.ceil(Math.max(mh, lh)));
 
-        const max = Math.max(lh, rh);
-
-        // ✅ 오른쪽이 더 작으면 오른쪽에 높이 고정 (왼쪽이 기준)
-        if (rh < lh) r.style.height = `${lh}px`;
-
-        // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
-        l.style.height = `${Math.max(lh, rh)}px`;
+        // 동일 높이 적용
+        mid.style.height = h + 'px';
+        left.style.height = h + 'px';
       }
     }
 
@@ -2149,6 +2145,99 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
+    // ===== [메모패널] 유틸 =====
+    const debounce = (fn, delay = 600) => {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+    };
+    const autoResize = (ta) => { if (!ta) return; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+
+    // ===== [메모패널] 렌더: listings 배열과 행 순서 1:1 =====
+    function renderMemoPanel(listings) {
+      const memoBody = document.getElementById('memo-body');
+      if (!memoBody) return;
+
+      memoBody.innerHTML = '';
+
+      (listings || []).forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.dataset.rowId = String(row?.id ?? '');
+        tr.dataset.idx = String(idx + 1);
+
+        const td = document.createElement('td');
+        td.className = 'align-top py-1.5 border-b border-gray-200';
+
+        const ta = document.createElement('textarea');
+        ta.className = 'memo-input w-full min-h-[2.2rem] leading-5 border border-gray-300 rounded p-1 bg-white overflow-hidden resize-none';
+        ta.placeholder = '행별 메모';
+        ta.value = row?.memo ?? '';
+        ta.dataset.rowId = String(row?.id ?? '');
+
+        td.appendChild(ta);
+        tr.appendChild(td);
+        memoBody.appendChild(tr);
+
+        autoResize(ta);
+      });
+
+      // 가운데 메인표와 높이 동기화
+      syncRowHeights();       // (왼쪽↔가운데)
+      syncMemoHeights();      // (가운데↔오른쪽)
+    }
+
+    // ===== [메모패널] 저장: 행별 memo 자동 저장 (디바운스) =====
+    const saveRowMemo = debounce(async (rowId, memo) => {
+      if (!rowId) return;
+      try {
+        const { error } = await supabase
+          .from('customers_recommendations')
+          .update({ memo })
+          .eq('id', rowId)
+          .select('id'); // 선택은 로깅용
+        if (error) {
+          console.warn('❌ 메모 저장 실패:', error);
+          showToast?.('메모 저장 실패');
+        }
+      } catch (e) {
+        console.warn('❌ 메모 저장 예외:', e);
+      }
+    }, 700);
+
+    // ===== [메모패널] 입력 이벤트 위임 (자동높이 + 저장 + 높이재동기화) =====
+    document.addEventListener('input', (e) => {
+      const ta = e.target;
+      if (!(ta instanceof HTMLTextAreaElement)) return;
+      if (!ta.classList.contains('memo-input')) return;
+
+      autoResize(ta);
+      const rowId = ta.dataset.rowId;
+      saveRowMemo(rowId, ta.value || '');
+
+      // 높이 변동을 오른쪽/가운데 표에 반영
+      syncMemoHeights();
+    });
+
+    // ===== [메모패널] 높이 동기화(가운데 표 기준 → 오른쪽 메모) =====
+    function syncMemoHeights() {
+      const midRows  = document.querySelectorAll('#listings-body tr');
+      const memoRows = document.querySelectorAll('#memo-body tr');
+      const count = Math.min(midRows.length, memoRows.length);
+
+      for (let i = 0; i < count; i++) {
+        const mh = Math.ceil(midRows[i].getBoundingClientRect().height);
+        const cell = memoRows[i].querySelector('td');
+        if (cell) cell.style.height = Math.max(36, mh) + 'px';
+      }
+    }
+
+    // 가운데 표(#listings-body) 높이가 변하면 메모 높이도 맞추기
+    const midBodyEl = document.getElementById('listings-body');
+    if (midBodyEl) {
+      const memoObserver = new ResizeObserver(() => {
+        syncRowHeights?.(); // 기존 왼쪽↔가운데
+        syncMemoHeights();  // 가운데↔오른쪽
+      });
+      memoObserver.observe(midBodyEl);
+    }
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
