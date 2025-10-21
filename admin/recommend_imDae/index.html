@@ -374,7 +374,7 @@
       const memoMap = new Map();
       listings.forEach((it, idx) => {
         const order = (typeof it.order === 'number' && !Number.isNaN(it.order)) ? it.order : (idx + 1);
-        memoMap.set(order, it.memo ?? it.contents ?? ''); // 과거 contents 사용분 호환
+        memoMap.set(order, typeof it.memo === 'string' ? it.memo : '');
       });
 
       for (let i = 1; i <= 50; i++) {
@@ -1784,10 +1784,10 @@
               return v.trim();
             };
 
+            // (복붙 전체 예시) — rowsToInsert 작성부
             const rowsToInsert = [];
             for (let index = 1; index <= rowCount; index++) {
-              const listingId = getListingIdByIndex(index);
-
+              const listingId     = getListingIdByIndex(index);
               const listing_title = getStringFromField('listing_title', index);
               const full_address  = getStringFromField('full_address', index);
               const combined_unit = getStringFromField('combined_unit', index);
@@ -1798,10 +1798,9 @@
               const premium_price = getNumericFromField('premium_price', index);
               const area_py       = getNumericFromField('area_py', index);
 
-              // 👇 새로 추가: 메모 패널 값
+              // 메모 패널에서 해당 행 메모 읽기
               const memoText = getMemoValue(index);
 
-              // 👇 의미 있는 데이터 판정에 메모도 포함
               const hasMeaningful =
                 (listing_title || full_address || combined_unit || description || memoText ||
                 deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
@@ -1817,8 +1816,9 @@
                   monthly_rent,
                   premium_price,
                   area_py,
-                  // ✅ 과거 'contents' 사용분은 계속 두고(백워드 호환), 새 컬럼 memo에도 저장
-                  contents: description,
+                  // description은 contents에 저장(기존 로직 유지)
+                  contents: description ?? null,
+                  // ✅ 메모는 memo 컬럼에만 저장
                   memo: memoText || null,
                   order: index
                 });
