@@ -158,6 +158,9 @@
         class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
         onclick="location.reload()" />
   </div>
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
+    임대추천 <span id="selected-customer" class="text-blue-600"></span>
+  </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map" target="_blank">
@@ -870,6 +873,12 @@
       syncRowHeights?.();
       applyRowStriping?.();
       showToast(`고객 "${name}" 데이터 불러옴`);
+
+      // 선택된 고객 이름을 상단 제목에 표시
+      const titleSpan = document.getElementById('selected-customer');
+      if (titleSpan) {
+        titleSpan.textContent = `; ${name}`;
+      }
 
       // 무조건 읽기모드로 정리
       if (isEditMode) {

@@ -444,7 +444,7 @@
             <div class="flex items-start gap-2 h-full">
               <div class="text-gray-400 w-5 text-right select-none">${i}</div>
               <textarea
-                class="w-[11rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
+                class="w-[18rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
@@ -577,7 +577,7 @@
       const line4 = desc || '';
 
       // 5행: URL (매물번호 있을 때만)
-      const baseUrl = "baikuk.com/item/view/";
+      const baseUrl = "https://baikuk.com/item/view/";
       const line5 = no ? `${baseUrl}${no}` : '';
 
       const lines = [line1, line2, line3, line4, line5].filter(l => l !== '');
@@ -849,10 +849,13 @@
         setField('listing_title', cleanListingTitle(listing.listing_title));
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
-        setField('deposit_price', listing.deposit_price);
-        setField('monthly_rent', listing.monthly_rent);
-        setField('premium_price', listing.premium_price);
-        setField('area_py', listing.area_py);
+
+        // 🔹 숫자 포맷 적용 (콤마 표시)
+        setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+        setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+        setField('premium_price', formatKoreanMoney(listing.premium_price));
+        setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
+
         setField('description', listing.contents);
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
@@ -1224,15 +1227,10 @@
 
     // --- Formatting Helpers ---
     function formatKoreanMoney(value) {
-        if (!value && value !== 0) return '-';
-        const num = Number(value);
-        if (isNaN(num)) return '-';
-        if (num >= 10000) {
-            const eok = Math.floor(num / 10000);
-            const man = num % 10000;
-            return `${eok}억${man > 0 ? ' ' + man.toLocaleString() : ''}`;
-        }
-        return num.toLocaleString();
+      if (value === null || value === undefined || value === '') return '-';
+      const num = Number(value);
+      if (isNaN(num)) return '-';
+      return num.toLocaleString('ko-KR'); // 1,000 단위 콤마 표시
     }
 
     // === Listing Title Cleaner ===
