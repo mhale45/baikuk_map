@@ -388,6 +388,7 @@
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
+                style="height:auto"
               ></textarea>
             </div>
           </td>
@@ -1538,6 +1539,21 @@
 
         // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
         l.style.height = `${Math.max(lh, rh)}px`;
+      }
+      syncMemoRowHeights();
+    }
+
+    function syncMemoRowHeights() {
+      const listingRows = document.querySelectorAll('#listings-body tr');
+      const memoRows = document.querySelectorAll('#memo-body tr');
+
+      const count = Math.min(listingRows.length, memoRows.length);
+      for (let i = 0; i < count; i++) {
+        const listingHeight = listingRows[i].getBoundingClientRect().height;
+        const memoTextarea = memoRows[i].querySelector('textarea');
+        if (memoTextarea) {
+          memoTextarea.style.height = `${listingHeight - 4}px`; // 테두리 여백 감안
+        }
       }
     }
 
