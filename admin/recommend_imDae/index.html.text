@@ -272,6 +272,23 @@
             </div>  
           </div>
         </div>
+        <div class="ml-3 mt-[1rem] flex flex-col">
+          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
+            <!-- 오른쪽(스크린샷 제외) 메모 표 -->
+            <div id="memo-panel" class="print:hidden sticky top-2">
+              <table class="w-[16rem] border-collapse">
+                <thead>
+                  <tr>
+                    <th class="text-left text-sm font-bold py-1.5 border-b border-gray-300">
+                      메모
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="memo-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>          
       </div>
     </div>
   </div>  
@@ -741,10 +758,7 @@
       });
 
       // 높이/스트라이프 정리
-      syncRowHeights?.();
-      applyRowStriping?.();
-
-
+      renderMemoPanel(listings);
       syncRowHeights?.();
       applyRowStriping?.();
       showToast(`고객 "${name}" 데이터 불러옴`);

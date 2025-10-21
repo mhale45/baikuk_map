@@ -365,6 +365,61 @@
     let rowObserver;           // ResizeObserver 인스턴스
 
     // 스크립트 시작
+    // ===== 메모 50줄 표 초기화 =====
+    function initMemoRows() {
+      const memoBody = document.getElementById('memo-body');
+      if (!memoBody) return;
+      memoBody.innerHTML = '';
+      for (let i = 1; i <= 50; i++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="border-b border-gray-200 px-2 py-1">
+            <div class="flex items-center gap-2">
+              <div class="w-6 text-right text-gray-500">${i}</div>
+              <input
+                type="text"
+                class="flex-1 h-8 px-2 border border-gray-300 rounded text-sm outline-none"
+                data-memo-index="${i}"
+                placeholder="메모 ${i}"
+              />
+            </div>
+          </td>
+        `;
+        memoBody.appendChild(tr);
+      }
+    }
+
+    // 50줄 값 → 배열로 수집
+    function getMemoLines() {
+      const lines = [];
+      for (let i = 1; i <= 50; i++) {
+        const input = document.querySelector(`input[data-memo-index="${i}"]`);
+        lines.push((input?.value || '').trim());
+      }
+      // 끝쪽의 공백줄들만 쭉 비어 있으면 깔끔하게 잘라서 저장(원하면 제거)
+      let last = lines.length - 1;
+      while (last >= 0 && lines[last] === '') last--;
+      return lines.slice(0, last + 1);
+    }
+
+    // DB에서 온 memo 문자열을 50칸에 채워 넣기
+    function setMemoLinesFromText(memoText) {
+      const arr = (memoText || '').split('\n');
+      for (let i = 1; i <= 50; i++) {
+        const input = document.querySelector(`input[data-memo-index="${i}"]`);
+        if (!input) continue;
+        input.value = arr[i - 1] ?? '';
+      }
+    }
+
+    // 메모 50줄 비우기(삭제 등에서 사용)
+    function clearMemoLines() {
+      for (let i = 1; i <= 50; i++) {
+        const input = document.querySelector(`input[data-memo-index="${i}"]`);
+        if (input) input.value = '';
+      }
+    }
+
     // === [저장 개선] 단순 덮어쓰기 모달 ===
     const OverwriteModal = {
       root: null,
@@ -695,6 +750,7 @@
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
       document.getElementById('memo-textarea').value = customer.memo || '';
+      setMemoLinesFromText(customer.memo || '');
 
       // 👉 왼쪽 매물번호 입력창 초기화
       document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
@@ -1338,6 +1394,7 @@
       loadCustomersForCurrentStaff();
       loadCurrentUserStaffInfo(); // 첫로드시 담당자정보 본인정보 표시
       loadStaffOptions();
+      initMemoRows();
 
       // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
       listingsBody = document.getElementById('listings-body');
@@ -1470,26 +1527,29 @@
     window.addEventListener('resize', syncRowHeights);
 
     function syncRowHeights() {
-      const midRows = document.querySelectorAll('#listings-body tr'); // 가운데 표
-      const leftRows = document.querySelectorAll('#left-tbody tr');   // 매물번호 표
+      const rightRows = document.querySelectorAll('#listings-body tr');
+      const leftRows  = document.querySelectorAll('#left-tbody tr');
 
-      const len = Math.min(midRows.length, leftRows.length);
+      const len = Math.min(rightRows.length, leftRows.length);
       for (let i = 0; i < len; i++) {
-        const mid = midRows[i];
-        const left = leftRows[i];
-        if (!mid || !left) continue;
+        const r = rightRows[i];
+        const l = leftRows[i];
+        if (!r || !l) continue;
 
-        // 초기화
-        mid.style.height = 'auto';
-        left.style.height = 'auto';
+        // 높이 재설정
+        l.style.height = 'auto';
+        r.style.height = 'auto';
 
-        const mh = mid.getBoundingClientRect().height;
-        const lh = left.getBoundingClientRect().height;
-        const h = Math.max(36, Math.ceil(Math.max(mh, lh)));
+        const lh = l.getBoundingClientRect().height;
+        const rh = r.getBoundingClientRect().height;
 
-        // 동일 높이 적용
-        mid.style.height = h + 'px';
-        left.style.height = h + 'px';
+        const max = Math.max(lh, rh);
+
+        // ✅ 오른쪽이 더 작으면 오른쪽에 높이 고정 (왼쪽이 기준)
+        if (rh < lh) r.style.height = `${lh}px`;
+
+        // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
+        l.style.height = `${Math.max(lh, rh)}px`;
       }
     }
 
@@ -1616,7 +1676,7 @@
       const customerName = document.getElementById('top-row-input')?.value.trim();
       const customerPhone = document.getElementById('customer-phone')?.value.trim();
       const customerGrade = document.getElementById('customer-grade')?.value;
-      const memoText = document.getElementById('memo-textarea')?.value.trim();
+      const memoText = getMemoLines().join('\n');
 
       // ✅ 선택된 고객이 없을 때: 이름으로 검색해서 없으면 신규 생성
       if (!currentCustomerId) {
@@ -2059,6 +2119,7 @@
         document.getElementById('customer-phone').value = '';
         document.getElementById('customer-grade').value = 'F';
         document.getElementById('memo-textarea').value = '';
+        clearMemoLines();
 
         // 왼쪽 매물번호 전체 비우기(+change 디스패치로 오른쪽도 정리)
         document.querySelectorAll('input[data-index]').forEach(inp => {
@@ -2145,99 +2206,6 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
-    // ===== [메모패널] 유틸 =====
-    const debounce = (fn, delay = 600) => {
-      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
-    };
-    const autoResize = (ta) => { if (!ta) return; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
-
-    // ===== [메모패널] 렌더: listings 배열과 행 순서 1:1 =====
-    function renderMemoPanel(listings) {
-      const memoBody = document.getElementById('memo-body');
-      if (!memoBody) return;
-
-      memoBody.innerHTML = '';
-
-      (listings || []).forEach((row, idx) => {
-        const tr = document.createElement('tr');
-        tr.dataset.rowId = String(row?.id ?? '');
-        tr.dataset.idx = String(idx + 1);
-
-        const td = document.createElement('td');
-        td.className = 'align-top py-1.5 border-b border-gray-200';
-
-        const ta = document.createElement('textarea');
-        ta.className = 'memo-input w-full min-h-[2.2rem] leading-5 border border-gray-300 rounded p-1 bg-white overflow-hidden resize-none';
-        ta.placeholder = '행별 메모';
-        ta.value = row?.memo ?? '';
-        ta.dataset.rowId = String(row?.id ?? '');
-
-        td.appendChild(ta);
-        tr.appendChild(td);
-        memoBody.appendChild(tr);
-
-        autoResize(ta);
-      });
-
-      // 가운데 메인표와 높이 동기화
-      syncRowHeights();       // (왼쪽↔가운데)
-      syncMemoHeights();      // (가운데↔오른쪽)
-    }
-
-    // ===== [메모패널] 저장: 행별 memo 자동 저장 (디바운스) =====
-    const saveRowMemo = debounce(async (rowId, memo) => {
-      if (!rowId) return;
-      try {
-        const { error } = await supabase
-          .from('customers_recommendations')
-          .update({ memo })
-          .eq('id', rowId)
-          .select('id'); // 선택은 로깅용
-        if (error) {
-          console.warn('❌ 메모 저장 실패:', error);
-          showToast?.('메모 저장 실패');
-        }
-      } catch (e) {
-        console.warn('❌ 메모 저장 예외:', e);
-      }
-    }, 700);
-
-    // ===== [메모패널] 입력 이벤트 위임 (자동높이 + 저장 + 높이재동기화) =====
-    document.addEventListener('input', (e) => {
-      const ta = e.target;
-      if (!(ta instanceof HTMLTextAreaElement)) return;
-      if (!ta.classList.contains('memo-input')) return;
-
-      autoResize(ta);
-      const rowId = ta.dataset.rowId;
-      saveRowMemo(rowId, ta.value || '');
-
-      // 높이 변동을 오른쪽/가운데 표에 반영
-      syncMemoHeights();
-    });
-
-    // ===== [메모패널] 높이 동기화(가운데 표 기준 → 오른쪽 메모) =====
-    function syncMemoHeights() {
-      const midRows  = document.querySelectorAll('#listings-body tr');
-      const memoRows = document.querySelectorAll('#memo-body tr');
-      const count = Math.min(midRows.length, memoRows.length);
-
-      for (let i = 0; i < count; i++) {
-        const mh = Math.ceil(midRows[i].getBoundingClientRect().height);
-        const cell = memoRows[i].querySelector('td');
-        if (cell) cell.style.height = Math.max(36, mh) + 'px';
-      }
-    }
-
-    // 가운데 표(#listings-body) 높이가 변하면 메모 높이도 맞추기
-    const midBodyEl = document.getElementById('listings-body');
-    if (midBodyEl) {
-      const memoObserver = new ResizeObserver(() => {
-        syncRowHeights?.(); // 기존 왼쪽↔가운데
-        syncMemoHeights();  // 가운데↔오른쪽
-      });
-      memoObserver.observe(midBodyEl);
-    }
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
