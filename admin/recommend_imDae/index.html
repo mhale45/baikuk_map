@@ -279,7 +279,7 @@
               <table class="w-[16rem] border-collapse">
                 <thead>
                   <tr>
-                    <th class="text-left text-sm font-bold py-1.5 border-b border-gray-300">
+                    <td class="p-1 border-b border-gray-200 align-top">
                       메모
                     </th>
                   </tr>
@@ -380,15 +380,15 @@
       for (let i = 1; i <= 50; i++) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="py-1.5 border-b border-gray-200 align-top">
+          <td class="p-1 border-b border-gray-200 align-top">
             <div class="flex items-start gap-2">
               <div class="text-gray-400 w-5 text-right select-none">${i}</div>
               <textarea
-                class="w-[11rem] resize-none outline-none bg-transparent text-sm align-top"
+                class="w-[11rem] resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
-                style="height:auto"
+                style="height:auto; min-height:0"
               ></textarea>
             </div>
           </td>
@@ -400,6 +400,8 @@
         const val = memoMap.get(i);
         if (ta && typeof val === 'string') ta.value = val;
       }
+
+      syncMemoRowHeights();
     }
 
     /** 현재 화면의 메모 N행에서 문자열을 읽어옴 (없으면 빈문자열) */
@@ -1547,13 +1549,35 @@
       const listingRows = document.querySelectorAll('#listings-body tr');
       const memoRows = document.querySelectorAll('#memo-body tr');
 
+      const px = (v) => (v ? parseFloat(v) || 0 : 0);
+
       const count = Math.min(listingRows.length, memoRows.length);
       for (let i = 0; i < count; i++) {
-        const listingHeight = listingRows[i].getBoundingClientRect().height;
-        const memoTextarea = memoRows[i].querySelector('textarea');
-        if (memoTextarea) {
-          memoTextarea.style.height = `${listingHeight - 4}px`; // 테두리 고려
-        }
+        const targetRowHeight = listingRows[i].getBoundingClientRect().height;
+
+        const td = memoRows[i].querySelector('td');
+        const ta = td?.querySelector('textarea');
+        if (!td || !ta) continue;
+
+        const tdStyle = getComputedStyle(td);
+        const taStyle = getComputedStyle(ta);
+
+        // TD의 위아래 패딩/보더 합
+        const tdVertical =
+          px(tdStyle.paddingTop) + px(tdStyle.paddingBottom) +
+          px(tdStyle.borderTopWidth) + px(tdStyle.borderBottomWidth);
+
+        // textarea가 border-box면 height=총높이, content-box면 패딩/보더를 빼줘야 함
+        const isBorderBox = taStyle.boxSizing === 'border-box';
+        const taPadding = px(taStyle.paddingTop) + px(taStyle.paddingBottom);
+        const taBorder  = px(taStyle.borderTopWidth) + px(taStyle.borderBottomWidth);
+
+        // TD 안에서 textarea가 가져야 할 총 높이
+        const innerTarget = Math.max(0, targetRowHeight - tdVertical);
+
+        ta.style.height = isBorderBox
+          ? `${innerTarget}px`
+          : `${Math.max(0, innerTarget - taPadding - taBorder)}px`;
       }
     }
 
