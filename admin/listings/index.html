@@ -393,7 +393,22 @@
         query = query.eq('listing_id', parseInt(idTerm));
       }
       if (titleTerm) query = query.ilike('listing_title', `%${titleTerm}%`);
-      if (addressTerm) query = query.ilike('full_address', `%${addressTerm}%`);
+      if (addressTerm) {
+        const addrTerms = addressTerm
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        if (addrTerms.length === 1) {
+          // 키워드 1개면 일반 ilike
+          query = query.ilike('full_address', `%${addrTerms[0]}%`);
+        } else if (addrTerms.length > 1) {
+          // 키워드 여러 개면 OR 조건 (PostgREST or 구문)
+          // full_address.ilike.%야당%,full_address.ilike.%목동%,full_address.ilike.%정발산%
+          const orExp = addrTerms.map(t => `full_address.ilike.%${t}%`).join(',');
+          query = query.or(orExp);
+        }
+      }
       if (buildingTerm && matchedAddresses.length > 0) {
         query = query.in('addr_compare', matchedAddresses);
       }
@@ -776,7 +791,7 @@
           <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2">
             <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
             <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
-            <input type="text" id="address-input" placeholder="주소" class="border px-1.5 py-1 rounded w-[23%]" />
+            <input type="text" id="address-input" placeholder="주소(콤마로 복수 입력)" class="border px-1.5 py-1 rounded w-[23%]" />
             <input type="text" id="building-input" placeholder="건물명" class="border px-1.5 py-1 rounded w-[22%]" />
             <button id="search-button" class="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-600 w-[10%]">검색</button>
           </div>
