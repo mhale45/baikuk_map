@@ -272,14 +272,14 @@
             </div>  
           </div>
         </div>
-        <div class="ml-3 mt-[6rem] flex flex-col">
+        <div class="ml-3 mt-[6.2rem] flex flex-col">
           <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
             <!-- 오른쪽(스크린샷 제외) 메모 표 -->
             <div id="memo-panel" class="print:hidden sticky top-2">
-              <table class="w-[16rem] border-collapse">
+              <table class="w-[20rem] border-collapse">
                 <thead>
                   <tr>
-                    <th class="text-left text-sm font-bold py-1.5 border-b border-gray-300">
+                    <td class="p-1 border-b border-gray-200 align-top">
                       메모
                     </th>
                   </tr>
@@ -380,14 +380,15 @@
       for (let i = 1; i <= 50; i++) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="py-1.5 border-b border-gray-200 align-top">
-            <div class="flex items-start gap-2">
+          <td class="p-1 border-b border-gray-200 align-top">
+            <div class="flex items-start gap-2 h-full">
               <div class="text-gray-400 w-5 text-right select-none">${i}</div>
               <textarea
-                class="w-[11rem] min-h-6 h-6 resize-y outline-none bg-transparent text-sm"
+                class="w-[11rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
+                style="height:100%;min-height:0"
               ></textarea>
             </div>
           </td>
@@ -399,6 +400,8 @@
         const val = memoMap.get(i);
         if (ta && typeof val === 'string') ta.value = val;
       }
+
+      syncMemoRowHeights();
     }
 
     /** 현재 화면의 메모 N행에서 문자열을 읽어옴 (없으면 빈문자열) */
@@ -1538,6 +1541,29 @@
 
         // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
         l.style.height = `${Math.max(lh, rh)}px`;
+      }
+      syncMemoRowHeights();
+    }
+
+    function syncMemoRowHeights() {
+      const listingRows = document.querySelectorAll('#listings-body tr');
+      const memoRows    = document.querySelectorAll('#memo-body tr');
+
+      const count = Math.min(listingRows.length, memoRows.length);
+      for (let i = 0; i < count; i++) {
+        const h  = listingRows[i].offsetHeight; // 매물 행의 "최종 총높이"(패딩/보더 반영, 정수 px)
+        const td = memoRows[i].querySelector('td');
+        if (!td) continue;
+
+        // TD 자체를 동일 높이로 고정
+        td.style.height = `${h}px`;
+
+        // 내부 textarea가 TD를 꽉 채우게
+        const ta = td.querySelector('textarea');
+        if (ta) {
+          ta.style.height   = '100%';
+          ta.style.maxHeight = 'none';
+        }
       }
     }
 
