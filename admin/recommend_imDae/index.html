@@ -1224,15 +1224,10 @@
 
     // --- Formatting Helpers ---
     function formatKoreanMoney(value) {
-        if (!value && value !== 0) return '-';
-        const num = Number(value);
-        if (isNaN(num)) return '-';
-        if (num >= 10000) {
-            const eok = Math.floor(num / 10000);
-            const man = num % 10000;
-            return `${eok}억${man > 0 ? ' ' + man.toLocaleString() : ''}`;
-        }
-        return num.toLocaleString();
+      if (value === null || value === undefined || value === '') return '-';
+      const num = Number(value);
+      if (isNaN(num)) return '-';
+      return num.toLocaleString('ko-KR'); // 1,000 단위 콤마 표시
     }
 
     // === Listing Title Cleaner ===
