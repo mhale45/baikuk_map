@@ -841,36 +841,48 @@
       </div>
 
       <!-- 우측 폼 -->
-      <div>
-        <button id="save-button" class="ml-[1rem] mt-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">저장</button>
+      <div class="sticky top-[5rem] self-start">
+        <button id="save-button"
+          class="ml-[1rem] mt-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+          저장
+        </button>
 
-        <div id="customer-form" class="mt-[0.5rem] w-[30rem] text-left text-base rounded">
+        <div id="customer-form"
+            class="mt-[0.5rem] w-[30rem] text-left text-base rounded
+                    flex flex-col h-[calc(100vh-6rem)] overflow-hidden">
           <input id="top-row-input" placeholder="고객이름"
-                 class="border border-gray-300 px-2 rounded ml-[1rem] w-[23.7rem] text-left text-base h-[2rem]" />
+                class="border border-gray-300 px-2 rounded ml-[1rem] w-[23.7rem] text-left text-base h-[2rem]" />
 
           <div class="flex mt-[0.5rem]">
             <div class="flex">
               <div class="ml-5 mt-1">구분:</div>
-              <select id="customer-grade" class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base">
+              <select id="customer-grade"
+                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base">
                 <option>A</option><option>B</option><option>C</option><option>F</option>
               </select>
             </div>
             <input id="customer-phone" placeholder="전화번호"
-                   class="w-[15rem] ml-[3rem] px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                  class="w-[15rem] ml-[3rem] px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
           </div>
+
           <div class="flex">
             <div class="flex mt-[0.5rem] items-center">
               <div class="ml-5 mt-1">담당자:</div>
-              <select id="starr_name" class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
+              <select id="starr_name"
+                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
             </div>
             <div class="flex mt-[0.5rem] items-center">
               <div class="ml-5 mt-1">담당자2:</div>
-              <select id="starr_name2" class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
+              <select id="starr_name2"
+                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
             </div>
           </div>
-          
+
+          <!-- 남은 공간을 메모가 채우고, 메모만 내부 스크롤 -->
           <textarea id="memo-textarea" placeholder="메모"
-                    class="mt-[0.5rem] ml-[1rem] px-1 pt-1 w-[23.7rem] h-[40rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+                    class="mt-[0.5rem] ml-[1rem] px-1 pt-1 w-[23.7rem] box-border text-left text-base
+                          border border-gray-300 rounded bg-white outline-none resize-none
+                          flex-1 h-auto min-h-0 overflow-y-auto"></textarea>
         </div>
       </div>
     </div>
