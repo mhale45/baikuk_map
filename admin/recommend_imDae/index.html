@@ -849,10 +849,13 @@
         setField('listing_title', cleanListingTitle(listing.listing_title));
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
-        setField('deposit_price', listing.deposit_price);
-        setField('monthly_rent', listing.monthly_rent);
-        setField('premium_price', listing.premium_price);
-        setField('area_py', listing.area_py);
+
+        // 🔹 숫자 포맷 적용 (콤마 표시)
+        setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+        setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+        setField('premium_price', formatKoreanMoney(listing.premium_price));
+        setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
+
         setField('description', listing.contents);
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
