@@ -158,6 +158,9 @@
         class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
         onclick="location.reload()" />
   </div>
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
+    임대추천 <span id="selected-customer" class="text-blue-600"></span>
+  </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map" target="_blank">
@@ -870,6 +873,7 @@
       syncRowHeights?.();
       applyRowStriping?.();
       showToast(`고객 "${name}" 데이터 불러옴`);
+      setDocumentTitle(name);
 
       // 무조건 읽기모드로 정리
       if (isEditMode) {
@@ -1223,6 +1227,11 @@
       setTimeout(() => {
         toast.classList.add('hidden');
       }, duration);
+    }
+
+    // 🧭 파비콘 옆 탭 제목 업데이트
+    function setDocumentTitle(name) {
+      document.title = (name && name.trim()) ? name.trim() : '임대추천';
     }
 
     // --- Formatting Helpers ---
@@ -1986,6 +1995,8 @@
         showToast('저장 중 오류 발생');
         return;
       }
+      
+      setDocumentTitle(customerName);
 
       // ✅ 입력된 매물번호 수집
       const allInputs = document.querySelectorAll('input[data-index]');
@@ -2228,6 +2239,8 @@
         document.getElementById('customer-phone').value = '';
         document.getElementById('customer-grade').value = 'F';
         document.getElementById('memo-textarea').value = '';
+
+        setDocumentTitle('');
 
         // 왼쪽 매물번호 전체 비우기(+change 디스패치로 오른쪽도 정리)
         document.querySelectorAll('input[data-index]').forEach(inp => {

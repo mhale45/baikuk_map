@@ -204,6 +204,7 @@
             <div class="flex">
               <div class="ml-1 mt-1">구분:</div>
               <select id="customer-grade" class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                <option>계약</option>
                 <option >A</option>
                 <option >B</option>
                 <option >C</option>
@@ -948,7 +949,7 @@
       let customers = Array.from(map.values());
 
       // 4) 정렬: A > B > C > F, 같은 등급은 이름 오름차순
-      const gradeOrder = { A: 0, B: 1, C: 2, F: 3 };
+      const gradeOrder = { 계약: 0, A: 1, B: 2, C: 3, F: 4 };
       customers.sort((a, b) => {
         const ga = gradeOrder[a.grade] ?? 99;
         const gb = gradeOrder[b.grade] ?? 99;
@@ -1010,7 +1011,7 @@
       }, {});
 
       // 표시 순서 고정: A > B > C > F > 나머지
-      const gradeOrderList = ['A', 'B', 'C', 'F'];
+      const gradeOrderList = ['계약', 'A', 'B', 'C', 'F'];
       const sortedGrades = [
         ...gradeOrderList.filter(g => grouped[g]?.length),
         ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g))
