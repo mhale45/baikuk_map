@@ -497,9 +497,9 @@
         if (aEmpty && bEmpty) return 0; if (aEmpty) return 1; if (bEmpty) return -1;
         return A.localeCompare(B, 'ko-KR', { sensitivity: 'base', numeric: true });
       }
-      const gradeRank = { A: 0, B: 1, C: 2, F: 3 };
+      const gradeRank = { '계약': 0, A: 1, B: 2, C: 3, F: 4 };
       function defaultSort(rows) {
-        const gradeRank = { A: 0, B: 1, C: 2, F: 3 };
+        const gradeRank = { '계약': 0, A: 1, B: 2, C: 3, F: 4 };
 
         const norm = (v) => {
           const s = (v ?? '').toString().trim();
@@ -682,7 +682,7 @@
       // 4) 정렬
       function sortData(rows, field, order) {
         const dir = (order === 'asc') ? 1 : -1;
-        const gradeRank = { A: 0, B: 1, C: 2, F: 3 };
+        const gradeRank = { '계약': 0, A: 1, B: 2, C: 3, F: 4 };
         return [...rows].sort((a, b) => {
           let va, vb;
           switch (field) {
@@ -826,7 +826,7 @@
           <table class="w-[50rem]">
             <thead class="bg-gray-200 text-sm text-gray-700">
               <tr class="text-center">
-                <th class="w-[3rem]  pt-1 pb-1 cursor-pointer" data-field="grade">등급</th>
+                <th class="w-[4rem]  pt-1 pb-1 cursor-pointer" data-field="grade">등급</th>
                 <th class="w-[15rem] pt-1 pb-1 cursor-pointer" data-field="customer_name">고객명</th>
                 <th class="w-[10rem] pt-1 pb-1 cursor-pointer" data-field="phone_last4">고객 전화</th>
                 <th class="w-[6rem]  pt-1 pb-1 cursor-pointer" data-field="registered_at">등록일</th>
@@ -858,7 +858,7 @@
               <div class="ml-5 mt-1">구분:</div>
               <select id="customer-grade"
                       class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base">
-                <option>A</option><option>B</option><option>C</option><option>F</option>
+                <option>계약</option><option>A</option><option>B</option><option>C</option><option>F</option>
               </select>
             </div>
             <input id="customer-phone" placeholder="전화번호"
