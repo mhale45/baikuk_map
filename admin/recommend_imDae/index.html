@@ -1000,8 +1000,10 @@
         return;
       }
 
-      // A/B/C/F만 표시 (F는 아래에서 접은 상태로 렌더)
-      const filteredCustomers = customers.filter(c => ['A', 'B', 'C', 'F'].includes((c.grade || '').toUpperCase()));
+      // 계약/A/B/C/F만 표시 (F는 아래에서 접은 상태로 렌더)
+      const filteredCustomers = customers.filter(c =>
+        ['계약', 'A', 'B', 'C', 'F'].includes((c.grade || '').toUpperCase())
+      );
 
       // 등급 그룹핑
       const grouped = filteredCustomers.reduce((acc, c) => {
