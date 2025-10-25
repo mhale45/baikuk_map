@@ -757,79 +757,16 @@
             cid = inserted.id;
           }
 
-          // 2) 담당자 연결 '부분 업데이트' (필요한 변경만 수행)
-          const { data: existingLinks, error: linkSelErr } = await supabase
-            .from('customer_assignees')
-            .select('id, staff_profiles_id, is_primary')
-            .eq('customer_id', cid);
+          // 2) 담당자 연결 재작성(간단·명확): 전체 삭제 → 새로 삽입
+          const { error: delErr } = await supabase.from('customer_assignees').delete().eq('customer_id', cid);
+          if (delErr) { console.error(delErr); return showToast('담당자 연결 초기화 실패'); }
 
-          if (linkSelErr) {
-            console.error(linkSelErr);
-            return showToast('담당자 연결 조회 실패');
-          }
-
-          const wantPrimary   = id1 || null;
-          const wantSecondary = id2 || null;
-
-          const links = existingLinks || [];
-          let existingPrimary = links.find(l => l.is_primary === true) || null;
-          const existingSecondaries = links.filter(l => l.is_primary !== true); // 비대표(보조)들
-
-          // (A) 대표 담당자 처리
-          if (existingPrimary) {
-            if (!wantPrimary) {
-              // 대표를 없애려는 경우 → 해당 행만 삭제
-              const { error } = await supabase.from('customer_assignees')
-                .delete().eq('id', existingPrimary.id);
-              if (error) { console.error(error); return showToast('대표 담당자 삭제 실패'); }
-            } else if (String(existingPrimary.staff_profiles_id) !== String(wantPrimary)) {
-              // 대표가 바뀐 경우 → 해당 행만 업데이트
-              const { error } = await supabase.from('customer_assignees')
-                .update({ staff_profiles_id: wantPrimary })
-                .eq('id', existingPrimary.id);
-              if (error) { console.error(error); return showToast('대표 담당자 변경 실패'); }
-            }
-          } else {
-            // 기존 대표가 없는데 대표를 지정하려는 경우 → 삽입
-            if (wantPrimary) {
-              const { error } = await supabase.from('customer_assignees').insert({
-                customer_id: cid, staff_profiles_id: wantPrimary, is_primary: true
-              });
-              if (error) { console.error(error); return showToast('대표 담당자 추가 실패'); }
-            }
-          }
-
-          // (B) 보조 담당자 처리 (시스템상 1명만 허용한다고 가정)
-          const existingSecondary = existingSecondaries[0] || null;
-
-          // 보조가 2개 이상이면 초과분 정리
-          if (existingSecondaries.length > 1) {
-            const extraIds = existingSecondaries.slice(1).map(x => x.id);
-            const { error } = await supabase.from('customer_assignees').delete().in('id', extraIds);
-            if (error) { console.error(error); return showToast('보조 담당자 정리 실패'); }
-          }
-
-          if (existingSecondary) {
-            if (!wantSecondary) {
-              // 보조를 없애려는 경우 → 해당 행만 삭제
-              const { error } = await supabase.from('customer_assignees')
-                .delete().eq('id', existingSecondary.id);
-              if (error) { console.error(error); return showToast('보조 담당자 삭제 실패'); }
-            } else if (String(existingSecondary.staff_profiles_id) !== String(wantSecondary)) {
-              // 보조가 바뀐 경우 → 해당 행만 업데이트
-              const { error } = await supabase.from('customer_assignees')
-                .update({ staff_profiles_id: wantSecondary })
-                .eq('id', existingSecondary.id);
-              if (error) { console.error(error); return showToast('보조 담당자 변경 실패'); }
-            }
-          } else {
-            // 기존 보조가 없는데 새 보조 지정 → 삽입
-            if (wantSecondary) {
-              const { error } = await supabase.from('customer_assignees').insert({
-                customer_id: cid, staff_profiles_id: wantSecondary, is_primary: false
-              });
-              if (error) { console.error(error); return showToast('보조 담당자 추가 실패'); }
-            }
+          const rowsToInsert = [];
+          if (id1) rowsToInsert.push({ customer_id: cid, staff_profiles_id: id1, is_primary: true  });
+          if (id2) rowsToInsert.push({ customer_id: cid, staff_profiles_id: id2, is_primary: false });
+          if (rowsToInsert.length) {
+            const { error: linkErr } = await supabase.from('customer_assignees').insert(rowsToInsert);
+            if (linkErr) { console.error(linkErr); return showToast('담당자 연결 저장 실패'); }
           }
 
           const msg = selectedCustomerId ? '기존 고객 정보 수정 완료' : '신규 고객 저장 완료';
