@@ -1586,20 +1586,11 @@
 
       syncRowHeights?.();
 
-      // ✅ 전체선택 대상 제한: 매물번호/매물정보만
+      // ✅ 전체선택: '매물번호'만 (왼쪽 input[data-index])
       document.addEventListener('focusin', (e) => {
         const t = e.target;
-
-        // 고객정보(이름/전화/메모)는 제외
-        const isCustomerField = t.matches('#top-row-input, #customer-phone, #memo-textarea');
-        if (isCustomerField) return;
-
-        // 매물번호(왼쪽) OR 매물정보(오른쪽 data-field가 있는 input/textarea)만 허용
-        const isListingNumber = t.matches('input[data-index]');
-        const isListingField  = t.matches('input[data-field], textarea[data-field]');
-
-        if (isListingNumber || isListingField) {
-          // iOS/Safari 일부 이슈 방지용 setTimeout
+        if (t.matches('input[data-index]')) {
+          // iOS/Safari 일부 이슈 방지용
           setTimeout(() => {
             try { t.select(); } catch (_) {}
           }, 0);
