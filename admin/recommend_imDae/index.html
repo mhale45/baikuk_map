@@ -866,7 +866,7 @@
           else el.value = value ?? '';
         };
 
-        setField('listing_title', cleanListingTitle(listing.listing_title));
+        setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
 
@@ -1402,7 +1402,7 @@
       // 3. 표시할 데이터 정리
       const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
       const dataToDisplay = {
-        listing_title: cleanListingTitle(listing.listing_title), // 👈 여기!
+        listing_title: listing.listing_title,
         full_address: listing.full_address,
         combined_unit: combinedUnit,
         deposit_price: listing.deposit_price,
