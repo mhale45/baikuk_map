@@ -111,19 +111,7 @@
     .name-item:hover {
       background-color: #fef9c3; /* hover:bg-yellow-100 */
     }
-    /* ====== 단어(띄어쓰기) 기준 줄바꿈 ======
-     - word-break: keep-all  → 단어 중간(영문/숫자)을 쪼개지 않음
-     - white-space: normal   → 일반적인 줄바꿈 규칙 사용
-     - textarea에서는 개행 보존을 위해 pre-wrap 사용
-    */
-    .word-wrap {
-      white-space: normal;
-      word-break: keep-all;
-    }
-    .textarea-word-wrap {
-      white-space: pre-wrap;
-      word-break: keep-all;
-    }
+
   </style>
   <style>
     /* 테이블 전체 + 셀 테두리 */
@@ -1251,7 +1239,7 @@
           ) {
             inputEl = document.createElement('textarea');
             inputEl.rows = 2;
-            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none textarea-word-wrap';
+            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
           } else {
             inputEl = document.createElement('input');
             inputEl.type = 'text';
@@ -1277,7 +1265,7 @@
           const field = el.dataset.field;
 
           const span = document.createElement('span');
-          span.className = 'text-base block word-wrap';
+          span.className = 'text-base block whitespace-pre-wrap';
           span.dataset.field = field;
           span.textContent = value;
 
@@ -1312,10 +1300,10 @@
         row.innerHTML = `
           <td class="p-1 border text-center">${i}</td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none textarea-word-wrap" data-field="listing_title_${i}"></textarea>
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none textarea-word-wrap" data-field="full_address_${i}"></textarea>
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
           </td>
           <td class="p-1 border text-center">
             <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
@@ -1330,7 +1318,7 @@
             <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none textarea-word-wrap" data-field="description_${i}"></textarea>
+            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
           </td>
         `;
 
