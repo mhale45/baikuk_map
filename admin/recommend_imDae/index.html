@@ -188,7 +188,6 @@
         <div class="text-left text-base rounded outline-none resize-none">
           <!-- [ADD] 매물 패널 상단: 최신 업데이트 표시줄 -->
           <div class="flex items-center gap-2 text-sm mb-2">
-            <span class="text-gray-500">최신 업데이트</span>
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
           <textarea
@@ -497,7 +496,7 @@
       try {
         const maemulAt = await getLatestUpdateISO('매물장');   // ← 요구사항: 매물장만
         meta.textContent = maemulAt
-          ? `최신 업데이트: ${formatDate(maemulAt)} (매물장)`
+          ? `최신 업데이트: ${formatDate(maemulAt)}`
           : '최신 업데이트 기록이 없습니다';
       } catch {
         meta.textContent = '최신 업데이트 기록이 없습니다';
