@@ -186,6 +186,11 @@
     <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
       <div class="mt-[2rem] flex px-3 bg-gray-100">
         <div class="text-left text-base rounded outline-none resize-none">
+          <!-- [ADD] 매물 패널 상단: 최신 업데이트 표시줄 -->
+          <div class="flex items-center gap-2 text-sm mb-2">
+            <span class="text-gray-500">최신 업데이트</span>
+            <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
+          </div>
           <textarea
             placeholder="고객이름"
             class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none"

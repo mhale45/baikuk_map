@@ -211,9 +211,9 @@
                 <option>계약</option>
               </select>
             </div>
-            <input id="customer-phone" placeholder="전화번호" class="w-[13rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+            <input id="customer-phone" placeholder="전화번호" class="w-[10rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
           </div>
-          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[20rem] h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
           <div class="mb-2 text-right flex gap-2 justify-end">
@@ -271,14 +271,11 @@
                     <th class="resizable" style="width: 1.4rem;">
                       <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 10rem;">
+                    <th class="resizable" style="width: 20rem;">
                       매물명 <div class="resize-handle"></div>
                     </th>
                     <th class="resizable" style="width: 9rem;">
                       주소 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 9rem;">
-                      건물정보 <div class="resize-handle"></div>
                     </th>
                     <th class="resizable" style="width: 5.2rem;">
                       보증금 <div class="resize-handle"></div>
@@ -868,7 +865,6 @@
 
         setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
-        setField('combined_unit', listing.building_detail_info);
 
         // 🔹 숫자 포맷 적용 (콤마 표시)
         setField('deposit_price', formatKoreanMoney(listing.deposit_price));
@@ -1198,9 +1194,6 @@
             <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="combined_unit_${i}"></textarea>
-          </td>
-          <td class="p-1 border text-center">
             <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
           </td>
           <td class="p-1 border text-center">
@@ -1349,7 +1342,7 @@
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
-        'listing_title', 'full_address', 'combined_unit',
+        'listing_title', 'full_address',
         'deposit_price', 'monthly_rent', 'premium_price', 'area_py', 'description'
       ];
 
@@ -1513,7 +1506,6 @@
             const dupes = {
               listing_title: getFieldValue('listing_title', dupeIndex),
               full_address:  getFieldValue('full_address',  dupeIndex),
-              combined_unit: getFieldValue('combined_unit', dupeIndex),
               description:   getFieldValue('description',   dupeIndex),
             };
             setFieldValue('listing_title', rowIndex, dupes.listing_title ?? '');
@@ -1594,20 +1586,11 @@
 
       syncRowHeights?.();
 
-      // ✅ 전체선택 대상 제한: 매물번호/매물정보만
+      // ✅ 전체선택: '매물번호'만 (왼쪽 input[data-index])
       document.addEventListener('focusin', (e) => {
         const t = e.target;
-
-        // 고객정보(이름/전화/메모)는 제외
-        const isCustomerField = t.matches('#top-row-input, #customer-phone, #memo-textarea');
-        if (isCustomerField) return;
-
-        // 매물번호(왼쪽) OR 매물정보(오른쪽 data-field가 있는 input/textarea)만 허용
-        const isListingNumber = t.matches('input[data-index]');
-        const isListingField  = t.matches('input[data-field], textarea[data-field]');
-
-        if (isListingNumber || isListingField) {
-          // iOS/Safari 일부 이슈 방지용 setTimeout
+        if (t.matches('input[data-index]')) {
+          // iOS/Safari 일부 이슈 방지용
           setTimeout(() => {
             try { t.select(); } catch (_) {}
           }, 0);
