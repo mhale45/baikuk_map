@@ -186,7 +186,7 @@
     <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
       <div class="mt-[2rem] flex px-3 bg-gray-100">
         <div class="text-left text-base rounded outline-none resize-none">
-          <!-- [ADD] 매물 패널 상단: 최신 업데이트 표시줄 -->
+          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
           <div class="flex items-center gap-2 text-sm mb-2">
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
@@ -395,7 +395,7 @@
     let listingsBody;          // tbody 캐시
     let rowObserver;           // ResizeObserver 인스턴스
 
-    // === [ADD] '최신 업데이트(매물장)' 표기 유틸 ===
+    // === [ADD] '업데이트(매물장)' 표기 유틸 ===
     // ISO 또는 Date → "YYYY. M. D. HH:mm" (KST)
     function formatDate(input) {
       const d = (input instanceof Date) ? input : new Date(input);
@@ -496,10 +496,10 @@
       try {
         const maemulAt = await getLatestUpdateISO('매물장');   // ← 요구사항: 매물장만
         meta.textContent = maemulAt
-          ? `최신 업데이트: ${formatDate(maemulAt)}`
-          : '최신 업데이트 기록이 없습니다';
+          ? `업데이트: ${formatDate(maemulAt)}`
+          : '업데이트 기록이 없습니다';
       } catch {
-        meta.textContent = '최신 업데이트 기록이 없습니다';
+        meta.textContent = '업데이트 기록이 없습니다';
       }
     }
 
