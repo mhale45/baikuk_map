@@ -133,7 +133,7 @@
     
     /* 단어 기준 줄바꿈 설정 */
     td, th, textarea, span[data-field] {
-      white-space: normal !important;      /* nowrap 제거 */
+      white-space: pre-wrap !important;
       word-break: keep-all !important;     /* 단어 단위로 줄바꿈 */
       overflow-wrap: break-word !important;/* 너무 긴 단어는 자동 줄바꿈 */
     }
@@ -1272,7 +1272,7 @@
           const field = el.dataset.field;
 
           const span = document.createElement('span');
-          span.className = 'text-base block whitespace-pre-wrap';
+          span.className = 'text-base block whitespace-pre-wrap break-words';
           span.dataset.field = field;
           span.textContent = value;
 
@@ -1535,7 +1535,7 @@
             const field = el.dataset.field;
 
             const span = document.createElement('span');
-            span.className = 'text-base block whitespace-pre-wrap';
+            span.className = 'text-base block whitespace-pre-wrap break-words';
             span.dataset.field = field;
             span.textContent = value;
 
