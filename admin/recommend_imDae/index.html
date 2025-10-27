@@ -277,9 +277,6 @@
                     <th class="resizable" style="width: 9rem;">
                       주소 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 9rem;">
-                      건물정보 <div class="resize-handle"></div>
-                    </th>
                     <th class="resizable" style="width: 5.2rem;">
                       보증금 <div class="resize-handle"></div>
                     </th>
@@ -868,7 +865,6 @@
 
         setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
-        setField('combined_unit', listing.building_detail_info);
 
         // 🔹 숫자 포맷 적용 (콤마 표시)
         setField('deposit_price', formatKoreanMoney(listing.deposit_price));
@@ -1198,9 +1194,6 @@
             <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="combined_unit_${i}"></textarea>
-          </td>
-          <td class="p-1 border text-center">
             <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
           </td>
           <td class="p-1 border text-center">
@@ -1349,7 +1342,7 @@
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
-        'listing_title', 'full_address', 'combined_unit',
+        'listing_title', 'full_address',
         'deposit_price', 'monthly_rent', 'premium_price', 'area_py', 'description'
       ];
 
@@ -1513,7 +1506,6 @@
             const dupes = {
               listing_title: getFieldValue('listing_title', dupeIndex),
               full_address:  getFieldValue('full_address',  dupeIndex),
-              combined_unit: getFieldValue('combined_unit', dupeIndex),
               description:   getFieldValue('description',   dupeIndex),
             };
             setFieldValue('listing_title', rowIndex, dupes.listing_title ?? '');

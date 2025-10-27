@@ -527,6 +527,22 @@
       return (el.value || '').trim();
     }
 
+    // ✅ 공통 세터
+    function setFieldValue(field, index, value) {
+      const el = document.querySelector(`[data-field="${field}_${index}"]`);
+      if (!el) return;
+      if (el.tagName === 'SPAN') el.textContent = value ?? '';
+      else el.value = value ?? '';
+    }
+
+    // ✅ 특정 필드들만 다른 행에서 복사해오기
+    function copyFieldsFromRow(srcIndex, destIndex, fields) {
+      fields.forEach((f) => {
+        const v = getFieldValue(f, srcIndex);
+        if (v) setFieldValue(f, destIndex, v);
+      });
+    }
+
     // ✅ 왼쪽 매물번호 input에서 번호 읽기
     function getListingNumber(index) {
       const input = document.querySelector(`input[data-index="${index}"]`);
@@ -850,7 +866,7 @@
           else el.value = value ?? '';
         };
 
-        setField('listing_title', cleanListingTitle(listing.listing_title));
+        setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
         setField('combined_unit', listing.building_detail_info);
 
@@ -1386,7 +1402,7 @@
       // 3. 표시할 데이터 정리
       const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
       const dataToDisplay = {
-        listing_title: cleanListingTitle(listing.listing_title), // 👈 여기!
+        listing_title: listing.listing_title,
         full_address: listing.full_address,
         combined_unit: combinedUnit,
         deposit_price: listing.deposit_price,
@@ -1467,30 +1483,47 @@
       document.querySelectorAll('input[data-index]').forEach(input => {
         const index = parseInt(input.dataset.index, 10);
 
-        // 공통 처리: 입력값에 따라 조회 + (중복이면) '내용' 복사
+        // 공통 처리: 입력값에 따라 조회
+        // - 빈칸: 행 초기화
+        // - 중복: 기존행에서 4개(매물명/주소/건물정보/내용) 복사
+        // - 비중복: ⚠ 무조건 '내용' 먼저 비우고 → DB 값 반영
         const handleListingInput = async (rowIndex, rawValue) => {
           const value = (rawValue || '').trim();
+
           if (value === '') {
             clearListingRow(rowIndex);
+            const inputEl = document.querySelector(`input[data-index="${rowIndex}"]`);
+            if (inputEl) inputEl.dataset.prev = ''; // (선택) 이전 번호 기록 초기화
             return;
           }
 
           // 동일 매물번호 기존 행 찾기 (본인 행 제외)
           const dupeIndex = findRowIndexByListingNumber(value, rowIndex);
-          let dupeDesc = null;
-          if (dupeIndex) {
-            dupeDesc = getDescriptionValue(dupeIndex);
+
+          // ✅ 비중복이면 '내용'을 항상 먼저 비움(최초 입력 포함)
+          if (!dupeIndex) {
+            setFieldValue('description', rowIndex, '');
           }
 
-          // 먼저 DB에서 매물정보 채우기
+          // DB에서 매물정보 채우기(보증금/월세/권리금/평수 등 최신값)
           await fetchListingInfo(value, rowIndex);
 
-          // 만약 중복 매물번호가 있었다면, DB에서 채워진 값과 무관하게 '내용'은 기존 행과 동일하게 맞춰줌
-          if (dupeDesc) {
-            setDescriptionValue(rowIndex, dupeDesc);
+          // ✅ 중복이면 기존 행에서 4개 필드 덮어쓰기
+          if (dupeIndex) {
+            const dupes = {
+              listing_title: getFieldValue('listing_title', dupeIndex),
+              full_address:  getFieldValue('full_address',  dupeIndex),
+              combined_unit: getFieldValue('combined_unit', dupeIndex),
+              description:   getFieldValue('description',   dupeIndex),
+            };
+            setFieldValue('listing_title', rowIndex, dupes.listing_title ?? '');
+            setFieldValue('full_address',  rowIndex, dupes.full_address  ?? '');
+            setFieldValue('combined_unit', rowIndex, dupes.combined_unit ?? '');
+            setFieldValue('description',   rowIndex, dupes.description   ?? '');
+            showToast('기존 행에서 매물명/주소/건물정보/내용을 복사했습니다.');
           }
         };
-
+    
         // 단일 변경
         input.addEventListener('change', async (e) => {
           await handleListingInput(index, e.target.value);
