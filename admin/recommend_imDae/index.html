@@ -527,6 +527,22 @@
       return (el.value || '').trim();
     }
 
+    // ✅ 공통 세터
+    function setFieldValue(field, index, value) {
+      const el = document.querySelector(`[data-field="${field}_${index}"]`);
+      if (!el) return;
+      if (el.tagName === 'SPAN') el.textContent = value ?? '';
+      else el.value = value ?? '';
+    }
+
+    // ✅ 특정 필드들만 다른 행에서 복사해오기
+    function copyFieldsFromRow(srcIndex, destIndex, fields) {
+      fields.forEach((f) => {
+        const v = getFieldValue(f, srcIndex);
+        if (v) setFieldValue(f, destIndex, v);
+      });
+    }
+
     // ✅ 왼쪽 매물번호 input에서 번호 읽기
     function getListingNumber(index) {
       const input = document.querySelector(`input[data-index="${index}"]`);
@@ -1467,7 +1483,7 @@
       document.querySelectorAll('input[data-index]').forEach(input => {
         const index = parseInt(input.dataset.index, 10);
 
-        // 공통 처리: 입력값에 따라 조회 + (중복이면) '내용' 복사
+        // 공통 처리: 입력값에 따라 조회 + (중복이면) 4개 필드(매물명/주소/건물정보/내용) 복사
         const handleListingInput = async (rowIndex, rawValue) => {
           const value = (rawValue || '').trim();
           if (value === '') {
@@ -1477,20 +1493,29 @@
 
           // 동일 매물번호 기존 행 찾기 (본인 행 제외)
           const dupeIndex = findRowIndexByListingNumber(value, rowIndex);
-          let dupeDesc = null;
+          let dupes = null;
           if (dupeIndex) {
-            dupeDesc = getDescriptionValue(dupeIndex);
+            dupes = {
+              listing_title: getFieldValue('listing_title', dupeIndex),
+              full_address:  getFieldValue('full_address',  dupeIndex),
+              combined_unit: getFieldValue('combined_unit', dupeIndex),
+              description:   getFieldValue('description',   dupeIndex),
+            };
           }
 
-          // 먼저 DB에서 매물정보 채우기
+          // 먼저 DB에서 매물정보 채우기(보증금/월세/권리금/평수 등은 여기서 최신값 반영)
           await fetchListingInfo(value, rowIndex);
 
-          // 만약 중복 매물번호가 있었다면, DB에서 채워진 값과 무관하게 '내용'은 기존 행과 동일하게 맞춰줌
-          if (dupeDesc) {
-            setDescriptionValue(rowIndex, dupeDesc);
+          // 중복이었으면 4개 필드를 기존 행 값으로 덮어쓰기
+          if (dupes) {
+            setFieldValue('listing_title', rowIndex, dupes.listing_title ?? '');
+            setFieldValue('full_address',  rowIndex, dupes.full_address  ?? '');
+            setFieldValue('combined_unit', rowIndex, dupes.combined_unit ?? '');
+            setFieldValue('description',   rowIndex, dupes.description   ?? '');
+            showToast('기존 행에서 매물명/주소/건물정보/내용을 복사했습니다.');
           }
         };
-
+        
         // 단일 변경
         input.addEventListener('change', async (e) => {
           await handleListingInput(index, e.target.value);
