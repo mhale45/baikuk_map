@@ -496,7 +496,7 @@
       try {
         const maemulAt = await getLatestUpdateISO('매물장');   // ← 요구사항: 매물장만
         meta.textContent = maemulAt
-          ? `매물정보 업데이트: ${formatDate(maemulAt)}`
+          ? `매물정보 업데이트 :  ${formatDate(maemulAt)}`
           : '매물정보 업데이트 기록이 없습니다';
       } catch {
         meta.textContent = '매물정보 업데이트 기록이 없습니다';
