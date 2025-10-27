@@ -131,11 +131,11 @@
       font-size: 0.875rem; /* text-sm */
     }
     
-    /* 단어 기준 줄바꿈 설정 */
+    /* 단어 + 줄바꿈 기준 줄바꿈 설정 */
     td, th, textarea, span[data-field] {
-      white-space: normal !important;      /* nowrap 제거 */
-      word-break: keep-all !important;     /* 단어 단위로 줄바꿈 */
-      overflow-wrap: break-word !important;/* 너무 긴 단어는 자동 줄바꿈 */
+      white-space: pre-wrap !important;       /* 기존 줄바꿈(\n) 유지하면서 자동 줄바꿈 */
+      word-break: keep-all !important;        /* 단어 단위로 줄바꿈 */
+      overflow-wrap: break-word !important;   /* 너무 긴 단어는 자동 줄바꿈 */
     }
 
     /* 헤더 스타일 */
