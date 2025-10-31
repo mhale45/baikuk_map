@@ -841,6 +841,12 @@
     function applyRowStatusColor(tr, row) {
       if (!row?.balance_date) return;
 
+      // [NEW] 확정이면 무조건 흰색 우선
+      if (row.status === true || row.status === 'true') {
+        tr.style.backgroundColor = 'white';
+        return;
+      }
+
       // YYYY-MM-DD → 로컬 자정 Date
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(row.balance_date);
       if (!m) return;
@@ -850,19 +856,18 @@
       const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 오늘 00:00
       const diffDays = Math.floor((bd - today0) / 86400000); // 잔금일까지 남은 '정수' 일수
 
-      // zebra-stripe(짝수행 회색)보다 우선 적용되도록 inline style 사용
+      // [COLOR RULE]
+      // - diffDays > 2 : 연한 초록
+      // - 0 ≤ diffDays ≤ 2 : 진한 초록
+      // - diffDays < 0 : 빨강
       if (diffDays > 2) {
-        tr.style.backgroundColor = '#f0fdf4'; // bg-green-50
-        tr.title = '잔금일이 아직 도래하지 않았습니다.';
+        tr.style.backgroundColor = '#f0fdf4'; // 옅은 초록
       } else if (diffDays >= 0) {
-        tr.style.backgroundColor = '#bbf7d0'; // bg-green-200
-        tr.title = '잔금일이 2일 이내로 남았습니다.';
-      } else if (!row.status) {
-        tr.style.backgroundColor = '#fecaca'; // bg-red-200
-        tr.title = '잔금일이 지났지만 매출이 확정되지 않았습니다.';
+        tr.style.backgroundColor = '#bbf7d0'; // 진한 초록
+      } else {
+        tr.style.backgroundColor = '#fecaca'; // 연한 빨강
       }
     }
-
 
     // === 매출확정: status=true 업데이트 + 폼 잠금 ===
     document.getElementById('f_status')?.addEventListener('click', async () => {
