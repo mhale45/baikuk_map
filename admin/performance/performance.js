@@ -646,7 +646,7 @@ export function updateSalesTotal() {
   const total = computeSalesTotalForCurrentContext();
 
   // UI 문구와 맞춰 표기
-  el.textContent = '관여매출 합계: ' + formatNumberWithCommas(total) + '원';
+  el.textContent = '매출 합계: ' + formatNumberWithCommas(total) + '원';
 
   // 분해(줄돈/받을돈)는 index.html의 __updateSalesTotalFromIndex가 담당
   try { window.__updateSalesTotalFromIndex?.(); } catch {}
