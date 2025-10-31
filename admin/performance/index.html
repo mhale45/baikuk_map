@@ -184,8 +184,10 @@
           <div class="flex items-end gap-2">
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
-            <span id="salesTotal" class="ml-8 font-semibold text-base">관여매출 합계: 0원</span>
-            <span id="depositAmount" class="ml-6 font-semibold text-base">입금액: 0원</span>
+            <div class="ml-8 flex flex-col items-start leading-tight">
+              <span id="salesTotal" class="font-semibold text-base">관여매출 합계: 0원</span>
+              <span id="depositAmount" class="mt-1 font-semibold text-base">입금액: 0원</span>
+            </div>
             <span id="branchBreakdown" class="ml-6 text-sm text-gray-700"></span>
           </div>
         </div>
