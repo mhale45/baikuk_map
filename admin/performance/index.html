@@ -858,7 +858,7 @@
         // 금액 내림차순 정렬
         const items = [...map.entries()].sort((a,b) => b[1]-a[1]);
         const body = items.map(([aff, v]) => `${aff}: ${fmt(v)}원`).join(' · ');
-        el.textContent = `${title}: ${body}`;
+        el.textContent = `${title}>> ${body}`;
       };
 
       // 표시
@@ -1070,7 +1070,7 @@
         const total = parseWonNumber(salesTotalEl.textContent);
         const deposit = Math.max(0, Math.round(total * 0.4835));
         // formatNumberWithCommas는 상단 import로 이미 존재
-        depositEl.textContent = `입금액>> ${formatNumberWithCommas(deposit)}원`;
+        depositEl.textContent = `입금액: ${formatNumberWithCommas(deposit)}원`;
       };
 
       // 초기 1회 계산
