@@ -640,25 +640,16 @@ function computeTransfersByAff(rows, baseAff) {
 
 export function updateSalesTotal() {
   const el = document.getElementById('salesTotal');
-  const bd = document.getElementById('branchBreakdown');
-  if (!el || !bd) return;
+  if (!el) return;
 
-  const rows = window.__RENDERED_ROWS || [];
+  const rows  = window.__RENDERED_ROWS || [];
   const total = computeSalesTotalForCurrentContext();
-  el.textContent = '합계: ' + formatNumberWithCommas(total) + '원';
 
-  bd.innerHTML = '';
-  bd.className = 'flex flex-wrap gap-x-8 gap-y-2 ml-8 text-base font-medium';
+  // UI 문구와 맞춰 표기
+  el.textContent = '관여매출 합계: ' + formatNumberWithCommas(total) + '원';
 
-  const baseAff = window.__selectedAffiliation || '';
-  if (baseAff) {
-    const transfers = computeTransfersByAff(rows, baseAff);
-    for (const [aff, sum] of [...transfers.entries()].sort((a,b)=>b[1]-a[1])) {
-      const span = document.createElement('span');
-      span.textContent = `${aff}: ${formatNumberWithCommas(sum)}원`;
-      bd.appendChild(span);
-    }
-  }
+  // 분해(줄돈/받을돈)는 index.html의 __updateSalesTotalFromIndex가 담당
+  try { window.__updateSalesTotalFromIndex?.(); } catch {}
 }
 
 /** 지점별 금액 합계 계산 */
