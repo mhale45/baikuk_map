@@ -11,8 +11,13 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 // ==== 호환용 no-op (index.html이 호출하므로 인터페이스만 유지) ====
 export function registerPerformanceRenderer(fn) { /* no-op (index.html에서 자체 사용) */ }
 export function setPerformanceRows(rows) {
-  // 렌더에 사용한 원본 rows를 전역 저장 (합계 계산에서 사용)
-  window.__PERF_ROWS = Array.isArray(rows) ? rows : [];
+  const arr = Array.isArray(rows) ? rows : [];
+  // 합계 계산 로직이 읽는 키를 함께 갱신
+  window.__RENDERED_ROWS = arr;   // <- 합계 계산용 (computeSalesTotalForCurrentContext 등)
+  window.__PERF_ROWS     = arr;   // <- 과거 호환용
+
+  // 화면에 이미 합계를 표시 중이면 즉시 갱신
+  try { if (typeof updateSalesTotal === 'function') updateSalesTotal(); } catch {}
 }
 
 // ==== 직원 이름 맵 ====
@@ -33,6 +38,18 @@ export async function ensureStaffNameMap() {
       STAFF_NAME_BY_ID.set(id, name);
       STAFF_AFF_BY_ID.set(id, affiliation || '');
     });
+    // ---- [추가] 전역(Window)으로도 노출해서 다른 함수들이 동일 맵을 보도록 ----
+    window.STAFF_NAME_BY_ID = STAFF_NAME_BY_ID;
+    window.STAFF_AFF_BY_ID  = STAFF_AFF_BY_ID;
+
+    // ---- [추가] 지점별 직원 ID 캐시 (__AFFIL_STAFF_IDS) 생성 ----
+    const byAff = {};
+    for (const [sid, aff] of STAFF_AFF_BY_ID.entries()) {
+      const k = String(aff || '');
+      if (!byAff[k]) byAff[k] = new Set();
+      byAff[k].add(String(sid));
+    }
+    window.__AFFIL_STAFF_IDS = byAff;
   }
 }
 
@@ -569,7 +586,17 @@ export function computeSalesTotalForCurrentContext() {
 
   // 2) 지점 선택 시: 해당 지점 소속 직원들만 합산
   if (typeof window.__selectedAffiliation !== 'undefined' && window.__selectedAffiliation) {
-    const set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[window.__selectedAffiliation]) || null;
+    let set = (window.__AFFIL_STAFF_IDS && window.__AFFIL_STAFF_IDS[window.__selectedAffiliation]) || null;
+    if (!set || set.size === 0) {
+      // 캐시가 비어 있으면 STAFF_AFF_BY_ID로 즉시 구성
+      set = new Set();
+      const targetAff = String(window.__selectedAffiliation || '');
+      if (typeof STAFF_AFF_BY_ID?.forEach === 'function') {
+        STAFF_AFF_BY_ID.forEach((aff, sid) => { if (String(aff) === targetAff) set.add(String(sid)); });
+      } else if (typeof window.STAFF_AFF_BY_ID?.forEach === 'function') {
+        window.STAFF_AFF_BY_ID.forEach((aff, sid) => { if (String(aff) === targetAff) set.add(String(sid)); });
+      }
+    }
     if (!set || set.size === 0) return 0;
     return sumForStaffIds(rows, set);
   }
@@ -648,7 +675,7 @@ function computeBranchBreakdown(rows) {
       if (!sid) continue;
 
       // staff id → affiliation 찾기
-      const aff = window.STAFF_AFF_BY_ID?.get(sid);
+      const aff = (STAFF_AFF_BY_ID?.get?.(sid)) ?? (window.STAFF_AFF_BY_ID?.get?.(sid));
       if (!aff) continue;
 
       const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
