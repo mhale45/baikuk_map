@@ -866,50 +866,6 @@
       renderBD(recvByAff, '받을돈', $rvBD);    // 출처 지점별 (타지점 담당지점)
     };
 
-    // === 직원 선택시에만 '입금액' 표시 (매출합계 ÷ 2 후 3.3% 차감) ===
-    // - 직원 클릭:   window.__selectedStaffId  에 값이 있고, __selectedAffiliation 는 null
-    // - 지점 클릭:   window.__selectedAffiliation 에 값이 있으므로 숨김
-    window.updateDepositVisibility = function updateDepositVisibility() {
-      const $label = document.getElementById('depositAmount');
-      if (!$label) return;
-
-      const staffId = window.__selectedStaffId || null;
-      const aff     = window.__selectedAffiliation || null;
-
-      // 지점명이 선택되어 있으면 숨김
-      if (aff) {
-        $label.classList.add('hidden');
-        $label.textContent = '입금액: 0원';
-        return;
-      }
-
-      // 직원이 선택된 경우에만 계산/표시
-      if (staffId) {
-        // sumForStaffIds([id])는 선택된 직원의 현재 컨텍스트(기간/필터) 내 매출 합계를 반환
-        // (이미 index.html 상단에서 import 되어 있음)
-        let total = 0;
-        try {
-          total = typeof sumForStaffIds === 'function'
-            ? Number(sumForStaffIds([String(staffId)]) || 0)
-            : 0;
-        } catch (e) {
-          console.warn('sumForStaffIds 호출 오류:', e);
-        }
-
-        // 매출합계 ÷ 2 → 3.3% 차감
-        const result = Math.max(0, Math.round(total * 0.5 * (1 - 0.033)));
-
-        // 포맷터도 이미 import 되어 있으므로 그대로 사용
-        const fmt = (n) => new Intl.NumberFormat('ko-KR').format(n);
-        $label.textContent = `입금액: ${fmt(result)}원`;
-        $label.classList.remove('hidden');
-      } else {
-        // 직원도 지점도 선택 안 된 경우 숨김
-        $label.classList.add('hidden');
-        $label.textContent = '입금액: 0원';
-      }
-    };
-
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
       const drawer = document.getElementById('sales-drawer');
@@ -1074,12 +1030,21 @@
     }
 
     // === [ADD] 입금액 표시/숨김 제어 ===
-    // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고, 그 외(지점 보기/전체 보기)는 숨김
+    // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고,
+    // 지점 보기(__selectedAffiliation)일 때는 숨김
     function updateDepositVisibility() {
       const el = document.getElementById('depositAmount');
       if (!el) return;
-      const show = !!window.__selectedStaffId;
-      el.style.display = show ? '' : 'none';
+
+      const show = !!window.__selectedStaffId && !window.__selectedAffiliation;
+
+      // hidden 클래스로 제어( Tailwind 'hidden' = display:none )
+      el.classList.toggle('hidden', !show);
+
+      // 보이게 될 때 현재 매출합계 기준으로 즉시 재계산/반영
+      if (show) {
+        window.__recalcDepositAmountFromSalesTotal?.();
+      }
     }
     // 전역 훅으로 노출 + 초기 1회 적용
     window.updateDepositVisibility = updateDepositVisibility;
