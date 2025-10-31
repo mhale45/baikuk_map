@@ -8,18 +8,6 @@ import {
 } from '../../../modules/core/format.js';
 import { waitForSupabase } from '../../../modules/core/supabase.js';
 
-// ==== 호환용 no-op (index.html이 호출하므로 인터페이스만 유지) ====
-export function registerPerformanceRenderer(fn) { /* no-op (index.html에서 자체 사용) */ }
-export function setPerformanceRows(rows) {
-  const arr = Array.isArray(rows) ? rows : [];
-  // 합계 계산 로직이 읽는 키를 함께 갱신
-  window.__RENDERED_ROWS = arr;   // <- 합계 계산용 (computeSalesTotalForCurrentContext 등)
-  window.__PERF_ROWS     = arr;   // <- 과거 호환용
-
-  // 화면에 이미 합계를 표시 중이면 즉시 갱신
-  try { if (typeof updateSalesTotal === 'function') updateSalesTotal(); } catch {}
-}
-
 // ==== 직원 이름 맵 ====
 export const STAFF_NAME_BY_ID = new Map();
 export const STAFF_AFF_BY_ID  = new Map();
@@ -68,26 +56,6 @@ export function updateHighlight() {
   const mark = (el, text) => { if (!el) return; el.textContent = text; el.classList.replace("text-gray-600","text-red-600"); };
   if (type === "월세") { mark(depositLabel, "보증금*"); mark(monthlyLabel, "월세*"); }
   else if (type === "매매") { mark(saleLabel, "매매가*"); }
-}
-
-// ==== 표 셀 블록 빌더 (index.html에서 사용) ====
-export function buildPriceBlock(row) {
-  const parts = [];
-  const pushIf = (label, v) => { const n = Number(v || 0); if (n > 0) parts.push(`${label} ${formatNumberWithCommas(n)}`); };
-  pushIf('매매가',  row.sale_price);
-  pushIf('보증금',  row.deposit_price);
-  pushIf('월세',    row.monthly_rent);
-  pushIf('권리금',  row.premium_price);
-  return parts.join('<br>');
-}
-export function buildDateBlock(row) {
-  const parts = [];
-  if (row.contract_date) parts.push(`계약 ${row.contract_date}`);
-  if (row.interim_payment1_date) parts.push(`중도금1 ${row.interim_payment1_date}`);
-  if (row.interim_payment2_date) parts.push(`중도금2 ${row.interim_payment2_date}`);
-  if (row.interim_payment3_date) parts.push(`중도금3 ${row.interim_payment3_date}`);
-  if (row.balance_date) parts.push(`잔금 ${row.balance_date}`);
-  return parts.join('<br>');
 }
 
 // ==== 직원 선택 박스 채우기 ====

@@ -184,7 +184,7 @@
           <div class="flex items-end gap-2">
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
-            <span id="salesTotal" class="font-semibold text-base">관여매출 합계: 0원</span>
+            <span id="salesTotal" class="font-semibold text-base">매출 합계: 0원</span>
             <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
               <div id="branchBreakdownPay"  class="whitespace-pre"></div>
               <div id="branchBreakdownRecv" class="whitespace-pre"></div>
@@ -787,12 +787,9 @@
       const $rvBD  = document.getElementById('branchBreakdownRecv');
 
       const fmt = (n) => new Intl.NumberFormat('ko-KR').format(Math.round(n));
-      const setText = (el, label, n) => { if (el) el.textContent = `${label}: ${fmt(n)}원`; };
 
       // 지점 미선택 상태면 0/빈 브레이크다운
       if (!currentAff) {
-        setText($pay,  '입금해줘야 할 금액', 0);
-        setText($recv, '입금받아야 할 금액', 0);
         if ($payBD) $payBD.textContent = '';
         if ($rvBD)  $rvBD.textContent  = '';
         return;
@@ -849,10 +846,6 @@
           }
         }
       }
-
-      // 상단 두 줄 합계
-      setText($pay,  '입금해줘야 할 금액', toPay);
-      setText($recv, '입금받아야 할 금액', toReceive);
 
       // 브레이크다운 렌더러
       const renderBD = (map, title, el) => {
