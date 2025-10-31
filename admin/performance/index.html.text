@@ -184,11 +184,11 @@
           <div class="flex items-end gap-2">
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
-            <div class="ml-8 flex flex-col items-start leading-tight">
-              <span id="salesTotal" class="font-semibold text-base">관여매출 합계: 0원</span>
-              <span id="depositAmount" class="mt-1 font-semibold text-base">입금액: 0원</span>
+            <span id="salesTotal" class="font-semibold text-base">관여매출 합계: 0원</span>
+            <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
+              <div id="branchBreakdownPay"  class="whitespace-pre"></div>
+              <div id="branchBreakdownRecv" class="whitespace-pre"></div>
             </div>
-            <span id="branchBreakdown" class="ml-6 text-sm text-gray-700"></span>
           </div>
         </div>
         <!-- [/ADD] -->
@@ -514,29 +514,11 @@
       STAFF_NAME_BY_ID,
     } from './performance.js';
     import {
-      updateSalesTotal,
-      computeSalesTotalForCurrentContext,
-      sumForStaffIds,
-      registerPerformanceRenderer,
-      setPerformanceRows,
-      enforceComputedReadOnly,
-      initSalesLocationSelects,
-      fetchAllPCD,
-      createAllocationItem,
-      resetForm,
-      collectAllocationPayloadRow,
-      collectPerformancePayload,
-      enableAutoGrowTextArea,
-      validateTotalWeight,
-      updateHighlight,
-      calculateDownPaymentAndBalance,
-      ensureStaffNameMap,
-      calculateFees,
-      recalcPerformanceFromFees,
-      populateAllStaffSelects,
-      buildDateBlock,
-      buildPriceBlock,
-      populateAffiliationSelect,
+      updateSalesTotal, computeSalesTotalForCurrentContext, sumForStaffIds,
+      registerPerformanceRenderer, setPerformanceRows, enforceComputedReadOnly, initSalesLocationSelects, fetchAllPCD, createAllocationItem, resetForm,
+      collectAllocationPayloadRow, collectPerformancePayload, enableAutoGrowTextArea, validateTotalWeight, updateHighlight,
+      calculateDownPaymentAndBalance, ensureStaffNameMap, calculateFees, recalcPerformanceFromFees,
+      populateAllStaffSelects, buildDateBlock, buildPriceBlock, populateAffiliationSelect,STAFF_AFF_BY_ID
     } from './performance.js';
 
     window.updateHighlight = updateHighlight;
@@ -792,7 +774,104 @@
     window.__selectedAffiliation = null; // ← [ADD] 왼쪽 패널에서 선택한 지점(affiliation). null이면 지점 필터 해제
     // [FIX] 지점(affiliation) -> 해당 직원 ID Set 캐시 (window 전역과 동기화)
     const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {});
-    
+
+    // 지점 기준 합계 업데이트: 
+    //  - 입금해줘야 할 금액(pay):   담당지점 === 현재지점 && 직원소속 !== 현재지점
+    //  - 입금받아야 할 금액(receive): 담당지점 !== 현재지점 && 직원소속 === 현재지점
+    window.__updateSalesTotalFromIndex = async function __updateSalesTotalFromIndex() {
+      const currentAff = window.__selectedAffiliation || null;
+
+      const $pay   = document.getElementById('payAmount');
+      const $recv  = document.getElementById('receiveAmount');
+      const $payBD = document.getElementById('branchBreakdownPay');
+      const $rvBD  = document.getElementById('branchBreakdownRecv');
+
+      const fmt = (n) => new Intl.NumberFormat('ko-KR').format(Math.round(n));
+      const setText = (el, label, n) => { if (el) el.textContent = `${label}: ${fmt(n)}원`; };
+
+      // 지점 미선택 상태면 0/빈 브레이크다운
+      if (!currentAff) {
+        setText($pay,  '입금해줘야 할 금액', 0);
+        setText($recv, '입금받아야 할 금액', 0);
+        if ($payBD) $payBD.textContent = '';
+        if ($rvBD)  $rvBD.textContent  = '';
+        return;
+      }
+
+      // 직원ID → 지점 맵 보장
+      await ensureStaffNameMap();
+
+      const rows = Array.isArray(window.__PERF_ROWS) ? window.__PERF_ROWS : [];
+      let toPay = 0;      // 총 입금해줘야
+      let toReceive = 0;  // 총 입금받아야
+
+      // 지점별 브레이크다운
+      // - payByAff  : 우리가 입금해줘야 하는 대상 지점(= 타지점 직원의 소속)
+      // - recvByAff : 우리가 입금받아야 하는 출처 지점(= 타지점 담당지점)
+      const payByAff  = new Map();
+      const recvByAff = new Map();
+
+      for (const row of rows) {
+        const perfAff = (row?.affiliation || '').trim();
+
+        // allocations: 중첩/납작 모두 처리
+        const pa = Array.isArray(row?.performance_allocations)
+          ? row.performance_allocations[0]
+          : row?.performance_allocations;
+
+        if (!pa) continue;
+
+        for (let i = 1; i <= 4; i++) {
+          const sid = pa[`staff_id${i}`];
+          if (!sid) continue;
+
+          const buyerAmt  = Number(pa[`buyer_amount${i}`]  || 0);
+          const sellerAmt = Number(pa[`seller_amount${i}`] || 0);
+          const savedInv  = pa[`involvement_sales${i}`];
+
+          const amt = typeof savedInv === 'number' && !Number.isNaN(savedInv)
+            ? Number(savedInv)
+            : (buyerAmt + sellerAmt);
+          if (amt <= 0) continue;
+
+          const staffAff = (STAFF_AFF_BY_ID.get(String(sid)) || '').trim();
+          if (!staffAff) continue;
+
+          // 규칙 1) 우리 담당건 + 타지점 직원 → 우리가 '입금해줘야' (대상: staffAff)
+          if (perfAff === currentAff && staffAff !== currentAff) {
+            toPay += amt;
+            payByAff.set(staffAff, (payByAff.get(staffAff) || 0) + amt);
+          }
+          // 규칙 2) 타지점 담당건 + 우리 직원 → 우리가 '입금받아야' (출처: perfAff)
+          else if (perfAff !== currentAff && staffAff === currentAff) {
+            toReceive += amt;
+            recvByAff.set(perfAff, (recvByAff.get(perfAff) || 0) + amt);
+          }
+        }
+      }
+
+      // 상단 두 줄 합계
+      setText($pay,  '입금해줘야 할 금액', toPay);
+      setText($recv, '입금받아야 할 금액', toReceive);
+
+      // 브레이크다운 렌더러
+      const renderBD = (map, title, el) => {
+        if (!el) return;
+        if (!map || map.size === 0) {
+          el.textContent = `${title}: -`;
+          return;
+        }
+        // 금액 내림차순 정렬
+        const items = [...map.entries()].sort((a,b) => b[1]-a[1]);
+        const body = items.map(([aff, v]) => `${aff}: ${fmt(v)}원`).join(' · ');
+        el.textContent = `${title}: ${body}`;
+      };
+
+      // 표시
+      renderBD(payByAff,  '줄돈',  $payBD);   // 대상 지점별 (타지점 직원 소속)
+      renderBD(recvByAff, '받을돈', $rvBD);    // 출처 지점별 (타지점 담당지점)
+    };
+
     // === [ADD] 폼 편집 가능/불가 토글 ===
     function setFormEditable(enabled) {
       const drawer = document.getElementById('sales-drawer');
@@ -955,9 +1034,6 @@
       overlay.classList.add('hidden');
       currentPerformanceId = null;
     }
-
-    // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
-    window.__updateSalesTotalFromIndex = updateSalesTotal;
 
     // === [ADD] 입금액 표시/숨김 제어 ===
     // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고, 그 외(지점 보기/전체 보기)는 숨김
@@ -1261,6 +1337,7 @@
           });
           // [ADD] 합계 갱신
           updateSalesTotal();
+          window.__updateSalesTotalFromIndex?.();
         }
 
         // [ADD] 원본 데이터 보관 + 렌더러 등록
@@ -1271,6 +1348,7 @@
         renderPerformanceTable(data || []);
         // [ADD] 첫 화면 합계 갱신
         updateSalesTotal();
+        window.__updateSalesTotalFromIndex?.();
 
         // [ADD] 필터에서 사용할 원본/렌더러 보관
         window.__PERF_ROWS   = data || [];

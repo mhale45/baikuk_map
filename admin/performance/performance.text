@@ -10,7 +10,10 @@ import { waitForSupabase } from '../../../modules/core/supabase.js';
 
 // ==== 호환용 no-op (index.html이 호출하므로 인터페이스만 유지) ====
 export function registerPerformanceRenderer(fn) { /* no-op (index.html에서 자체 사용) */ }
-export function setPerformanceRows(rows) { /* no-op (index.html에서 자체 보관) */ }
+export function setPerformanceRows(rows) {
+  // 렌더에 사용한 원본 rows를 전역 저장 (합계 계산에서 사용)
+  window.__PERF_ROWS = Array.isArray(rows) ? rows : [];
+}
 
 // ==== 직원 이름 맵 ====
 export const STAFF_NAME_BY_ID = new Map();
