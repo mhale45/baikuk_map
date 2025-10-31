@@ -185,6 +185,7 @@
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
             <span id="salesTotal" class="ml-8 font-semibold text-base">관여매출 합계: 0원</span>
+            <span id="depositAmount" class="ml-6 font-semibold text-base">입금액: 0원</span>
             <span id="branchBreakdown" class="ml-6 text-sm text-gray-700"></span>
           </div>
         </div>
@@ -952,6 +953,40 @@
 
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
+
+    // === [ADD] 관여매출 합계 → 입금액(절반 후 3.3% 공제) 표시 ===
+    // salesTotal 내용이 변할 때 자동으로 우측의 '입금액:'을 갱신해준다.
+    // (updateSalesTotal 직접 수정 없이 MutationObserver로 감지)
+    (function setupDepositAmountMirror() {
+      const salesTotalEl = document.getElementById('salesTotal');
+      const depositEl = document.getElementById('depositAmount');
+      if (!salesTotalEl || !depositEl) return;
+
+      // "관여매출 합계: 12,345원" → 12345
+      const parseWonNumber = (text) => {
+        const m = String(text || '').match(/([\d,]+)/);
+        return m ? Number(m[1].replace(/,/g, '')) : 0;
+        // 숫자 없으면 0 처리
+      };
+
+      // 합계의 절반에서 3.3% 공제 = 합계 × 0.5 × (1 - 0.033) = 합계 × 0.4835
+      const recalcAndRender = () => {
+        const total = parseWonNumber(salesTotalEl.textContent);
+        const deposit = Math.max(0, Math.round(total * 0.4835));
+        // formatNumberWithCommas는 상단 import로 이미 존재
+        depositEl.textContent = `입금액: ${formatNumberWithCommas(deposit)}원`;
+      };
+
+      // 초기 1회 계산
+      recalcAndRender();
+
+      // salesTotal 텍스트 변화를 감지해서 자동 재계산
+      const mo = new MutationObserver(recalcAndRender);
+      mo.observe(salesTotalEl, { childList: true, characterData: true, subtree: true });
+
+      // 필요 시 외부에서 강제 호출용 훅
+      window.__recalcDepositAmountFromSalesTotal = recalcAndRender;
+    })();
 
     // [ADD] UI 날짜 필터 읽기
     function readDateFilter() {
