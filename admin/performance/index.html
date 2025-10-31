@@ -185,6 +185,7 @@
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
             <span id="salesTotal" class="font-semibold text-base">매출 합계: 0원</span>
+            <span id="depositAmount" class="font-semibold text-base ml-4 hidden">입금액: 0원</span>
             <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
               <div id="branchBreakdownPay"  class="whitespace-pre"></div>
               <div id="branchBreakdownRecv" class="whitespace-pre"></div>
@@ -863,6 +864,50 @@
       // 표시
       renderBD(payByAff,  '줄돈',  $payBD);   // 대상 지점별 (타지점 직원 소속)
       renderBD(recvByAff, '받을돈', $rvBD);    // 출처 지점별 (타지점 담당지점)
+    };
+
+    // === 직원 선택시에만 '입금액' 표시 (매출합계 ÷ 2 후 3.3% 차감) ===
+    // - 직원 클릭:   window.__selectedStaffId  에 값이 있고, __selectedAffiliation 는 null
+    // - 지점 클릭:   window.__selectedAffiliation 에 값이 있으므로 숨김
+    window.updateDepositVisibility = function updateDepositVisibility() {
+      const $label = document.getElementById('depositAmount');
+      if (!$label) return;
+
+      const staffId = window.__selectedStaffId || null;
+      const aff     = window.__selectedAffiliation || null;
+
+      // 지점명이 선택되어 있으면 숨김
+      if (aff) {
+        $label.classList.add('hidden');
+        $label.textContent = '입금액: 0원';
+        return;
+      }
+
+      // 직원이 선택된 경우에만 계산/표시
+      if (staffId) {
+        // sumForStaffIds([id])는 선택된 직원의 현재 컨텍스트(기간/필터) 내 매출 합계를 반환
+        // (이미 index.html 상단에서 import 되어 있음)
+        let total = 0;
+        try {
+          total = typeof sumForStaffIds === 'function'
+            ? Number(sumForStaffIds([String(staffId)]) || 0)
+            : 0;
+        } catch (e) {
+          console.warn('sumForStaffIds 호출 오류:', e);
+        }
+
+        // 매출합계 ÷ 2 → 3.3% 차감
+        const result = Math.max(0, Math.round(total * 0.5 * (1 - 0.033)));
+
+        // 포맷터도 이미 import 되어 있으므로 그대로 사용
+        const fmt = (n) => new Intl.NumberFormat('ko-KR').format(n);
+        $label.textContent = `입금액: ${fmt(result)}원`;
+        $label.classList.remove('hidden');
+      } else {
+        // 직원도 지점도 선택 안 된 경우 숨김
+        $label.classList.add('hidden');
+        $label.textContent = '입금액: 0원';
+      }
     };
 
     // === [ADD] 폼 편집 가능/불가 토글 ===
