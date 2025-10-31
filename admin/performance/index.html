@@ -1006,9 +1006,6 @@
       currentPerformanceId = null;
     }
 
-    // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
-    window.__updateSalesTotalFromIndex = updateSalesTotal;
-
     // === [ADD] 입금액 표시/숨김 제어 ===
     // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고, 그 외(지점 보기/전체 보기)는 숨김
     function updateDepositVisibility() {
