@@ -652,6 +652,7 @@
             }
             Promise.resolve(loadPerformanceTable()).then(() => {
               window.__updateSalesTotalFromIndex?.();
+              window.updateDepositVisibility?.();
             });
           });
         } else {
@@ -729,6 +730,7 @@
         // 테이블 갱신 + 합계 즉시 갱신
         Promise.resolve(loadPerformanceTable()).then(() => {
           window.__updateSalesTotalFromIndex?.();
+          window.updateDepositVisibility?.();
         });
       }
       container.addEventListener('click', (e) => {
@@ -901,6 +903,7 @@
 
         // 리스트 새로고침 (현재 행의 status 반영)
         await loadPerformanceTable();
+        window.updateDepositVisibility?.();
       } catch (e) {
         console.error(e);
         showToastGreenRed('예상치 못한 오류가 발생했습니다.');
@@ -955,6 +958,18 @@
 
     // [ADD] performance.js가 합계를 갱신해달라고 위임할 때 사용할 전역 훅
     window.__updateSalesTotalFromIndex = updateSalesTotal;
+
+    // === [ADD] 입금액 표시/숨김 제어 ===
+    // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고, 그 외(지점 보기/전체 보기)는 숨김
+    function updateDepositVisibility() {
+      const el = document.getElementById('depositAmount');
+      if (!el) return;
+      const show = !!window.__selectedStaffId;
+      el.style.display = show ? '' : 'none';
+    }
+    // 전역 훅으로 노출 + 초기 1회 적용
+    window.updateDepositVisibility = updateDepositVisibility;
+    updateDepositVisibility();
 
     // === [ADD] 관여매출 합계 → 입금액(절반 후 3.3% 공제) 표시 ===
     // salesTotal 내용이 변할 때 자동으로 우측의 '입금액:'을 갱신해준다.
@@ -1303,6 +1318,7 @@
             // 날짜는 readDateFilter()로 loadPerformanceTable 내부에서 직접 반영됨
             Promise.resolve(loadPerformanceTable()).then(() => {
               window.__updateSalesTotalFromIndex?.();
+              window.updateDepositVisibility?.();
             });
           }
 
