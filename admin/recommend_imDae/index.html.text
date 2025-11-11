@@ -212,7 +212,7 @@
               손님삭제
             </button>
             <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
-              저장
+              손님저장
             </button>
           </div>
           <div class="flex mt-[0.5rem]">
@@ -1284,7 +1284,7 @@
             span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 보이기
             span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
             span.style.overflowWrap = 'break-word';
-            span.style.textAlign = 'cdnter';        // 가운데 정렬 대신 왼쪽 정렬 추천
+            span.style.textAlign = 'center';        // 가운데 정렬 대신 왼쪽 정렬 추천
           } else {
             span.style.whiteSpace = 'normal';
             span.style.textAlign = 'center';
@@ -2485,6 +2485,220 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
+
+    /* ============================================================
+      *  인라인 편집: 셀 클릭 → 그 셀만 입력모드
+      *  - Enter는 저장 아님(줄바꿈)
+      *  - blur(포커스 이탈) 또는 다른 곳 클릭 시 자동 저장
+      *  - 저장 시 Supabase customers_recommendations 에 upsert
+      * ============================================================ */
+
+      // 현재 편집 중인 입력 엘리먼트 참조
+      let editingCell = null;
+
+      // data-field 접두어 → DB 컬럼 매핑
+      // ※ description_* 은 DB의 contents 컬럼으로 저장
+      const FIELD_TO_DB = {
+        listing_title: 'listing_title',
+        full_address:  'full_address',
+        deposit_price: 'deposit_price',
+        monthly_rent:  'monthly_rent',
+        premium_price: 'premium_price',
+        area_py:       'area_py',
+        description:   'contents',
+      };
+
+      // data-field="xxx_3" 형태 파싱 → { key:"xxx", index:3 }
+      function parseField(fieldName) {
+        const m = String(fieldName || '').match(/^([a-z_]+)_(\d{1,2})$/);
+        if (!m) return null;
+        return { key: m[1], index: Number(m[2]) };
+      }
+
+      // 왼쪽 매물번호 input값을 인덱스로 가져오기 (숫자만)
+      function getListingNumberByIndex(index) {
+        const inp = document.querySelector(`input[data-index="${index}"]`);
+        if (!inp || !inp.value) return null;
+        const num = Number(String(inp.value).replace(/[^\d]/g, ''));
+        return Number.isNaN(num) ? null : num;
+      }
+
+      // "1억 2,000", "12,000" 등 → number | null
+      function toNumberOrNull(v) {
+        if (v === undefined || v === null) return null;
+        const s = String(v).trim();
+        if (!s) return null;
+
+        // 콤마 제거
+        let t = s.replace(/,/g, '');
+
+        // 간단 억 표기 지원 ("1억" 또는 "1억 2000")
+        const m = t.match(/^(\d+)\s*억(?:\s*(\d+))?$/);
+        if (m) {
+          const eok = Number(m[1]);
+          const rest = Number(m[2] || 0);
+          if (!Number.isNaN(eok) && !Number.isNaN(rest)) {
+            return eok * 10000 + rest; // '만원' 단위일 때
+          }
+        }
+
+        const n = Number(t);
+        return Number.isNaN(n) ? null : n;
+      }
+
+      // 셀(span[data-field])을 input/textarea 로 교체하여 편집 시작
+      function makeCellEditable(spanEl) {
+        if (!spanEl) return;
+        if (editingCell === spanEl) return;  // 이미 편집중이면 무시
+
+        // 다른 셀 편집중이면 먼저 저장
+        saveAndExitEditMode();
+
+        const field = spanEl.dataset.field;
+        const parsed = parseField(field);
+        if (!parsed) return;
+
+        // 여러 줄 입력이 자연스러운 칸은 textarea 사용
+        const isMultiline =
+          parsed.key === 'listing_title' ||
+          parsed.key === 'full_address'  ||
+          parsed.key === 'description';
+
+        const input = isMultiline ? document.createElement('textarea') : document.createElement('input');
+        input.className =
+          'w-full text-center text-base border border-blue-400 rounded bg-white outline-none' +
+          (isMultiline ? ' resize-none' : '');
+        if (isMultiline) input.rows = 2;
+
+        input.value = spanEl.textContent || '';
+        input.dataset.field = field;
+
+        // ★ Enter는 저장하지 않음(= 줄바꿈). keydown 핸들러 추가 안 함.
+
+        // 포커스 빠지면 저장
+        input.addEventListener('blur', () => {
+          saveAndExitEditMode();
+        });
+
+        // 화면 교체 및 포커스
+        spanEl.replaceWith(input);
+        input.focus();
+        editingCell = input;
+      }
+
+      // 편집 종료 + Supabase 저장
+      async function saveAndExitEditMode() {
+        if (!editingCell) return;
+
+        const value = editingCell.value ?? '';
+        const field = editingCell.dataset.field;
+        const parsed = parseField(field);
+
+        // 화면을 span으로 되돌려 사용자 체감 지연 최소화
+        const span = document.createElement('span');
+        span.className = 'text-base block';
+        span.dataset.field = field;
+        span.textContent = value;
+
+        // 줄바꿈 유지가 자연스러운 칸
+        if (parsed && (parsed.key === 'listing_title' || parsed.key === 'description' || parsed.key === 'full_address')) {
+          span.style.whiteSpace  = 'pre-wrap';
+          span.style.wordBreak   = 'break-word';
+          span.style.overflowWrap = 'break-word';
+        } else {
+          span.style.whiteSpace = 'normal';
+        }
+        span.style.textAlign = 'center';
+
+        // 교체
+        editingCell.replaceWith(span);
+
+        // DB 저장 시도 (비동기)
+        try {
+          await saveCellToSupabase(parsed, value);
+          // 필요 시 토스트 사용: showToast('저장되었습니다.');
+        } catch (err) {
+          console.warn('Supabase 저장 실패:', err);
+          // 필요 시 사용자 알림: showToast('저장 실패');
+        } finally {
+          editingCell = null;
+        }
+      }
+
+      // 실제 Supabase upsert
+      async function saveCellToSupabase(parsed, rawValue) {
+        if (!parsed) return;
+        if (!window.supabase || !window.currentCustomerId) return;
+
+        const { key, index } = parsed;
+        const dbCol = FIELD_TO_DB[key];
+        if (!dbCol) {
+          // DB에 없는 가상필드는 무시 (예: combined_unit 등)
+          return;
+        }
+
+        // 숫자형 칸 전처리
+        let toSave = rawValue;
+        if (['deposit_price', 'monthly_rent', 'premium_price', 'area_py'].includes(key)) {
+          toSave = toNumberOrNull(rawValue);
+        }
+
+        // 같은 행의 매물번호도 함께 보존 (있으면)
+        const listingId = getListingNumberByIndex(index);
+
+        // (customers_id + order) 기준으로 존재 여부 확인
+        const { data: existing, error: selErr } = await window.supabase
+          .from('customers_recommendations')
+          .select('id')
+          .eq('customers_id', String(window.currentCustomerId)) // text 컬럼이므로 문자열 비교
+          .eq('order', index)
+          .maybeSingle();
+
+        if (selErr) throw selErr;
+
+        if (existing?.id) {
+          // UPDATE
+          const payload = { [dbCol]: toSave };
+          if (listingId !== null) payload.listing_id = listingId;
+
+          const { error: updErr } = await window.supabase
+            .from('customers_recommendations')
+            .update(payload)
+            .eq('id', existing.id);
+
+          if (updErr) throw updErr;
+        } else {
+          // INSERT
+          const payload = {
+            customers_id: String(window.currentCustomerId),
+            order: index,
+            [dbCol]: toSave,
+          };
+          if (listingId !== null) payload.listing_id = listingId;
+
+          const { error: insErr } = await window.supabase
+            .from('customers_recommendations')
+            .insert(payload);
+
+          if (insErr) throw insErr;
+        }
+      }
+
+      // 문서 아무 데나 누르면, 편집 중이면 저장 시도 (blur 대비 안전장치)
+      document.addEventListener('pointerdown', function (e) {
+        if (editingCell && !editingCell.contains(e.target)) {
+          saveAndExitEditMode();
+        }
+      });
+
+      // 셀(span[data-field]) 클릭 시, 그 셀만 편집모드로
+      document.addEventListener('click', function (e) {
+        const el = e.target;
+        if (el.matches('span[data-field]')) {
+          makeCellEditable(el);
+          e.stopPropagation();
+        }
+      });
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
