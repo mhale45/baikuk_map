@@ -137,7 +137,11 @@
       word-break: keep-all !important;     /* 단어 단위로 줄바꿈 */
       overflow-wrap: break-word !important;/* 너무 긴 단어는 자동 줄바꿈 */
     }
-
+    td [data-field^="description_"], td [data-field^="listing_title_"] {
+        white-space: pre-wrap !important;
+        word-break: break-word;
+        text-align: center !important;
+      }
     /* 헤더 스타일 */
     thead {
       background-color: #f3f4f6; /* bg-gray-100 */
@@ -207,8 +211,8 @@
             <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
               손님삭제
             </button>
-            <button id="save-new-customer" class="ml-auto h-[2.3rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
-              손님저장
+            <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
+              저장
             </button>
           </div>
           <div class="flex mt-[0.5rem]">
@@ -279,28 +283,28 @@
               <table>
                 <thead>
                   <tr id="header-row">
-                    <th class="resizable" style="width: 1.4rem;">
+                    <th class="resizable" style="width: 1.6rem;">
                       <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 20rem;">
+                    <th class="resizable" style="width: 14rem;">
                       매물명 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 9rem;">
+                    <th class="resizable" style="width: 11rem;">
                       주소 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 5.2rem;">
+                    <th class="resizable" style="width: 5rem;">
                       보증금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 3.8rem;">
+                    <th class="resizable" style="width: 3.5rem;">
                       월세 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 5.2rem;">
+                    <th class="resizable" style="width: 5rem;">
                       권리금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 4.7rem;">
+                    <th class="resizable" style="width: 4.3rem;">
                       전용(평) <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable" style="width: 15rem;">
+                    <th class="resizable" style="width: 13rem;">
                       내용 <div class="resize-handle"></div>
                     </th>
                   </tr>
@@ -1272,10 +1276,21 @@
           const field = el.dataset.field;
 
           const span = document.createElement('span');
-          span.className = 'text-base block whitespace-pre-wrap';
+          span.className = 'text-base block';
           span.dataset.field = field;
-          span.textContent = value;
 
+          // ✅ 매물명과 내용 모두 줄바꿈 유지
+          if (field.startsWith('listing_title_') || field.startsWith('description_')) {
+            span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 보이기
+            span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
+            span.style.overflowWrap = 'break-word';
+            span.style.textAlign = 'cdnter';        // 가운데 정렬 대신 왼쪽 정렬 추천
+          } else {
+            span.style.whiteSpace = 'normal';
+            span.style.textAlign = 'center';
+          }
+
+          span.textContent = value;
           el.parentElement.replaceChild(span, el);
         });
       });
