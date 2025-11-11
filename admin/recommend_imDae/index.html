@@ -137,10 +137,10 @@
       word-break: keep-all !important;     /* 단어 단위로 줄바꿈 */
       overflow-wrap: break-word !important;/* 너무 긴 단어는 자동 줄바꿈 */
     }
-    td [data-field^="description_"] {
-      white-space: pre-wrap !important;
-      word-break: break-word;
-    }
+    td [data-field^="description_"], td [data-field^="listing_title_"] {
+        white-space: pre-wrap !important;
+        word-break: break-word;
+      }
     /* 헤더 스타일 */
     thead {
       background-color: #f3f4f6; /* bg-gray-100 */
@@ -1278,12 +1278,18 @@
           span.className = 'text-base block';
           span.dataset.field = field;
 
-          // ✅ 줄바꿈이 보이도록 설정
-          span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 유지
-          span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
-          span.style.overflowWrap = 'break-word';
-          span.textContent = value;
+          // ✅ 매물명과 내용 모두 줄바꿈 유지
+          if (field.startsWith('listing_title_') || field.startsWith('description_')) {
+            span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 보이기
+            span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
+            span.style.overflowWrap = 'break-word';
+            span.style.textAlign = 'left';        // 가운데 정렬 대신 왼쪽 정렬 추천
+          } else {
+            span.style.whiteSpace = 'normal';
+            span.style.textAlign = 'center';
+          }
 
+          span.textContent = value;
           el.parentElement.replaceChild(span, el);
         });
       });
