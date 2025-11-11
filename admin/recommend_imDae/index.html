@@ -137,7 +137,10 @@
       word-break: keep-all !important;     /* 단어 단위로 줄바꿈 */
       overflow-wrap: break-word !important;/* 너무 긴 단어는 자동 줄바꿈 */
     }
-
+    td [data-field^="description_"] {
+      white-space: pre-wrap !important;
+      word-break: break-word;
+    }
     /* 헤더 스타일 */
     thead {
       background-color: #f3f4f6; /* bg-gray-100 */
