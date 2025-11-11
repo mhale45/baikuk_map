@@ -185,6 +185,7 @@
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">초기화</button>
             <span id="salesTotal" class="font-semibold text-base">매출 합계: 0원</span>
+            <span id="depositAmount" class="font-semibold text-base ml-4 hidden">입금액: 0원</span>
             <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
               <div id="branchBreakdownPay"  class="whitespace-pre"></div>
               <div id="branchBreakdownRecv" class="whitespace-pre"></div>
@@ -851,13 +852,13 @@
       const renderBD = (map, title, el) => {
         if (!el) return;
         if (!map || map.size === 0) {
-          el.textContent = `${title}: -`;
+          el.textContent = `${title}>> -`;
           return;
         }
         // 금액 내림차순 정렬
         const items = [...map.entries()].sort((a,b) => b[1]-a[1]);
         const body = items.map(([aff, v]) => `${aff}: ${fmt(v)}원`).join(' · ');
-        el.textContent = `${title}: ${body}`;
+        el.textContent = `${title}>> ${body}`;
       };
 
       // 표시
@@ -1029,12 +1030,21 @@
     }
 
     // === [ADD] 입금액 표시/숨김 제어 ===
-    // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고, 그 외(지점 보기/전체 보기)는 숨김
+    // 직원 단일 선택(__selectedStaffId)이 있을 때만 보이고,
+    // 지점 보기(__selectedAffiliation)일 때는 숨김
     function updateDepositVisibility() {
       const el = document.getElementById('depositAmount');
       if (!el) return;
-      const show = !!window.__selectedStaffId;
-      el.style.display = show ? '' : 'none';
+
+      const show = !!window.__selectedStaffId && !window.__selectedAffiliation;
+
+      // hidden 클래스로 제어( Tailwind 'hidden' = display:none )
+      el.classList.toggle('hidden', !show);
+
+      // 보이게 될 때 현재 매출합계 기준으로 즉시 재계산/반영
+      if (show) {
+        window.__recalcDepositAmountFromSalesTotal?.();
+      }
     }
     // 전역 훅으로 노출 + 초기 1회 적용
     window.updateDepositVisibility = updateDepositVisibility;
