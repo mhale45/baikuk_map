@@ -1274,8 +1274,11 @@
           const span = document.createElement('span');
           span.className = 'text-base block';
           span.dataset.field = field;
-          span.style.whiteSpace = 'pre-wrap';   // 줄바꿈 보이도록 추가
-          span.style.wordBreak = 'break-word';  // 너무 긴 단어도 자동 줄바꿈
+
+          // ✅ 줄바꿈이 보이도록 설정
+          span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 유지
+          span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
+          span.style.overflowWrap = 'break-word';
           span.textContent = value;
 
           el.parentElement.replaceChild(span, el);
