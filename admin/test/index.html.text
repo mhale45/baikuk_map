@@ -1261,28 +1261,60 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td class="p-1 border text-center">${i}</td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+            <span class="w-full block text-center" data-field="listing_title_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+            <span class="w-full block text-center" data-field="full_address_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+            <span class="w-full block text-center" data-field="deposit_price_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+            <span class="w-full block text-center" data-field="monthly_rent_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+            <span class="w-full block text-center" data-field="premium_price_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+            <span class="w-full block text-center" data-field="area_py_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+            <span class="w-full block text-left whitespace-pre-wrap" data-field="description_${i}"></span>
           </td>
         `;
+
+        // row.innerHTML = `
+        //   <td class="p-1 border text-center">${i}</td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+        //   </td>
+        // `;
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
@@ -1943,6 +1975,125 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
+
+    // ==============================
+    // [셀 클릭 시 개별 셀만 편집 가능하게 하는 코드]
+    // ==============================
+    (function setupInlineCellEdit() {
+      const body = document.getElementById('listings-body');
+      if (!body) return;
+
+      // 어떤 data-field는 textarea, 어떤 건 input으로 쓸지 구분
+      function isMultiLineField(fieldName) {
+        // 매물명 / 주소 / 내용 은 여러 줄 가능
+        return (
+          fieldName.startsWith('listing_title_') ||
+          fieldName.startsWith('full_address_') ||
+          fieldName.startsWith('description_')
+        );
+      }
+
+      function makeCellEditable(span) {
+        // 이미 편집 중이면 또 만들지 않음
+        if (!span || span.dataset.editing === '1') return;
+
+        const fieldKey = span.getAttribute('data-field'); // 예: listing_title_1
+        if (!fieldKey) return;
+
+        span.dataset.editing = '1';
+
+        const originalText = span.textContent || '';
+        const multiline = isMultiLineField(fieldKey);
+
+        // 기존 span 대신 들어갈 편집용 요소 생성
+        let editor;
+        if (multiline) {
+          editor = document.createElement('textarea');
+          editor.rows = 2;
+          editor.className =
+            'w-full box-border text-center text-base border rounded bg-white outline-none resize-none';
+          if (fieldKey.startsWith('description_')) {
+            // 내용은 왼쪽 정렬
+            editor.className =
+              'w-full box-border text-left text-base border rounded bg-white outline-none resize-none';
+          }
+        } else {
+          editor = document.createElement('input');
+          editor.type = 'text';
+          editor.className =
+            'w-full box-border text-center text-base border rounded bg-white outline-none';
+        }
+
+        editor.value = originalText.trim();
+
+        // span 대신 editor 넣기
+        span.replaceWith(editor);
+        editor.focus();
+
+        // 편집 종료 처리 (저장 / 취소 공통)
+        function finishEdit(save) {
+          const newSpan = document.createElement('span');
+          newSpan.setAttribute('data-field', fieldKey);
+
+          // 스타일 유지 (center / left 등)
+          if (multiline) {
+            if (fieldKey.startsWith('description_')) {
+              newSpan.className = 'w-full block text-left whitespace-pre-wrap';
+            } else {
+              newSpan.className = 'w-full block text-center whitespace-pre-wrap';
+            }
+          } else {
+            newSpan.className = 'w-full block text-center';
+          }
+
+          if (save) {
+            newSpan.textContent = editor.value;
+          } else {
+            newSpan.textContent = originalText;
+          }
+
+          delete span.dataset.editing;
+          editor.replaceWith(newSpan);
+        }
+
+        // ✅ 포커스 벗어나면 자동 저장
+        editor.addEventListener('blur', () => {
+          finishEdit(true);
+        });
+
+        // ✅ 키보드 동작
+        editor.addEventListener('keydown', (e) => {
+          // Enter: 저장 후 확정 (textarea는 Ctrl+Enter로 저장)
+          if (!multiline && e.key === 'Enter') {
+            e.preventDefault();
+            editor.blur(); // blur에서 finishEdit(true)호출
+          }
+          if (multiline && e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault();
+            editor.blur();
+          }
+
+          // Esc: 취소 (원래 값으로 복구)
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            finishEdit(false);
+            editor.blur();
+          }
+        });
+      }
+
+      // 테이블 바디에서 이벤트 위임: span[data-field]만 반응
+      body.addEventListener('click', function (e) {
+        let span = e.target.closest('span[data-field]');
+        if (!span) {
+          const td = e.target.closest('td');
+          if (!td) return;
+          span = td.querySelector('span[data-field]');
+          if (!span) return;
+        }
+        makeCellEditable(span);
+      });
+    })();
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
