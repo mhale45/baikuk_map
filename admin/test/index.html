@@ -1009,32 +1009,25 @@
         }
       });
 
-      // 높이/스트라이프 정리
+      // 메모 패널에 50줄 렌더 + 매물별 메모 채우기
       renderMemoPanel(listings);
+
+      // 행 높이/줄무늬 다시 정리
       syncRowHeights?.();
       applyRowStriping?.();
+
       showToast(`고객 "${name}" 데이터 불러옴`);
       setDocumentTitle(name);
 
-      // 🔹 손님(고객 이름)을 클릭해서 매물표를 불러왔을 때는
-      //    항상 "읽기모드 표 형식"으로 보이도록 강제한다.
-      //    (= 입력창/테두리 있는 쓰기모드가 아니라, 텍스트만 있는 표 모양)
-      isEditMode = false;
-
-      if (typeof toggleButton !== 'undefined' && toggleButton) {
-        // 버튼 상태도 "읽기모드" 상태에 맞게 맞춰줌
-        toggleButton.textContent = '수정';
-        toggleButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-        toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
+      // 항상 읽기 모드로 정리
+      if (isEditMode) {
+        toggleButton.click();
+        switchInputsToSpans();
       }
-
-      // 현재 #listings-body 안에 만들어진 textarea/input 들을
-      // 전부 span(읽기용)으로 바꿔서 "표 형식"으로 보이게 한다.
       switchInputsToSpans();
 
-      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
+      // 👉 담당자 텍스트 표시(이미 존재하는 staff-info 박스 사용)
       const staffInfoBox = document.getElementById('staff-info');
-      
       if (customer.staff_profiles_id) {
         const { data: staff } = await supabase
           .from('staff_profiles')
@@ -1242,7 +1235,7 @@
         });
       });      
     }
-
+        
     let buildingMap = new Map();
 
     // 매물번호 입력에 따라 매물정보 표 늘리고 줄이기
@@ -1268,28 +1261,60 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td class="p-1 border text-center">${i}</td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+            <span class="w-full block text-center" data-field="listing_title_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+            <span class="w-full block text-center" data-field="full_address_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+            <span class="w-full block text-center" data-field="deposit_price_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+            <span class="w-full block text-center" data-field="monthly_rent_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+            <span class="w-full block text-center" data-field="premium_price_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+            <span class="w-full block text-center" data-field="area_py_${i}"></span>
           </td>
+
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+            <span class="w-full block text-left whitespace-pre-wrap" data-field="description_${i}"></span>
           </td>
         `;
+
+        // row.innerHTML = `
+        //   <td class="p-1 border text-center">${i}</td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+        //   </td>
+        //   <td class="p-1 border text-center">
+        //     <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+        //   </td>
+        // `;
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
