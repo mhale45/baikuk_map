@@ -937,7 +937,7 @@
 
       currentCustomerId = customer.id;
 
-      // 👉 우측 정보창 채우기
+      // 👉 우측 정보창 채우기 (이름 / 전화 / 등급 / 메모)
       document.getElementById('top-row-input').value = customer.customer_name || '';
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
@@ -950,12 +950,13 @@
       const listingsBody = document.getElementById('listings-body');
       listingsBody.innerHTML = '';
 
-      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
+      // ✅ 추천 매물 목록 불러오기
       const { data: listings, error: listingsError } = await supabase
+        .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
-        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
+        .eq('customers_id', String(currentCustomerId)) // text 컬럼이라 문자열 비교
+        .order('order', { ascending: true, nullsFirst: false })
+        .order('id', { ascending: true });
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -963,14 +964,14 @@
         return;
       }
 
-      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
+      // order 컬럼이 있으면 그 순서에 맞게 행 번호 사용, 없으면 순차 증가
       let nextIndex = 1;
 
       listings.forEach((listing) => {
         // 1) 인덱스 결정
         const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
-          ? listing.order          // order가 있으면 그대로 사용
-          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
+          ? listing.order
+          : nextIndex++;
 
         // 2) 왼쪽 매물번호 채우기
         const leftInput = document.querySelector(`input[data-index="${index}"]`);
@@ -979,7 +980,7 @@
         // 3) 오른쪽 표 행 확보/확장
         updateListingsTableByInputs();
 
-        // 4) 필드 주입
+        // 4) 필드 주입 헬퍼
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
           if (!el) return;
@@ -990,29 +991,42 @@
         setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
 
-        // 🔹 숫자 포맷 적용 (콤마 표시)
+        // 숫자 포맷 적용
         setField('deposit_price', formatKoreanMoney(listing.deposit_price));
         setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
         setField('premium_price', formatKoreanMoney(listing.premium_price));
-        setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
+        setField(
+          'area_py',
+          isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1)
+        );
 
+        // 내용(contents → description)
         setField('description', listing.contents);
 
-        // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
-        //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
+        // nextIndex 보정
         if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
           nextIndex = Math.max(nextIndex, listing.order + 1);
         }
       });
 
-      // 높이/스트라이프 정리
+      // 메모 패널에 50줄 렌더 + 매물별 메모 채우기
       renderMemoPanel(listings);
+
+      // 행 높이/줄무늬 다시 정리
       syncRowHeights?.();
       applyRowStriping?.();
+
       showToast(`고객 "${name}" 데이터 불러옴`);
       setDocumentTitle(name);
 
-      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
+      // 항상 읽기 모드로 정리
+      if (isEditMode) {
+        toggleButton.click();
+        switchInputsToSpans();
+      }
+      switchInputsToSpans();
+
+      // 👉 담당자 텍스트 표시(이미 존재하는 staff-info 박스 사용)
       const staffInfoBox = document.getElementById('staff-info');
       if (customer.staff_profiles_id) {
         const { data: staff } = await supabase
@@ -1027,9 +1041,7 @@
           document.getElementById('staff-select').classList.add('hidden');
         }
       }
-
     }
-
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
     async function loadCustomersForCurrentStaff() {
@@ -1202,6 +1214,7 @@
             nameBtn.setAttribute('role', 'button');
             nameBtn.tabIndex = 0;
 
+            // ✅ 여기서 고객이름 클릭 시 매물/메모 로딩
             nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
             nameBtn.addEventListener('keydown', (e) => {
               if (e.key === 'Enter' || e.key === ' ') {
