@@ -2084,9 +2084,13 @@
 
       // 테이블 바디에서 이벤트 위임: span[data-field]만 반응
       body.addEventListener('click', function (e) {
-        const span = e.target.closest('span[data-field]');
-        if (!span) return;
-
+        let span = e.target.closest('span[data-field]');
+        if (!span) {
+          const td = e.target.closest('td');
+          if (!td) return;
+          span = td.querySelector('span[data-field]');
+          if (!span) return;
+        }
         makeCellEditable(span);
       });
     })();
