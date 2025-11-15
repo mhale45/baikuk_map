@@ -2030,9 +2030,6 @@
         span.replaceWith(editor);
         editor.focus();
 
-        // 전체 선택 (한 번에 덮어쓰기 좋게)
-        editor.select?.();
-
         // 편집 종료 처리 (저장 / 취소 공통)
         function finishEdit(save) {
           const newSpan = document.createElement('span');
