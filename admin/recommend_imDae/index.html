@@ -504,13 +504,40 @@
       const meta = document.getElementById('employee-listings-meta');
       if (!meta) return;
       meta.textContent = '불러오는 중…';
+
       try {
-        const maemulAt = await getLatestUpdateISO('매물장');   // ← 요구사항: 매물장만
-        meta.textContent = maemulAt
-          ? `매물정보 업데이트 :  ${formatDate(maemulAt)}`
-          : '매물정보 업데이트 기록이 없습니다';
+        const maemulAt = await getLatestUpdateISO('매물장');
+
+        if (!maemulAt) {
+          meta.textContent = '매물정보 업데이트 기록이 없습니다';
+          meta.style.color = ''; // 기본색
+          return;
+        }
+
+        // 현재 KST 시간
+        const now = new Date();
+        const nowKST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+
+        // 차이 (밀리초)
+        const diffMs = nowKST - maemulAt;
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        // 기본 표기
+        meta.textContent = `매물정보 업데이트 :  ${formatDate(maemulAt)}`;
+
+        // 1시간 이상 차이 → 빨간색
+        if (diffHours >= 1) {
+          meta.style.color = '#FF4D4D';
+          meta.style.fontWeight = 'bold';
+        } else {
+          // 1시간 미만 → 기본색 (원상복구)
+          meta.style.color = '';
+          meta.style.fontWeight = '';
+        }
+
       } catch {
         meta.textContent = '매물정보 업데이트 기록이 없습니다';
+        meta.style.color = ''; // 기본색
       }
     }
 

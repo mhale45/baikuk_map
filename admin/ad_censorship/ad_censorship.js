@@ -62,6 +62,17 @@ function formatDate(input) {
   return `${y}. ${m}. ${day}. ${hh}:${mm}`;
 }
 
+// [ADD] 시간 차이 계산 유틸
+function diffHours(dateA, dateB) {
+  return Math.abs(dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60);
+}
+
+function wrapRedIf(condition, text) {
+  return condition
+    ? `<span class="text-red-600 font-semibold">${text}</span>`
+    : text;
+}
+
 // [ADD] HTML 이스케이프 유틸 (features 값 안전 출력용)
 function _escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -566,8 +577,22 @@ async function renderStaffSidebar(me) {
               ]);
 
               const parts = [];
-              if (maemulAt) parts.push(`${formatDate(maemulAt)} (매물장)`);
-              if (adAt)     parts.push(`${formatDate(adAt)} (백억광고)`);
+              // now = 현재 KST 기준 시간
+              const now = new Date();
+
+              // 매물장: 1시간 이상 차이 나면 빨간색
+              if (maemulAt) {
+                const diff = diffHours(now, maemulAt);
+                const txt = `${formatDate(maemulAt)} (매물장)`;
+                parts.push(wrapRedIf(diff >= 1, txt));
+              }
+
+              // 백억광고: 24시간 이상 차이 나면 빨간색
+              if (adAt) {
+                const diff = diffHours(now, adAt);
+                const txt = `${formatDate(adAt)} (백억광고)`;
+                parts.push(wrapRedIf(diff >= 24, txt));
+              }
 
               meta.textContent = parts.length
                 ? `최신 업데이트: ${parts.join(' / ')}`
@@ -1061,8 +1086,22 @@ async function renderStaffSidebar(me) {
               ]);
 
               const parts = [];
-              if (maemulAt) parts.push(`${formatDate(maemulAt)} (매물장)`);
-              if (adAt)     parts.push(`${formatDate(adAt)} (백억광고)`);
+              // now = 현재 KST 기준 시간
+              const now = new Date();
+
+              // 매물장: 1시간 이상 차이 나면 빨간색
+              if (maemulAt) {
+                const diff = diffHours(now, maemulAt);
+                const txt = `${formatDate(maemulAt)} (매물장)`;
+                parts.push(wrapRedIf(diff >= 1, txt));
+              }
+
+              // 백억광고: 24시간 이상 차이 나면 빨간색
+              if (adAt) {
+                const diff = diffHours(now, adAt);
+                const txt = `${formatDate(adAt)} (백억광고)`;
+                parts.push(wrapRedIf(diff >= 24, txt));
+              }
 
               meta.textContent = parts.length
                 ? `최신 업데이트: ${parts.join(' / ')}`

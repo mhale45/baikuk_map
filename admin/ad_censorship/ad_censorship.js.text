@@ -346,7 +346,7 @@ async function renderStaffSidebar(me) {
   // 1) 직원 목록 로드 (권한별 재직자 필터)
   let staffQuery = supabase
     .from('staff_profiles')
-    .select('id, name, affiliation, leave_date, ad_channel')
+    .select('id, name, affiliation, leave_date, ad_channel, extension')
     .order('affiliation', { ascending: true })
     .order('name', { ascending: true });
 
@@ -363,9 +363,9 @@ async function renderStaffSidebar(me) {
 
   // 2) 소속별 그룹핑 + 캐시
     const grouped = {};
-    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel }) => {
+    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel, extension  }) => {
         if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date, ad_channel }; // ✅ ad_channel 유지
+        const entry = { id, name, affiliation, leave_date, ad_channel, extension  };
         if (!leave_date) grouped[affiliation].active.push(entry);
         else grouped[affiliation].inactive.push(entry);
 
@@ -442,6 +442,7 @@ async function renderStaffSidebar(me) {
         el.setAttribute('data-staff-id', String(emp.id));
         el.dataset.branch = emp.affiliation || '';
         el.dataset.channel = ch ? ch : ''; // 채널 없으면 공백
+        el.dataset.extension = (emp.extension || '').toString();
 
         // 표기: "이름 (채널)" — 채널 없으면 괄호 생략
         let displayName = dim ? `${emp.name} (퇴사)` : emp.name;
@@ -546,9 +547,11 @@ async function renderStaffSidebar(me) {
 
         try {
             const likeValue = `%${channel}%`;
+            const staffExtRaw = (el.dataset.extension || '');      // ✅ 선택 직원 extension(원문)
+            const staffExtCmp = staffExtRaw.replace(/\s+/g, ''); 
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -595,9 +598,10 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">전화번호</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">해당층</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">총층</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -777,12 +781,15 @@ async function renderStaffSidebar(me) {
                 const num = Number(cleaned);
 
                 if (!isNaN(num)) {
-                  if (num < 2) {
+                  if (num < 1) {
                     maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
+                  } else if (num < 2) {
+                    maintenanceLabel = '<span class="font-semibold">관리비 체크</span>';
                   } else {
-                    maintenanceLabel = num.toLocaleString();
-                  }
-                } else {
+                      maintenanceLabel = num.toLocaleString();
+                    }
+                }
+                else {
                   maintenanceLabel = '-';
                 }
               }
@@ -813,6 +820,23 @@ async function renderStaffSidebar(me) {
                 }
               }
 
+              // === [전화번호] 표시 ===
+              // 규칙:
+              //  - ad_baikuk_listings.contact_number(광고 원문)과 staff_profiles.extension(선택 직원) 비교
+              //  - 비교 시 공백 제거
+              //  - 둘 다 값이 있고 서로 다르면 '불일치'(빨강)
+              //  - 그 외에는 광고 contact_number 원문을 그대로 표시, 값 없으면 '-'
+              const contactRaw = row.contact_number ?? '';
+              const contactCmp = String(contactRaw).replace(/\s+/g, '');
+              let phoneCell = '-';
+              if (contactCmp && staffExtCmp) {
+                phoneCell = (contactCmp === staffExtCmp)
+                  ? '-'
+                  : '<span class="text-red-600 font-semibold">불일치</span>';
+              } else if (contactCmp) {
+                phoneCell = String(contactRaw);
+              }
+
               // 매물특징 표시 정책 확장
               // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
               // - 정상(값 존재) → '-'
@@ -827,9 +851,9 @@ async function renderStaffSidebar(me) {
               // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
               if (premiumPrice === 0 && rawFeat.includes('완비')) {
                 if (featuresLabel.includes('미노출')) {
-                  featuresLabel += '<br><span class="text-red-600 font-semibold">시설체크</span>';
+                  featuresLabel += '<br><span class="font-semibold">시설체크</span>';
                 } else {
-                  featuresLabel = '<span class="text-red-600 font-semibold">시설체크</span>';
+                  featuresLabel = '<span class="font-semibold">시설체크</span>';
                 }
               }
 
@@ -857,86 +881,85 @@ async function renderStaffSidebar(me) {
                 ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
                 : baseMonthlyOut;
 
-              // === 정렬 우선순위 계산 (요청하신 항목 순서대로 '조건별 분해 키') ===
+              // === 정렬 우선순위 계산 (요청 순서 그대로) ===
 
               // 1) 매물번호 '-'
-              const pr_descDash = (descId === '-') ? 0 : 1;
+              const descPriority = (descId === '-') ? 0 : 1;
 
               // 2) 매물명 '-'
-              const pr_titleDash = (title === '-') ? 0 : 1;
+              const titlePriority = (title === '-') ? 0 : 1;
 
-              // 3~6) 거래상태
+              // 3) 거래상태: '-', '0', '계약완료', '보류', 기타
               const s = (statusDisplay || '').toString().trim();
-              const pr_statusDash        = (s === '-') ? 0 : 1;                     // 3) '-'
-              const pr_statusZero        = (s === '0') ? 0 : 1;                      // 4) '0'
-              const pr_statusContract    = s.includes('계약완료') ? 0 : 1;           // 5) '계약완료' 포함
-              const pr_statusHold        = s.includes('보류') ? 0 : 1;               // 6) '보류' 포함
+              let statusPriority = 99;
+              if (s === '-') statusPriority = 0;
+              else if (s === '0') statusPriority = 1;
+              else if (s.includes('계약완료')) statusPriority = 2;
+              else if (s.includes('보류')) statusPriority = 3;
+              else statusPriority = 4;
 
-              // 7) 매매가: '매매가 확인' 포함
-              const pr_saleCheck = String(salePriceLabel).includes('매매가 확인') ? 0 : 1;
+              // 4) 매매가: '매매가 확인' 포함 우선
+              const salePriority = (String(salePriceLabel).includes('매매가 확인')) ? 0 : 1;
 
-              // 8~10) 보증금
-              const pr_depositCheck  = String(depositOut).includes('보증금 확인') ? 0 : 1; // 8)
-              const pr_depositDetail = String(depositOut).includes('상세설명') ? 0 : 1;    // 9)
-              const pr_depositDash   = (depositOut === '-') ? 0 : 1;                       // 10)
+              // 5) 보증금: '보증금 확인' → '상세설명' → 기타
+              let depositPriority = 2;
+              if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
+              else if (String(depositOut).includes('상세설명')) depositPriority = 1;
 
-              // 11~13) 월세
-              const pr_monthlyDash   = (monthlyOut === '-') ? 0 : 1;                        // 11)
-              const pr_monthlyCheck  = String(monthlyOut).includes('월세 확인') ? 0 : 1;    // 12)
-              const pr_monthlyDetail = String(monthlyOut).includes('상세설명') ? 0 : 1;     // 13)
+              // 6) 월세: '월세 확인' → '상세설명' → 기타
+              let monthlyPriority = 2;
+              if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 0;
+              else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 1;
 
-              // 14) 권리금: '권리금 없음' 포함
-              const pr_premiumNone   = String(premiumLabel).includes('권리금 없음') ? 0 : 1;
+              // 7) 권리금: '권리금 없음' 우선
+              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
 
-              // 15~16) 면적
-              const pr_areaCheck     = String(areaCell).includes('면적 확인') ? 0 : 1;      // 15)
-              const pr_areaDetail    = String(areaCell).includes('상세설명') ? 0 : 1;       // 16)
+              // 8) 면적: '면적 확인' → '상세설명' → 기타
+              let areaPriority = 2;
+              if (String(areaCell).includes('면적 확인')) areaPriority = 0;
+              else if (String(areaCell).includes('상세설명')) areaPriority = 1;
 
-              // 17) 융자금: '융자금 없음' 포함
-              const pr_loanNone      = String(loanLabel).includes('융자금 없음') ? 0 : 1;
+              // 9) 융자금: '융자금 없음' 우선
+              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 18) 관리비: '관리비 체크' 포함
-              const pr_maintCheck    = String(maintenanceLabel).includes('관리비 체크') ? 0 : 1;
+              // 10) 관리비: '관리비 체크' 포함 우선
+              const manageFeePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
 
-              // 19) 화장실: '화장실 확인' 포함
-              const pr_restroomCheck = String(restroomLabel).includes('화장실 확인') ? 0 : 1;
+              // 11) 화장실: '화장실 확인' 포함 우선
+              const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
 
-              // 20~21) 매물특징
-              const pr_featNoExpose  = String(featuresLabel).includes('미노출') ? 0 : 1;    // 20)
-              const pr_featFacility  = String(featuresLabel).includes('시설체크') ? 0 : 1;  // 21)
+              // 12) 전화번호: '불일치' 포함 우선
+              const phonePriority = (String(phoneCell).includes('불일치')) ? 0 : 1;
 
-              // 22) 해당층: '해당층 확인' 포함
-              const pr_floorCheck    = String(floorCell).includes('해당층 확인') ? 0 : 1;
+              // 13) 매물특징: '미노출' → '시설체크' → 기타
+              let featuresPriority = 2;
+              if (String(featuresLabel).includes('미노출')) featuresPriority = 0;
+              else if (String(featuresLabel).includes('시설체크')) featuresPriority = 1;
 
-              // 23) 총층: '총층 확인' 포함
-              const pr_totalCheck    = String(totalFloorCell).includes('총층 확인') ? 0 : 1;
+              // 14) 해당층: '해당층 확인' 포함 우선
+              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
 
-              // === 최종 sortKey (위 순서 그대로) ===
+              // 15) 총층: '총층 확인' 포함 우선
+              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+
+              // 최종 sortKey: 요청 조건 순서대로
               const sortKey = [
-                pr_descDash,        // 1) 매물번호 '-'
-                pr_titleDash,       // 2) 매물명 '-'
-                pr_statusDash,      // 3) 거래상태 '-'
-                pr_statusZero,      // 4) 거래상태 '0'
-                pr_statusContract,  // 5) 거래상태 '계약완료' 포함
-                pr_statusHold,      // 6) 거래상태 '보류' 포함
-                pr_saleCheck,       // 7) 매매가 '매매가 확인' 포함
-                pr_depositCheck,    // 8) 보증금 '보증금 확인' 포함
-                pr_depositDetail,   // 9) 보증금 '상세설명' 포함
-                pr_depositDash,     // 10) 보증금 '-'
-                pr_monthlyDash,     // 11) 월세 '-'
-                pr_monthlyCheck,    // 12) 월세 '월세 확인' 포함
-                pr_monthlyDetail,   // 13) 월세 '상세설명' 포함
-                pr_premiumNone,     // 14) 권리금 '권리금 없음' 포함
-                pr_areaCheck,       // 15) 면적 '면적 확인' 포함
-                pr_areaDetail,      // 16) 면적 '상세설명' 포함
-                pr_loanNone,        // 17) 융자금 '융자금 없음' 포함
-                pr_maintCheck,      // 18) 관리비 '관리비 체크' 포함
-                pr_restroomCheck,   // 19) 화장실 '화장실 확인' 포함
-                pr_featNoExpose,    // 20) 매물특징 '미노출' 포함
-                pr_featFacility,    // 21) 매물특징 '시설체크' 포함
-                pr_floorCheck,      // 22) 해당층 '해당층 확인' 포함
-                pr_totalCheck,      // 23) 총층 '총층 확인' 포함
-                idx                 // 안정 정렬
+                descPriority,
+                titlePriority,
+                statusPriority,
+                salePriority,
+                depositPriority,
+                monthlyPriority,
+                premiumPriority,
+                areaPriority,
+                loanPriority,
+                manageFeePriority,
+                restroomPriority,
+                phonePriority,
+                featuresPriority,
+                floorPriority,
+                totalFloorPriority,
+                idx // 안정정렬
               ];
 
               return {
@@ -956,6 +979,7 @@ async function renderStaffSidebar(me) {
                 restroomLabel,
                 featuresLabel,
                 salePriceLabel,
+                phoneCell,
                 sortKey
               };
             });
@@ -1021,9 +1045,10 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.phoneCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
-                <td class="border border-gray-300 px-3 py-1">${item.featuresLabel}</td>
               `;
               tbody.appendChild(tr);
             });
@@ -1084,7 +1109,7 @@ export async function initAdCensorship() {
     await waitForSupabase();
     const { data } = await supabase.auth.getSession();
     if (!data?.session) {
-      location.replace('https://baikuk.com/map');
+      location.replace('https://baikuk-map.netlify.app/admin/listings/');
       return;
     }
   } catch (e) {
