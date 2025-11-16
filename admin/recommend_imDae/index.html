@@ -1845,119 +1845,15 @@
     const toggleButton = document.getElementById('toggle-edit-btn');
     let isEditMode = false;
 
-    // === '손님저장'을 '수정→저장'과 동일 로직으로 실행 ===
-    // - 현재 편집 모드가 아니면: 한 번 클릭으로 편집 모드 진입 → 다시 클릭으로 저장 실행
-    // - 현재 편집 모드면: 한 번만 클릭해서 저장 실행
-    document.getElementById('save-new-customer')?.addEventListener('click', () => {
-      if (!toggleButton) return;
-
-      if (!isEditMode) {
-        // 1) 먼저 '수정' 클릭(편집모드 진입: 필수 준비 작업/검증 로직 그대로 수행)
-        toggleButton.click();
-      }
-      // 2) 곧바로 '저장' 클릭(읽기모드 전환 + 동일 저장 로직 실행)
-      toggleButton.click();
-    });
-
     const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
 
-    toggleButton.addEventListener('click', async () => {
-      isEditMode = !isEditMode;
-      toggleButton.textContent = isEditMode ? '저장' : '수정';
-
-      // 버튼 색상 변경
-      toggleButton.classList.remove('bg-neutral-500', 'hover:bg-neutral-600', 'bg-blue-500', 'hover:bg-blue-600');
-      if (isEditMode) {
-        // 수정모드: 파랑
-        toggleButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-      } else {
-        // 읽기모드: 빨간색
-        toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
-      }
-
-      if (isEditMode) {
-        switchSpansToInputs(); // 수정 모드: input/textarea로 복원
-        showToast('편집 모드로 전환되었습니다.');
-
-        document.getElementById('staff-info').classList.add('hidden');
-        document.getElementById('staff-select').classList.remove('hidden');
-
-        // 현재 고객의 staff_profiles_id 불러오기
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('staff_profiles_id')
-          .eq('id', currentCustomerId)
-          .maybeSingle();
-
-        const currentStaffId = customer?.staff_profiles_id;
-        await loadStaffOptions(currentStaffId);
-
-        // ✅ 저장 시, 마지막 값이 있는 행까지만 남기고 이후 오른쪽 listings 행 제거
-        const listingsBody = document.getElementById('listings-body');
-        const rows = listingsBody.querySelectorAll('tr');
-
-        let lastFilledRowIndex = -1;
-
-        rows.forEach((row, i) => {
-          const index = i + 1;
-
-          const keyFields = [
-            `listing_title_${index}`,
-            `full_address_${index}`,
-            `deposit_price_${index}`,
-            `monthly_rent_${index}`,
-            `area_py_${index}`
-          ];
-
-          const hasValue = keyFields.some(field => {
-            const el = row.querySelector(`[data-field="${field}"]`);
-            if (!el) return false;
-            const val = el.tagName === 'SPAN' ? el.textContent : el.value;
-            return val && val.trim() !== '';
-          });
-
-          if (hasValue) {
-            lastFilledRowIndex = i;
-          }
-        });
-        // ✅ 오른쪽 listings 행만 제거 (왼쪽은 유지)
-        for (let i = rows.length - 1; i > lastFilledRowIndex; i--) {
-          listingsBody.removeChild(rows[i]);
-        }
-        // ✅ 높이 다시 동기화
-        syncRowHeights?.();
-        return;
-      } else {
-        switchInputsToSpans(); // 저장 모드: span으로 변경
-        // --- 👇 담당자 저장 처리 (staff-select → customers.staff_profiles_id) ---
-        const selectedStaffId = document.getElementById('staff-select').value;
-        if (selectedStaffId) {
-          await supabase
-            .from('customers')
-            .update({ staff_profiles_id: selectedStaffId })
-            .eq('id', currentCustomerId);
-
-          const { data: selectedStaff } = await supabase
-            .from('staff_profiles')
-            .select('position, name, phone_num')
-            .eq('id', selectedStaffId)
-            .maybeSingle();
-
-          if (selectedStaff) {
-            const displayText = `${selectedStaff.position} ${selectedStaff.name} ${selectedStaff.phone_num}`;
-            document.getElementById('staff-info').textContent = displayText;
-          }
-        }
-        document.getElementById('staff-select').classList.add('hidden');
-        document.getElementById('staff-info').classList.remove('hidden');
-        // --- 👆 이 블럭을 switchInputsToSpans() 다음에 붙여주세요 ---
-
-        showToast('읽기 모드로 전환되었습니다.');
-      }
-
-      // 👇 저장 로직 실행
+    // ✅ 공통 저장 로직: 고객 + 추천매물 전체 덮어쓰기
+    async function saveCustomerAndRecommendations() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) { showToast("로그인 정보가 필요합니다."); return; }
+      if (userError || !user) {
+        showToast("로그인 정보가 필요합니다.");
+        return;
+      }
 
       const customerName = document.getElementById('top-row-input')?.value.trim();
       const customerPhone = document.getElementById('customer-phone')?.value.trim();
@@ -2023,14 +1919,13 @@
         }
       }
 
-
       // ✅ 권한 확인: 내가 이 고객의 대표/보조 배정자여야 함
       if (!(await isMyAssignedCustomer(currentCustomerId))) {
         showToast('담당자가 아닌 고객은 수정할 수 없습니다.');
         return;
       }
 
-      // 중복 이름 체크(본인 제외)
+      // 🔁 이름 중복 체크(본인 제외) → 덮어쓰기 모달
       if (customerName) {
         const { data: duplicateCustomer } = await supabase
           .from('customers')
@@ -2040,7 +1935,8 @@
           .maybeSingle();
 
         if (duplicateCustomer) {
-          const staffId = await getMyStaffId(); // 덮어쓸 때 대표자 교체를 원치 않으면 아래 overwriteData에서 제외
+          const staffId = await getMyStaffId(); // 필요 시 사용
+
           openOverwriteModal(duplicateCustomer.id, async (targetId) => {
             const today = new Date().toISOString().split('T')[0];
             const overwriteData = {
@@ -2049,11 +1945,10 @@
               phone_last4: customerPhone ? customerPhone.replace(/\D/g,'').slice(-4) : null,
               grade: customerGrade,
               memo: memoText,
-              // registered_at: today,      // 등록일 갱신 원치 않으면 주석 유지
-              // staff_profiles_id: staffId // 대표자 교체 원치 않으면 주석 유지
+              // registered_at, staff_profiles_id 는 그대로 두고 싶으면 계속 주석
             };
 
-            // 1) 고객 UPDATE (중복 이름인 타겟에 덮어쓰기)
+            // 1) 고객 UPDATE
             const { error: updErr } = await supabase
               .from('customers')
               .update(overwriteData)
@@ -2066,6 +1961,7 @@
 
             // 2) 추천매물 덮어쓰기 (DELETE → INSERT)
             const rowCount = document.querySelectorAll('#listings-body tr').length;
+
             const getListingIdByIndex = (index) => {
               const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
               const num = Number(raw.replace(/[^\d]/g, ''));
@@ -2085,7 +1981,6 @@
               return v.trim();
             };
 
-            // (복붙 전체 예시) — rowsToInsert 작성부
             const rowsToInsert = [];
             for (let index = 1; index <= rowCount; index++) {
               const listingId     = getListingIdByIndex(index);
@@ -2099,16 +1994,15 @@
               const premium_price = getNumericFromField('premium_price', index);
               const area_py       = getNumericFromField('area_py', index);
 
-              // 메모 패널에서 해당 행 메모 읽기
-              const memoText = getMemoValue(index);
+              const memoTextRow = getMemoValue(index); // 오른쪽 메모표
 
               const hasMeaningful =
-                (listing_title || full_address || combined_unit || description || memoText ||
+                (listing_title || full_address || combined_unit || description || memoTextRow ||
                 deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
 
               if (listingId || hasMeaningful) {
                 rowsToInsert.push({
-                  customers_id: String(currentCustomerId),
+                  customers_id: String(targetId),
                   listing_id: listingId,
                   listing_title,
                   full_address,
@@ -2117,10 +2011,8 @@
                   monthly_rent,
                   premium_price,
                   area_py,
-                  // description은 contents에 저장(기존 로직 유지)
-                  contents: description ?? null,
-                  // ✅ 메모는 memo 컬럼에만 저장
-                  memo: memoText || null,
+                  contents: description ?? null, // '내용' → contents
+                  memo: memoTextRow || null,     // 메모표 → memo
                   order: index
                 });
               }
@@ -2147,17 +2039,18 @@
               }
             }
 
-            // 상태/목록 갱신
             currentCustomerId = targetId;
+            setDocumentTitle(customerName);
             showToast(`"${customerName}" 고객 정보를 덮어썼습니다.`);
             loadCustomersForCurrentStaff?.();
           });
 
-          // 모달로 분기했으니 여기서 중단
+          // 모달 처리 후 여기서는 더 진행하지 않음
           return;
         }
       }
 
+      // 여기까지 왔다는 건: 신규 생성 or 기존 고객 업데이트 (중복 이름 문제 없음)
       const customerData = {
         customer_name: customerName || null,
         customer_phone_number: customerPhone || null,
@@ -2165,7 +2058,7 @@
         grade: customerGrade || 'F',
         memo: memoText || null
       };
-      // ⚠️ 대표담당자 칼럼(staff_profiles_id)은 건드리지 않음
+
       const { error: updateError } = await supabase
         .from('customers')
         .update(customerData)
@@ -2176,123 +2069,210 @@
         showToast('저장 중 오류 발생');
         return;
       }
-      
+
       setDocumentTitle(customerName);
 
-      // ✅ 입력된 매물번호 수집
-      const allInputs = document.querySelectorAll('input[data-index]');
-      const listingIds = [];
-      allInputs.forEach(input => {
-        const raw = input.value.trim();
+      // ✅ 추천매물 전체 갈아끼우기 (DELETE ALL → INSERT CURRENT)
+      const rowCount = document.querySelectorAll('#listings-body tr').length;
+
+      const getListingIdByIndex = (index) => {
+        const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
         const num = Number(raw.replace(/[^\d]/g, ''));
-        if (!isNaN(num)) listingIds.push(num);
-      });
+        return isNaN(num) ? null : num;
+      };
 
-      // ✅ customers_recommendations 전체 갈아끼우기: (DELETE ALL → INSERT CURRENT)
-      {
-        // 현재 화면의 오른쪽 테이블 행 수
-        const rowCount = document.querySelectorAll('#listings-body tr').length;
+      const getNumericFromField = (field, index) => {
+        const el = document.querySelector(`[data-field="${field}_${index}"]`);
+        if (!el) return null;
+        const val = (el.tagName === 'SPAN' ? el.textContent : el.value || '').replace(/,/g, '').trim();
+        const n = Number(val);
+        return isNaN(n) ? null : n;
+      };
 
-        // index → 왼쪽 매물번호 숫자 추출
-        const getListingIdByIndex = (index) => {
-          const raw = document.querySelector(`input[data-index="${index}"]`)?.value.trim() || '';
-          const num = Number(raw.replace(/[^\d]/g, ''));
-          return isNaN(num) ? null : num;
-        };
+      const getStringFromField = (field, index) => {
+        const el = document.querySelector(`[data-field="${field}_${index}"]`);
+        if (!el) return '';
+        const v = el.tagName === 'SPAN' ? (el.textContent || '') : (el.value || '');
+        return v.trim();
+      };
 
-        // 숫자 필드 파싱
-        const getNumericFromField = (field, index) => {
-          const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (!el) return null;
-          const val = (el.tagName === 'SPAN' ? el.textContent : el.value || '').replace(/,/g, '').trim();
-          const n = Number(val);
-          return isNaN(n) ? null : n;
-        };
+      const rowsToInsert = [];
+      for (let index = 1; index <= rowCount; index++) {
+        const listingId     = getListingIdByIndex(index);
+        const listing_title = getStringFromField('listing_title', index);
+        const full_address  = getStringFromField('full_address', index);
+        const combined_unit = getStringFromField('combined_unit', index);
+        const description   = getStringFromField('description', index);
 
-        // 문자열 필드 파싱
-        const getStringFromField = (field, index) => {
-          const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (!el) return '';
-          const v = el.tagName === 'SPAN' ? (el.textContent || '') : (el.value || '');
-          return v.trim();
-        };
+        const deposit_price = getNumericFromField('deposit_price', index);
+        const monthly_rent  = getNumericFromField('monthly_rent', index);
+        const premium_price = getNumericFromField('premium_price', index);
+        const area_py       = getNumericFromField('area_py', index);
 
-        const rowsToInsert = [];
-        for (let index = 1; index <= rowCount; index++) {
-          const listingId     = getListingIdByIndex(index);
+        const memoTextRow = getMemoValue(index);
 
-          const listing_title = getStringFromField('listing_title', index);
-          const full_address  = getStringFromField('full_address', index);
-          const combined_unit = getStringFromField('combined_unit', index);
-          const description   = getStringFromField('description', index);
+        const hasMeaningful =
+          (listing_title || full_address || combined_unit || description || memoTextRow ||
+          deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
 
-          const deposit_price = getNumericFromField('deposit_price', index);
-          const monthly_rent  = getNumericFromField('monthly_rent', index);
-          const premium_price = getNumericFromField('premium_price', index);
-          const area_py       = getNumericFromField('area_py', index);
-
-          // ✅ 새로 추가: 메모 50줄 패널에서 해당 줄 메모 값 읽기
-          const memoText = getMemoValue(index);
-
-          // ✅ 의미 있는 데이터 판정에 memo 포함
-          const hasMeaningful =
-            (listing_title || full_address || combined_unit || description || memoText ||
-            deposit_price !== null || monthly_rent !== null || premium_price !== null || area_py !== null);
-
-          // 번호가 있거나 의미 있는 데이터가 있는 행만 저장
-          if (listingId || hasMeaningful) {
-            rowsToInsert.push({
-              customers_id: String(currentCustomerId), // ← text 컬럼에 맞춰 문자열로 저장
-              listing_id: listingId,                   // 없으면 null 저장
-              listing_title,
-              full_address,
-              building_detail_info: combined_unit,
-              deposit_price,
-              monthly_rent,
-              premium_price,
-              area_py,
-              contents: description ?? null, // '내용'은 contents로
-              memo: memoText || null,        // ✅ '메모'는 memo로
-              order: index
-            });
-          }
+        if (listingId || hasMeaningful) {
+          rowsToInsert.push({
+            customers_id: String(currentCustomerId),
+            listing_id: listingId,
+            listing_title,
+            full_address,
+            building_detail_info: combined_unit,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            contents: description ?? null,
+            memo: memoTextRow || null,
+            order: index
+          });
         }
+      }
 
-        // 1) 해당 고객의 기존 추천매물 전부 삭제
-        const { error: delErr } = await supabase
+      // 1) 기존 추천매물 삭제
+      const { error: delErr } = await supabase
+        .from('customers_recommendations')
+        .delete()
+        .eq('customers_id', currentCustomerId);
+
+      if (delErr) {
+        console.error('❌ 기존 추천 매물 삭제 실패:', delErr);
+        showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+
+      // 2) 새로 INSERT
+      if (rowsToInsert.length > 0) {
+        const { error: insErr } = await supabase
           .from('customers_recommendations')
-          .delete()
-          .eq('customers_id', currentCustomerId);
+          .insert(rowsToInsert);
 
-        if (delErr) {
-          console.error('❌ 기존 추천 매물 삭제 실패:', delErr);
-          showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
+        if (insErr) {
+          console.error('❌ 추천 매물 삽입 실패:', insErr);
+          showToast('추천 매물 저장 중 오류가 발생했습니다.');
           return;
         }
-
-        // 2) 현재 화면의 행만 재삽입 (없으면 그냥 빈 상태로 둠)
-        if (rowsToInsert.length > 0) {
-          const { error: insErr } = await supabase
-            .from('customers_recommendations')
-            .insert(rowsToInsert);
-
-          if (insErr) {
-            console.error('❌ 추천 매물 삽입 실패:', insErr);
-            showToast('추천 매물 저장 중 오류가 발생했습니다.');
-            return;
-          }
-        }
-
-        showToast('추천 매물 저장 완료');
       }
+
+      showToast('추천 매물 저장 완료');
 
       // 왼쪽 고객 목록 갱신
       loadCustomersForCurrentStaff();
+    }
 
-      // ✅ 무조건 읽기모드로 전환
+    // ✅ 위쪽 파란 "저장" 버튼: 수정모드 건드리지 않고 바로 저장만 실행
+    document.getElementById('save-new-customer')?.addEventListener('click', () => {
+      saveCustomerAndRecommendations();
+    });
+
+    // ✅ 오른쪽 "수정/저장" 버튼: 수정모드 토글 + 저장은 공통 함수 재사용
+    toggleButton.addEventListener('click', async () => {
+      isEditMode = !isEditMode;
+      toggleButton.textContent = isEditMode ? '저장' : '수정';
+
+      // 버튼 색상 변경
+      toggleButton.classList.remove('bg-neutral-500', 'hover:bg-neutral-600', 'bg-blue-500', 'hover:bg-blue-600');
       if (isEditMode) {
-        toggleButton.click();
+        // 수정모드: 파랑
+        toggleButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+      } else {
+        // 읽기모드: 회색
+        toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
       }
+
+      // 🔵 수정모드로 들어갈 때: 화면만 input/textarea 로 전환, 저장 안함
+      if (isEditMode) {
+        switchSpansToInputs();
+        showToast('편집 모드로 전환되었습니다.');
+
+        document.getElementById('staff-info').classList.add('hidden');
+        document.getElementById('staff-select').classList.remove('hidden');
+
+        // 현재 고객의 staff_profiles_id 불러오기
+        if (currentCustomerId) {
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('staff_profiles_id')
+            .eq('id', currentCustomerId)
+            .maybeSingle();
+
+          const currentStaffId = customer?.staff_profiles_id;
+          await loadStaffOptions(currentStaffId);
+        } else {
+          await loadStaffOptions(null);
+        }
+
+        // 저장 시, 마지막 값이 있는 행까지만 남기고 이후 오른쪽 listings 행 제거
+        const listingsBody = document.getElementById('listings-body');
+        const rows = listingsBody.querySelectorAll('tr');
+
+        let lastFilledRowIndex = -1;
+
+        rows.forEach((row, i) => {
+          const index = i + 1;
+
+          const keyFields = [
+            `listing_title_${index}`,
+            `full_address_${index}`,
+            `deposit_price_${index}`,
+            `monthly_rent_${index}`,
+            `area_py_${index}`
+          ];
+
+          const hasValue = keyFields.some(field => {
+            const el = row.querySelector(`[data-field="${field}"]`);
+            if (!el) return false;
+            const val = el.tagName === 'SPAN' ? el.textContent : el.value;
+            return val && val.trim() !== '';
+          });
+
+          if (hasValue) {
+            lastFilledRowIndex = i;
+          }
+        });
+
+        // 오른쪽 listings 행만 제거 (왼쪽 매물번호는 그대로)
+        for (let i = rows.length - 1; i > lastFilledRowIndex; i--) {
+          listingsBody.removeChild(rows[i]);
+        }
+
+        syncRowHeights?.();
+        return; // 수정모드 진입 시에는 저장 X
+      }
+
+      // 🟤 수정모드 → 읽기모드로 나갈 때: 화면 span 전환 + 담당자 저장 + 공통 저장 호출
+      switchInputsToSpans();
+
+      // 담당자 저장 처리
+      const selectedStaffId = document.getElementById('staff-select').value;
+      if (selectedStaffId && currentCustomerId) {
+        await supabase
+          .from('customers')
+          .update({ staff_profiles_id: selectedStaffId })
+          .eq('id', currentCustomerId);
+
+        const { data: selectedStaff } = await supabase
+          .from('staff_profiles')
+          .select('position, name, phone_num')
+          .eq('id', selectedStaffId)
+          .maybeSingle();
+
+        if (selectedStaff) {
+          const displayText = `${selectedStaff.position} ${selectedStaff.name} ${selectedStaff.phone_num}`;
+          document.getElementById('staff-info').textContent = displayText;
+        }
+      }
+      document.getElementById('staff-select').classList.add('hidden');
+      document.getElementById('staff-info').classList.remove('hidden');
+
+      showToast('읽기 모드로 전환되었습니다.');
+
+      // 👇 실제 저장
+      await saveCustomerAndRecommendations();
     });
 
     // 건물정보, 호수, 층 하나로 합치는 함수
