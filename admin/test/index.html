@@ -618,6 +618,113 @@
       return (el?.value || '').trim();
     }
 
+    // ✅ 현재 화면의 매물표 + 메모를 Supabase에 넣을 수 있는 형태로 변환
+    function buildRecommendationsPayload() {
+      const rows = document.querySelectorAll('#listings-body tr');
+      const records = [];
+
+      rows.forEach((_, idx) => {
+        const index = idx + 1; // 1부터 시작 (order 컬럼과 맞추기)
+
+        // 이 행에 의미 있는 데이터가 없으면 스킵
+        const hasData = hasMeaningfulData(index) || getListingNumber(index);
+        if (!hasData) return;
+
+        const rawListingNo = getListingNumber(index); // 왼쪽 매물번호
+        const cleanListingNo = rawListingNo
+          ? String(rawListingNo).replace(/[^\d]/g, '')
+          : '';
+        const listing_id = cleanListingNo ? Number(cleanListingNo) : null;
+
+        // 화면에서 값 읽기
+        const listing_title  = stripEmpty(getFieldValue('listing_title', index)) || null;
+        const full_address   = stripEmpty(getFieldValue('full_address', index)) || null;
+        const combined_unit  = stripEmpty(getFieldValue('combined_unit', index)) || null;
+        const depStr         = stripEmpty(getFieldValue('deposit_price', index));
+        const monStr         = stripEmpty(getFieldValue('monthly_rent', index));
+        const premStr        = stripEmpty(getFieldValue('premium_price', index));
+        const areaStr        = stripEmpty(getFieldValue('area_py', index));
+        const contents       = stripEmpty(getFieldValue('description', index)) || null;
+        const memo           = stripEmpty(getMemoValue(index)) || null;
+
+        // 숫자 변환
+        const deposit_price  = parseKoreanMoneyToNumber(depStr);
+        const monthly_rent   = parseKoreanMoneyToNumber(monStr);
+        const premium_price  = parseKoreanMoneyToNumber(premStr);
+        const area_py = areaStr
+          ? Number(String(areaStr).replace(/[^\d.-]/g, ''))
+          : null;
+
+        records.push({
+          customers_id: String(currentCustomerId),   // TEXT 컬럼이라 문자열로 저장
+          order: index,                              // 화면 순서를 그대로 저장
+          listing_id,
+          listing_title,
+          full_address,
+          building_detail_info: combined_unit,       // 건물/층/호수 합쳐진 정보
+          deposit_price,
+          monthly_rent,
+          premium_price,
+          area_py,
+          contents,
+          memo,
+        });
+      });
+
+      return records;
+    }
+
+    // ✅ 추천 매물 저장 (기존 것은 싹 지우고 다시 넣기)
+    async function saveCustomerRecommendations() {
+      try {
+        if (!currentCustomerId) {
+          showToast('먼저 고객을 선택하거나 불러와 주세요.');
+          return;
+        }
+
+        const records = buildRecommendationsPayload();
+        if (!records.length) {
+          showToast('저장할 매물 정보가 없습니다.');
+          return;
+        }
+
+        // 권한 체크: 대표/보조만 수정 가능 (삭제 로직과 동일 정책)
+        const allowed = await isMyAssignedCustomer(currentCustomerId);
+        if (!allowed) {
+          showToast('담당자가 아닌 고객의 추천 매물은 수정할 수 없습니다.');
+          return;
+        }
+
+        // 1) 기존 추천 매물 삭제
+        const { error: delError } = await supabase
+          .from('customers_recommendations')
+          .delete()
+          .eq('customers_id', String(currentCustomerId));
+
+        if (delError) {
+          console.error('추천 매물 삭제 실패:', delError);
+          showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+
+        // 2) 새 데이터 일괄 insert
+        const { error: insError } = await supabase
+          .from('customers_recommendations')
+          .insert(records);
+
+        if (insError) {
+          console.error('추천 매물 저장 실패:', insError);
+          showToast('추천 매물 저장 중 오류가 발생했습니다.');
+          return;
+        }
+
+        showToast('추천 매물이 저장되었습니다.');
+      } catch (e) {
+        console.error('추천 매물 저장 중 예외:', e);
+        showToast('추천 매물을 저장하는 중 알 수 없는 오류가 발생했습니다.');
+      }
+    }
+
     // === [저장 개선] 단순 덮어쓰기 모달 ===
     const OverwriteModal = {
       root: null,
@@ -673,6 +780,7 @@
 
     // ✅ 돈 포맷 되어 있는 문자열에서 숫자만 추출(‘억 2,000’ 등도 허용) → 다시 원래 문자열 그대로 쓰길 원하면 이 부분 조정
     const stripEmpty = (s) => (s || '').trim();
+
     // (교체) 보증금/월세 라벨을 붙여서 합성
     function joinMoney(deposit, monthly) {
       const a = (deposit || '').trim(); // 예: "1억 5,000"
@@ -681,6 +789,34 @@
       const bL = b ? `${b}`   : '';
       if (a && b) return `${aL}/${bL}`;
       return aL || bL || '';
+    }
+
+    // 💰 "1억 5,000", "15,000", "800" 같은 문자열을 숫자(만원 단위)로 변환
+    function parseKoreanMoneyToNumber(raw) {
+      const s = (raw ?? '').toString().trim();
+      if (!s) return null;
+
+      let total = 0;
+      let restStr = s;
+
+      // "1억 5,000" 에서 억 부분 분리
+      const eokMatch = restStr.match(/(\d+(?:,\d+)*)\s*억/);
+      if (eokMatch) {
+        const eok = Number(eokMatch[1].replace(/,/g, ''));
+        if (!Number.isNaN(eok)) {
+          total += eok * 10000; // 1억 = 10,000(만원)
+        }
+        restStr = restStr.replace(eokMatch[0], '');
+      }
+
+      // 남은 부분에서 숫자만
+      const restDigits = restStr.replace(/[^\d]/g, '');
+      if (restDigits) {
+        const num = Number(restDigits);
+        if (!Number.isNaN(num)) total += num;
+      }
+
+      return total || null;
     }
 
     // ✅ 해당 행에 “의미 있는 값”이 하나라도 있는지 확인 (번호 제외)
@@ -1920,6 +2056,21 @@
       }
       
       loadCustomersForCurrentStaff();
+    });
+
+    // ✅ "저장" 버튼 → 현재 손님의 추천 매물 저장
+    document.getElementById('save-new-customer')?.addEventListener('click', async () => {
+      await saveCustomerRecommendations();
+    });
+
+    // ✅ 버튼 이벤트
+    document.getElementById('copy-link-btn')?.addEventListener('click', () => {
+      const text = buildAllMessages();
+      if (!text) {
+        showToast('복사할 내용이 없습니다.');
+        return;
+      }
+      copyToClipboard(text);
     });
 
      // ✅ 버튼 이벤트
