@@ -1557,26 +1557,6 @@
 
       updateListingsTableByInputs();
       
-      // 🔽 읽기모드일 경우, 해당 행만 다시 span으로 전환
-      if (!isEditMode) {
-        const row = document.querySelectorAll('#listings-body tr')[rowIndex - 1];
-        if (row) {
-          const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
-          fields.forEach(el => {
-            const value = el.value || '';
-            const field = el.dataset.field;
-
-            const span = document.createElement('span');
-            span.className = 'text-base block whitespace-pre-wrap';
-            span.dataset.field = field;
-            span.textContent = value;
-
-            el.parentElement.replaceChild(span, el);
-          });
-        }
-      }
-      
-      
       // 4. DOM에 출력
       Object.entries(dataToDisplay).forEach(([field, value]) => {
         const selector = `[data-field="${field}_${rowIndex}"]`;
@@ -2002,10 +1982,6 @@
     let portalEl = null;
 
     function buildPrintPortal() {
-      // 편집모드면 보기 좋게 span으로 임시 전환
-      wasEditModeForPrint = isEditMode;
-      if (isEditMode) switchInputsToSpans();
-
       // 기존 포털 제거
       portalEl?.remove();
 
