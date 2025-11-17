@@ -190,6 +190,13 @@
       </a>
     </div>
     <div id="customer-col" class="bg-gray-100 w-[14%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
+      <div class="flex justify-end px-2 mb-2">
+        <button id="new-customer-btn"
+          class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
+          새 고객
+        </button>
+      </div>
       <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
         <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
@@ -2047,6 +2054,34 @@
       showToast("고객 + 매물정보 저장 완료!");
     });
 
+    // ⭐ 신규 고객 버튼 기능
+    document.getElementById('new-customer-btn')?.addEventListener('click', () => {
+      // 1) 현재 선택 고객 초기화
+      currentCustomerId = null;
+
+      // 2) 오른쪽 고객 입력칸 초기화
+      document.getElementById('top-row-input').value = '';
+      document.getElementById('customer-phone').value = '';
+      document.getElementById('customer-grade').value = 'F';
+      document.getElementById('memo-textarea').value = '';
+
+      // 3) 문서 제목 초기화
+      setDocumentTitle('');
+
+      // 4) 매물번호 모두 지우기 (원래 있던 이벤트가 알아서 오른쪽 표도 지움)
+      document.querySelectorAll('input[data-index]').forEach(inp => {
+        inp.value = '';
+        inp.dispatchEvent(new Event('change'));
+      });
+
+      // 5) 메모 패널 초기화
+      renderMemoPanel([]);
+
+      // 6) 담당자 정보 표시
+      loadCurrentUserStaffInfo();
+
+      showToast('신규 고객 작성 모드입니다.');
+    });
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
