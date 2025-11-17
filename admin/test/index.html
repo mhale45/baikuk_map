@@ -1046,55 +1046,60 @@
 
         dropdown.innerHTML = '';
 
-        Object.keys(grouped)
-          .sort((a, b) => a.localeCompare(b, 'ko'))
-          .forEach(aff => {
-            const group = grouped[aff];
+        // 지점 순서 정렬: 내 지점 우선 + 나머지 가나다순
+        const sortedAffiliations = Object.keys(grouped).sort((a, b) => {
+          if (a === myAff) return -1;   // 현재 지점이 a면 항상 맨 위
+          if (b === myAff) return 1;    // 현재 지점이 b면 a보다 아래
+          return a.localeCompare(b, 'ko'); // 나머지는 가나다순
+        });
 
-            // 지점 헤더
-            const header = document.createElement('div');
-            header.className =
-              'px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100';
-            const headerLabel = aff === '미지정' ? '지점 미지정' : `${aff} 지점`;
-            header.textContent = headerLabel;
-            dropdown.appendChild(header);
+        sortedAffiliations.forEach(aff => {
+          const group = grouped[aff];
 
-            // 직원 목록
-            group.forEach(staff => {
-              const isSelected = selectedStaffId && selectedStaffId === staff.id;
+          // 지점 헤더
+          const header = document.createElement('div');
+          header.className =
+            'px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100';
+          const headerLabel = aff === '미지정' ? '지점 미지정' : `${aff} 지점`;
+          header.textContent = headerLabel;
+          dropdown.appendChild(header);
 
-              const item = document.createElement('button');
-              item.type = 'button';
-              item.className =
-                'w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col ' +
-                (isSelected ? 'bg-blue-50' : '');
+          // 직원 목록
+          group.forEach(staff => {
+            const isSelected = selectedStaffId && selectedStaffId === staff.id;
 
-              // 직원 정보 가로 배치
-              const row = document.createElement('div');
-              row.className = 'flex items-center gap-3 pl-4'; 
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className =
+              'w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col ' +
+              (isSelected ? 'bg-blue-50' : '');
 
-              const namePart = document.createElement('span');
-              namePart.className = 'font-medium text-gray-800';
-              namePart.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
+            // 직원 정보 가로 배치
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-3 pl-4'; 
 
-              const phonePart = document.createElement('span');
-              phonePart.className = 'text-sm text-gray-500';
-              phonePart.textContent = staff.phone_num || '';
+            const namePart = document.createElement('span');
+            namePart.className = 'font-medium text-gray-800';
+            namePart.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
 
-              row.appendChild(namePart);
-              if (staff.phone_num) row.appendChild(phonePart);
+            const phonePart = document.createElement('span');
+            phonePart.className = 'text-sm text-gray-500';
+            phonePart.textContent = staff.phone_num || '';
 
-              item.appendChild(row);
+            row.appendChild(namePart);
+            if (staff.phone_num) row.appendChild(phonePart);
 
-              item.addEventListener('click', () => {
-                selectedStaffId = staff.id;
-                staffInfo.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
-                closeDropdown();
-              });
+            item.appendChild(row);
 
-              dropdown.appendChild(item);
+            item.addEventListener('click', () => {
+              selectedStaffId = staff.id;
+              staffInfo.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
+              closeDropdown();
             });
+
+            dropdown.appendChild(item);
           });
+        });
       }
 
       // 이름 클릭 → 토글
