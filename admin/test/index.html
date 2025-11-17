@@ -158,6 +158,12 @@
       background-color: #f9fafb; /* bg-gray-50 */
     }
   </style>
+  <style>
+    #staff-dropdown {
+      max-height: 520px;   /* 기존보다 훨씬 길게 */
+      overflow-y: auto;    /* 스크롤 가능 */
+    }
+  </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
   <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
@@ -1003,8 +1009,8 @@
           </div>
         `;
 
-        // 권한/소속 정보
         const { me, myAuth, myAff } = await getAuthContext();
+
         if (!me) {
           dropdown.innerHTML = `
             <div class="px-3 py-2 text-sm text-red-500">
@@ -1014,19 +1020,13 @@
           return;
         }
 
-        // 직원 목록 조회 (퇴사자 표시/비표시는 기존 로직 재사용)
-        let q = supabase
+        // 직원 목록 조회 (퇴사자 제외)
+        const { data: staffList, error } = await supabase
           .from('staff_profiles')
-          .select('id, name, position, phone_num, affiliation, leave_date')
+          .select('id, name, position, phone_num, affiliation')
+          .is('leave_date', null)   // 퇴사자 제외
           .order('affiliation', { ascending: true })
           .order('name', { ascending: true });
-
-        // 직원 권한이면 퇴사자 제외
-        if (myAuth === '직원') {
-          q = q.is('leave_date', null);
-        }
-
-        const { data: staffList, error } = await q;
 
         if (error || !staffList || staffList.length === 0) {
           dropdown.innerHTML = `
@@ -1037,7 +1037,7 @@
           return;
         }
 
-        // 소속별 그룹화
+        // 지점(affiliation)별 그룹화
         const grouped = staffList.reduce((acc, s) => {
           const aff = (s.affiliation || '미지정').trim();
           (acc[aff] ||= []).push(s);
@@ -1051,10 +1051,12 @@
           .forEach(aff => {
             const group = grouped[aff];
 
-            // 소속 헤더
+            // 지점 헤더
             const header = document.createElement('div');
-            header.className = 'px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100';
-            header.textContent = aff;
+            header.className =
+              'px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100';
+            const headerLabel = aff === '미지정' ? '지점 미지정' : `${aff} 지점`;
+            header.textContent = headerLabel;
             dropdown.appendChild(header);
 
             // 직원 목록
@@ -1067,11 +1069,9 @@
                 'w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col ' +
                 (isSelected ? 'bg-blue-50' : '');
 
-              const retiredTag = (myAuth !== '직원' && staff.leave_date) ? ' (퇴사)' : '';
-
               const line1 = document.createElement('span');
               line1.className = 'font-medium text-gray-800';
-              line1.textContent = `${staff.position ?? ''} ${staff.name ?? ''}${retiredTag}`.trim();
+              line1.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
 
               const line2 = document.createElement('span');
               line2.className = 'text-xs text-gray-500';
@@ -1091,7 +1091,7 @@
           });
       }
 
-      // 이름 클릭 → 드롭다운 토글
+      // 이름 클릭 → 토글
       staffInfo.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (dropdown.classList.contains('hidden')) {
