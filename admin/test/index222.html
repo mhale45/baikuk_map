@@ -403,6 +403,97 @@
     let listingsBody;          // tbody 캐시
     let rowObserver;           // ResizeObserver 인스턴스
 
+    /* ----------------------------------------------------
+      [매물 저장 기능]
+      현재 선택된 고객(currentCustomerId)의 매물정보를
+      Supabase 테이블 customers_recommendations 에 저장
+    ---------------------------------------------------- */
+    async function saveListingsForCurrentCustomer() {
+      if (!currentCustomerId) {
+        showToast("먼저 고객을 선택해주세요.");
+        return false;
+      }
+
+      // 권한 확인(대표/보조만 가능)
+      if (!(await isMyAssignedCustomer(currentCustomerId))) {
+        showToast("담당자가 아닌 고객의 매물은 저장할 수 없습니다.");
+        return false;
+      }
+
+      const rows = document.querySelectorAll("#listings-body tr");
+      const result = [];
+
+      rows.forEach((tr, i) => {
+        const index = i + 1;
+
+        const listing_title  = getFieldValue("listing_title", index);
+        const full_address   = getFieldValue("full_address", index);
+        const deposit_price  = getFieldValue("deposit_price", index);
+        const monthly_rent   = getFieldValue("monthly_rent", index);
+        const premium_price  = getFieldValue("premium_price", index);
+        const area_py        = getFieldValue("area_py", index);
+        const contents       = getFieldValue("description", index);
+        const listing_id     = getListingNumber(index);
+
+        // 완전히 비어 있으면 스킵
+        if (
+          !listing_title &&
+          !full_address &&
+          !deposit_price &&
+          !monthly_rent &&
+          !premium_price &&
+          !area_py &&
+          !contents &&
+          !listing_id
+        ) return;
+
+        result.push({
+          customers_id   : String(currentCustomerId), 
+          order          : index,
+          listing_id     : listing_id || null,
+          listing_title  : listing_title || null,
+          full_address   : full_address || null,
+          deposit_price  : Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
+          monthly_rent   : Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
+          premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
+          area_py        : Number(area_py) || null,
+          contents       : contents || null,
+          memo          : getMemoValue(index) || null
+        });
+      });
+
+      try {
+        // 기존 데이터 삭제
+        const { error: delErr } = await supabase
+          .from("customers_recommendations")
+          .delete()
+          .eq("customers_id", String(currentCustomerId));
+
+        if (delErr) {
+          console.error(delErr);
+          showToast("기존 매물 삭제 중 오류.");
+          return false;
+        }
+
+        // 신규 데이터 삽입
+        const { error: insertErr } = await supabase
+          .from("customers_recommendations")
+          .insert(result);
+
+        if (insertErr) {
+          console.error(insertErr);
+          showToast("매물 저장 중 오류가 발생했습니다.");
+          return false;
+        }
+
+        return true;
+      } catch (e) {
+        console.error(e);
+        showToast("매물 저장 중 예외 발생");
+        return false;
+      }
+    }
+
     // === [ADD] '업데이트(매물장)' 표기 유틸 ===
     // ISO 또는 Date → "YYYY. M. D. HH:mm" (KST)
     function formatDate(input) {
@@ -983,6 +1074,9 @@
         setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
 
         setField('description', listing.contents);
+        const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
+        const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+        if (memoEl) memoEl.value = memoValue;
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
@@ -1766,7 +1860,6 @@
       if (el) el.textContent = text;
     }
 
-
     // === 손님 삭제 버튼 ===
     document.getElementById('delete-customer')?.addEventListener('click', async () => {
       try {
@@ -1908,6 +2001,43 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
+
+    document.getElementById('save-new-customer').addEventListener('click', async () => {
+      // 1) 고객 정보 저장(기본 정보: 이름/전화/등급/메모)
+      const customerName = document.getElementById('top-row-input').value.trim();
+      const phone = document.getElementById('customer-phone').value.trim();
+      const grade = document.getElementById('customer-grade').value.trim();
+      const memo  = document.getElementById('memo-textarea').value.trim();
+
+      if (!currentCustomerId) {
+        showToast("먼저 손님을 선택해주세요.");
+        return;
+      }
+
+      // 👉 고객 기본 정보 업데이트
+      const { error: custErr } = await supabase
+        .from('customers')
+        .update({
+          customer_name: customerName,
+          customer_phone_number: phone,
+          grade: grade,
+          memo: memo,
+        })
+        .eq('id', currentCustomerId);
+
+      if (custErr) {
+        console.error(custErr);
+        showToast("고객 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      // 2) 매물 저장 실행
+      const saved = await saveListingsForCurrentCustomer();
+      if (!saved) return;
+
+      showToast("고객 + 매물정보 저장 완료!");
+    });
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->

@@ -1497,7 +1497,10 @@
         }
       });
 
-      // ✅ 행 높이 다시 동기화
+      // 🔥 추가: memo도 같이 지우기
+      const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+      if (memoEl) memoEl.value = '';
+
       syncRowHeights?.();
     }
 
