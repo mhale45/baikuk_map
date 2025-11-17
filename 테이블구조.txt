@@ -175,6 +175,8 @@ deposit_price
 monthly_rent 
 premium_price 
 area_py
+contents
+order
 memo : text
 
 - only_lat_lng 테이블

@@ -1205,39 +1205,7 @@
           const caret = header.querySelector('.caret');
           caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
         });
-      });
-      
-    }
-
-    // 저장버튼 누르면 뷰모드로 바꿔주는 함수
-    function switchInputsToSpans() {
-      const rows = document.querySelectorAll('#listings-body tr');
-
-      rows.forEach(row => {
-        const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
-        fields.forEach(el => {
-          const value = el.value || '';
-          const field = el.dataset.field;
-
-          const span = document.createElement('span');
-          span.className = 'text-base block';
-          span.dataset.field = field;
-
-          // ✅ 매물명과 내용 모두 줄바꿈 유지
-          if (field.startsWith('listing_title_') || field.startsWith('description_')) {
-            span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 보이기
-            span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
-            span.style.overflowWrap = 'break-word';
-            span.style.textAlign = 'center';        // 가운데 정렬 대신 왼쪽 정렬 추천
-          } else {
-            span.style.whiteSpace = 'normal';
-            span.style.textAlign = 'center';
-          }
-
-          span.textContent = value;
-          el.parentElement.replaceChild(span, el);
-        });
-      });
+      });      
     }
 
     let buildingMap = new Map();
@@ -1655,9 +1623,6 @@
           }, 0);
         }
       });
-
-      // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
-      switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
 
       // === '매물번호' 일괄 지우기 버튼 ===
       document.getElementById('clear-left-btn')?.addEventListener('click', () => {
