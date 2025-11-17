@@ -1636,7 +1636,13 @@
             setFieldValue('full_address',  rowIndex, dupes.full_address  ?? '');
             setFieldValue('combined_unit', rowIndex, dupes.combined_unit ?? '');
             setFieldValue('description',   rowIndex, dupes.description   ?? '');
-            showToast('기존 행에서 매물명/주소/건물정보/내용을 복사했습니다.');
+
+            // 메모도 같이 복사
+            const srcMemo = getMemoValue(dupeIndex);
+            const destMemoEl = document.querySelector(`textarea[data-memo-index="${rowIndex}"]`);
+            if (destMemoEl) destMemoEl.value = srcMemo ?? '';
+
+            showToast('기존 행을 복사');
           }
         };
     
