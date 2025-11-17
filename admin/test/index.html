@@ -278,9 +278,15 @@
                   <!-- 날짜 -->
                   <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
                   <!-- 담당자 -->
-                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold">
-                    <div id="staff-info" class="hidden"></div>
-                    <select id="staff-select" class="hidden border border-gray-300 rounded px-2 py-1 text-base"></select>
+                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold relative">
+                    <!-- 직원 정보 표시부 -->
+                    <div id="staff-info"
+                        class="cursor-pointer px-2 py-1 rounded hover:bg-gray-200 select-none">
+                    </div>
+                    <!-- 드롭다운 -->
+                    <div id="staff-dropdown"
+                        class="hidden absolute top-full left-0 mt-1 w-[14rem] bg-white border rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2062,7 +2068,7 @@
             customer_phone_number: phone,
             grade: grade,
             memo: memo,
-            staff_profiles_id: myStaffId
+            staff_profiles_id: selectedStaffId ?? myStaffId
           })
           .select()
           .single();
@@ -2144,6 +2150,87 @@
 
       showToast('신규 고객 작성 모드입니다.');
     });
+
+    // 직원 드롭다운 열기 / 닫기
+    document.getElementById("staff-info").addEventListener("click", async () => {
+      const dropdown = document.getElementById("staff-dropdown");
+
+      if (!dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+        return;
+      }
+
+      // 직원 목록 로딩
+      const staff = await loadStaffByBranch();
+      renderStaffDropdown(staff);
+
+      dropdown.classList.remove("hidden");
+    });
+
+    // 전역 클릭 시 드롭다운 닫기
+    document.addEventListener("click", (e) => {
+      if (!document.getElementById("staff-info-container").contains(e.target)) {
+        document.getElementById("staff-dropdown").classList.add("hidden");
+      }
+    });
+
+    async function loadStaffByBranch() {
+      const myId = await getMyStaffId();
+      if (!myId) return [];
+
+      // 현재 사용자 정보 가져오기
+      const { data: me } = await supabase
+        .from("staff_profiles")
+        .select("*")
+        .eq("id", myId)
+        .single();
+
+      if (!me) return [];
+
+      // 같은 지점 직원 불러오기
+      const { data: branchStaff } = await supabase
+        .from("staff_profiles")
+        .select("*")
+        .eq("branch", me.branch)
+        .order("name", { ascending: true });
+
+      if (!branchStaff) return [];
+
+      // 현재 직원이 가장 위로 오도록 정렬
+      branchStaff.sort((a, b) => (a.id === myId ? -1 : b.id === myId ? 1 : 0));
+
+      return branchStaff;
+    }
+
+    function renderStaffDropdown(staffList) {
+      const dropdown = document.getElementById("staff-dropdown");
+      dropdown.innerHTML = "";
+
+      staffList.forEach(staff => {
+        const div = document.createElement("div");
+        div.className = "px-3 py-2 hover:bg-gray-100 cursor-pointer";
+        div.textContent = `${staff.name} (${staff.branch})`;
+
+        div.addEventListener("click", () => {
+          selectStaff(staff);
+          dropdown.classList.add("hidden");
+        });
+
+        dropdown.appendChild(div);
+      });
+    }
+
+    function selectStaff(staff) {
+      // 화면에 표시
+      const info = document.getElementById("staff-info");
+      info.textContent = `${staff.name} (${staff.branch})`;
+
+      // 저장용 staff_profiles_id 변경
+      selectedStaffId = staff.id;
+
+      showToast(`${staff.name} 직원이 선택되었습니다.`);
+    }
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
