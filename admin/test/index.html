@@ -285,9 +285,8 @@
                     </div>
                     <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                      class="hidden absolute bg-white border rounded shadow-lg z-[99999] max-h-60 overflow-y-auto"
-                      style="top: auto; bottom: 100%; left: 0; transform: translateY(-0.3rem);">
-                    </div>
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                  </div>
                   </div>
                 </div>
               </div>
@@ -1606,6 +1605,12 @@
       loadStaffOptions();
       refreshLatestMeta(); // [ADD] 매물장 최신 업데이트 시간 갱신
 
+      // ⭐ staff-dropdown 을 body로 이동 (부모 overflow 영향 안 받게)
+      const dropdown = document.getElementById('staff-dropdown');
+      if (dropdown && dropdown.parentElement !== document.body) {
+        document.body.appendChild(dropdown);
+      }
+
       // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
       listingsBody = document.getElementById('listings-body');
       rowObserver = new ResizeObserver(() => {
@@ -2167,7 +2172,6 @@
       // 이미 열려 있으면 닫기
       if (!dropdown.classList.contains("hidden")) {
         dropdown.classList.add("hidden");
-        dropdown.style.opacity = "0";
         return;
       }
 
@@ -2175,24 +2179,17 @@
       const staff = await loadStaffByBranch();
       renderStaffDropdown(staff);
 
-      // === 핵심 수정: 먼저 보여준 뒤 높이를 계산 ===
-      dropdown.classList.remove("hidden");
-      dropdown.style.visibility = "hidden";   // 임시로 안 보이게 유지하되 레이아웃 계산 가능
-      dropdown.style.opacity = "0";
-
-      // 위치 계산 (fixed 기준)
+      // 👉 위치 계산 (화면 기준 좌표)
       const rect = info.getBoundingClientRect();
-      const height = dropdown.offsetHeight;
 
-      // 위로 펼쳐지도록 계산
       dropdown.style.position = "fixed";
-      dropdown.style.top = (rect.top - height - 4) + "px";
+      dropdown.style.top = rect.bottom + 4 + "px";  // staff-info 바로 아래 + 4px
       dropdown.style.left = rect.left + "px";
-      dropdown.style.minWidth = rect.width + "px";
+      dropdown.style.minWidth = rect.width + "px";  // staff-info 너비 이상
+      // 필요하면 고정 폭:
+      // dropdown.style.width = rect.width + "px";
 
-      // 이제 실제로 표시
-      dropdown.style.visibility = "visible";
-      dropdown.style.opacity = "1";
+      dropdown.classList.remove("hidden");
     });
 
     // 전역 클릭 시 드롭다운 닫기 (staff-info + dropdown 바깥 클릭일 때만)
