@@ -960,11 +960,13 @@
         .maybeSingle();
 
       if (staff) {
-        const staffInfoBox = document.getElementById('staff-info');
-        staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
-        staffInfoBox.classList.remove('hidden');
-        document.getElementById('staff-select').classList.add('hidden');
-      }
+          const staffInfoBox = document.getElementById('staff-info');
+          staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+          staffInfoBox.classList.remove('hidden');
+
+          const staffSelect = document.getElementById('staff-select');
+          if (staffSelect) staffSelect.classList.add('hidden');
+        }
     }
 
     // ✅ 내 staff_profiles.id 가져오기
@@ -1119,10 +1121,11 @@
         if (staff && staffInfoBox) {
           staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
           staffInfoBox.classList.remove('hidden');
-          document.getElementById('staff-select').classList.add('hidden');
+
+          const staffSelect = document.getElementById('staff-select');
+          if (staffSelect) staffSelect.classList.add('hidden');
         }
       }
-
     }
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
@@ -2220,7 +2223,7 @@
       const { data: branchStaff } = await supabase
         .from("staff_profiles")
         .select("*")
-        .eq("branch", me.branch)
+        .eq("affiliation", me.branch)
         .order("name", { ascending: true });
 
       if (!branchStaff) return [];
