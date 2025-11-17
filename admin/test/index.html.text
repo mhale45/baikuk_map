@@ -1339,25 +1339,25 @@
         row.innerHTML = `
           <td class="p-1 border text-center">${i}</td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
+            <span class="text-base block" data-field="listing_title_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
+            <span class="text-base block" data-field="full_address_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
+            <span class="text-base block" data-field="deposit_price_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
+            <span class="text-base block" data-field="monthly_rent_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
+            <span class="text-base block" data-field="premium_price_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
+            <span class="text-base block" data-field="area_py_${i}"></span>
           </td>
           <td class="p-1 border text-center">
-            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
+            <span class="text-base block" data-field="description_${i}"></span>
           </td>
         `;
 
@@ -1556,26 +1556,6 @@
       };
 
       updateListingsTableByInputs();
-      
-      // 🔽 읽기모드일 경우, 해당 행만 다시 span으로 전환
-      if (!isEditMode) {
-        const row = document.querySelectorAll('#listings-body tr')[rowIndex - 1];
-        if (row) {
-          const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
-          fields.forEach(el => {
-            const value = el.value || '';
-            const field = el.dataset.field;
-
-            const span = document.createElement('span');
-            span.className = 'text-base block whitespace-pre-wrap';
-            span.dataset.field = field;
-            span.textContent = value;
-
-            el.parentElement.replaceChild(span, el);
-          });
-        }
-      }
-      
       
       // 4. DOM에 출력
       Object.entries(dataToDisplay).forEach(([field, value]) => {
@@ -2002,10 +1982,6 @@
     let portalEl = null;
 
     function buildPrintPortal() {
-      // 편집모드면 보기 좋게 span으로 임시 전환
-      wasEditModeForPrint = isEditMode;
-      if (isEditMode) switchInputsToSpans();
-
       // 기존 포털 제거
       portalEl?.remove();
 
