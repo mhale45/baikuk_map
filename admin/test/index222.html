@@ -618,42 +618,6 @@
       return (el?.value || '').trim();
     }
 
-    // === [저장 개선] 단순 덮어쓰기 모달 ===
-    const OverwriteModal = {
-      root: null,
-      btnOverwrite: null,
-      btnCancel: null,
-      targetId: null,
-    };
-
-    function initOverwriteModalRefs() {
-      OverwriteModal.root = document.getElementById('dup-customer-modal');
-      OverwriteModal.btnOverwrite = document.getElementById('dup-overwrite');
-      OverwriteModal.btnCancel = document.getElementById('dup-cancel');
-    }
-
-    function openOverwriteModal(targetId, onConfirm) {
-      if (!OverwriteModal.root) initOverwriteModalRefs();
-      OverwriteModal.targetId = targetId;
-
-      // 버튼 핸들러 재바인딩
-      OverwriteModal.btnOverwrite.onclick = async () => {
-        try { await onConfirm?.(OverwriteModal.targetId); }
-        finally { closeOverwriteModal(); }
-      };
-      OverwriteModal.btnCancel.onclick = () => closeOverwriteModal();
-
-      OverwriteModal.root.classList.remove('hidden');
-      OverwriteModal.root.classList.add('flex');
-    }
-
-    function closeOverwriteModal() {
-      if (!OverwriteModal.root) initOverwriteModalRefs();
-      OverwriteModal.root.classList.add('hidden');
-      OverwriteModal.root.classList.remove('flex');
-      OverwriteModal.targetId = null;
-    }
-
     // 현재 있는 모든 행을 관찰
     function observeRows() {
       if (!listingsBody) return;
