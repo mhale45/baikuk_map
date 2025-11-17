@@ -285,7 +285,7 @@
                     </div>
                     <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                      class="hidden fixed bg-white border rounded-md shadow-lg z-[99999]">
+                      class="hidden fixed bg-white border rounded-md shadow-lg z-[2147483647]">
                   </div>
                   </div>
                 </div>
@@ -2186,9 +2186,7 @@
       dropdown.style.top = rect.bottom + 4 + "px";  // staff-info 바로 아래 + 4px
       dropdown.style.left = rect.left + "px";
       dropdown.style.minWidth = rect.width + "px";  // staff-info 너비 이상
-      // 필요하면 고정 폭:
-      // dropdown.style.width = rect.width + "px";
-
+      dropdown.style.zIndex = "2147483647";
       dropdown.classList.remove("hidden");
     });
 
