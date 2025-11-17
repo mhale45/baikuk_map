@@ -1999,8 +1999,41 @@
     });
 
     document.getElementById('save-new-customer').addEventListener('click', async () => {
-        if (saved) showToast("고객 + 매물정보 저장 완료!");
+      // 1) 고객 정보 저장(기본 정보: 이름/전화/등급/메모)
+      const customerName = document.getElementById('top-row-input').value.trim();
+      const phone = document.getElementById('customer-phone').value.trim();
+      const grade = document.getElementById('customer-grade').value.trim();
+      const memo  = document.getElementById('memo-textarea').value.trim();
+
+      if (!currentCustomerId) {
+        showToast("먼저 손님을 선택해주세요.");
+        return;
+      }
+
+      // 👉 고객 기본 정보 업데이트
+      const { error: custErr } = await supabase
+        .from('customers')
+        .update({
+          customer_name: customerName,
+          customer_phone_number: phone,
+          grade: grade,
+          memo: memo,
+        })
+        .eq('id', currentCustomerId);
+
+      if (custErr) {
+        console.error(custErr);
+        showToast("고객 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      // 2) 매물 저장 실행
+      const saved = await saveListingsForCurrentCustomer();
+      if (!saved) return;
+
+      showToast("고객 + 매물정보 저장 완료!");
     });
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
