@@ -457,7 +457,8 @@
           monthly_rent   : Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
           premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
           area_py        : Number(area_py) || null,
-          contents       : contents || null
+          contents       : contents || null,
+          memo          : getMemoValue(index) || null
         });
       });
 
@@ -1073,6 +1074,9 @@
         setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
 
         setField('description', listing.contents);
+        const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
+        const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+        if (memoEl) memoEl.value = memoValue;
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
