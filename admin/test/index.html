@@ -57,6 +57,7 @@
       #print-portal tbody tr:nth-child(even) {
         background-color: #f2f2f2 !important;
       }
+
       /* 색/배경 출력 */
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
@@ -155,12 +156,6 @@
     }
     tbody tr:nth-child(even) {
       background-color: #f9fafb; /* bg-gray-50 */
-    }
-  </style>
-  <style>    
-    #staff-dropdown {
-      position: fixed !important;
-      z-index: 2147483647 !important;
     }
   </style>
 </head>
@@ -290,7 +285,7 @@
                     </div>
                     <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                      class="hidden fixed bg-white border rounded-md shadow-lg z-[2147483647]">
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
                   </div>
                   </div>
                 </div>
@@ -2168,103 +2163,6 @@
 
       showToast('신규 고객 작성 모드입니다.');
     });
-
-    // 직원 드롭다운 열기 / 닫기
-    document.getElementById("staff-info").addEventListener("click", async (e) => {
-      const dropdown = document.getElementById("staff-dropdown");
-      const info = document.getElementById("staff-info");
-
-      // 이미 열려 있으면 닫기
-      if (!dropdown.classList.contains("hidden")) {
-        dropdown.classList.add("hidden");
-        return;
-      }
-
-      // 직원 목록 로딩
-      const staff = await loadStaffByBranch();
-      renderStaffDropdown(staff);
-
-      // 👉 위치 계산 (화면 기준 좌표)
-      const rect = info.getBoundingClientRect();
-
-      dropdown.style.position = "fixed";
-      dropdown.style.top = rect.bottom + 4 + "px";  // staff-info 바로 아래 + 4px
-      dropdown.style.left = rect.left + "px";
-      dropdown.style.minWidth = rect.width + "px";  // staff-info 너비 이상
-      dropdown.style.zIndex = "2147483647";
-      dropdown.classList.remove("hidden");
-    });
-
-    // 전역 클릭 시 드롭다운 닫기 (staff-info + dropdown 바깥 클릭일 때만)
-    document.addEventListener("click", (e) => {
-      const container = document.getElementById("staff-info-container");
-      const dropdown  = document.getElementById("staff-dropdown");
-      if (!container || !dropdown) return;
-
-      const clickInsideInfo   = container.contains(e.target);
-      const clickInsideDrop   = dropdown.contains(e.target);
-
-      if (!clickInsideInfo && !clickInsideDrop) {
-        dropdown.classList.add("hidden");
-      }
-    });
-
-    async function loadStaffByBranch() {
-      const myId = await getMyStaffId();
-      if (!myId) return [];
-
-      // 현재 사용자 정보 가져오기
-      const { data: me } = await supabase
-        .from("staff_profiles")
-        .select("*")
-        .eq("id", myId)
-        .single();
-
-      if (!me) return [];
-
-      // 같은 지점 직원 불러오기
-      const { data: branchStaff } = await supabase
-        .from("staff_profiles")
-        .select("*")
-        .eq("affiliation", me.branch)
-        .order("name", { ascending: true });
-
-      if (!branchStaff) return [];
-
-      // 현재 직원이 가장 위로 오도록 정렬
-      branchStaff.sort((a, b) => (a.id === myId ? -1 : b.id === myId ? 1 : 0));
-
-      return branchStaff;
-    }
-
-    function renderStaffDropdown(staffList) {
-      const dropdown = document.getElementById("staff-dropdown");
-      dropdown.innerHTML = "";
-
-      staffList.forEach(staff => {
-        const div = document.createElement("div");
-        div.className = "px-3 py-2 hover:bg-gray-100 cursor-pointer";
-        div.textContent = `${staff.name} (${staff.branch})`;
-
-        div.addEventListener("click", () => {
-          selectStaff(staff);
-          dropdown.classList.add("hidden");
-        });
-
-        dropdown.appendChild(div);
-      });
-    }
-
-    function selectStaff(staff) {
-      // 화면에 표시
-      const info = document.getElementById("staff-info");
-      info.textContent = `${staff.name} (${staff.branch})`;
-
-      // 저장용 staff_profiles_id 변경
-      selectedStaffId = staff.id;
-
-      showToast(`${staff.name} 직원이 선택되었습니다.`);
-    }
 
   </script>
 
