@@ -871,7 +871,6 @@
       });
     }
 
-
     // 첫로드시 직원표시 함수
     async function loadCurrentUserStaffInfo() {
       const {
@@ -1052,7 +1051,6 @@
       }
 
     }
-
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
     async function loadCustomersForCurrentStaff() {
@@ -1245,41 +1243,6 @@
         });
       });
       
-    }
-
-    // 저장버튼 누르면 수정모드로 표 바꿔주는 함수
-    function switchSpansToInputs() {
-      const rows = document.querySelectorAll('#listings-body tr');
-
-      rows.forEach((row, rowIndex) => {
-        const spans = row.querySelectorAll('span[data-field]');
-        spans.forEach(span => {
-          const field = span.dataset.field;
-          const value = span.textContent || '';
-
-          let inputEl;
-
-          if (
-            field.startsWith('listing_title_') ||
-            field.startsWith('full_address_')  ||
-            field.startsWith('combined_unit_') ||   // ✅ 건물정보도 textarea로
-            field.startsWith('description_')
-          ) {
-            inputEl = document.createElement('textarea');
-            inputEl.rows = 2;
-            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
-          } else {
-            inputEl = document.createElement('input');
-            inputEl.type = 'text';
-            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none';
-          }
-
-          inputEl.value = value;
-          inputEl.dataset.field = field;
-
-          span.parentElement.replaceChild(inputEl, span);
-        });
-      });
     }
 
     // 저장버튼 누르면 뷰모드로 바꿔주는 함수
@@ -2001,11 +1964,6 @@
       // 포털 제거
       portalEl?.remove();
       portalEl = null;
-
-      // 인쇄 전이 편집모드였으면 원복
-      if (wasEditModeForPrint) {
-        switchSpansToInputs();
-      }
 
       // 줄무늬/높이 다시 맞춤(보호적 호출)
       applyRowStriping?.();
