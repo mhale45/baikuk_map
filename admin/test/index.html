@@ -1069,16 +1069,22 @@
                 'w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col ' +
                 (isSelected ? 'bg-blue-50' : '');
 
-              const line1 = document.createElement('span');
-              line1.className = 'font-medium text-gray-800';
-              line1.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
+              // 직원 정보 가로 배치
+              const row = document.createElement('div');
+              row.className = 'flex items-center gap-3'; 
 
-              const line2 = document.createElement('span');
-              line2.className = 'text-xs text-gray-500';
-              line2.textContent = staff.phone_num || '';
+              const namePart = document.createElement('span');
+              namePart.className = 'font-medium text-gray-800';
+              namePart.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
 
-              item.appendChild(line1);
-              if (staff.phone_num) item.appendChild(line2);
+              const phonePart = document.createElement('span');
+              phonePart.className = 'text-sm text-gray-500';
+              phonePart.textContent = staff.phone_num || '';
+
+              row.appendChild(namePart);
+              if (staff.phone_num) row.appendChild(phonePart);
+
+              item.appendChild(row);
 
               item.addEventListener('click', () => {
                 selectedStaffId = staff.id;
