@@ -767,9 +767,57 @@
       const input = document.querySelector(`input[data-index="${index}"]`);
       return (input?.value || '').trim();
     }
+    
+    // === 매물번호 중복 체크 & 빨갛게 표시 ===
+    function highlightDuplicateListingNumbers() {
+      const allInputs = [...document.querySelectorAll('input[data-index]')];
+
+      // 값 목록 생성
+      const values = allInputs.map(inp => (inp.value || '').trim());
+
+      allInputs.forEach((inp, idx) => {
+        const v = values[idx];
+        if (!v) {
+          // 값이 없으면 색상 초기화
+          inp.style.backgroundColor = '';
+          inp.style.color = '';
+          return;
+        }
+
+        // 동일 값이 2개 이상인지 체크
+        const isDuplicate = values.filter(x => x === v).length > 1;
+
+        if (isDuplicate) {
+          // 빨간 표시
+          inp.style.backgroundColor = '#ffe4e4';
+          inp.style.color = '#d00';
+        } else {
+          // 정상 색상 복원
+          inp.style.backgroundColor = '';
+          inp.style.color = '';
+        }
+      });
+    }
+
+    // === 실제로 중복이 있는지 여부만 true/false로 알려주는 함수 ===
+    function hasDuplicateListingNumbers() {
+      const allInputs = [...document.querySelectorAll('input[data-index]')];
+      const seen = new Set();
+
+      for (const inp of allInputs) {
+        const v = (inp.value || '').trim();
+        if (!v) continue;
+        if (seen.has(v)) {
+          return true;  // 이미 본 값이면 중복
+        }
+        seen.add(v);
+      }
+      return false;
+    }
 
     // ✅ 돈 포맷 되어 있는 문자열에서 숫자만 추출(‘억 2,000’ 등도 허용) → 다시 원래 문자열 그대로 쓰길 원하면 이 부분 조정
     const stripEmpty = (s) => (s || '').trim();
+
     // (교체) 보증금/월세 라벨을 붙여서 합성
     function joinMoney(deposit, monthly) {
       const a = (deposit || '').trim(); // 예: "1억 5,000"
@@ -1822,53 +1870,6 @@
           highlightDuplicateListingNumbers();
         };
     
-        // === 매물번호 중복 체크 & 빨갛게 표시 ===
-        function highlightDuplicateListingNumbers() {
-          const allInputs = [...document.querySelectorAll('input[data-index]')];
-
-          // 값 목록 생성
-          const values = allInputs.map(inp => (inp.value || '').trim());
-
-          allInputs.forEach((inp, idx) => {
-            const v = values[idx];
-            if (!v) {
-              // 값이 없으면 색상 초기화
-              inp.style.backgroundColor = '';
-              inp.style.color = '';
-              return;
-            }
-
-            // 동일 값이 2개 이상인지 체크
-            const isDuplicate = values.filter(x => x === v).length > 1;
-
-            if (isDuplicate) {
-              // 빨간 표시
-              inp.style.backgroundColor = '#ffe4e4';
-              inp.style.color = '#d00';
-            } else {
-              // 정상 색상 복원
-              inp.style.backgroundColor = '';
-              inp.style.color = '';
-            }
-          });
-        }
-
-        // === 실제로 중복이 있는지 여부만 true/false로 알려주는 함수 ===
-        function hasDuplicateListingNumbers() {
-          const allInputs = [...document.querySelectorAll('input[data-index]')];
-          const seen = new Set();
-
-          for (const inp of allInputs) {
-            const v = (inp.value || '').trim();
-            if (!v) continue;
-            if (seen.has(v)) {
-              return true;  // 이미 본 값이면 중복
-            }
-            seen.add(v);
-          }
-          return false;
-        }
-
         // 단일 변경
         input.addEventListener('change', async (e) => {
           await handleListingInput(index, e.target.value);
