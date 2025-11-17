@@ -435,6 +435,17 @@
         return false;
       }
 
+      // === 저장 전 매물번호 중복 검사 ===
+      const duplicates = checkDuplicateListingNumbers();
+      if (duplicates.length > 0) {
+        const msg = duplicates
+          .map(d => `매물번호 ${d.number} (행 ${d.firstIndex} ↔ 행 ${d.secondIndex})`)
+          .join('\n');
+
+        showToast("중복된 매물번호가 있습니다:\n" + msg);
+        return false;
+      }
+
       // 권한 확인(대표/보조만 가능)
       if (!(await isMyAssignedCustomer(currentCustomerId))) {
         showToast("담당자가 아닌 고객의 매물은 저장할 수 없습니다.");
@@ -2268,6 +2279,33 @@
         }
 
         showToast("고객 정보가 수정되었습니다!");
+      }
+
+      /** 매물번호 중복 여부 검사 */
+      function checkDuplicateListingNumbers() {
+        const inputs = document.querySelectorAll('input[data-index]');
+        const seen = new Map(); // listingNumber → index
+        const duplicates = [];
+
+        inputs.forEach(inp => {
+          const idx = parseInt(inp.dataset.index, 10);
+          const raw = (inp.value || '').trim();
+          if (!raw) return;
+
+          const num = raw.replace(/[^\d]/g, '');
+
+          if (seen.has(num)) {
+            duplicates.push({
+              number: raw,
+              firstIndex: seen.get(num),
+              secondIndex: idx
+            });
+          } else {
+            seen.set(num, idx);
+          }
+        });
+
+        return duplicates;
       }
 
       // ==================================================
