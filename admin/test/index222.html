@@ -244,15 +244,6 @@
               <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
               </button>
-              <!-- 👇 지우기 옆 '수정/저장' 버튼: 화면/클릭 완전 차단용으로 숨김 처리 -->
-              <button
-                id="toggle-edit-btn"
-                class="hidden h-[2rem] bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-3 py-1 rounded"
-                aria-hidden="true"
-                tabindex="-1"
-              >
-                저장
-              </button>
             </div>
             <div id="table-container" class="border rounded-md">
               <table class="w-[7rem] text-sm text-left">
@@ -1044,13 +1035,6 @@
       showToast(`고객 "${name}" 데이터 불러옴`);
       setDocumentTitle(name);
 
-      // 무조건 읽기모드로 정리
-      if (isEditMode) {
-        toggleButton.click();
-        switchInputsToSpans();
-      }
-      switchInputsToSpans();
-
       // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
       const staffInfoBox = document.getElementById('staff-info');
       if (customer.staff_profiles_id) {
@@ -1765,11 +1749,6 @@
         }
       });
 
-      // ✅ 읽기 모드 버튼 스타일 및 텍스트 초기화
-      toggleButton.textContent = '수정';
-      toggleButton.classList.remove('bg-blue-400', 'hover:bg-blue-500');
-      toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
-
       // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
       switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
 
@@ -1846,10 +1825,6 @@
     }
 
     const allInputs = document.querySelectorAll('input[data-index]');
-
-    // 수정, 저장버튼 관련
-    const toggleButton = document.getElementById('toggle-edit-btn');
-    let isEditMode = false;
 
     const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
 
