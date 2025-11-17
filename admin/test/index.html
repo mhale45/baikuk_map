@@ -285,8 +285,8 @@
                     </div>
                     <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                        class="hidden absolute top-full left-0 mt-1 w-[14rem] bg-white border rounded shadow-lg z-50 max-h-60 overflow-y-auto">
-                    </div>
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                  </div>
                   </div>
                 </div>
               </div>
@@ -415,6 +415,8 @@
     // === 행 관찰용 전역 ===
     let listingsBody;          // tbody 캐시
     let rowObserver;           // ResizeObserver 인스턴스
+    // 직원 선택 저장용 전역 변수
+    let selectedStaffId = null;
 
     /* ----------------------------------------------------
       [매물 저장 기능]
@@ -1600,6 +1602,12 @@
       loadStaffOptions();
       refreshLatestMeta(); // [ADD] 매물장 최신 업데이트 시간 갱신
 
+      // ⭐ staff-dropdown 을 body로 이동 (부모 overflow 영향 안 받게)
+      const dropdown = document.getElementById('staff-dropdown');
+      if (dropdown && dropdown.parentElement !== document.body) {
+        document.body.appendChild(dropdown);
+      }
+
       // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
       listingsBody = document.getElementById('listings-body');
       rowObserver = new ResizeObserver(() => {
@@ -1704,7 +1712,7 @@
         });
       });
 
-      // ✅ 열 리사이즈: 매매추천 페이지와 동일 동작(심플)
+      // ✅ 열 리사이즈
       let startX, startWidth, resizableTh;
       document.querySelectorAll('.resize-handle').forEach(h => {
         h.addEventListener('mousedown', e => {
@@ -1729,7 +1737,7 @@
 
       syncRowHeights?.();
 
-      // ✅ 전체선택: '매물번호'만 (왼쪽 input[data-index])
+      // 전체선택: '매물번호'만 (왼쪽 input[data-index])
       document.addEventListener('focusin', (e) => {
         const t = e.target;
         if (t.matches('input[data-index]')) {
@@ -1758,6 +1766,8 @@
       // 최초 진입 시에도 메모 50줄 표시
       renderMemoPanel([]);
     });
+
+    
 
     // 👉 창 리사이즈 시에도 높이 동기화
     window.addEventListener('resize', syncRowHeights);
@@ -2152,9 +2162,11 @@
     });
 
     // 직원 드롭다운 열기 / 닫기
-    document.getElementById("staff-info").addEventListener("click", async () => {
+    document.getElementById("staff-info").addEventListener("click", async (e) => {
       const dropdown = document.getElementById("staff-dropdown");
+      const info = document.getElementById("staff-info");
 
+      // 이미 열려 있으면 닫기
       if (!dropdown.classList.contains("hidden")) {
         dropdown.classList.add("hidden");
         return;
@@ -2164,13 +2176,30 @@
       const staff = await loadStaffByBranch();
       renderStaffDropdown(staff);
 
+      // 👉 위치 계산 (화면 기준 좌표)
+      const rect = info.getBoundingClientRect();
+
+      dropdown.style.position = "fixed";
+      dropdown.style.top = rect.bottom + 4 + "px";  // staff-info 바로 아래 + 4px
+      dropdown.style.left = rect.left + "px";
+      dropdown.style.minWidth = rect.width + "px";  // staff-info 너비 이상
+      // 필요하면 고정 폭:
+      // dropdown.style.width = rect.width + "px";
+
       dropdown.classList.remove("hidden");
     });
 
-    // 전역 클릭 시 드롭다운 닫기
+    // 전역 클릭 시 드롭다운 닫기 (staff-info + dropdown 바깥 클릭일 때만)
     document.addEventListener("click", (e) => {
-      if (!document.getElementById("staff-info-container").contains(e.target)) {
-        document.getElementById("staff-dropdown").classList.add("hidden");
+      const container = document.getElementById("staff-info-container");
+      const dropdown  = document.getElementById("staff-dropdown");
+      if (!container || !dropdown) return;
+
+      const clickInsideInfo   = container.contains(e.target);
+      const clickInsideDrop   = dropdown.contains(e.target);
+
+      if (!clickInsideInfo && !clickInsideDrop) {
+        dropdown.classList.add("hidden");
       }
     });
 
