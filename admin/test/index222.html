@@ -189,7 +189,14 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[5rem] shadow-right relative z-[10] text-left">
+    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
+      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
+      <div class="flex justify-end px-2 mb-2">
+        <button id="new-customer-btn"
+          class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
+          새 고객
+        </button>
+      </div>
       <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
         <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
@@ -2011,42 +2018,132 @@
       setTimeout(cleanupPrintPortal, 0);
     });
 
+    // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
     document.getElementById('save-new-customer').addEventListener('click', async () => {
-      // 1) 고객 정보 저장(기본 정보: 이름/전화/등급/메모)
-      const customerName = document.getElementById('top-row-input').value.trim();
+      const name  = document.getElementById('top-row-input').value.trim();
       const phone = document.getElementById('customer-phone').value.trim();
       const grade = document.getElementById('customer-grade').value.trim();
       const memo  = document.getElementById('memo-textarea').value.trim();
 
-      if (!currentCustomerId) {
-        showToast("먼저 손님을 선택해주세요.");
+      if (!name) {
+        showToast("고객 이름을 입력해주세요.");
         return;
       }
 
-      // 👉 고객 기본 정보 업데이트
-      const { error: custErr } = await supabase
-        .from('customers')
-        .update({
-          customer_name: customerName,
-          customer_phone_number: phone,
-          grade: grade,
-          memo: memo,
-        })
-        .eq('id', currentCustomerId);
-
-      if (custErr) {
-        console.error(custErr);
-        showToast("고객 저장 중 오류가 발생했습니다.");
+      let myStaffId = await getMyStaffId();
+      if (!myStaffId) {
+        showToast("로그인이 필요합니다.");
         return;
       }
 
-      // 2) 매물 저장 실행
+      let isNewCustomer = !currentCustomerId; // 신규 모드 판단
+
+      // ==================================================
+      // 1) 신규 고객인 경우 → INSERT
+      // ==================================================
+      if (isNewCustomer) {
+        // 같은 이름이 이미 있는지 확인
+        const { data: same, error: sameErr } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("customer_name", name)
+          .maybeSingle();
+
+        if (same) {
+          showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
+          return;
+        }
+
+        // 신규 고객 INSERT
+        const { data: inserted, error: insertErr } = await supabase
+          .from("customers")
+          .insert({
+            customer_name: name,
+            customer_phone_number: phone,
+            grade: grade,
+            memo: memo,
+            staff_profiles_id: myStaffId
+          })
+          .select()
+          .single();
+
+        if (insertErr || !inserted) {
+          console.error(insertErr);
+          showToast("신규 고객 저장에 실패했습니다.");
+          return;
+        }
+
+        currentCustomerId = inserted.id; // 신규 고객 ID 저장
+        showToast("신규 고객이 저장되었습니다!");
+
+      } 
+      // ==================================================
+      // 2) 기존 고객 수정 모드 → UPDATE
+      // ==================================================
+      else {
+        const { error: updateErr } = await supabase
+          .from("customers")
+          .update({
+            customer_name: name,
+            customer_phone_number: phone,
+            grade: grade,
+            memo: memo
+          })
+          .eq("id", currentCustomerId);
+
+        if (updateErr) {
+          console.error(updateErr);
+          showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+          return;
+        }
+
+        showToast("고객 정보가 수정되었습니다!");
+      }
+
+      // ==================================================
+      // 3) 매물 정보 저장 (신규/기존 공통)
+      // ==================================================
+
       const saved = await saveListingsForCurrentCustomer();
-      if (!saved) return;
+      if (!saved) {
+        showToast("매물정보 저장 중 오류가 발생했습니다.");
+        return;
+      }
 
-      showToast("고객 + 매물정보 저장 완료!");
+      showToast("고객 정보 + 매물정보 저장 완료!");
+
+      // 저장 후 고객 리스트 갱신
+      loadCustomersForCurrentStaff();
     });
 
+    // ⭐ 신규 고객 버튼 기능
+    document.getElementById('new-customer-btn')?.addEventListener('click', () => {
+      // 1) 현재 선택 고객 초기화
+      currentCustomerId = null;
+
+      // 2) 오른쪽 고객 입력칸 초기화
+      document.getElementById('top-row-input').value = '';
+      document.getElementById('customer-phone').value = '';
+      document.getElementById('customer-grade').value = 'A';
+      document.getElementById('memo-textarea').value = '';
+
+      // 3) 문서 제목 초기화
+      setDocumentTitle('');
+
+      // 4) 매물번호 모두 지우기 (원래 있던 이벤트가 알아서 오른쪽 표도 지움)
+      document.querySelectorAll('input[data-index]').forEach(inp => {
+        inp.value = '';
+        inp.dispatchEvent(new Event('change'));
+      });
+
+      // 5) 메모 패널 초기화
+      renderMemoPanel([]);
+
+      // 6) 담당자 정보 표시
+      loadCurrentUserStaffInfo();
+
+      showToast('신규 고객 작성 모드입니다.');
+    });
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
