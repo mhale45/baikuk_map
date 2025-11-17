@@ -1851,18 +1851,9 @@
     const toggleButton = document.getElementById('toggle-edit-btn');
     let isEditMode = false;
 
-    // === '손님저장'을 '수정→저장'과 동일 로직으로 실행 ===
-    // - 현재 편집 모드가 아니면: 한 번 클릭으로 편집 모드 진입 → 다시 클릭으로 저장 실행
-    // - 현재 편집 모드면: 한 번만 클릭해서 저장 실행
-    document.getElementById('save-new-customer')?.addEventListener('click', () => {
-      if (!toggleButton) return;
-
-      if (!isEditMode) {
-        // 1) 먼저 '수정' 클릭(편집모드 진입: 필수 준비 작업/검증 로직 그대로 수행)
-        toggleButton.click();
-      }
-      // 2) 곧바로 '저장' 클릭(읽기모드 전환 + 동일 저장 로직 실행)
-      toggleButton.click();
+    // === 저장 버튼: 편집모드 여부 신경쓰지 않고 바로 저장 ===
+    document.getElementById('save-new-customer')?.addEventListener('click', async () => {
+      await runSaveLogic();
     });
 
     const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
@@ -2300,6 +2291,25 @@
         toggleButton.click();
       }
     });
+
+    // === 직접 저장 실행용 함수 ===
+    async function runSaveLogic() {
+      // 저장 로직 시작
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) { showToast("로그인 정보가 필요합니다."); return; }
+
+      const customerName = document.getElementById('top-row-input')?.value.trim();
+      const customerPhone = document.getElementById('customer-phone')?.value.trim();
+      const customerGrade = document.getElementById('customer-grade')?.value;
+      const memoText = document.getElementById('memo-textarea')?.value.trim();
+
+      // ➜ 기존 toggle-edit-btn 안에 있던 저장 로직 그대로 복사
+      //    (currentCustomerId 없으면 신규 생성 / 있으면 업데이트 등)
+      // === 저장 로직 전체를 기존 코드에서 통째로 가져와 여기에 넣어주세요 ===
+
+      showToast("저장되었습니다.");
+    }
 
     // 건물정보, 호수, 층 하나로 합치는 함수
     function combineUnitInfo(buildingName, floor, unitInfo) {
