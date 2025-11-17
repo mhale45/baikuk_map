@@ -1853,6 +1853,22 @@
           });
         }
 
+        // === 실제로 중복이 있는지 여부만 true/false로 알려주는 함수 ===
+        function hasDuplicateListingNumbers() {
+          const allInputs = [...document.querySelectorAll('input[data-index]')];
+          const seen = new Set();
+
+          for (const inp of allInputs) {
+            const v = (inp.value || '').trim();
+            if (!v) continue;
+            if (seen.has(v)) {
+              return true;  // 이미 본 값이면 중복
+            }
+            seen.add(v);
+          }
+          return false;
+        }
+
         // 단일 변경
         input.addEventListener('change', async (e) => {
           await handleListingInput(index, e.target.value);
@@ -2238,6 +2254,13 @@
         return;
       }
 
+      // 🔴 여기서 한 번 더 색칠 & 중복 여부 검사
+      highlightDuplicateListingNumbers();
+      if (hasDuplicateListingNumbers()) {
+        alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
+        return;
+      }
+
       let isNewCustomer = !currentCustomerId; // 신규 모드 판단
 
       // ==================================================
@@ -2277,7 +2300,6 @@
 
         currentCustomerId = inserted.id; // 신규 고객 ID 저장
         showToast("신규 고객이 저장되었습니다!");
-
       } 
       // ==================================================
       // 2) 기존 고객 수정 모드 → UPDATE
