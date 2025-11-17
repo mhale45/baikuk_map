@@ -244,6 +244,15 @@
               <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
               </button>
+              <!-- 👇 지우기 옆 '수정/저장' 버튼: 화면/클릭 완전 차단용으로 숨김 처리 -->
+              <button
+                id="toggle-edit-btn"
+                class="hidden h-[2rem] bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-3 py-1 rounded"
+                aria-hidden="true"
+                tabindex="-1"
+              >
+                저장
+              </button>
             </div>
             <div id="table-container" class="border rounded-md">
               <table class="w-[7rem] text-sm text-left">
