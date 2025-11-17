@@ -594,7 +594,8 @@ async function renderStaffSidebar(me) {
                 parts.push(wrapRedIf(diff >= 24, txt));
               }
 
-              meta.textContent = parts.length
+              // 🔴 여기만 변경: textContent → innerHTML
+              meta.innerHTML = parts.length
                 ? `최신 업데이트: ${parts.join(' / ')}`
                 : '최신 업데이트 기록이 없습니다';
             }
@@ -1079,6 +1080,7 @@ async function renderStaffSidebar(me) {
             });
 
             resultBox.appendChild(table);
+
             {
               const [maemulAt, adAt] = await Promise.all([
                 _getLatestUpdateISO('매물장'),
@@ -1103,7 +1105,8 @@ async function renderStaffSidebar(me) {
                 parts.push(wrapRedIf(diff >= 24, txt));
               }
 
-              meta.textContent = parts.length
+              // 🔴 여기만 변경: textContent → innerHTML
+              meta.innerHTML = parts.length
                 ? `최신 업데이트: ${parts.join(' / ')}`
                 : '최신 업데이트 기록이 없습니다';
             }
