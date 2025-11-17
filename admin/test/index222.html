@@ -128,7 +128,7 @@
     th, td {
       padding: 0.25rem; /* p-1 정도 */
       text-align: center;
-      font-size: 1rem;
+      font-size: 0.875rem; /* text-sm */
     }
     
     /* 단어 기준 줄바꿈 설정 */
@@ -243,6 +243,15 @@
             <div class="mb-2 text-right flex gap-2 justify-end">
               <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
+              </button>
+              <!-- 👇 지우기 옆 '수정/저장' 버튼: 화면/클릭 완전 차단용으로 숨김 처리 -->
+              <button
+                id="toggle-edit-btn"
+                class="hidden h-[2rem] bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-3 py-1 rounded"
+                aria-hidden="true"
+                tabindex="-1"
+              >
+                저장
               </button>
             </div>
             <div id="table-container" class="border rounded-md">
@@ -618,113 +627,6 @@
       return (el?.value || '').trim();
     }
 
-    // ✅ 현재 화면의 매물표 + 메모를 Supabase에 넣을 수 있는 형태로 변환
-    function buildRecommendationsPayload() {
-      const rows = document.querySelectorAll('#listings-body tr');
-      const records = [];
-
-      rows.forEach((_, idx) => {
-        const index = idx + 1; // 1부터 시작 (order 컬럼과 맞추기)
-
-        // 이 행에 의미 있는 데이터가 없으면 스킵
-        const hasData = hasMeaningfulData(index) || getListingNumber(index);
-        if (!hasData) return;
-
-        const rawListingNo = getListingNumber(index); // 왼쪽 매물번호
-        const cleanListingNo = rawListingNo
-          ? String(rawListingNo).replace(/[^\d]/g, '')
-          : '';
-        const listing_id = cleanListingNo ? Number(cleanListingNo) : null;
-
-        // 화면에서 값 읽기
-        const listing_title  = stripEmpty(getFieldValue('listing_title', index)) || null;
-        const full_address   = stripEmpty(getFieldValue('full_address', index)) || null;
-        const combined_unit  = stripEmpty(getFieldValue('combined_unit', index)) || null;
-        const depStr         = stripEmpty(getFieldValue('deposit_price', index));
-        const monStr         = stripEmpty(getFieldValue('monthly_rent', index));
-        const premStr        = stripEmpty(getFieldValue('premium_price', index));
-        const areaStr        = stripEmpty(getFieldValue('area_py', index));
-        const contents       = stripEmpty(getFieldValue('description', index)) || null;
-        const memo           = stripEmpty(getMemoValue(index)) || null;
-
-        // 숫자 변환
-        const deposit_price  = parseKoreanMoneyToNumber(depStr);
-        const monthly_rent   = parseKoreanMoneyToNumber(monStr);
-        const premium_price  = parseKoreanMoneyToNumber(premStr);
-        const area_py = areaStr
-          ? Number(String(areaStr).replace(/[^\d.-]/g, ''))
-          : null;
-
-        records.push({
-          customers_id: String(currentCustomerId),   // TEXT 컬럼이라 문자열로 저장
-          order: index,                              // 화면 순서를 그대로 저장
-          listing_id,
-          listing_title,
-          full_address,
-          building_detail_info: combined_unit,       // 건물/층/호수 합쳐진 정보
-          deposit_price,
-          monthly_rent,
-          premium_price,
-          area_py,
-          contents,
-          memo,
-        });
-      });
-
-      return records;
-    }
-
-    // ✅ 추천 매물 저장 (기존 것은 싹 지우고 다시 넣기)
-    async function saveCustomerRecommendations() {
-      try {
-        if (!currentCustomerId) {
-          showToast('먼저 고객을 선택하거나 불러와 주세요.');
-          return;
-        }
-
-        const records = buildRecommendationsPayload();
-        if (!records.length) {
-          showToast('저장할 매물 정보가 없습니다.');
-          return;
-        }
-
-        // 권한 체크: 대표/보조만 수정 가능 (삭제 로직과 동일 정책)
-        const allowed = await isMyAssignedCustomer(currentCustomerId);
-        if (!allowed) {
-          showToast('담당자가 아닌 고객의 추천 매물은 수정할 수 없습니다.');
-          return;
-        }
-
-        // 1) 기존 추천 매물 삭제
-        const { error: delError } = await supabase
-          .from('customers_recommendations')
-          .delete()
-          .eq('customers_id', String(currentCustomerId));
-
-        if (delError) {
-          console.error('추천 매물 삭제 실패:', delError);
-          showToast('기존 추천 매물 삭제 중 오류가 발생했습니다.');
-          return;
-        }
-
-        // 2) 새 데이터 일괄 insert
-        const { error: insError } = await supabase
-          .from('customers_recommendations')
-          .insert(records);
-
-        if (insError) {
-          console.error('추천 매물 저장 실패:', insError);
-          showToast('추천 매물 저장 중 오류가 발생했습니다.');
-          return;
-        }
-
-        showToast('추천 매물이 저장되었습니다.');
-      } catch (e) {
-        console.error('추천 매물 저장 중 예외:', e);
-        showToast('추천 매물을 저장하는 중 알 수 없는 오류가 발생했습니다.');
-      }
-    }
-
     // === [저장 개선] 단순 덮어쓰기 모달 ===
     const OverwriteModal = {
       root: null,
@@ -738,7 +640,29 @@
       OverwriteModal.btnOverwrite = document.getElementById('dup-overwrite');
       OverwriteModal.btnCancel = document.getElementById('dup-cancel');
     }
-    
+
+    function openOverwriteModal(targetId, onConfirm) {
+      if (!OverwriteModal.root) initOverwriteModalRefs();
+      OverwriteModal.targetId = targetId;
+
+      // 버튼 핸들러 재바인딩
+      OverwriteModal.btnOverwrite.onclick = async () => {
+        try { await onConfirm?.(OverwriteModal.targetId); }
+        finally { closeOverwriteModal(); }
+      };
+      OverwriteModal.btnCancel.onclick = () => closeOverwriteModal();
+
+      OverwriteModal.root.classList.remove('hidden');
+      OverwriteModal.root.classList.add('flex');
+    }
+
+    function closeOverwriteModal() {
+      if (!OverwriteModal.root) initOverwriteModalRefs();
+      OverwriteModal.root.classList.add('hidden');
+      OverwriteModal.root.classList.remove('flex');
+      OverwriteModal.targetId = null;
+    }
+
     // 현재 있는 모든 행을 관찰
     function observeRows() {
       if (!listingsBody) return;
@@ -780,7 +704,6 @@
 
     // ✅ 돈 포맷 되어 있는 문자열에서 숫자만 추출(‘억 2,000’ 등도 허용) → 다시 원래 문자열 그대로 쓰길 원하면 이 부분 조정
     const stripEmpty = (s) => (s || '').trim();
-
     // (교체) 보증금/월세 라벨을 붙여서 합성
     function joinMoney(deposit, monthly) {
       const a = (deposit || '').trim(); // 예: "1억 5,000"
@@ -789,34 +712,6 @@
       const bL = b ? `${b}`   : '';
       if (a && b) return `${aL}/${bL}`;
       return aL || bL || '';
-    }
-
-    // 💰 "1억 5,000", "15,000", "800" 같은 문자열을 숫자(만원 단위)로 변환
-    function parseKoreanMoneyToNumber(raw) {
-      const s = (raw ?? '').toString().trim();
-      if (!s) return null;
-
-      let total = 0;
-      let restStr = s;
-
-      // "1억 5,000" 에서 억 부분 분리
-      const eokMatch = restStr.match(/(\d+(?:,\d+)*)\s*억/);
-      if (eokMatch) {
-        const eok = Number(eokMatch[1].replace(/,/g, ''));
-        if (!Number.isNaN(eok)) {
-          total += eok * 10000; // 1억 = 10,000(만원)
-        }
-        restStr = restStr.replace(eokMatch[0], '');
-      }
-
-      // 남은 부분에서 숫자만
-      const restDigits = restStr.replace(/[^\d]/g, '');
-      if (restDigits) {
-        const num = Number(restDigits);
-        if (!Number.isNaN(num)) total += num;
-      }
-
-      return total || null;
     }
 
     // ✅ 해당 행에 “의미 있는 값”이 하나라도 있는지 확인 (번호 제외)
@@ -1073,7 +968,7 @@
 
       currentCustomerId = customer.id;
 
-      // 👉 우측 정보창 채우기 (이름 / 전화 / 등급 / 메모)
+      // 👉 우측 정보창 채우기
       document.getElementById('top-row-input').value = customer.customer_name || '';
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
@@ -1086,13 +981,13 @@
       const listingsBody = document.getElementById('listings-body');
       listingsBody.innerHTML = '';
 
-      // ✅ 추천 매물 목록 불러오기
+      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
       const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', String(currentCustomerId)) // text 컬럼이라 문자열 비교
-        .order('order', { ascending: true, nullsFirst: false })
-        .order('id', { ascending: true });
+        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -1100,14 +995,14 @@
         return;
       }
 
-      // order 컬럼이 있으면 그 순서에 맞게 행 번호 사용, 없으면 순차 증가
+      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
       let nextIndex = 1;
 
       listings.forEach((listing) => {
         // 1) 인덱스 결정
         const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
-          ? listing.order
-          : nextIndex++;
+          ? listing.order          // order가 있으면 그대로 사용
+          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
 
         // 2) 왼쪽 매물번호 채우기
         const leftInput = document.querySelector(`input[data-index="${index}"]`);
@@ -1116,7 +1011,7 @@
         // 3) 오른쪽 표 행 확보/확장
         updateListingsTableByInputs();
 
-        // 4) 필드 주입 헬퍼
+        // 4) 필드 주입
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
           if (!el) return;
@@ -1127,42 +1022,36 @@
         setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
 
-        // 숫자 포맷 적용
+        // 🔹 숫자 포맷 적용 (콤마 표시)
         setField('deposit_price', formatKoreanMoney(listing.deposit_price));
         setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
         setField('premium_price', formatKoreanMoney(listing.premium_price));
-        setField(
-          'area_py',
-          isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1)
-        );
+        setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
 
-        // 내용(contents → description)
         setField('description', listing.contents);
 
-        // nextIndex 보정
+        // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
+        //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
         if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
           nextIndex = Math.max(nextIndex, listing.order + 1);
         }
       });
 
-      // 메모 패널에 50줄 렌더 + 매물별 메모 채우기
+      // 높이/스트라이프 정리
       renderMemoPanel(listings);
-
-      // 행 높이/줄무늬 다시 정리
       syncRowHeights?.();
       applyRowStriping?.();
-
       showToast(`고객 "${name}" 데이터 불러옴`);
       setDocumentTitle(name);
 
-      // 항상 읽기 모드로 정리
+      // 무조건 읽기모드로 정리
       if (isEditMode) {
         toggleButton.click();
         switchInputsToSpans();
       }
       switchInputsToSpans();
 
-      // 👉 담당자 텍스트 표시(이미 존재하는 staff-info 박스 사용)
+      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
       const staffInfoBox = document.getElementById('staff-info');
       if (customer.staff_profiles_id) {
         const { data: staff } = await supabase
@@ -1177,7 +1066,9 @@
           document.getElementById('staff-select').classList.add('hidden');
         }
       }
+
     }
+
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
     async function loadCustomersForCurrentStaff() {
@@ -1350,7 +1241,6 @@
             nameBtn.setAttribute('role', 'button');
             nameBtn.tabIndex = 0;
 
-            // ✅ 여기서 고객이름 클릭 시 매물/메모 로딩
             nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
             nameBtn.addEventListener('keydown', (e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -1369,9 +1259,76 @@
           const caret = header.querySelector('.caret');
           caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
         });
-      });      
+      });
+      
     }
-        
+
+    // 저장버튼 누르면 수정모드로 표 바꿔주는 함수
+    function switchSpansToInputs() {
+      const rows = document.querySelectorAll('#listings-body tr');
+
+      rows.forEach((row, rowIndex) => {
+        const spans = row.querySelectorAll('span[data-field]');
+        spans.forEach(span => {
+          const field = span.dataset.field;
+          const value = span.textContent || '';
+
+          let inputEl;
+
+          if (
+            field.startsWith('listing_title_') ||
+            field.startsWith('full_address_')  ||
+            field.startsWith('combined_unit_') ||   // ✅ 건물정보도 textarea로
+            field.startsWith('description_')
+          ) {
+            inputEl = document.createElement('textarea');
+            inputEl.rows = 2;
+            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
+          } else {
+            inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none';
+          }
+
+          inputEl.value = value;
+          inputEl.dataset.field = field;
+
+          span.parentElement.replaceChild(inputEl, span);
+        });
+      });
+    }
+
+    // 저장버튼 누르면 뷰모드로 바꿔주는 함수
+    function switchInputsToSpans() {
+      const rows = document.querySelectorAll('#listings-body tr');
+
+      rows.forEach(row => {
+        const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
+        fields.forEach(el => {
+          const value = el.value || '';
+          const field = el.dataset.field;
+
+          const span = document.createElement('span');
+          span.className = 'text-base block';
+          span.dataset.field = field;
+
+          // ✅ 매물명과 내용 모두 줄바꿈 유지
+          if (field.startsWith('listing_title_') || field.startsWith('description_')) {
+            span.style.whiteSpace = 'pre-wrap';   // 줄바꿈(\n) 보이기
+            span.style.wordBreak = 'break-word';  // 긴 단어 자동 줄바꿈
+            span.style.overflowWrap = 'break-word';
+            span.style.textAlign = 'center';        // 가운데 정렬 대신 왼쪽 정렬 추천
+          } else {
+            span.style.whiteSpace = 'normal';
+            span.style.textAlign = 'center';
+          }
+
+          span.textContent = value;
+          el.parentElement.replaceChild(span, el);
+        });
+      });
+    }
+
     let buildingMap = new Map();
 
     // 매물번호 입력에 따라 매물정보 표 늘리고 줄이기
@@ -1397,60 +1354,28 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td class="p-1 border text-center">${i}</td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="listing_title_${i}"></span>
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="full_address_${i}"></span>
+            <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="deposit_price_${i}"></span>
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="monthly_rent_${i}"></span>
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="premium_price_${i}"></span>
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-center" data-field="area_py_${i}"></span>
+            <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
           </td>
-
           <td class="p-1 border text-center">
-            <span class="w-full block text-left whitespace-pre-wrap" data-field="description_${i}"></span>
+            <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
           </td>
         `;
-
-        // row.innerHTML = `
-        //   <td class="p-1 border text-center">${i}</td>
-        //   <td class="p-1 border text-center">
-        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea>
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea>
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="deposit_price_${i}" />
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="monthly_rent_${i}" />
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="premium_price_${i}" />
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" />
-        //   </td>
-        //   <td class="p-1 border text-center">
-        //     <textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none"  data-field="description_${i}"></textarea>
-        //   </td>
-        // `;
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
@@ -1648,6 +1573,26 @@
 
       updateListingsTableByInputs();
       
+      // 🔽 읽기모드일 경우, 해당 행만 다시 span으로 전환
+      if (!isEditMode) {
+        const row = document.querySelectorAll('#listings-body tr')[rowIndex - 1];
+        if (row) {
+          const fields = row.querySelectorAll('input[data-field], textarea[data-field]');
+          fields.forEach(el => {
+            const value = el.value || '';
+            const field = el.dataset.field;
+
+            const span = document.createElement('span');
+            span.className = 'text-base block whitespace-pre-wrap';
+            span.dataset.field = field;
+            span.textContent = value;
+
+            el.parentElement.replaceChild(span, el);
+          });
+        }
+      }
+      
+      
       // 4. DOM에 출력
       Object.entries(dataToDisplay).forEach(([field, value]) => {
         const selector = `[data-field="${field}_${rowIndex}"]`;
@@ -1825,6 +1770,9 @@
       toggleButton.classList.remove('bg-blue-400', 'hover:bg-blue-500');
       toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
 
+      // ✅ input → span 전환 (매물 테이블이 렌더된 후 수행해야 함)
+      switchInputsToSpans();  // ← 혹시 입력 필드가 기본으로 생성되어 있다면 이걸 통해 span으로 전환
+
       // === '매물번호' 일괄 지우기 버튼 ===
       document.getElementById('clear-left-btn')?.addEventListener('click', () => {
         const inputs = document.querySelectorAll('input[data-index]');
@@ -1898,6 +1846,12 @@
     }
 
     const allInputs = document.querySelectorAll('input[data-index]');
+
+    // 수정, 저장버튼 관련
+    const toggleButton = document.getElementById('toggle-edit-btn');
+    let isEditMode = false;
+
+    const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
 
     // 건물정보, 호수, 층 하나로 합치는 함수
     function combineUnitInfo(buildingName, floor, unitInfo) {
@@ -1983,6 +1937,7 @@
 
         // 1) 연관 데이터부터 삭제 (FK 충돌 방지)
         const { error: recErr } = await supabase
+          .from('customers_recommendations')
           .delete()
           .eq('customers_id', String(currentCustomerId)); // text 컬럼이라 문자열 비교
 
@@ -2058,21 +2013,6 @@
       loadCustomersForCurrentStaff();
     });
 
-    // ✅ "저장" 버튼 → 현재 손님의 추천 매물 저장
-    document.getElementById('save-new-customer')?.addEventListener('click', async () => {
-      await saveCustomerRecommendations();
-    });
-
-    // ✅ 버튼 이벤트
-    document.getElementById('copy-link-btn')?.addEventListener('click', () => {
-      const text = buildAllMessages();
-      if (!text) {
-        showToast('복사할 내용이 없습니다.');
-        return;
-      }
-      copyToClipboard(text);
-    });
-
      // ✅ 버튼 이벤트
     document.getElementById('copy-link-btn')?.addEventListener('click', () => {
       const text = buildAllMessages();
@@ -2087,6 +2027,10 @@
     let portalEl = null;
 
     function buildPrintPortal() {
+      // 편집모드면 보기 좋게 span으로 임시 전환
+      wasEditModeForPrint = isEditMode;
+      if (isEditMode) switchInputsToSpans();
+
       // 기존 포털 제거
       portalEl?.remove();
 
@@ -2126,125 +2070,6 @@
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
     });
-
-    // ==============================
-    // [셀 클릭 시 개별 셀만 편집 가능하게 하는 코드]
-    // ==============================
-    (function setupInlineCellEdit() {
-      const body = document.getElementById('listings-body');
-      if (!body) return;
-
-      // 어떤 data-field는 textarea, 어떤 건 input으로 쓸지 구분
-      function isMultiLineField(fieldName) {
-        // 매물명 / 주소 / 내용 은 여러 줄 가능
-        return (
-          fieldName.startsWith('listing_title_') ||
-          fieldName.startsWith('full_address_') ||
-          fieldName.startsWith('description_')
-        );
-      }
-
-      function makeCellEditable(span) {
-        // 이미 편집 중이면 또 만들지 않음
-        if (!span || span.dataset.editing === '1') return;
-
-        const fieldKey = span.getAttribute('data-field'); // 예: listing_title_1
-        if (!fieldKey) return;
-
-        span.dataset.editing = '1';
-
-        const originalText = span.textContent || '';
-        const multiline = isMultiLineField(fieldKey);
-
-        // 기존 span 대신 들어갈 편집용 요소 생성
-        let editor;
-        if (multiline) {
-          editor = document.createElement('textarea');
-          editor.rows = 2;
-          editor.className =
-            'w-full box-border text-center text-base border rounded bg-white outline-none resize-none';
-          if (fieldKey.startsWith('description_')) {
-            // 내용은 왼쪽 정렬
-            editor.className =
-              'w-full box-border text-left text-base border rounded bg-white outline-none resize-none';
-          }
-        } else {
-          editor = document.createElement('input');
-          editor.type = 'text';
-          editor.className =
-            'w-full box-border text-center text-base border rounded bg-white outline-none';
-        }
-
-        editor.value = originalText.trim();
-
-        // span 대신 editor 넣기
-        span.replaceWith(editor);
-        editor.focus();
-
-        // 편집 종료 처리 (저장 / 취소 공통)
-        function finishEdit(save) {
-          const newSpan = document.createElement('span');
-          newSpan.setAttribute('data-field', fieldKey);
-
-          // 스타일 유지 (center / left 등)
-          if (multiline) {
-            if (fieldKey.startsWith('description_')) {
-              newSpan.className = 'w-full block text-left whitespace-pre-wrap';
-            } else {
-              newSpan.className = 'w-full block text-center whitespace-pre-wrap';
-            }
-          } else {
-            newSpan.className = 'w-full block text-center';
-          }
-
-          if (save) {
-            newSpan.textContent = editor.value;
-          } else {
-            newSpan.textContent = originalText;
-          }
-
-          delete span.dataset.editing;
-          editor.replaceWith(newSpan);
-        }
-
-        // ✅ 포커스 벗어나면 자동 저장
-        editor.addEventListener('blur', () => {
-          finishEdit(true);
-        });
-
-        // ✅ 키보드 동작
-        editor.addEventListener('keydown', (e) => {
-          // Enter: 저장 후 확정 (textarea는 Ctrl+Enter로 저장)
-          if (!multiline && e.key === 'Enter') {
-            e.preventDefault();
-            editor.blur(); // blur에서 finishEdit(true)호출
-          }
-          if (multiline && e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            editor.blur();
-          }
-
-          // Esc: 취소 (원래 값으로 복구)
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            finishEdit(false);
-            editor.blur();
-          }
-        });
-      }
-
-      // 테이블 바디에서 이벤트 위임: span[data-field]만 반응
-      body.addEventListener('click', function (e) {
-        let span = e.target.closest('span[data-field]');
-        if (!span) {
-          const td = e.target.closest('td');
-          if (!td) return;
-          span = td.querySelector('span[data-field]');
-          if (!span) return;
-        }
-        makeCellEditable(span);
-      });
-    })();
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
