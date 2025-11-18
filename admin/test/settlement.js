@@ -378,13 +378,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   const yms = Array.from(ymSet).sort();
 
   // === THEAD: 순이익 열 추가 (비용과 지점자율금 사이) ===
-  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 현금잔고 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
+  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
-    <th class="border px-2 py-2 whitespace-nowrap">현금 잔고</th>
+    <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
@@ -805,6 +805,9 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
+    // 비용은 입력 불가: 캐시 고정 사용
+    const c = Number((__LAST_COST_MAP || {})[ym] || 0);
+
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
 
     // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
@@ -820,7 +823,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE;
     const aFee = Math.round(baseForAuto * rate);
 
     // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
@@ -856,7 +859,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 계산식 표시(순이익/배당금)
     const netFormulaEl = document.getElementById('d_netincome_formula');
-    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 현금잔고 − 총 급여 − 부가세 − 유보금';
+    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금';
 
     const profitFormulaEl = document.getElementById('d_profit_formula');
     if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
@@ -898,7 +901,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '현금 잔고는 cost_management(비용페이지) 집계값으로 자동 표시됩니다.';
+      subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
     }
   }
 
@@ -914,7 +917,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
           <input id="input-main-balance" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right"/>
         </div>
         <div>
-          <label class="block text-sm text-gray-700 mb-1">현금 잔고 (sub_balance)</label>
+          <label class="block text-sm text-gray-700 mb-1">계좌 잔고2 (sub_balance)</label>
           <!-- 항상 수정 불가 + 굵게 표시 -->
           <input
             id="input-sub-balance"
@@ -924,7 +927,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="현금 잔고는 cost_management(비용페이지) 집계값으로 자동 표시됩니다."
+            title="계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -1109,7 +1112,7 @@ function firstDayOfMonth(ym) {
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
 // 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
 // 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
-// 현금잔고(sub)는 cost_management에서 division='비용사용' 월합으로 대체합니다.
+// 계좌잔고2(sub)는 cost_management에서 division='통장 입출금' 월합으로 대체합니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
@@ -1152,7 +1155,7 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 현금잔고(sub): cost_management에서 division='비용사용' 월합
+    // 3) 계좌잔고2(sub): cost_management에서 division='통장 입출금' 월합
     const subCMMap = {};
     try {
       const { data: bankRows, error: bankErr } = await supabase
@@ -1176,7 +1179,7 @@ async function loadBranchExpenseCache(affiliation) {
     // 4) 전역 캐시 갱신
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 현금잔고: cost_management('비용사용')
+    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
 
     return costMap;
   } catch (e) {
@@ -1430,12 +1433,12 @@ function applyLockUI(locked) {
     mainEl.classList.toggle('bg-gray-50', locked);
   }
 
-  // 현금잔고는 잠금상태와 무관하게 항상 수정 불가
+  // 계좌 잔고2는 잠금상태와 무관하게 항상 수정 불가
   if (subEl) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '현금잔고는 cost_management(비용 페이지) 집계값으로 자동 표시됩니다.';
+    subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
   }
 }
 
