@@ -1765,12 +1765,20 @@
     // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
     function applyRowStriping() {
       const rows = document.querySelectorAll('#listings-body tr');
+
       rows.forEach((row, index) => {
-        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
-        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
+        // 기본 줄무늬 색
+        const defaultColor = (index % 2 === 0) ? 'white' : '#f9fafb';
+
+        // 이미 사용자가 색을 지정했다면 덮어쓰지 않음
+        if (row.dataset.customColor) {
+          row.style.backgroundColor = row.dataset.customColor;
+        } else {
+          row.style.backgroundColor = defaultColor;
+        }
       });
     }
-    
+
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
