@@ -805,9 +805,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
-    // 비용은 입력 불가: 캐시 고정 사용
-    const c = Number((__LAST_COST_MAP || {})[ym] || 0);
-
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
 
     // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
@@ -823,7 +820,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
     const aFee = Math.round(baseForAuto * rate);
 
     // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
@@ -842,7 +839,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (totalCostFormulaEl) totalCostFormulaEl.textContent = '매출합계 − 총 급여 − 순이익';
 
     const finalProfit = Math.round(
-      balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
+      balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE - aFee
     );
 
     // 표시 업데이트
