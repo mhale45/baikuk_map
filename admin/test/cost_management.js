@@ -594,7 +594,7 @@ function renderCostList(rows) {
     <div class="bg-white rounded-xl shadow border border-gray-200 max-h-[600px] overflow-y-auto">
       <div class="overflow-x-auto min-w-full">
         <table class="min-w-full table-auto text-sm">
-          <thead class="bg-gray-100 text-gray-700">
+          <thead class="bg-gray-100 text-gray-700 sticky top-0 z-20">
             <tr>
               <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
               <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">날짜</th>
