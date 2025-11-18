@@ -2471,29 +2471,33 @@
       showToast('신규 고객 작성 모드입니다.');
     });
 
-    // 숫자칸 클릭 → 행 배경색 선택 기능 (Event Delegation)
+    // 숫자칸 클릭 → 행 배경색 선택 기능
     document.getElementById("listings-body").addEventListener("click", (e) => {
-      const td = e.target.closest("td:first-child");
+      const td = e.target.closest("td");
       if (!td) return;
 
       const row = td.closest("tr");
       if (!row) return;
 
+      // 🔥 '매물명' 왼쪽 숫자칸 = 항상 cellIndex === 0
+      if (td.cellIndex !== 0) return;
+
       const colorInput = document.createElement("input");
       colorInput.type = "color";
       colorInput.style.position = "fixed";
-      colorInput.style.left = "-9999px";  // 화면에 안 보이게
+      colorInput.style.left = "-9999px";
       document.body.appendChild(colorInput);
 
       colorInput.addEventListener("change", () => {
         const color = colorInput.value;
-        row.dataset.customColor = color;        // ⭐ striping 보호
+        row.dataset.customColor = color;
         row.style.backgroundColor = color;
       });
 
       colorInput.click();
       setTimeout(() => colorInput.remove(), 0);
     });
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
