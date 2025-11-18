@@ -163,6 +163,10 @@
       max-height: 520px;   /* 기존보다 훨씬 길게 */
       overflow-y: auto;    /* 스크롤 가능 */
     }
+    #white-box {
+      min-width: 60rem;  /* 이보다 작게는 줄지 않음 */
+      transition: width 0.2s ease;
+    }
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
@@ -274,7 +278,7 @@
             </div>
           </div>
         </div>        
-        <div class="ml-1 px-4 py-4 bg-white rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -2261,6 +2265,9 @@
         cleanupPrintPortal();
       }, 100);
     });
+
+    document.getElementById("white-box").style.width = "90rem";
+    document.getElementById("white-box").style.width = "";
 
     // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
     document.getElementById('save-new-customer').addEventListener('click', async () => {
