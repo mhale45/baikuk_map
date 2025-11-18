@@ -102,12 +102,14 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right">
           </label>
           <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">개인 계좌</span>
+            <span class="text-sm text-gray-600">계좌 잔고2</span>
             <input id="input-sub-balance" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right">
           </label>
 
           <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">비용</span>
+            <input id="d_cost" type="text" inputmode="numeric" placeholder="0" class="border rounded px-3 py-2 text-right font-semibold ">
             <!-- [ADD] 비용 항목 안내 (참고/제외) -->
             <div class="mt-2 border rounded px-3 py-2 bg-amber-50/60">
               <div class="text-sm font-semibold text-amber-800 mb-2">※ 비용 항목 안내</div>
@@ -150,7 +152,7 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
             <!-- 계산식 표시 -->
             <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
-              계좌잔고1 + 개인계좌 − 총 급여 − 비용 − 부가세 − 유보금
+              계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금
             </div>
           </label>
 
