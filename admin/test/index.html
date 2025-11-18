@@ -1625,25 +1625,6 @@
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
-
-        // ⭐ 숫자칸 클릭 → 행 배경색 선택 기능
-        const numberCell = row.querySelector("td:first-child");
-        numberCell.style.cursor = "pointer";
-        numberCell.addEventListener("click", () => {
-          const colorInput = document.createElement("input");
-          colorInput.type = "color";
-          colorInput.style.position = "absolute";
-          colorInput.style.opacity = 0;
-
-          document.body.appendChild(colorInput);
-
-          colorInput.addEventListener("input", () => {
-            row.style.backgroundColor = colorInput.value;
-          });
-
-          colorInput.click();
-          colorInput.remove();
-        });
       }
 
       // 행이 너무 많으면 자름
@@ -1767,10 +1748,9 @@
       const rows = document.querySelectorAll('#listings-body tr');
 
       rows.forEach((row, index) => {
-        // 기본 줄무늬 색
         const defaultColor = (index % 2 === 0) ? 'white' : '#f9fafb';
 
-        // 이미 사용자가 색을 지정했다면 덮어쓰지 않음
+        // 색 선택한 행은 striping이 덮어쓰면 안 됨
         if (row.dataset.customColor) {
           row.style.backgroundColor = row.dataset.customColor;
         } else {
@@ -2493,27 +2473,27 @@
 
     // 숫자칸 클릭 → 행 배경색 선택 기능 (Event Delegation)
     document.getElementById("listings-body").addEventListener("click", (e) => {
-      // 숫자칸(td:first-child)인지 확인
       const td = e.target.closest("td:first-child");
       if (!td) return;
+
       const row = td.closest("tr");
       if (!row) return;
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
-      colorInput.style.position = "absolute";
-      colorInput.style.opacity = 0;
-
+      colorInput.style.position = "fixed";
+      colorInput.style.left = "-9999px";  // 화면에 안 보이게
       document.body.appendChild(colorInput);
 
-      colorInput.addEventListener("input", () => {
-        row.style.backgroundColor = colorInput.value;
+      colorInput.addEventListener("change", () => {
+        const color = colorInput.value;
+        row.dataset.customColor = color;        // ⭐ striping 보호
+        row.style.backgroundColor = color;
       });
 
       colorInput.click();
-      colorInput.remove();
+      setTimeout(() => colorInput.remove(), 0);
     });
-
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
