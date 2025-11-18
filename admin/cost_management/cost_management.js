@@ -277,11 +277,24 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
 function initInputBar() {
   const $branch   = $('#cm-branch');
   const $date     = $('#cm-date');
+  const $division = $('#cm-division');
   const $amount   = $('#cm-amount');
   const $staff    = $('#cm-staff');    // [NEW: 이름 select]
 
   // 날짜: 오늘
   if ($date) $date.value = todayStr();
+
+  // 구분: 기본 '사용비용' (직원은 수정 불가)
+  if ($division) {
+    $division.value = '사용비용';
+    if (__MY_ROLE === '직원') {
+      $division.disabled = true;
+      $division.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+    } else {
+      $division.disabled = false;
+      $division.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
+    }
+  }
 
   // 금액: 숫자만, blur 시 콤마
   if ($amount) {
@@ -318,7 +331,7 @@ function initInputBar() {
     }
 
   // ❗ select / input 최소폭 유지 (텍스트 길이에 맞춤)
-  [$branch, $date, $amount, $staff].forEach(el => {
+  [$branch, $date, $division, $amount, $staff].forEach(el => {
     if (!el) return;
     el.classList.add('w-auto');
   });
@@ -344,6 +357,7 @@ async function saveCostRow() {
   try {
     const $branch   = $('#cm-branch');
     const $date     = $('#cm-date');
+    const $division = $('#cm-division');
     const $amount   = $('#cm-amount');
     const $memo     = $('#cm-memo');
     const $staff    = $('#cm-staff');
@@ -356,7 +370,7 @@ async function saveCostRow() {
     }
 
     const dateVal  = $date?.value || todayStr();
-    const division = '사용비용';
+    const division = $division?.value || '사용비용';
     const amount   = toNumberKR($amount?.value);
     if (!amount) {
       showToastGreenRed?.('금액을 입력하세요');
@@ -561,6 +575,7 @@ function renderCostList(rows) {
   if (__FILTER.affiliations?.length) chips.push(`지점: ${__FILTER.affiliations.join(', ')}`);
   if (__FILTER.dateFrom || __FILTER.dateTo) chips.push(`기간: ${__FILTER.dateFrom || '~'} ~ ${__FILTER.dateTo || '~'}`);
   if (__FILTER.staffIds?.length) chips.push(`이름: ${__FILTER.staffIds.length}명`);
+  if (__FILTER.divisions?.length) chips.push(`구분: ${__FILTER.divisions.join(', ')}`);
 
   const chipsHTML = chips.length ? `
     <div class="mb-2 flex flex-wrap gap-2 items-center">
@@ -591,14 +606,15 @@ function renderCostList(rows) {
   const html = `
     ${totalHTML}
     ${chipsHTML}
-    <div class="bg-white rounded-xl shadow border border-gray-200 max-h-[600px] overflow-y-auto">
-      <div class="overflow-x-auto min-w-full">
+    <div class="bg-white rounded-xl shadow border border-gray-200">
+      <div class="overflow-x-auto">
         <table class="min-w-full table-auto text-sm">
-          <thead class="bg-gray-100 text-gray-700 sticky top-0 z-20">
+          <thead class="bg-gray-100 text-gray-700">
             <tr>
               <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
               <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">날짜</th>
               <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
+              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[10rem]">구분</th>
               <th class="px-3 py-2 text-right w-[8rem]">금액</th>
               <th class="px-3 py-2 text-left min-w-full">메모</th>
             </tr>
@@ -613,6 +629,7 @@ function renderCostList(rows) {
                 <td class="px-3 py-2">${escapeHTML(r.affiliation)}</td>
                 <td class="px-3 py-2 whitespace-nowrap">${escapeHTML(r.date)}</td>
                 <td class="px-3 py-2">${escapeHTML(r.staff_name)}</td>
+                <td class="px-3 py-2">${escapeHTML(r.division)}</td>
                 <td class="px-3 py-2 text-right">${Number(r.amount || 0).toLocaleString('ko-KR')}</td>
                 <td class="px-3 py-2">${escapeHTML(r.memo)}</td>
               </tr>
@@ -628,10 +645,12 @@ function renderCostList(rows) {
   const $aff = document.getElementById('cm-th-aff');
   const $dt  = document.getElementById('cm-th-date');
   const $nm  = document.getElementById('cm-th-name');
+  const $dv  = document.getElementById('cm-th-div');
 
   if ($aff) $aff.onclick = openBranchFilterModal;
   if ($dt)  $dt.onclick  = openDateFilterModal;
   if ($nm)  $nm.onclick  = openStaffFilterModal;
+  if ($dv)  $dv.onclick  = openDivisionFilterModal;
 
   // --- 리스트 행 클릭 → 삭제 ---
   $area.onclick = async (ev) => {
@@ -772,6 +791,31 @@ async function openStaffFilterModal() {
     console.error('staff filter open fail', e);
     showToastGreenRed?.('직원 목록 로딩 실패');
   }
+}
+
+// === 구분 필터 ===
+function openDivisionFilterModal() {
+  const content = `
+    <div class="space-y-2">
+      <div class="text-sm text-gray-600">구분을 선택하세요(복수 선택 가능).</div>
+      <div class="flex flex-col gap-2">
+        ${DIVISION_OPTIONS.map(dv => `
+          <label class="inline-flex items-center gap-2">
+            <input type="checkbox" class="cm-dv-chk" value="${dv}" ${__FILTER.divisions.includes(dv)?'checked':''}>
+            <span>${dv}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>`;
+  openModal({
+    title: '구분 선택',
+    contentHTML: content,
+    onApply: (wrap) => {
+      const values = [...wrap.querySelectorAll('.cm-dv-chk:checked')].map(el => el.value);
+      __FILTER.divisions = values;
+      reloadCostList();
+    }
+  });
 }
 
 // === 목록 리로드(로딩 → 렌더) ===

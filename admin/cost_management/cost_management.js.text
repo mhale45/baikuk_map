@@ -862,15 +862,4 @@ function canDeleteRow({ affiliation, staff_id }) {
     if (!ok) return; // 내부에서 이동 처리됨
     initInputBar();
     await reloadCostList();
-    // [ADD] 정산 탭 표시/숨김 (관리자/지점장만 보이기)
-    {
-        const tab = document.getElementById('settlement-tab');
-        if (tab) {
-            if (__MY_ROLE === '직원') {
-            tab.style.display = 'none';
-            } else {
-            tab.style.removeProperty('display');
-            }
-        }
-    }
 })();
