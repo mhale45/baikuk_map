@@ -29,7 +29,7 @@
         padding: 0 !important;
       }
       #print-portal table { 
-        width: 100% !important; 
+        width: auto !important;
         table-layout: fixed; 
         border-collapse: collapse; 
       }
@@ -274,7 +274,13 @@
             </div>
           </div>
         </div>        
-        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
+          <script>
+            window.addEventListener("DOMContentLoaded", () => {
+              const box = document.getElementById("white-box");
+              box.style.width = box.offsetWidth + "px";
+            });
+          </script>
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -332,6 +338,18 @@
               </table>
             </div>  
           </div>
+          <!-- 오른쪽 리사이즈 핸들 -->
+          <div id="whitebox-resize-handle"
+              style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
+          </div>
         </div>
         <div class="ml-3 mt-[6.2rem] flex flex-col">
           <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
@@ -361,6 +379,42 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
+    (() => {
+      const box = document.getElementById('white-box');
+      const handle = document.getElementById('whitebox-resize-handle');
+
+      let isResizing = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = box.offsetWidth;
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const delta = e.clientX - startX;
+        const newWidth = startWidth + delta;
+
+        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
+        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
+        const maxWidth = 1800;           // 원하는 경우 변경 가능
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+          box.style.width = newWidth + 'px';
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        isResizing = false;
+        document.body.style.userSelect = '';
+      });
+    })();
+    
     (async () => {
       try {
         // 1) 로그인 세션 확인 (없으면 이동)
@@ -2208,15 +2262,28 @@
       // 기존 포털 제거
       portalEl?.remove();
 
-      // #print-block 복제해서 body 바로 아래 포털로 붙임
+      // print-block 복제
       const src = document.getElementById('print-block');
       if (!src) return;
+
       portalEl = document.createElement('div');
       portalEl.id = 'print-portal';
-      // 필요한 최소 스타일(여백 제거)
       portalEl.style.margin = '0';
       portalEl.style.padding = '0';
-      portalEl.appendChild(src.cloneNode(true)); // 깊은 복제
+
+      const cloned = src.cloneNode(true);
+
+      // ⭐ white-box의 실제 width를 가져와서 인쇄 테이블에 적용
+      const whiteBox = document.getElementById('white-box');
+      if (whiteBox) {
+        const w = whiteBox.offsetWidth;       // 실제 화면에서 늘어난 너비
+        const innerTable = cloned.querySelector("table");
+        if (innerTable) {
+          innerTable.style.width = w + "px";  // 인쇄용 테이블에도 동일하게 적용
+        }
+      }
+
+      portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
     }
 
@@ -2233,6 +2300,7 @@
     window.addEventListener('beforeprint', buildPrintPortal);
     window.addEventListener('afterprint', cleanupPrintPortal);
 
+    // 세로인쇄
     document.getElementById('print-btn')?.addEventListener('click', () => {
       buildPrintPortal();   // 혹시 beforeprint 못 받는 브라우저 보정
       window.print();
@@ -2240,6 +2308,7 @@
       setTimeout(cleanupPrintPortal, 0);
     });
 
+    // 가로인쇄
     document.getElementById('print-btn2')?.addEventListener('click', () => {
       // 1) A4 가로 스타일 주입
       const style = document.createElement("style");

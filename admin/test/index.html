@@ -1625,6 +1625,25 @@
 
         listingsBody.appendChild(row);
         applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
+
+        // ⭐ 숫자칸 클릭 → 행 배경색 선택 기능
+        const numberCell = row.querySelector("td:first-child");
+        numberCell.style.cursor = "pointer";
+        numberCell.addEventListener("click", () => {
+          const colorInput = document.createElement("input");
+          colorInput.type = "color";
+          colorInput.style.position = "absolute";
+          colorInput.style.opacity = 0;
+
+          document.body.appendChild(colorInput);
+
+          colorInput.addEventListener("input", () => {
+            row.style.backgroundColor = colorInput.value;
+          });
+
+          colorInput.click();
+          colorInput.remove();
+        });
       }
 
       // 행이 너무 많으면 자름
