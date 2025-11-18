@@ -187,8 +187,8 @@
             <span id="salesTotal" class="font-semibold text-base">매출 합계: 0원</span>
             <span id="depositAmount" class="font-semibold text-base ml-4 hidden">입금액: 0원</span>
             <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
-              <div id="branchBreakdownPay"  class="whitespace-pre"></div>
-              <div id="branchBreakdownRecv" class="whitespace-pre"></div>
+              <div id="branchBreakdownPay"  class="whitespace-pre text-blue-600 font-semibold"></div>
+              <div id="branchBreakdownRecv" class="whitespace-pre text-red-600 font-semibold"></div>
             </div>
           </div>
         </div>
@@ -212,7 +212,7 @@
               <th class="border px-2 py-1 min-w-[5rem]">직원이름</th>
               <th class="border px-2 py-1 min-w-[5rem]">클로징</th>
               <th class="border px-2 py-1 min-w-[5rem]">매물확보</th>
-              <th class="border px-2 py-1 min-w-[6rem]">관여매출</th>
+              <th class="border px-2 py-1 min-w-[6rem]">순매출</th>
             </tr>
           </thead>
           <tbody>
@@ -419,8 +419,8 @@
                   <span class="text-sm text-gray-600">%</span>
                 </label>
                 <label class="flex gap-1 items-center">
-                  <span class="text-sm text-gray-600 mr-3">매출</span>
-                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[7rem] bg-gray-50 text-gray-500">
+                  <span class="text-sm text-gray-600 mr-3">순매출</span>
+                  <input type="text" step="any" readonly class="border rounded px-2 py-1 w-[6.5rem] bg-gray-50 text-gray-500">
                 </label>
               </div>
             </template>
@@ -1346,6 +1346,13 @@
         // [ADD] 원본 데이터 보관 + 렌더러 등록
         setPerformanceRows(data || []);
         registerPerformanceRenderer(renderPerformanceTable);
+
+        // 🔥 잔금일 기준 오름차순 정렬 추가
+        data.sort((a, b) => {
+          const da = a.balance_date ? new Date(a.balance_date) : new Date(0);
+          const db = b.balance_date ? new Date(b.balance_date) : new Date(0);
+          return da - db;   // 오름차순
+        });
 
         // [초기 렌더]
         renderPerformanceTable(data || []);
