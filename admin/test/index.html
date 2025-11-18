@@ -2281,6 +2281,7 @@
     window.addEventListener('beforeprint', buildPrintPortal);
     window.addEventListener('afterprint', cleanupPrintPortal);
 
+    // 세로인쇄
     document.getElementById('print-btn')?.addEventListener('click', () => {
       buildPrintPortal();   // 혹시 beforeprint 못 받는 브라우저 보정
       window.print();
@@ -2288,6 +2289,7 @@
       setTimeout(cleanupPrintPortal, 0);
     });
 
+    // 가로인쇄
     document.getElementById('print-btn2')?.addEventListener('click', () => {
       // 1) A4 가로 스타일 주입
       const style = document.createElement("style");
@@ -2308,6 +2310,12 @@
         document.getElementById("landscape-style")?.remove();
         cleanupPrintPortal();
       }, 100);
+    });
+
+    //오른쪽여백
+    window.addEventListener("DOMContentLoaded", () => {
+      const box = document.getElementById("white-box");
+      box.style.width = box.offsetWidth + "px";   // ← width를 고정
     });
 
     // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
