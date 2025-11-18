@@ -2479,7 +2479,7 @@
       const row = td.closest("tr");
       if (!row) return;
 
-      // 🔥 '매물명' 왼쪽 숫자칸 = 항상 cellIndex === 0
+      // 🔥 '매물명 왼쪽의 번호칸'은 항상 tr의 첫 번째 셀
       if (td.cellIndex !== 0) return;
 
       const colorInput = document.createElement("input");
