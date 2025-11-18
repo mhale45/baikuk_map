@@ -1,7 +1,7 @@
 module.exports = {
   content: [
     "./index.html",
-    "./pages/**/*.{html,js}",
+    "./admin/**/*.{html,js}",
     "./modules/**/*.{html,js}"
   ],
   theme: {
