@@ -2259,8 +2259,10 @@
     let portalEl = null;
 
     function buildPrintPortal() {
+      // 기존 포털 제거
       portalEl?.remove();
 
+      // print-block 복제
       const src = document.getElementById('print-block');
       if (!src) return;
 
@@ -2271,12 +2273,14 @@
 
       const cloned = src.cloneNode(true);
 
-      // ⭐ white-box 너비를 print-portal 에도 반영
+      // ⭐ white-box의 실제 width를 가져와서 인쇄 테이블에 적용
       const whiteBox = document.getElementById('white-box');
       if (whiteBox) {
-        const w = whiteBox.offsetWidth;
+        const w = whiteBox.offsetWidth;       // 실제 화면에서 늘어난 너비
         const innerTable = cloned.querySelector("table");
-        if (innerTable) innerTable.style.width = w + "px";
+        if (innerTable) {
+          innerTable.style.width = w + "px";  // 인쇄용 테이블에도 동일하게 적용
+        }
       }
 
       portalEl.appendChild(cloned);
