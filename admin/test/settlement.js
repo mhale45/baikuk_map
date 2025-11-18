@@ -157,53 +157,6 @@ async function buildTransfersMapForAllBranches({ start, end }) {
   return map;
 }
 
-// === [CHANGE] 드로어 비용값 주입(매출합계와 동일한 표시 스타일/속성) ===
-function setDrawerCostByYM(ym) {
-  try {
-    const dCost  = document.getElementById('d_cost');
-    const dSales = document.getElementById('d_sales'); // 기준(매출합계) 인풋
-    if (!dCost) return;
-
-    // 1) 값(천단위 콤마) 주입
-    const costNum = Number((__LAST_COST_MAP || {})[ym] || 0);
-    const formatKR = (n) => Number(n || 0).toLocaleString('ko-KR');
-    dCost.value = formatKR(costNum);
-
-    // 2) '매출합계'와 같은 비주얼/속성 적용
-    if (dSales) {
-      // 동일 class 적용
-      dCost.className = dSales.className;
-
-      // 동일 inputmode/placeholder/text-align 등 기본 속성도 맞춤
-      const salesInputmode = dSales.getAttribute('inputmode');
-      if (salesInputmode) dCost.setAttribute('inputmode', salesInputmode);
-      else dCost.removeAttribute('inputmode');
-
-      // inline style text-align 맞춤(혹시 sales가 우측정렬일 때)
-      if (dSales.style && dSales.style.textAlign) {
-        dCost.style.textAlign = dSales.style.textAlign;
-      }
-      // 높이/패딩이 인라인 스타일로 지정돼 있으면 그대로 복사
-      if (dSales.style && dSales.style.height) dCost.style.height = dSales.style.height;
-      if (dSales.style && dSales.style.padding) dCost.style.padding = dSales.style.padding;
-    }
-
-    // 3) 항상 읽기 전용(편집 불가) + 안내 툴팁
-    dCost.readOnly = true;
-    dCost.disabled = true;
-    dCost.title = '비용은 cost_management 집계값으로 자동 표시됩니다.';
-
-    // 4) 라벨 텍스트도 구분되게(선택)
-    const costLabel = document.querySelector('label[for="d_cost"]');
-    if (costLabel && !costLabel.dataset._autoTagged) {
-      costLabel.textContent = '비용(자동 집계)';
-      costLabel.dataset._autoTagged = '1';
-    }
-  } catch (e) {
-    console.warn('[settlement] setDrawerCostByYM failed:', e?.message || e);
-  }
-}
-
 // 문자열(₩,콤마 포함) → 숫자
 function toNumberKR(v) {
   return Number(String(v ?? '0').replace(/[^\d.-]/g, '')) || 0;
@@ -471,8 +424,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
         cost: __LAST_COST_MAP[ym] ?? cost,
         staffList: __LAST_STAFF_LIST
       });
-      // [ADD] 드로어 비용(해당 월 사용비용 합계) 주입 + 입력잠금
-      setDrawerCostByYM(ym);
     });
 
     tbody.appendChild(tr);
@@ -768,8 +719,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
 
-  setDrawerCostByYM(ym);
-
   // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
@@ -799,9 +748,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   const autoRateEl = $id('d_autonomous_rate'); // 예: "20%" 같은 텍스트
   const autoFeeEl  = $id('d_autonomous_fee');  // 금액 표시용(readonly 권장)
   const autoAmtEl  = $id('d_autonomous_amount'); // 동일 값 표시 (필요 시)
-
-  // 비용 입력 핸들러/재계산
-  const costEl = $id('d_cost'); // 값 세팅/잠금은 setDrawerCostByYM에서 처리
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
@@ -1389,20 +1335,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function applyLockUI(locked) {
-  const costEl = document.getElementById('d_cost');
   const memoEl = document.getElementById('d_memo');
   const saveBtn = document.getElementById('settlement-drawer-save');
   const confirmBtn = document.getElementById('settlement-confirm-btn');
   const mainEl = document.getElementById('input-main-balance');
   const subEl  = document.getElementById('input-sub-balance');
 
-  if (costEl) {
-    // 비용은 항상 입력 불가
-    costEl.readOnly = true;
-    costEl.disabled = true;
-    costEl.classList.add('bg-gray-50');
-    costEl.title = '비용은 cost_management 집계값으로 자동 표시됩니다.';
-  }
   if (memoEl) {
     memoEl.readOnly = locked;
     memoEl.disabled = locked;
@@ -1453,14 +1391,9 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       .maybeSingle();
     if (error) throw error;
 
-    const costEl = document.getElementById('d_cost');
     const memoEl = document.getElementById('d_memo');
 
     if (row) {
-      // 비용은 DB total_expense로 덮어쓰지 않습니다. (표시는 cost_management 집계 기반)
-      // 캐시/입력창은 현재 값 유지 + 강제 잠금
-      setDrawerCostByYM(ym);
-
       if (typeof row.memo === 'string' && memoEl) {
         __LAST_MEMO_MAP[ym] = row.memo;
         memoEl.value = row.memo;
