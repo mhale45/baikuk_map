@@ -1162,7 +1162,7 @@ async function loadBranchExpenseCache(affiliation) {
         .from('cost_management')
         .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
-        .eq('division', '통장 입출금');
+        .eq('division', '사용비용');
 
       if (bankErr) throw bankErr;
 
