@@ -2,9 +2,8 @@
   "name": "baikuk-map-public-kakao",
   "version": "0.0.1",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/assets/styles.css --minify",
+    "build": "npm run build:css"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -13,6 +12,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.3",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
     "vite": "^5.4.19"
   }
 }
