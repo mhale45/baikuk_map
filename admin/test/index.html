@@ -118,45 +118,25 @@
             </div>
           </label>
 
-          <!-- [CHANGE] 순이익: 제목만 표시 + 아래에 계산식 표시 -->
           <label class="flex flex-col gap-1">
             <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
-            <div class="mt-4">
-              <span class="text-sm text-gray-600">부가세</span>
-              <input id="d_vat" type="text" readonly
-                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
-              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
-            </div>
+            <span class="text-sm text-gray-600">부가세</span>
+            <input id="d_vat" type="text" readonly
+                  class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
+            <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
+          </label>
+
+          <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">순이익</span>
             <input id="d_netincome" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
             <!-- 계산식 표시 -->
             <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
               계좌잔고1 + 계좌잔고2 − 총 급여 − 부가세 − 유보금
-            </div>
-            <span class="text-sm text-gray-600">총비용</span>
-            <input id="d_totalcost" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-600">
-            <div id="d_totalcost_formula" class="text-[11px] text-gray-400 mt-1">
-              매출합계 − 부가세 − 총 급여 − 순이익
             </div>
           </label>
 
           <label class="flex flex-col gap-1">
-            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
-            <div class="mt-4">
-              <span class="text-sm text-gray-600">부가세</span>
-              <input id="d_vat" type="text" readonly
-                    class="mt-1 border rounded px-3 py-2 bg-gray-50 text-right">
-              <div class="text-[11px] text-gray-400 mt-1">총액(공급가액+부가세) ÷ 1.1 × 0.1</div>
-            </div>
-            <span class="text-sm text-gray-600">순이익</span>
-            <input id="d_netincome" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
-            <!-- 계산식 표시 -->
-            <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
-              계좌잔고1 + 계좌잔고2 − 총 급여 − 부가세 − 유보금
-            </div>
             <span class="text-sm text-gray-600">총비용</span>
             <input id="d_totalcost" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-600">
