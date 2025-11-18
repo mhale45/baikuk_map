@@ -856,7 +856,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 계산식 표시(순이익/배당금)
     const netFormulaEl = document.getElementById('d_netincome_formula');
-    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금';
+    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여  − 부가세 − 유보금';
 
     const profitFormulaEl = document.getElementById('d_profit_formula');
     if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
