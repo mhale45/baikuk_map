@@ -591,8 +591,8 @@ function renderCostList(rows) {
   const html = `
     ${totalHTML}
     ${chipsHTML}
-    <div class="bg-white rounded-xl shadow border border-gray-200">
-      <div class="overflow-x-auto">
+    <div class="bg-white rounded-xl shadow border border-gray-200 max-h-[600px] overflow-y-auto">
+      <div class="overflow-x-auto min-w-full">
         <table class="min-w-full table-auto text-sm">
           <thead class="bg-gray-100 text-gray-700">
             <tr>
@@ -772,31 +772,6 @@ async function openStaffFilterModal() {
     console.error('staff filter open fail', e);
     showToastGreenRed?.('직원 목록 로딩 실패');
   }
-}
-
-// === 구분 필터 ===
-function openDivisionFilterModal() {
-  const content = `
-    <div class="space-y-2">
-      <div class="text-sm text-gray-600">구분을 선택하세요(복수 선택 가능).</div>
-      <div class="flex flex-col gap-2">
-        ${DIVISION_OPTIONS.map(dv => `
-          <label class="inline-flex items-center gap-2">
-            <input type="checkbox" class="cm-dv-chk" value="${dv}" ${__FILTER.divisions.includes(dv)?'checked':''}>
-            <span>${dv}</span>
-          </label>
-        `).join('')}
-      </div>
-    </div>`;
-  openModal({
-    title: '구분 선택',
-    contentHTML: content,
-    onApply: (wrap) => {
-      const values = [...wrap.querySelectorAll('.cm-dv-chk:checked')].map(el => el.value);
-      __FILTER.divisions = values;
-      reloadCostList();
-    }
-  });
 }
 
 // === 목록 리로드(로딩 → 렌더) ===
