@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "scripts": {
     "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/assets/styles.css --minify",
-    "build": "npm run build:css"
+    "copy:html": "cp -r ./pages ./dist/pages && cp ./index.html ./dist/index.html",
+    "build": "npm run build:css && npm run copy:html"
   },
   "dependencies": {
     "react": "^18.2.0",
