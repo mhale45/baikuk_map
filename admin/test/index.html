@@ -274,7 +274,7 @@
             </div>
           </div>
         </div>        
-        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -331,6 +331,18 @@
                 <tbody id="listings-body"></tbody>
               </table>
             </div>  
+          </div>
+          <!-- 오른쪽 리사이즈 핸들 -->
+          <div id="whitebox-resize-handle"
+              style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
           </div>
         </div>
         <div class="ml-3 mt-[6.2rem] flex flex-col">

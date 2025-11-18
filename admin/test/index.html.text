@@ -244,20 +244,20 @@
           <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
-          <div class="mb-2 text-right flex gap-2">
-            <button id="print-btn" class="h-[2rem] bg-neutral-500 hover:bg-neutral-600 text-white text-sm px-4 py-1 rounded">
+          <div class="mb-2 px-2 text-right flex gap-2">
+            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
               🖨️
             </button>
-            <button id="print-btn" class="h-[2rem] bg-neutral-500 hover:bg-neutral-600 text-white text-sm px-4 py-1 rounded">
+            <button id="print-btn2" class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
               🖨️
             </button>
           </div>
           <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
-            <div class="mb-2 text-right flex gap-2">
-              <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
+            <div class="mb-2 justify-center flex gap-2">
+              <button id="clear-left-btn" class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
               </button>
-              <button id="copy-link-btn" class="h-[2rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
+              <button id="copy-link-btn" class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
                 링크
               </button>
             </div>
@@ -274,7 +274,7 @@
             </div>
           </div>
         </div>        
-        <div class="ml-1 px-4 py-4 bg-white rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -2238,6 +2238,28 @@
       window.print();
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
+    });
+
+    document.getElementById('print-btn2')?.addEventListener('click', () => {
+      // 1) A4 가로 스타일 주입
+      const style = document.createElement("style");
+      style.id = "landscape-style";
+      style.innerHTML = `
+        @media print {
+          @page { size: A4 landscape; margin: 12mm; }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // 2) 포털 생성 → 인쇄 실행
+      buildPrintPortal();
+      window.print();
+
+      // 3) 인쇄 후 가로 스타일 제거 + cleanup
+      setTimeout(() => {
+        document.getElementById("landscape-style")?.remove();
+        cleanupPrintPortal();
+      }, 100);
     });
 
     // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
