@@ -2259,18 +2259,27 @@
     let portalEl = null;
 
     function buildPrintPortal() {
-      // 기존 포털 제거
       portalEl?.remove();
 
-      // #print-block 복제해서 body 바로 아래 포털로 붙임
       const src = document.getElementById('print-block');
       if (!src) return;
+
       portalEl = document.createElement('div');
       portalEl.id = 'print-portal';
-      // 필요한 최소 스타일(여백 제거)
       portalEl.style.margin = '0';
       portalEl.style.padding = '0';
-      portalEl.appendChild(src.cloneNode(true)); // 깊은 복제
+
+      const cloned = src.cloneNode(true);
+
+      // ⭐ white-box 너비를 print-portal 에도 반영
+      const whiteBox = document.getElementById('white-box');
+      if (whiteBox) {
+        const w = whiteBox.offsetWidth;
+        const innerTable = cloned.querySelector("table");
+        if (innerTable) innerTable.style.width = w + "px";
+      }
+
+      portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
     }
 
