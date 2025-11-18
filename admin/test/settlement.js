@@ -898,7 +898,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '현금 잔고는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+      subEl.title = '현금 잔고는 cost_management(비용페이지) 집계값으로 자동 표시됩니다.';
     }
   }
 
@@ -924,7 +924,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="현금 잔고는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
+            title="현금 잔고는 cost_management(비용페이지) 집계값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -1109,7 +1109,7 @@ function firstDayOfMonth(ym) {
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
 // 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
 // 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
-// 현금잔고(sub)는 cost_management에서 division='통장 입출금' 월합으로 대체합니다.
+// 현금잔고(sub)는 cost_management에서 division='비용사용' 월합으로 대체합니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
@@ -1152,7 +1152,7 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 현금잔고(sub): cost_management에서 division='통장 입출금' 월합
+    // 3) 현금잔고(sub): cost_management에서 division='비용사용' 월합
     const subCMMap = {};
     try {
       const { data: bankRows, error: bankErr } = await supabase
@@ -1176,7 +1176,7 @@ async function loadBranchExpenseCache(affiliation) {
     // 4) 전역 캐시 갱신
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 현금잔고: cost_management('통장 입출금')
+    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 현금잔고: cost_management('비용사용')
 
     return costMap;
   } catch (e) {
@@ -1435,7 +1435,7 @@ function applyLockUI(locked) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '현금잔고는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+    subEl.title = '현금잔고는 cost_management(비용 페이지) 집계값으로 자동 표시됩니다.';
   }
 }
 
