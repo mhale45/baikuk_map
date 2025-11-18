@@ -561,7 +561,6 @@ function renderCostList(rows) {
   if (__FILTER.affiliations?.length) chips.push(`지점: ${__FILTER.affiliations.join(', ')}`);
   if (__FILTER.dateFrom || __FILTER.dateTo) chips.push(`기간: ${__FILTER.dateFrom || '~'} ~ ${__FILTER.dateTo || '~'}`);
   if (__FILTER.staffIds?.length) chips.push(`이름: ${__FILTER.staffIds.length}명`);
-  if (__FILTER.divisions?.length) chips.push(`구분: ${__FILTER.divisions.join(', ')}`);
 
   const chipsHTML = chips.length ? `
     <div class="mb-2 flex flex-wrap gap-2 items-center">
@@ -600,7 +599,6 @@ function renderCostList(rows) {
               <th id="cm-th-aff"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">지점</th>
               <th id="cm-th-date"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[7rem]">날짜</th>
               <th id="cm-th-name"  class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[5rem]">이름</th>
-              <th id="cm-th-div"   class="px-3 py-2 text-left underline decoration-dotted cursor-pointer select-none w-[10rem]">구분</th>
               <th class="px-3 py-2 text-right w-[8rem]">금액</th>
               <th class="px-3 py-2 text-left min-w-full">메모</th>
             </tr>
@@ -615,7 +613,6 @@ function renderCostList(rows) {
                 <td class="px-3 py-2">${escapeHTML(r.affiliation)}</td>
                 <td class="px-3 py-2 whitespace-nowrap">${escapeHTML(r.date)}</td>
                 <td class="px-3 py-2">${escapeHTML(r.staff_name)}</td>
-                <td class="px-3 py-2">${escapeHTML(r.division)}</td>
                 <td class="px-3 py-2 text-right">${Number(r.amount || 0).toLocaleString('ko-KR')}</td>
                 <td class="px-3 py-2">${escapeHTML(r.memo)}</td>
               </tr>
@@ -631,12 +628,10 @@ function renderCostList(rows) {
   const $aff = document.getElementById('cm-th-aff');
   const $dt  = document.getElementById('cm-th-date');
   const $nm  = document.getElementById('cm-th-name');
-  const $dv  = document.getElementById('cm-th-div');
 
   if ($aff) $aff.onclick = openBranchFilterModal;
   if ($dt)  $dt.onclick  = openDateFilterModal;
   if ($nm)  $nm.onclick  = openStaffFilterModal;
-  if ($dv)  $dv.onclick  = openDivisionFilterModal;
 
   // --- 리스트 행 클릭 → 삭제 ---
   $area.onclick = async (ev) => {
