@@ -394,9 +394,9 @@
         const delta = e.clientX - startX;
         const newWidth = startWidth + delta;
 
-        // 최소/최대 제한 (원하면 조절 가능)
-        const minWidth = 400;
-        const maxWidth = 1600;
+        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
+        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
+        const maxWidth = 1800;           // 원하는 경우 변경 가능
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
           box.style.width = newWidth + 'px';
