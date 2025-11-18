@@ -513,7 +513,7 @@ async function loadBranchMonthlySales(affiliation) {
     const vatMap = {}; 
 
     for (const p of perfRows) {
-      const ym = ymKey(p.balance_date);
+      const ym = ymKey(p.buyer_tax_date);  // ← 세금계산서 발행일 기반
       if (!ym) continue;
 
       perfIdToYM.set(String(p.id), ym);
