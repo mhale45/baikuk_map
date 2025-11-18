@@ -536,7 +536,7 @@ async function loadBranchMonthlySales(affiliation) {
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date, buyer_tax, seller_tax')
-      // .eq('status', true)              // ✅ 확정된 매출만
+      .eq('status', true)              // ✅ 확정된 매출만
       .not('balance_date', 'is', null);
 
     if (perfErr) throw perfErr;
@@ -1162,7 +1162,7 @@ async function loadBranchExpenseCache(affiliation) {
         .from('cost_management')
         .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
-        .eq('division', '통장 입출금');
+        .eq('division', '사용비용');
 
       if (bankErr) throw bankErr;
 
