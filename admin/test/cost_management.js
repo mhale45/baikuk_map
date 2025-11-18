@@ -277,24 +277,11 @@ async function loadStaffIntoSelect(selectEl, currentBranchValue) {
 function initInputBar() {
   const $branch   = $('#cm-branch');
   const $date     = $('#cm-date');
-  const $division = $('#cm-division');
   const $amount   = $('#cm-amount');
   const $staff    = $('#cm-staff');    // [NEW: 이름 select]
 
   // 날짜: 오늘
   if ($date) $date.value = todayStr();
-
-  // 구분: 기본 '사용비용' (직원은 수정 불가)
-  if ($division) {
-    $division.value = '사용비용';
-    if (__MY_ROLE === '직원') {
-      $division.disabled = true;
-      $division.classList.add('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
-    } else {
-      $division.disabled = false;
-      $division.classList.remove('bg-gray-100', 'text-gray-600', 'cursor-not-allowed');
-    }
-  }
 
   // 금액: 숫자만, blur 시 콤마
   if ($amount) {
@@ -331,7 +318,7 @@ function initInputBar() {
     }
 
   // ❗ select / input 최소폭 유지 (텍스트 길이에 맞춤)
-  [$branch, $date, $division, $amount, $staff].forEach(el => {
+  [$branch, $date, $amount, $staff].forEach(el => {
     if (!el) return;
     el.classList.add('w-auto');
   });
@@ -357,7 +344,6 @@ async function saveCostRow() {
   try {
     const $branch   = $('#cm-branch');
     const $date     = $('#cm-date');
-    const $division = $('#cm-division');
     const $amount   = $('#cm-amount');
     const $memo     = $('#cm-memo');
     const $staff    = $('#cm-staff');
@@ -370,7 +356,7 @@ async function saveCostRow() {
     }
 
     const dateVal  = $date?.value || todayStr();
-    const division = $division?.value || '사용비용';
+    const division = '사용비용';
     const amount   = toNumberKR($amount?.value);
     if (!amount) {
       showToastGreenRed?.('금액을 입력하세요');
