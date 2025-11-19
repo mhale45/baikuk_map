@@ -2577,18 +2577,6 @@
       const popup = document.getElementById("color-picker-popup");
       let currentRow = null;
 
-      // 팝업 닫기
-      window.addEventListener("click", (e) => {
-        // 팝업 내부 클릭은 허용
-        if (popup.contains(e.target)) return;
-
-        // 색상 버튼 클릭은 허용
-        if (e.target.classList.contains("color-picker-btn")) return;
-
-        // 그 외는 모두 팝업 닫기
-        popup.classList.add("hidden");
-      });
-
       // 숫자셀 전체 클릭 → 색상 팝업 열기
       document.addEventListener("click", (e) => {
 
