@@ -1836,15 +1836,21 @@
       applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
     }
 
-    // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
     function applyRowStriping() {
       const rows = document.querySelectorAll('#listings-body tr');
+
       rows.forEach((row, index) => {
-        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
-        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
+
+        // 🎯 사용자가 색을 지정한 경우 → 줄무늬 적용 금지
+        if (row.dataset.userColor === "true") return;
+
+        // 기존 줄무늬 적용
+        row.classList.remove('bg-white', 'bg-gray-50');
+        row.style.backgroundColor = ""; // inline 색 제거
+        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
       });
     }
-    
+
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
@@ -2637,6 +2643,8 @@
 
           // 팝업 닫기
           popup.classList.add("hidden");
+          currentRow.dataset.userColor = "true";
+
         });
       });
     });
