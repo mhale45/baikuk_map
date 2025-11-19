@@ -1649,6 +1649,55 @@
       syncRowHeights();
     }
 
+    (function setupColumnResizeSync() {
+      const box = document.getElementById('white-box');
+      const headerRow = document.querySelector('#white-box thead tr');
+
+      if (!headerRow) return;
+
+      const handles = headerRow.querySelectorAll('.resize-handle');
+
+      handles.forEach(handle => {
+        let startX = 0;
+        let startWidth = 0;
+        let th = handle.parentElement;
+
+        handle.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          startX = e.clientX;
+          startWidth = th.offsetWidth;
+
+          function onMouseMove(ev) {
+            const delta = ev.clientX - startX;
+            const newWidth = Math.max(40, startWidth + delta);
+            th.style.width = newWidth + 'px';
+
+            // 테이블 전체 너비 계산
+            const table = document.querySelector('#white-box table');
+            const tableWidth = table.offsetWidth;
+
+            // white-box의 신규 width = 테이블너비 + 기존 여백
+            box.style.width = (tableWidth + whiteBoxExtraGap) + 'px';
+          }
+
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            // 리사이즈 종료 후 여백 재측정
+            const table = document.querySelector('#white-box table');
+            const tableWidth = table.offsetWidth;
+            const boxWidth = box.offsetWidth;
+
+            whiteBoxExtraGap = boxWidth - tableWidth;
+          }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
+    })();
+
     function showToast(message, duration = 3000) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
