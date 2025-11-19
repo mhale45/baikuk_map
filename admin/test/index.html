@@ -408,14 +408,16 @@
         const delta = e.clientX - startX;
         const newWidth = startWidth + delta;
 
-        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
-        // 표의 실제 너비 + 3rem(48px)을 최소폭으로 설정
+        // === rem 단위 사용: 3rem을 px로 계산 ===
+        const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize); 
+        const extraGap = remPx * 2; // 3rem
+
         const table = document.querySelector('#white-box table');
         const tableWidth = table ? table.offsetWidth : 0;
-        const minWidth = tableWidth + 48; // 3rem
-        const maxWidth = 1800;           // 원하는 경우 변경 가능
 
-        if (newWidth >= minWidth && newWidth <= maxWidth) {
+        const minWidth = tableWidth + extraGap;  // table + 3rem
+
+        if (newWidth >= minWidth) {
           box.style.width = newWidth + 'px';
         }
       });
