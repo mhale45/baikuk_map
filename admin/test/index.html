@@ -163,9 +163,6 @@
       max-height: 520px;   /* 기존보다 훨씬 길게 */
       overflow-y: auto;    /* 스크롤 가능 */
     }
-    #listings-body td:first-child {
-      cursor: pointer !important;
-    }
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
@@ -1602,7 +1599,7 @@
       for (let i = currentRows + 1; i <= maxIndex; i++) {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="p-1 border text-center"><span class="row-index">${i}</span></td>
+          <td class="p-1 border text-center">${i}</td>
           <td class="p-1 border text-center">
             <span contenteditable="true" class="text-base block" data-field="listing_title_${i}"></span>
           </td>
@@ -1730,7 +1727,7 @@
       row.className = `${bgClass} hover:bg-yellow-50`;
 
       row.innerHTML = `
-        <td class="p-2 border text-center"><span class="row-index">${i}</span></td>
+        <td class="p-2 border text-center">${i}</td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="listing_title_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="full_address_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="building_name_${i}" /></td>
@@ -1749,19 +1746,12 @@
     // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
     function applyRowStriping() {
       const rows = document.querySelectorAll('#listings-body tr');
-
       rows.forEach((row, index) => {
-        const defaultColor = (index % 2 === 0) ? 'white' : '#f9fafb';
-
-        // 색 선택한 행은 striping이 덮어쓰면 안 됨
-        if (row.dataset.customColor) {
-          row.style.backgroundColor = row.dataset.customColor;
-        } else {
-          row.style.backgroundColor = defaultColor;
-        }
+        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
+        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
       });
     }
-
+    
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
@@ -2472,40 +2462,6 @@
       loadCurrentUserStaffInfo();
 
       showToast('신규 고객 작성 모드입니다.');
-    });
-
-    // 숫자칸 클릭 → 행 배경색 선택 기능
-    document.addEventListener("click", (e) => {
-      // 클릭한 요소가 td 첫 번째 칸인지 판정
-      const td = e.target.closest("td");
-      if (!td) return;
-
-      // listings-body 안의 행인지 확인
-      const tr = td.closest("tr");
-      if (!tr || !tr.parentElement || tr.parentElement.id !== "listings-body") return;
-
-      // 첫 번째 칸 아니면 무시
-      if (td.cellIndex !== 0) return;
-
-      const row = tr;
-
-      const colorInput = document.createElement("input");
-      colorInput.type = "color";
-      colorInput.style.position = "fixed";
-      colorInput.style.left = "-9999px";
-      document.body.appendChild(colorInput);
-
-      colorInput.addEventListener("change", () => {
-        const color = colorInput.value;
-        row.dataset.customColor = color;
-        row.style.backgroundColor = color;
-
-        // striping 다시 적용 (선택한 색 유지)
-        applyRowStriping();
-      });
-
-      colorInput.click();
-      setTimeout(() => colorInput.remove(), 0);
     });
 
   </script>
