@@ -2732,7 +2732,7 @@
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
   <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-30">
-    <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
+    <div class="bg-white w-96 max-w-full rounded-2xl shadow-2xl overflow-hidden">
       <div class="px-5 py-3 border-b font-semibold text-lg">
         같은 이름의 고객이 이미 있습니다
       </div>
@@ -2752,8 +2752,9 @@
       </div>
     </div>
   </div>
+
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-30 w-[15rem]">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-30 w-60">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
@@ -2769,5 +2770,6 @@
       );"></div>
     </div>
   </div>
+
 </body>
 </html>
