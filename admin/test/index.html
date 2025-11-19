@@ -51,11 +51,16 @@
         font-weight: bold;
       }
 
-      /* 행 구분 음영 추가 */
-      #print-portal tbody tr:nth-child(odd) {
+      /* 사용자 지정 행 색상을 유지하도록 설정 */
+      #print-portal tbody tr {
+        background-color: inherit !important;   /* inline 색상 그대로 출력 */
+      }
+
+      /* ※ 혹시 inline 이 없을 때만 기본 줄무늬 */
+      #print-portal tbody tr:not([data-usercolor]):nth-child(odd) {
         background-color: #ffffff !important;
       }
-      #print-portal tbody tr:nth-child(even) {
+      #print-portal tbody tr:not([data-usercolor]):nth-child(even) {
         background-color: #f2f2f2 !important;
       }
 
@@ -2375,7 +2380,7 @@
       // 기존 포털 제거
       portalEl?.remove();
 
-      // white-box 전체 복제
+      // white-box 전체를 대상으로 변경
       const src = document.getElementById("white-box");
       if (!src) return;
 
@@ -2385,38 +2390,24 @@
       portalEl.style.margin = "0";
       portalEl.style.padding = "0";
 
-      // white-box 전체 복제
+      // white-box 전체 복제(자식 + 스타일 포함)
       const cloned = src.cloneNode(true);
-      cloned.style.width = src.offsetWidth + "px";
-      cloned.style.boxSizing = "border-box";
 
-      // === ⭐ 1. resize handle 제거 (필요없는 요소)
+      // 인쇄용에서 불필요한 요소 제거 (오른쪽 resize handle 등)
       const resizeHandle = cloned.querySelector("#whitebox-resize-handle");
       if (resizeHandle) resizeHandle.remove();
 
-      // === ⭐ 2. hidden input 기반으로 행 배경색을 그대로 적용
-      const originalRows = src.querySelectorAll("#listings-body tr");
-      const clonedRows   = cloned.querySelectorAll("#listings-body tr");
+      // white-box의 실제 width 유지
+      const originalWidth = src.offsetWidth;
+      cloned.style.width = originalWidth + "px";
 
-      clonedRows.forEach((row, i) => {
-        const originalRow = originalRows[i];
-        if (!originalRow) return;
+      // 인쇄용 top-position, absolute 등 초기화(인쇄 시 흐트러짐 방지)
+      cloned.style.position = "static";
+      cloned.style.left = "0";
+      cloned.style.top = "0";
+      cloned.style.margin = "0";
 
-        // hidden input 값 읽기
-        const hiddenColorInput = originalRow.querySelector('input[data-field^="color_"]');
-        const colorValue = hiddenColorInput?.value;
-
-        if (colorValue && colorValue !== "" && colorValue !== "none") {
-          // 사용자가 지정한 색 → 그대로 적용
-          row.style.backgroundColor = colorValue;
-        } else {
-          // 사용자 지정 색 없음 → 원래 줄무늬 똑같이 반영
-          const bg = window.getComputedStyle(originalRow).backgroundColor;
-          row.style.backgroundColor = bg;
-        }
-      });
-
-      // print-portal 삽입
+      // print-portal에 넣기
       portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
     }
