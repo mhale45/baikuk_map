@@ -2372,8 +2372,10 @@
     let portalEl = null;
 
     function buildPrintPortal() {
+      // 기존 포털 제거
       portalEl?.remove();
 
+      // print-block 복제
       const src = document.getElementById('print-block');
       if (!src) return;
 
@@ -2384,26 +2386,13 @@
 
       const cloned = src.cloneNode(true);
 
-      /* ⭐⭐⭐⭐ 여기에 넣어야 한다! ─────────────── */
-      const originalRows = document.querySelectorAll("#listings-body tr");
-      const printTable = cloned.querySelector("table");
-      const printRows = printTable?.querySelectorAll("tbody tr") || [];
-
-      printRows.forEach((row, i) => {
-        const bg = window.getComputedStyle(originalRows[i]).backgroundColor;
-        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
-          row.style.backgroundColor = bg;
-        }
-      });
-      /* ⭐⭐⭐⭐ 여기까지 ─────────────────────────── */
-
-      // 기존 white-box width 적용
+      // ⭐ white-box의 실제 width를 가져와서 인쇄 테이블에 적용
       const whiteBox = document.getElementById('white-box');
       if (whiteBox) {
-        const w = whiteBox.offsetWidth;
+        const w = whiteBox.offsetWidth;       // 실제 화면에서 늘어난 너비
         const innerTable = cloned.querySelector("table");
         if (innerTable) {
-          innerTable.style.width = w + "px";
+          innerTable.style.width = w + "px";  // 인쇄용 테이블에도 동일하게 적용
         }
       }
 
