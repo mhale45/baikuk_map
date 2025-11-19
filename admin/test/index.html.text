@@ -51,11 +51,16 @@
         font-weight: bold;
       }
 
-      /* 행 구분 음영 추가 */
-      #print-portal tbody tr:nth-child(odd) {
+      /* 사용자 지정 행 색상을 유지하도록 설정 */
+      #print-portal tbody tr {
+        background-color: inherit !important;   /* inline 색상 그대로 출력 */
+      }
+
+      /* ※ 혹시 inline 이 없을 때만 기본 줄무늬 */
+      #print-portal tbody tr:not([data-usercolor]):nth-child(odd) {
         background-color: #ffffff !important;
       }
-      #print-portal tbody tr:nth-child(even) {
+      #print-portal tbody tr:not([data-usercolor]):nth-child(even) {
         background-color: #f2f2f2 !important;
       }
 
@@ -2405,6 +2410,15 @@
       // print-portal에 넣기
       portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
+
+      // ★ 인쇄용 테이블의 행 배경색을 강제로 inline style 로 고정 ★
+      const trs = cloned.querySelectorAll("tbody tr");
+      trs.forEach((tr) => {
+        const color = tr.style.backgroundColor;
+        if (color) {
+          tr.style.setProperty("background-color", color, "important");
+        }
+      });
     }
 
     function cleanupPrintPortal() {

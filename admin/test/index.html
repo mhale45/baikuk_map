@@ -1888,9 +1888,17 @@
         }
       });
 
-      // 🔥 추가: memo도 같이 지우기
+      // memo도 같이 지우기
       const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
       if (memoEl) memoEl.value = '';
+
+      // 행 색상 초기화
+      const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+      if (tr) {
+        tr.style.backgroundColor = "";
+        tr.dataset.userColor = "";
+      }
+      setFieldValue("color", index, "");
 
       syncRowHeights?.();
     }
