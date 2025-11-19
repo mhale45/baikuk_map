@@ -2527,6 +2527,12 @@
         showToast("매물정보 저장 중 오류가 발생했습니다.");
         return;
       }
+      // ⭐ 4) 행 색상 저장 추가
+      const savedColor = await saveRowColorsForCurrentCustomer();
+      if (!savedColor) {
+        showToast("색상 저장 중 오류가 발생했습니다.");
+        return;
+      }
 
       showToast("고객 정보 + 매물정보 저장 완료!");
 
@@ -2659,6 +2665,31 @@
         }
       });
     })();
+
+    async function saveRowColorsForCurrentCustomer() {
+      if (!currentCustomerId) return false;
+
+      const rows = document.querySelectorAll("#listings-body tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        const order = i + 1;
+
+        // inline 색상이 실제 적용된 색
+        const color = rows[i].style.backgroundColor || "none";
+
+        const { error } = await supabase
+          .from("customers_recommendations")
+          .update({ color: color })
+          .eq("customers_id", String(currentCustomerId))
+          .eq("order", order);
+
+        if (error) {
+          console.error("색상 저장 오류:", error);
+          return false;
+        }
+      }
+      return true;
+    }
 
   </script>
 

@@ -178,6 +178,7 @@ area_py
 contents
 order
 memo : text
+color
 
 - only_lat_lng 테이블
 full_address : text
