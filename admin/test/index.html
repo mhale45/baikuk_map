@@ -165,7 +165,7 @@
       overflow-y: auto;    /* 스크롤 가능 */
     }
     .color-picker-btn {
-      display: inline-block;
+      display: none !important;
     }
     .color-option {
       border: 1px solid #ccc;
@@ -2645,6 +2645,18 @@
       options.forEach(opt => {
         const color = opt.dataset.color;
         opt.style.setProperty("background-color", color, "important");
+      });
+    })();
+
+    // === 색상 선택창의 색상 박스에 배경색 넣기 ===
+    (function applyColorPreviewColors() {
+      const options = document.querySelectorAll(".color-option");
+      options.forEach(opt => {
+        const color = opt.dataset.color;
+        if (color) {
+          opt.style.backgroundColor = color;
+          opt.style.border = "1px solid #ccc";
+        }
       });
     })();
 
