@@ -2616,17 +2616,22 @@
         option.addEventListener("click", () => {
           if (!currentRow) return;
 
-          // 기존 색 제거
-          currentRow.style.backgroundColor = "";
-
-          // 선택 색상 적용
           const color = option.dataset.color;
+
+          // 색상 해제 처리
+          if (color === "none") {
+            currentRow.style.backgroundColor = "";
+            currentRow.dataset.userColor = "";
+            popup.classList.add("hidden");
+            return;
+          }
+
+          // 색상 적용
+          currentRow.dataset.userColor = "true";
+          currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
 
-          // 팝업 닫기
           popup.classList.add("hidden");
-          currentRow.dataset.userColor = "true";
-
         });
       });
     });
@@ -2683,6 +2688,13 @@
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option" data-color="none" style="background: repeating-linear-gradient(
+        45deg,
+        #fff,
+        #fff 5px,
+        #ccc 5px,
+        #ccc 10px
+      );"></div>
     </div>
   </div>
 </body>
