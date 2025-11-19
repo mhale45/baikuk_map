@@ -2644,7 +2644,7 @@
       const options = document.querySelectorAll(".color-option");
       options.forEach(opt => {
         const color = opt.dataset.color;
-        opt.style.backgroundColor = color;
+        opt.style.setProperty("background-color", color, "important");
       });
     })();
 
