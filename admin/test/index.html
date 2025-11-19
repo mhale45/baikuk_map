@@ -1623,7 +1623,13 @@
       for (let i = currentRows + 1; i <= maxIndex; i++) {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="p-1 border text-center">${i}</td>
+          <td class="p-2 border text-center relative">
+            ${i}
+            <button 
+              class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
+              data-index="${i}"
+            ></button>
+          </td>
           <td class="p-1 border text-center">
             <span contenteditable="true" class="text-base block" data-field="listing_title_${i}"></span>
           </td>
