@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.14/dist/tailwind.min.css" rel="stylesheet">
   <script>
     let currentCustomerId = null; // 전역 변수로 추가
     let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
@@ -410,12 +410,12 @@
 
         // === rem 단위 사용: 3rem을 px로 계산 ===
         const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize); 
-        const extraGap = remPx * 2; // 3rem
+        const extraGap = remPx * 2; // 2rem
 
         const table = document.querySelector('#white-box table');
         const tableWidth = table ? table.offsetWidth : 0;
 
-        const minWidth = tableWidth + extraGap;  // table + 3rem
+        const minWidth = tableWidth + extraGap;  // table + 2rem
 
         if (newWidth >= minWidth) {
           box.style.width = newWidth + 'px';
