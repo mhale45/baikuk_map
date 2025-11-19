@@ -1842,15 +1842,14 @@
     for (let i = 1; i <= 50; i++) {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td class="border-b text-right pr-2"> <!-- 오른쪽 정렬 -->
+        <td class="border-b text-right pr-2">
           <input type="text" placeholder="입력 ${i}" 
-                class="w-[5rem] border px-2 rounded text-base ml-auto block" 
+                class="w-20 border px-2 rounded text-base ml-auto block" 
                 data-index="${i}" />
         </td>
       `;
       leftTbody.appendChild(row);
     }
-
 
     function addListingRow(i) {
       const row = document.createElement('tr');
