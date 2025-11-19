@@ -2656,6 +2656,26 @@
       });
     })();
 
+    // 색상 선택창 외부 클릭 시 닫기
+    document.addEventListener("click", (e) => {
+        const popup = document.getElementById("color-picker-popup");
+        if (!popup) return;
+
+        // popup이 닫혀 있으면 아무 일도 하지 않음
+        if (popup.classList.contains("hidden")) return;
+
+        // 클릭한 요소가 popup 내부거나 color-option인 경우는 무시
+        if (popup.contains(e.target)) return;
+
+        // 행 번호 셀 클릭해서 팝업을 열도록 하는 기존 로직이 있을 수 있으므로
+        // 번호셀(td 첫번째칸)은 제외
+        const td = e.target.closest("td");
+        if (td && [...td.parentNode.children].indexOf(td) === 0) return;
+
+        // 👇 popup 닫기
+        popup.classList.add("hidden");
+    });
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
