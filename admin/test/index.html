@@ -167,6 +167,9 @@
     .color-picker-btn {
       display: none !important;
     }
+    .color-option {
+      border: 1px solid #ccc;
+    }
 
   </style>
 </head>
@@ -2634,6 +2637,14 @@
           // 팝업 닫기
           popup.classList.add("hidden");
         });
+      });
+    });
+    
+    // === 색상 옵션 박스에 배경색 적용 ===
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".color-option").forEach(opt => {
+        const color = opt.dataset.color;
+        opt.style.backgroundColor = color;
       });
     });
 
