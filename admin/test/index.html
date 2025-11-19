@@ -409,7 +409,10 @@
         const newWidth = startWidth + delta;
 
         // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
-        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
+        // 표의 실제 너비 + 3rem(48px)을 최소폭으로 설정
+        const table = document.querySelector('#white-box table');
+        const tableWidth = table ? table.offsetWidth : 0;
+        const minWidth = tableWidth + 48; // 3rem
         const maxWidth = 1800;           // 원하는 경우 변경 가능
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
@@ -2447,11 +2450,6 @@
 
     window.addEventListener('beforeprint', buildPrintPortal);
     window.addEventListener('afterprint', cleanupPrintPortal);
-    window.addEventListener('afterprint', () => {
-      setTimeout(() => {
-        initializeWhiteBoxWidth();  // 인쇄로 변형된 width 복구
-      }, 50);
-    });
 
     // 세로인쇄
     document.getElementById('print-btn')?.addEventListener('click', () => {
