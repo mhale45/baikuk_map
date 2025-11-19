@@ -2536,6 +2536,36 @@
 
       showToast('신규 고객 작성 모드입니다.');
     });
+    
+    // === 숫자열 클릭 시 행 강조 기능 ===
+    function enableRowHighlight() {
+      const tbody = document.getElementById("listings-body");
+      if (!tbody) return;
+
+      tbody.addEventListener("click", (e) => {
+        // 클릭한 요소가 첫 번째 <td>인지?
+        const td = e.target.closest("td");
+        if (!td) return;
+
+        const tr = td.closest("tr");
+        if (!tr) return;
+
+        // 숫자열(첫 번째 셀)만 반응하도록 제한
+        const cellIndex = [...tr.children].indexOf(td);
+        if (cellIndex !== 0) return;
+
+        // 기존 선택된 행 색상 초기화
+        tbody.querySelectorAll("tr").forEach(row => {
+          row.style.backgroundColor = "";
+        });
+
+        // 클릭된 행에 강조색 추가
+        tr.style.backgroundColor = "#ffecec";
+      });
+    }
+
+    // 페이지 로딩 후 기능 활성화
+    document.addEventListener("DOMContentLoaded", enableRowHighlight);
 
   </script>
 
