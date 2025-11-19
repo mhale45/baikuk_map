@@ -1602,7 +1602,7 @@
       for (let i = currentRows + 1; i <= maxIndex; i++) {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="p-1 border text-center">${i}</td>
+          <td class="p-1 border text-center"><span class="row-index">${i}</span></td>
           <td class="p-1 border text-center">
             <span contenteditable="true" class="text-base block" data-field="listing_title_${i}"></span>
           </td>
@@ -1730,7 +1730,7 @@
       row.className = `${bgClass} hover:bg-yellow-50`;
 
       row.innerHTML = `
-        <td class="p-2 border text-center">${i}</td>
+        <td class="p-2 border text-center"><span class="row-index">${i}</span></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="listing_title_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="full_address_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="building_name_${i}" /></td>
