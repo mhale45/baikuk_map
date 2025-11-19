@@ -164,7 +164,7 @@
       overflow-y: auto;    /* 스크롤 가능 */
     }
     #listings-body td:first-child {
-      cursor: pointer;
+      cursor: pointer !important;
     }
   </style>
 </head>
@@ -2475,15 +2475,12 @@
     });
 
     // 숫자칸 클릭 → 행 배경색 선택 기능
-    document.getElementById("listings-body").addEventListener("click", (e) => {
-      const td = e.target.closest("td");
+    document.addEventListener("click", (e) => {
+      const td = e.target.closest("#listings-body td:first-child");
       if (!td) return;
 
       const row = td.closest("tr");
       if (!row) return;
-
-      // 🔥 '매물명 왼쪽의 번호칸'은 항상 tr의 첫 번째 셀
-      if (td.cellIndex !== 0) return;
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
