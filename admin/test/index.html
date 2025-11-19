@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.14/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
     let currentCustomerId = null; // 전역 변수로 추가
     let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
@@ -180,13 +180,13 @@
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
-  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
+  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-30 hidden">
     메시지 영역
   </div>
-  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+  <div class="absolute top-0 left-0 z-29 bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
         alt="글씨로고"
-        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-30"
         onclick="location.reload()" />
   </div>
   <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
@@ -209,7 +209,7 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
+    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-20 text-left">
       <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
       <div class="flex justify-end px-2 mb-2">
         <button id="new-customer-btn"
@@ -266,7 +266,7 @@
               🖨️
             </button>
           </div>
-          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
+          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
             <div class="mb-2 justify-center flex gap-2">
               <button id="clear-left-btn" class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
@@ -308,7 +308,7 @@
                     </div>
                     <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                      class="hidden fixed bg-white border rounded shadow-lg z-30 max-h-60 overflow-y-auto">
                   </div>
                   </div>
                 </div>
@@ -1762,7 +1762,7 @@
       toast.style.backgroundColor = '#F2C130';
       toast.style.color = 'black';
       toast.style.fontWeight = 'bold';
-      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
+      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-30';
 
       toast.classList.remove('hidden');
 
@@ -2715,7 +2715,7 @@
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
-  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
+  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-30">
     <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
       <div class="px-5 py-3 border-b font-semibold text-lg">
         같은 이름의 고객이 이미 있습니다
@@ -2737,7 +2737,7 @@
     </div>
   </div>
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-30 w-[15rem]">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
