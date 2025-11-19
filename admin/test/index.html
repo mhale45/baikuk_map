@@ -2517,8 +2517,6 @@
           showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
           return;
         }
-
-        showToast("고객 정보가 수정되었습니다!");
       }
 
       // ==================================================
@@ -2531,7 +2529,7 @@
         return;
       }
 
-      showToast("고객 정보 + 매물정보 저장 완료!");
+      showToast("저장 완료!");
 
       // 저장 후 고객 리스트 갱신
       loadCustomersForCurrentStaff();
@@ -2637,7 +2635,7 @@
           // ⭐ hidden input 에도 저장
           const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
           setFieldValue("color", index, color);
-          
+
           popup.classList.add("hidden");
         });
       });
