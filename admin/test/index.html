@@ -2591,20 +2591,19 @@
 
       // 숫자셀 전체 클릭 → 색상 팝업 열기
       document.addEventListener("click", (e) => {
+
+        // ⭐ 클릭 이벤트가 window로 전파되지 않도록 방지
+        e.stopPropagation();
+
         const td = e.target.closest("td");
         if (!td) return;
 
-        // listings-body 안의 tr인지 확인
         const tr = td.closest("#listings-body tr");
         if (!tr) return;
 
-        // 첫 번째 칸(숫자 셀)인지 확인
         const isFirstCell = [...tr.children].indexOf(td) === 0;
         if (!isFirstCell) return;
 
-        const index = [...tr.parentNode.children].indexOf(tr) + 1;
-
-        // 팝업 위치 = 셀 기준으로 표시
         const rect = td.getBoundingClientRect();
         popup.style.left = rect.left + window.scrollX + "px";
         popup.style.top = rect.bottom + window.scrollY + "px";
