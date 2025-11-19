@@ -2610,6 +2610,9 @@
 
       // 색상 선택 시 행에 적용
       document.querySelectorAll(".color-option").forEach(option => {
+        const color = option.dataset.color;
+        option.style.backgroundColor = color;
+        option.style.border = "1px solid #ccc";
         option.addEventListener("click", () => {
           if (!currentRow) return;
 
