@@ -2410,6 +2410,15 @@
       // print-portal에 넣기
       portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
+
+      // ★ 인쇄용 테이블의 행 배경색을 강제로 inline style 로 고정 ★
+      const trs = cloned.querySelectorAll("tbody tr");
+      trs.forEach((tr) => {
+        const color = tr.style.backgroundColor;
+        if (color) {
+          tr.style.setProperty("background-color", color, "important");
+        }
+      });
     }
 
     function cleanupPrintPortal() {
