@@ -2640,13 +2640,13 @@
       });
     });
     
-    // === 색상 옵션 박스에 배경색 적용 ===
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll(".color-option").forEach(opt => {
+    (function applyColorOptions() {
+      const options = document.querySelectorAll(".color-option");
+      options.forEach(opt => {
         const color = opt.dataset.color;
         opt.style.backgroundColor = color;
       });
-    });
+    })();
 
   </script>
 
