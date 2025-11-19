@@ -544,6 +544,7 @@
         const area_py        = getFieldValue("area_py", index);
         const contents       = getFieldValue("description", index);
         const listing_id     = getListingNumber(index);
+        const color = getFieldValue("color", index);
 
         // 완전히 비어 있으면 스킵
         if (
@@ -568,7 +569,8 @@
           premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
           area_py        : Number(area_py) || null,
           contents       : contents || null,
-          memo          : getMemoValue(index) || null
+          memo          : getMemoValue(index) || null,
+          color          : color || null
         });
       });
 
@@ -1389,20 +1391,6 @@
         }
       });
 
-      // === 🟡 저장된 색상 적용 ===
-      listings.forEach(listing => {
-        const index = listing.order;
-        if (!index) return;
-
-        const row = document.querySelector(`#listings-body tr:nth-child(${index})`);
-        if (!row) return;
-
-        if (listing.color) {
-          row.style.backgroundColor = listing.color;
-          row.dataset.userColor = "true";  // 사용자 지정 색 플래그
-        }
-      });
-
       // 높이/스트라이프 정리
       renderMemoPanel(listings);
       syncRowHeights?.();
@@ -1647,6 +1635,7 @@
         row.innerHTML = `
           <td class="p-2 border text-center relative">
             ${i}
+            <input type="hidden" data-field="color_${i}" value="">
             <button 
               class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
               data-index="${i}"
@@ -2542,9 +2531,8 @@
         return;
       }
 
-      showToast("저장 완료!"); //고객 정보 + 매물정보
-      // === 🟡 행 색상도 함께 저장 ===
-      await saveRowColors(currentCustomerId);
+      showToast("고객 정보 + 매물정보 저장 완료!");
+
       // 저장 후 고객 리스트 갱신
       loadCustomersForCurrentStaff();
     });
@@ -2646,6 +2634,10 @@
           currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
 
+          // ⭐ hidden input 에도 저장
+          const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
+          setFieldValue("color", index, color);
+          
           popup.classList.add("hidden");
         });
       });
@@ -2670,24 +2662,6 @@
         }
       });
     })();
-
-    // === 행 색상 Supabase 저장 ===
-    async function saveRowColors(customerId) {
-      const rows = document.querySelectorAll("#listings-body tr");
-
-      for (const row of rows) {
-        const order = [...row.parentNode.children].indexOf(row) + 1;
-        const color = row.style.backgroundColor || null;
-
-        const { error } = await supabase
-          .from("customers_recommendations")
-          .update({ color })
-          .eq("customers_id", String(customerId))
-          .eq("order", order);
-
-        if (error) console.error("색상 저장 실패:", error);
-      }
-    }
 
   </script>
 
@@ -2714,7 +2688,7 @@
     </div>
   </div>
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
