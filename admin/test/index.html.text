@@ -1383,6 +1383,17 @@
         const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
         const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
         if (memoEl) memoEl.value = memoValue;
+        // === 🔥 색상 정보 불러오기 ===
+        if (listing.color) {
+          setFieldValue("color", index, listing.color);
+
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (tr) {
+            tr.dataset.userColor = "true";
+            tr.style.backgroundColor = listing.color;
+            tr.classList.remove("bg-white", "bg-gray-50");
+          }
+        }
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
