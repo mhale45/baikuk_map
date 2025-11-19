@@ -2578,6 +2578,11 @@
       const closeBtn = document.getElementById("color-close-btn");
       let currentRow = null;
 
+      // 팝업 내부 클릭은 문서 클릭 이벤트가 다시 실행되지 않도록 막기
+      popup.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+      
       // 숫자셀 전체 클릭 → 색상 팝업 열기
       document.addEventListener("click", (e) => {
         const td = e.target.closest("td");
