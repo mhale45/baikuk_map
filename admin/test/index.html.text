@@ -933,25 +933,32 @@
       return keys.some(k => !!getFieldValue(k, index));
     }
 
-    // ✅ 한 행을 메시지 4줄로 변환
+    // ✅ 한 행을 메시지 4줄로 변환 (주소 뒤 "-" 문제 수정 버전)
     function buildMessageForRow(index) {
       const no     = getListingNumber(index) || '';
       const title  = getFieldValue('listing_title', index) || '-';
-      const addr   = getFieldValue('full_address', index) || '-';
-      const unit   = getFieldValue('combined_unit', index) || '-';
+      const addr   = getFieldValue('full_address', index) || '';
+      const unit   = getFieldValue('combined_unit', index) || '';   // 상세 주소/호수 정보
       const dep    = getFieldValue('deposit_price', index);
       const mon    = getFieldValue('monthly_rent', index);
       const prem   = getFieldValue('premium_price', index);
       const area   = getFieldValue('area_py', index);
       const desc   = getFieldValue('description', index);
 
-      // 1행/2행
-      const line1 = `${title}`.trim();
-      const line2 = `${addr} ${unit}`.trim();
+      // 🔥 주소 + 상세주소(호수) 조합 개선
+      // unit(호수/상세주소)이 있을 때만 "-" 를 붙인다
+      let line2 = addr.trim();
+      if (unit.trim()) {
+        line2 = `${line2} - ${unit.trim()}`;
+      }
+      line2 = line2.trim();
 
-      // 3행
+      // 1행
+      const line1 = `${title}`.trim();
+
+      // 3행: "면적 보증금/월세 권리금"
       const areaPart   = area ? `${area}평` : '';
-      const moneyPair  = joinMoney(dep, mon);   // 보증금/월세
+      const moneyPair  = joinMoney(dep, mon); // 보증금/월세
       const premiumTag = prem ? `권${prem}` : '';
       const parts = [areaPart, moneyPair, premiumTag].filter(Boolean);
       const line3 = parts.join(' ');
@@ -959,14 +966,13 @@
       // 4행: 설명
       const line4 = desc || '';
 
-      // 5행: URL (매물번호 있을 때만)
+      // 5행: URL (매물번호 있을 때)
       const baseUrl = "https://baikuk.com/item/view/";
       const line5 = no ? `${baseUrl}${no}` : '';
 
       const lines = [line1, line2, line3, line4, line5].filter(l => l !== '');
       return lines.join('\n');
     }
-
 
     // ✅ 전체 행을 훑어 텍스트 생성
     function buildAllMessages() {
@@ -1888,9 +1894,17 @@
         }
       });
 
-      // 🔥 추가: memo도 같이 지우기
+      // memo도 같이 지우기
       const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
       if (memoEl) memoEl.value = '';
+
+      // 행 색상 초기화
+      const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+      if (tr) {
+        tr.style.backgroundColor = "";
+        tr.dataset.userColor = "";
+      }
+      setFieldValue("color", index, "");
 
       syncRowHeights?.();
     }
