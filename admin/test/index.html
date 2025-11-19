@@ -2476,8 +2476,11 @@
 
     // 숫자칸 클릭 → 행 배경색 선택 기능
     document.addEventListener("click", (e) => {
-      const td = e.target.closest("#listings-body td:first-child");
+      const td = e.target.closest("td:first-child");   // td 자체만 검사
       if (!td) return;
+
+      // listings-body 안에 있는지 검사
+      if (!td.closest("#listings-body")) return;
 
       const row = td.closest("tr");
       if (!row) return;
