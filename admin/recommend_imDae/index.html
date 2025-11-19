@@ -10,6 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     let currentCustomerId = null; // 전역 변수로 추가
+    let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
   </script>
   <style>
     /* === print 전용 설정 === */
@@ -29,7 +30,7 @@
         padding: 0 !important;
       }
       #print-portal table { 
-        width: 100% !important; 
+        width: auto !important;
         table-layout: fixed; 
         border-collapse: collapse; 
       }
@@ -244,18 +245,21 @@
           <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
-          <div class="mb-2 text-right flex gap-2 justify-end">
-            <button id="print-btn" class="h-[2rem] bg-neutral-500 hover:bg-neutral-600 text-white text-sm px-4 py-1 rounded">
+          <div class="mb-2 px-2 text-right flex gap-2">
+            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
               🖨️
             </button>
-            <button id="copy-link-btn" class="h-[2rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-3 py-1 rounded mr-2">
-              링크
+            <button id="print-btn2" class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
+              🖨️
             </button>
           </div>
           <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
-            <div class="mb-2 text-right flex gap-2 justify-end">
-              <button id="clear-left-btn" class="h-[2rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
+            <div class="mb-2 justify-center flex gap-2">
+              <button id="clear-left-btn" class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
+              </button>
+              <button id="copy-link-btn" class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
+                링크
               </button>
             </div>
             <div id="table-container" class="border rounded-md">
@@ -271,7 +275,7 @@
             </div>
           </div>
         </div>        
-        <div class="ml-1 px-4 py-4 bg-white rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -329,6 +333,18 @@
               </table>
             </div>  
           </div>
+          <!-- 오른쪽 리사이즈 핸들 -->
+          <div id="whitebox-resize-handle"
+              style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
+          </div>
         </div>
         <div class="ml-3 mt-[6.2rem] flex flex-col">
           <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
@@ -358,6 +374,71 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
+    (() => {
+      const box = document.getElementById('white-box');
+      const handle = document.getElementById('whitebox-resize-handle');
+
+      let isResizing = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = box.offsetWidth;
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const delta = e.clientX - startX;
+        const newWidth = startWidth + delta;
+
+        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
+        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
+        const maxWidth = 1800;           // 원하는 경우 변경 가능
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+          box.style.width = newWidth + 'px';
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isResizing) {
+          // 수동 리사이즈 종료 시 white-box 오른쪽 여백 저장
+          const table = document.querySelector('#white-box table');
+          const box = document.getElementById('white-box');
+
+          const tableWidth = table.offsetWidth;
+          const boxWidth = box.offsetWidth;
+
+          whiteBoxExtraGap = boxWidth - tableWidth; 
+        }
+
+        isResizing = false;
+        document.body.style.userSelect = '';
+      });
+    })();
+
+    // 초기에 white-box 폭을 table 크기에 맞춰 정확히 설정
+    function initializeWhiteBoxWidth() {
+      const box = document.getElementById('white-box');
+      const table = document.querySelector('#white-box table');
+      if (!box || !table) return;
+
+      // 최초 table과 box 간의 여백 계산
+      const tableWidth = table.offsetWidth;
+      const boxWidth = box.offsetWidth;
+
+      whiteBoxExtraGap = boxWidth - tableWidth;
+
+      // white-box 초기 너비를 테이블+여백으로 강제로 통일
+      box.style.width = (tableWidth + whiteBoxExtraGap) + 'px';
+    }
+
+    window.addEventListener("load", initializeWhiteBoxWidth);
+    
     (async () => {
       try {
         // 1) 로그인 세션 확인 (없으면 이동)
@@ -1580,6 +1661,55 @@
       syncRowHeights();
     }
 
+    (function setupColumnResizeSync() {
+      const box = document.getElementById('white-box');
+      const headerRow = document.querySelector('#white-box thead tr');
+
+      if (!headerRow) return;
+
+      const handles = headerRow.querySelectorAll('.resize-handle');
+
+      handles.forEach(handle => {
+        let startX = 0;
+        let startWidth = 0;
+        let th = handle.parentElement;
+
+        handle.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          startX = e.clientX;
+          startWidth = th.offsetWidth;
+
+          function onMouseMove(ev) {
+            const delta = ev.clientX - startX;
+            const newWidth = Math.max(40, startWidth + delta);
+            th.style.width = newWidth + 'px';
+
+            // 테이블 전체 너비 계산
+            const table = document.querySelector('#white-box table');
+            const tableWidth = table.offsetWidth;
+
+            // white-box의 신규 width = 테이블너비 + 기존 여백
+            box.style.width = (tableWidth + whiteBoxExtraGap) + 'px';
+          }
+
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            // 리사이즈 종료 후 여백 재측정
+            const table = document.querySelector('#white-box table');
+            const tableWidth = table.offsetWidth;
+            const boxWidth = box.offsetWidth;
+
+            whiteBoxExtraGap = boxWidth - tableWidth;
+          }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
+    })();
+
     function showToast(message, duration = 3000) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
@@ -2205,15 +2335,28 @@
       // 기존 포털 제거
       portalEl?.remove();
 
-      // #print-block 복제해서 body 바로 아래 포털로 붙임
+      // print-block 복제
       const src = document.getElementById('print-block');
       if (!src) return;
+
       portalEl = document.createElement('div');
       portalEl.id = 'print-portal';
-      // 필요한 최소 스타일(여백 제거)
       portalEl.style.margin = '0';
       portalEl.style.padding = '0';
-      portalEl.appendChild(src.cloneNode(true)); // 깊은 복제
+
+      const cloned = src.cloneNode(true);
+
+      // ⭐ white-box의 실제 width를 가져와서 인쇄 테이블에 적용
+      const whiteBox = document.getElementById('white-box');
+      if (whiteBox) {
+        const w = whiteBox.offsetWidth;       // 실제 화면에서 늘어난 너비
+        const innerTable = cloned.querySelector("table");
+        if (innerTable) {
+          innerTable.style.width = w + "px";  // 인쇄용 테이블에도 동일하게 적용
+        }
+      }
+
+      portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
     }
 
@@ -2230,11 +2373,35 @@
     window.addEventListener('beforeprint', buildPrintPortal);
     window.addEventListener('afterprint', cleanupPrintPortal);
 
+    // 세로인쇄
     document.getElementById('print-btn')?.addEventListener('click', () => {
       buildPrintPortal();   // 혹시 beforeprint 못 받는 브라우저 보정
       window.print();
       // 일부 브라우저 보정
       setTimeout(cleanupPrintPortal, 0);
+    });
+
+    // 가로인쇄
+    document.getElementById('print-btn2')?.addEventListener('click', () => {
+      // 1) A4 가로 스타일 주입
+      const style = document.createElement("style");
+      style.id = "landscape-style";
+      style.innerHTML = `
+        @media print {
+          @page { size: A4 landscape; margin: 12mm; }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // 2) 포털 생성 → 인쇄 실행
+      buildPrintPortal();
+      window.print();
+
+      // 3) 인쇄 후 가로 스타일 제거 + cleanup
+      setTimeout(() => {
+        document.getElementById("landscape-style")?.remove();
+        cleanupPrintPortal();
+      }, 100);
     });
 
     // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
