@@ -1393,7 +1393,6 @@
       renderMemoPanel(listings);
       syncRowHeights?.();
       applyRowStriping?.();
-      applySavedColors(listings);
       showToast(`고객 "${name}" 데이터 불러옴`);
       setDocumentTitle(name);
 
@@ -2515,6 +2514,8 @@
           showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
           return;
         }
+
+        showToast("고객 정보가 수정되었습니다!");
       }
 
       // ==================================================
@@ -2524,12 +2525,6 @@
       const saved = await saveListingsForCurrentCustomer();
       if (!saved) {
         showToast("매물정보 저장 중 오류가 발생했습니다.");
-        return;
-      }
-      // ⭐ 4) 행 색상 저장 추가
-      const savedColor = await saveRowColorsForCurrentCustomer();
-      if (!savedColor) {
-        showToast("색상 저장 중 오류가 발생했습니다.");
         return;
       }
 
@@ -2664,53 +2659,6 @@
         }
       });
     })();
-
-    async function saveRowColorsForCurrentCustomer() {
-      if (!currentCustomerId) return false;
-
-      const rows = document.querySelectorAll("#listings-body tr");
-
-      for (let i = 0; i < rows.length; i++) {
-        const order = i + 1;
-
-        // inline 색상이 실제 적용된 색
-        const color = rows[i].style.backgroundColor || "none";
-
-        const { error } = await supabase
-          .from("customers_recommendations")
-          .update({ color: color })
-          .eq("customers_id", String(currentCustomerId))
-          .eq("order", order);
-
-        if (error) {
-          console.error("색상 저장 오류:", error);
-          return false;
-        }
-      }
-      return true;
-    }
-
-    function applySavedColors(recommendationRows) {
-      const tbody = document.getElementById("listings-body");
-      if (!tbody) return;
-
-      recommendationRows.forEach(row => {
-        const order = row.order;
-        const color = row.color;
-
-        const tr = tbody.querySelector(`tr:nth-child(${order})`);
-        if (!tr) return;
-
-        if (!color || color === "none") {
-          tr.style.backgroundColor = "";
-          tr.dataset.userColor = "";
-        } else {
-          tr.style.backgroundColor = color;
-          tr.dataset.userColor = "true";  // 줄무늬 덮어쓰기 방지
-          tr.classList.remove("bg-white", "bg-gray-50");
-        }
-      });
-    }
 
   </script>
 
