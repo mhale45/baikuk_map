@@ -164,8 +164,9 @@
       max-height: 520px;   /* 기존보다 훨씬 길게 */
       overflow-y: auto;    /* 스크롤 가능 */
     }
+    /* 버튼 자체는 숨기되 색상표는 유지 */
     .color-picker-btn {
-      display: none !important;
+      visibility: hidden;   /* display:none 대신 visibility 사용! */
     }
     .color-option {
       border: 1px solid #ccc;
