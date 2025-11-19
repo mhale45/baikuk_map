@@ -1389,6 +1389,20 @@
         }
       });
 
+      // === 🟡 저장된 색상 적용 ===
+      listings.forEach(listing => {
+        const index = listing.order;
+        if (!index) return;
+
+        const row = document.querySelector(`#listings-body tr:nth-child(${index})`);
+        if (!row) return;
+
+        if (listing.color) {
+          row.style.backgroundColor = listing.color;
+          row.dataset.userColor = "true";  // 사용자 지정 색 플래그
+        }
+      });
+
       // 높이/스트라이프 정리
       renderMemoPanel(listings);
       syncRowHeights?.();
@@ -2528,8 +2542,9 @@
         return;
       }
 
-      showToast("고객 정보 + 매물정보 저장 완료!");
-
+      showToast("저장 완료!"); //고객 정보 + 매물정보
+      // === 🟡 행 색상도 함께 저장 ===
+      await saveRowColors(currentCustomerId);
       // 저장 후 고객 리스트 갱신
       loadCustomersForCurrentStaff();
     });
@@ -2655,6 +2670,24 @@
         }
       });
     })();
+
+    // === 행 색상 Supabase 저장 ===
+    async function saveRowColors(customerId) {
+      const rows = document.querySelectorAll("#listings-body tr");
+
+      for (const row of rows) {
+        const order = [...row.parentNode.children].indexOf(row) + 1;
+        const color = row.style.backgroundColor || null;
+
+        const { error } = await supabase
+          .from("customers_recommendations")
+          .update({ color })
+          .eq("customers_id", String(customerId))
+          .eq("order", order);
+
+        if (error) console.error("색상 저장 실패:", error);
+      }
+    }
 
   </script>
 
