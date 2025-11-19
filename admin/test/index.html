@@ -2476,14 +2476,18 @@
 
     // 숫자칸 클릭 → 행 배경색 선택 기능
     document.addEventListener("click", (e) => {
-      const td = e.target.closest("td:first-child");   // td 자체만 검사
+      // 클릭한 요소가 td 첫 번째 칸인지 판정
+      const td = e.target.closest("td");
       if (!td) return;
 
-      // listings-body 안에 있는지 검사
-      if (!td.closest("#listings-body")) return;
+      // listings-body 안의 행인지 확인
+      const tr = td.closest("tr");
+      if (!tr || !tr.parentElement || tr.parentElement.id !== "listings-body") return;
 
-      const row = td.closest("tr");
-      if (!row) return;
+      // 첫 번째 칸 아니면 무시
+      if (td.cellIndex !== 0) return;
+
+      const row = tr;
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
@@ -2495,6 +2499,9 @@
         const color = colorInput.value;
         row.dataset.customColor = color;
         row.style.backgroundColor = color;
+
+        // striping 다시 적용 (선택한 색 유지)
+        applyRowStriping();
       });
 
       colorInput.click();
