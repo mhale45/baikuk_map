@@ -51,11 +51,16 @@
         font-weight: bold;
       }
 
-      /* 행 구분 음영 추가 */
-      #print-portal tbody tr:nth-child(odd) {
+      /* 사용자 지정 행 색상을 유지하도록 설정 */
+      #print-portal tbody tr {
+        background-color: inherit !important;   /* inline 색상 그대로 출력 */
+      }
+
+      /* ※ 혹시 inline 이 없을 때만 기본 줄무늬 */
+      #print-portal tbody tr:not([data-usercolor]):nth-child(odd) {
         background-color: #ffffff !important;
       }
-      #print-portal tbody tr:nth-child(even) {
+      #print-portal tbody tr:not([data-usercolor]):nth-child(even) {
         background-color: #f2f2f2 !important;
       }
 
@@ -164,6 +169,14 @@
       max-height: 520px;   /* 기존보다 훨씬 길게 */
       overflow-y: auto;    /* 스크롤 가능 */
     }
+    /* 버튼 자체는 숨기되 색상표는 유지 */
+    .color-picker-btn {
+      visibility: hidden;   /* display:none 대신 visibility 사용! */
+    }
+    .color-option {
+      border: 1px solid #ccc;
+    }
+
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
@@ -536,6 +549,7 @@
         const area_py        = getFieldValue("area_py", index);
         const contents       = getFieldValue("description", index);
         const listing_id     = getListingNumber(index);
+        const color = getFieldValue("color", index);
 
         // 완전히 비어 있으면 스킵
         if (
@@ -560,7 +574,8 @@
           premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
           area_py        : Number(area_py) || null,
           contents       : contents || null,
-          memo          : getMemoValue(index) || null
+          memo          : getMemoValue(index) || null,
+          color          : color || null
         });
       });
 
@@ -1373,6 +1388,17 @@
         const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
         const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
         if (memoEl) memoEl.value = memoValue;
+        // === 🔥 색상 정보 불러오기 ===
+        if (listing.color) {
+          setFieldValue("color", index, listing.color);
+
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (tr) {
+            tr.dataset.userColor = "true";
+            tr.style.backgroundColor = listing.color;
+            tr.classList.remove("bg-white", "bg-gray-50");
+          }
+        }
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
@@ -1623,7 +1649,14 @@
       for (let i = currentRows + 1; i <= maxIndex; i++) {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="p-1 border text-center">${i}</td>
+          <td class="p-2 border text-center relative">
+            ${i}
+            <input type="hidden" data-field="color_${i}" value="">
+            <button 
+              class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
+              data-index="${i}"
+            ></button>
+          </td>
           <td class="p-1 border text-center">
             <span contenteditable="true" class="text-base block" data-field="listing_title_${i}"></span>
           </td>
@@ -1800,7 +1833,13 @@
       row.className = `${bgClass} hover:bg-yellow-50`;
 
       row.innerHTML = `
-        <td class="p-2 border text-center">${i}</td>
+        <td class="p-2 border text-center relative">
+          ${i}
+          <button 
+            class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
+            data-index="${i}"
+          ></button>
+        </td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="listing_title_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="full_address_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="building_name_${i}" /></td>
@@ -1816,15 +1855,21 @@
       applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
     }
 
-    // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
     function applyRowStriping() {
       const rows = document.querySelectorAll('#listings-body tr');
+
       rows.forEach((row, index) => {
-        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
-        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
+
+        // 🎯 사용자가 색을 지정한 경우 → 줄무늬 적용 금지
+        if (row.dataset.userColor === "true") return;
+
+        // 기존 줄무늬 적용
+        row.classList.remove('bg-white', 'bg-gray-50');
+        row.style.backgroundColor = ""; // inline 색 제거
+        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
       });
     }
-    
+
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
@@ -1843,9 +1888,17 @@
         }
       });
 
-      // 🔥 추가: memo도 같이 지우기
+      // memo도 같이 지우기
       const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
       if (memoEl) memoEl.value = '';
+
+      // 행 색상 초기화
+      const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+      if (tr) {
+        tr.style.backgroundColor = "";
+        tr.dataset.userColor = "";
+      }
+      setFieldValue("color", index, "");
 
       syncRowHeights?.();
     }
@@ -2335,29 +2388,45 @@
       // 기존 포털 제거
       portalEl?.remove();
 
-      // print-block 복제
-      const src = document.getElementById('print-block');
+      // white-box 전체를 대상으로 변경
+      const src = document.getElementById("white-box");
       if (!src) return;
 
-      portalEl = document.createElement('div');
-      portalEl.id = 'print-portal';
-      portalEl.style.margin = '0';
-      portalEl.style.padding = '0';
+      // 인쇄용 포털 생성
+      portalEl = document.createElement("div");
+      portalEl.id = "print-portal";
+      portalEl.style.margin = "0";
+      portalEl.style.padding = "0";
 
+      // white-box 전체 복제(자식 + 스타일 포함)
       const cloned = src.cloneNode(true);
 
-      // ⭐ white-box의 실제 width를 가져와서 인쇄 테이블에 적용
-      const whiteBox = document.getElementById('white-box');
-      if (whiteBox) {
-        const w = whiteBox.offsetWidth;       // 실제 화면에서 늘어난 너비
-        const innerTable = cloned.querySelector("table");
-        if (innerTable) {
-          innerTable.style.width = w + "px";  // 인쇄용 테이블에도 동일하게 적용
-        }
-      }
+      // 인쇄용에서 불필요한 요소 제거 (오른쪽 resize handle 등)
+      const resizeHandle = cloned.querySelector("#whitebox-resize-handle");
+      if (resizeHandle) resizeHandle.remove();
 
+      // white-box의 실제 width 유지
+      const originalWidth = src.offsetWidth;
+      cloned.style.width = originalWidth + "px";
+
+      // 인쇄용 top-position, absolute 등 초기화(인쇄 시 흐트러짐 방지)
+      cloned.style.position = "static";
+      cloned.style.left = "0";
+      cloned.style.top = "0";
+      cloned.style.margin = "0";
+
+      // print-portal에 넣기
       portalEl.appendChild(cloned);
       document.body.appendChild(portalEl);
+
+      // ★ 인쇄용 테이블의 행 배경색을 강제로 inline style 로 고정 ★
+      const trs = cloned.querySelectorAll("tbody tr");
+      trs.forEach((tr) => {
+        const color = tr.style.backgroundColor;
+        if (color) {
+          tr.style.setProperty("background-color", color, "important");
+        }
+      });
     }
 
     function cleanupPrintPortal() {
@@ -2488,8 +2557,6 @@
           showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
           return;
         }
-
-        showToast("고객 정보가 수정되었습니다!");
       }
 
       // ==================================================
@@ -2502,7 +2569,7 @@
         return;
       }
 
-      showToast("고객 정보 + 매물정보 저장 완료!");
+      showToast("저장 완료!");
 
       // 저장 후 고객 리스트 갱신
       loadCustomersForCurrentStaff();
@@ -2536,6 +2603,103 @@
 
       showToast('신규 고객 작성 모드입니다.');
     });
+    
+    // === 숫자열 클릭 시 행 강조 기능 ===
+    function enableRowHighlight() {
+      const tbody = document.getElementById("listings-body");
+      if (!tbody) return;
+    }
+
+    // 페이지 로딩 후 기능 활성화
+    document.addEventListener("DOMContentLoaded", enableRowHighlight);
+
+    // === 행 색상 선택 기능 ===
+    document.addEventListener("DOMContentLoaded", () => {
+      const popup = document.getElementById("color-picker-popup");
+      let currentRow = null;
+
+      // 팝업 닫기
+      document.addEventListener("click", (e) => {
+        if (!popup.contains(e.target) && !e.target.classList.contains("color-picker-btn")) {
+          popup.classList.add("hidden");
+        }
+      });
+
+      // 숫자셀 전체 클릭 → 색상 팝업 열기
+      document.addEventListener("click", (e) => {
+        const td = e.target.closest("td");
+        if (!td) return;
+
+        // listings-body 안의 tr인지 확인
+        const tr = td.closest("#listings-body tr");
+        if (!tr) return;
+
+        // 첫 번째 칸(숫자 셀)인지 확인
+        const isFirstCell = [...tr.children].indexOf(td) === 0;
+        if (!isFirstCell) return;
+
+        const index = [...tr.parentNode.children].indexOf(tr) + 1;
+
+        // 팝업 위치 = 셀 기준으로 표시
+        const rect = td.getBoundingClientRect();
+        popup.style.left = rect.left + window.scrollX + "px";
+        popup.style.top = rect.bottom + window.scrollY + "px";
+        popup.classList.remove("hidden");
+
+        currentRow = tr;
+      });
+
+      // 색상 선택 시 행에 적용
+      document.querySelectorAll(".color-option").forEach(option => {
+        const color = option.dataset.color;
+        option.style.backgroundColor = color;
+        option.style.border = "1px solid #ccc";
+        option.addEventListener("click", () => {
+          if (!currentRow) return;
+
+          const color = option.dataset.color;
+
+          // 색상 해제 처리
+          if (color === "none") {
+            currentRow.style.backgroundColor = "";
+            currentRow.dataset.userColor = "";
+            popup.classList.add("hidden");
+            return;
+          }
+
+          // 색상 적용
+          currentRow.dataset.userColor = "true";
+          currentRow.classList.remove('bg-white', 'bg-gray-50');
+          currentRow.style.backgroundColor = color;
+
+          // ⭐ hidden input 에도 저장
+          const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
+          setFieldValue("color", index, color);
+
+          popup.classList.add("hidden");
+        });
+      });
+    });
+    
+    (function applyColorOptions() {
+      const options = document.querySelectorAll(".color-option");
+      options.forEach(opt => {
+        const color = opt.dataset.color;
+        opt.style.setProperty("background-color", color, "important");
+      });
+    })();
+
+    // === 색상 선택창의 색상 박스에 배경색 넣기 ===
+    (function applyColorPreviewColors() {
+      const options = document.querySelectorAll(".color-option");
+      options.forEach(opt => {
+        const color = opt.dataset.color;
+        if (color) {
+          opt.style.backgroundColor = color;
+          opt.style.border = "1px solid #ccc";
+        }
+      });
+    })();
 
   </script>
 
@@ -2559,6 +2723,23 @@
           취소
         </button>
       </div>
+    </div>
+  </div>
+  <div id="color-picker-popup" 
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
+    <div class="flex gap-2">
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="none" style="background: repeating-linear-gradient(
+        45deg,
+        #fff,
+        #fff 5px,
+        #ccc 5px,
+        #ccc 10px
+      );"></div>
     </div>
   </div>
 </body>
