@@ -2596,6 +2596,11 @@
         currentRow = tr;
       });
 
+      // 닫기 버튼
+      closeBtn.addEventListener("click", () => {
+        popup.classList.add("hidden");
+      });
+
       // 색상 선택 시 행에 적용
       document.querySelectorAll(".color-option").forEach(option => {
         const color = option.dataset.color;
@@ -2685,7 +2690,10 @@
               #ccc 5px, #ccc 10px
           );">
       </div>
-
+      <button id="color-close-btn"
+              class="ml-2 px-2 py-1 rounded text-xs bg-gray-200 hover:bg-gray-300">
+        닫기
+      </button>
     </div>
   </div>
 </body>
