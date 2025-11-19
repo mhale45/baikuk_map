@@ -1800,7 +1800,13 @@
       row.className = `${bgClass} hover:bg-yellow-50`;
 
       row.innerHTML = `
-        <td class="p-2 border text-center">${i}</td>
+        <td class="p-2 border text-center relative">
+          ${i}
+          <button 
+            class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
+            data-index="${i}"
+          ></button>
+        </td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="listing_title_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="full_address_${i}" /></td>
         <td class="p-2 border text-center"><input type="text" class="w-full text-center text-base border-none bg-transparent outline-none" data-field="building_name_${i}" /></td>
@@ -2567,6 +2573,52 @@
     // 페이지 로딩 후 기능 활성화
     document.addEventListener("DOMContentLoaded", enableRowHighlight);
 
+    // === 행 색상 선택 기능 ===
+    document.addEventListener("DOMContentLoaded", () => {
+      const popup = document.getElementById("color-picker-popup");
+      let currentRow = null;
+
+      // 팝업 닫기
+      document.addEventListener("click", (e) => {
+        if (!popup.contains(e.target) && !e.target.classList.contains("color-picker-btn")) {
+          popup.classList.add("hidden");
+        }
+      });
+
+      // 숫자셀의 색상 버튼 클릭
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("color-picker-btn")) {
+          const index = e.target.dataset.index;
+
+          // 클릭된 버튼 위치 기준으로 팝업 위치 조정
+          const rect = e.target.getBoundingClientRect();
+          popup.style.left = rect.left + window.scrollX + "px";
+          popup.style.top = rect.bottom + window.scrollY + "px";
+          popup.classList.remove("hidden");
+
+          // 해당 행 찾기
+          currentRow = document.querySelector(`#listings-body tr:nth-child(${index})`);
+        }
+      });
+
+      // 색상 선택 시 행에 적용
+      document.querySelectorAll(".color-option").forEach(option => {
+        option.addEventListener("click", () => {
+          if (!currentRow) return;
+
+          // 기존 색 제거
+          currentRow.style.backgroundColor = "";
+
+          // 선택 색상 적용
+          const color = option.dataset.color;
+          currentRow.style.backgroundColor = color;
+
+          // 팝업 닫기
+          popup.classList.add("hidden");
+        });
+      });
+    });
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
@@ -2589,6 +2641,16 @@
           취소
         </button>
       </div>
+    </div>
+  </div>
+  <div id="color-picker-popup" 
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]">
+    <div class="flex gap-2">
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
     </div>
   </div>
 </body>
