@@ -163,6 +163,10 @@
       max-height: 520px;   /* 기존보다 훨씬 길게 */
       overflow-y: auto;    /* 스크롤 가능 */
     }
+    #white-box {
+      width: fit-content !important;   /* 내부 크기에 맞춰 자동으로 늘어남 */
+      min-width: 40rem;                /* 최소 폭은 기존 느낌 유지 */
+    }
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
@@ -275,12 +279,6 @@
           </div>
         </div>        
         <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
-          <script>
-            window.addEventListener("DOMContentLoaded", () => {
-              const box = document.getElementById("white-box");
-              box.style.width = box.offsetWidth + "px";
-            });
-          </script>
           <div id="table-container" class="custom-scroll bg-white rounded-md">
             <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
@@ -400,9 +398,11 @@
         const delta = e.clientX - startX;
         const newWidth = startWidth + delta;
 
-        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
-        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
-        const maxWidth = 1800;           // 원하는 경우 변경 가능
+        const table = box.querySelector("table");
+        const tableWidth = table ? table.scrollWidth : startWidth;
+
+        const minWidth = tableWidth;     // 표보다 작아지지 않도록
+        const maxWidth = 2000;
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
           box.style.width = newWidth + 'px';
