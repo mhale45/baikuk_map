@@ -2591,20 +2591,28 @@
         }
       });
 
-      // 숫자셀의 색상 버튼 클릭
+      // 숫자셀 전체 클릭 → 색상 팝업 열기
       document.addEventListener("click", (e) => {
-        if (e.target.classList.contains("color-picker-btn")) {
-          const index = e.target.dataset.index;
+        const td = e.target.closest("td");
+        if (!td) return;
 
-          // 클릭된 버튼 위치 기준으로 팝업 위치 조정
-          const rect = e.target.getBoundingClientRect();
-          popup.style.left = rect.left + window.scrollX + "px";
-          popup.style.top = rect.bottom + window.scrollY + "px";
-          popup.classList.remove("hidden");
+        // listings-body 안의 tr인지 확인
+        const tr = td.closest("#listings-body tr");
+        if (!tr) return;
 
-          // 해당 행 찾기
-          currentRow = document.querySelector(`#listings-body tr:nth-child(${index})`);
-        }
+        // 첫 번째 칸(숫자 셀)인지 확인
+        const isFirstCell = [...tr.children].indexOf(td) === 0;
+        if (!isFirstCell) return;
+
+        const index = [...tr.parentNode.children].indexOf(tr) + 1;
+
+        // 팝업 위치 = 셀 기준으로 표시
+        const rect = td.getBoundingClientRect();
+        popup.style.left = rect.left + window.scrollX + "px";
+        popup.style.top = rect.bottom + window.scrollY + "px";
+        popup.classList.remove("hidden");
+
+        currentRow = tr;
       });
 
       // 색상 선택 시 행에 적용
