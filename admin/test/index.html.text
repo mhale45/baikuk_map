@@ -2577,17 +2577,29 @@
       const popup = document.getElementById("color-picker-popup");
       let currentRow = null;
 
+      // 팝업 닫기
+      document.addEventListener("click", (e) => {
+        if (!popup.contains(e.target) && !e.target.classList.contains("color-picker-btn")) {
+          popup.classList.add("hidden");
+        }
+      });
+
       // 숫자셀 전체 클릭 → 색상 팝업 열기
       document.addEventListener("click", (e) => {
         const td = e.target.closest("td");
         if (!td) return;
 
+        // listings-body 안의 tr인지 확인
         const tr = td.closest("#listings-body tr");
         if (!tr) return;
 
+        // 첫 번째 칸(숫자 셀)인지 확인
         const isFirstCell = [...tr.children].indexOf(td) === 0;
         if (!isFirstCell) return;
 
+        const index = [...tr.parentNode.children].indexOf(tr) + 1;
+
+        // 팝업 위치 = 셀 기준으로 표시
         const rect = td.getBoundingClientRect();
         popup.style.left = rect.left + window.scrollX + "px";
         popup.style.top = rect.bottom + window.scrollY + "px";
@@ -2610,6 +2622,7 @@
           if (color === "none") {
             currentRow.style.backgroundColor = "";
             currentRow.dataset.userColor = "";
+            popup.classList.add("hidden");
             return;
           }
 
@@ -2617,7 +2630,8 @@
           currentRow.dataset.userColor = "true";
           currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
-          currentRow.dataset.userColor = "true";
+
+          popup.classList.add("hidden");
         });
       });
     });
@@ -2667,23 +2681,20 @@
     </div>
   </div>
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]"
-      style="min-width: 220px; display: flex; flex-wrap: wrap;">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer"
-          data-color="none"
-          style="background: repeating-linear-gradient(
-              45deg, 
-              #fff, #fff 5px, 
-              #ccc 5px, #ccc 10px
-          );">
-      </div>
-
+      <div class="color-option" data-color="none" style="background: repeating-linear-gradient(
+        45deg,
+        #fff,
+        #fff 5px,
+        #ccc 5px,
+        #ccc 10px
+      );"></div>
     </div>
   </div>
 </body>
