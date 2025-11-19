@@ -1836,15 +1836,21 @@
       applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
     }
 
-    // 테이블 input창에서도 행 번갈아가면서 회색 적용되게
     function applyRowStriping() {
       const rows = document.querySelectorAll('#listings-body tr');
+
       rows.forEach((row, index) => {
-        row.classList.remove('bg-white', 'bg-gray-50'); // 기존 색 제거
-        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50'); // 순서대로 적용
+
+        // 🎯 사용자가 색을 지정한 경우 → 줄무늬 적용 금지
+        if (row.dataset.userColor === "true") return;
+
+        // 기존 줄무늬 적용
+        row.classList.remove('bg-white', 'bg-gray-50');
+        row.style.backgroundColor = ""; // inline 색 제거
+        row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
       });
     }
-    
+
     // 매물정보 지우는 함수
     function clearListingRow(index) {
       const fields = [
@@ -2561,27 +2567,6 @@
     function enableRowHighlight() {
       const tbody = document.getElementById("listings-body");
       if (!tbody) return;
-
-      tbody.addEventListener("click", (e) => {
-        // 클릭한 요소가 첫 번째 <td>인지?
-        const td = e.target.closest("td");
-        if (!td) return;
-
-        const tr = td.closest("tr");
-        if (!tr) return;
-
-        // 숫자열(첫 번째 셀)만 반응하도록 제한
-        const cellIndex = [...tr.children].indexOf(td);
-        if (cellIndex !== 0) return;
-
-        // 기존 선택된 행 색상 초기화
-        tbody.querySelectorAll("tr").forEach(row => {
-          row.style.backgroundColor = "";
-        });
-
-        // 클릭된 행에 강조색 추가
-        tr.style.backgroundColor = "#ffecec";
-      });
     }
 
     // 페이지 로딩 후 기능 활성화
@@ -2625,17 +2610,27 @@
 
       // 색상 선택 시 행에 적용
       document.querySelectorAll(".color-option").forEach(option => {
+        const color = option.dataset.color;
+        option.style.backgroundColor = color;
+        option.style.border = "1px solid #ccc";
         option.addEventListener("click", () => {
           if (!currentRow) return;
 
-          // 기존 색 제거
-          currentRow.style.backgroundColor = "";
-
-          // 선택 색상 적용
           const color = option.dataset.color;
+
+          // 색상 해제 처리
+          if (color === "none") {
+            currentRow.style.backgroundColor = "";
+            currentRow.dataset.userColor = "";
+            popup.classList.add("hidden");
+            return;
+          }
+
+          // 색상 적용
+          currentRow.dataset.userColor = "true";
+          currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
 
-          // 팝업 닫기
           popup.classList.add("hidden");
         });
       });
@@ -2686,13 +2681,23 @@
     </div>
   </div>
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999]"
+      style="min-width: 220px; display: flex; flex-wrap: wrap;">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer"
+          data-color="none"
+          style="background: repeating-linear-gradient(
+              45deg, 
+              #fff, #fff 5px, 
+              #ccc 5px, #ccc 10px
+          );">
+      </div>
+
     </div>
   </div>
 </body>

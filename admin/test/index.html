@@ -2578,10 +2578,15 @@
       let currentRow = null;
 
       // 팝업 닫기
-      document.addEventListener("click", (e) => {
-        if (!popup.contains(e.target) && !e.target.classList.contains("color-picker-btn")) {
-          popup.classList.add("hidden");
-        }
+      window.addEventListener("click", (e) => {
+        // 팝업 내부 클릭은 허용
+        if (popup.contains(e.target)) return;
+
+        // 색상 버튼 클릭은 허용
+        if (e.target.classList.contains("color-picker-btn")) return;
+
+        // 그 외는 모두 팝업 닫기
+        popup.classList.add("hidden");
       });
 
       // 숫자셀 전체 클릭 → 색상 팝업 열기
@@ -2630,7 +2635,6 @@
           currentRow.dataset.userColor = "true";
           currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
-
           popup.classList.add("hidden");
         });
       });
@@ -2655,25 +2659,6 @@
         }
       });
     })();
-
-    // 색상 선택창 외부 클릭 시 닫기
-    document.addEventListener("click", (e) => {
-        const popup = document.getElementById("color-picker-popup");
-        if (!popup) return;
-
-        // popup이 닫혀있으면 아무 작업 안 함
-        if (popup.classList.contains("hidden")) return;
-
-        // popup 내부 클릭이면 닫지 않음
-        if (popup.contains(e.target)) return;
-
-        // 왼쪽 번호셀 클릭(= 팝업을 열기 위한 클릭)은 닫기 이벤트에서 제외
-        const td = e.target.closest("td");
-        if (td && [...td.parentNode.children].indexOf(td) === 0) return;
-
-        // popup 닫기
-        popup.classList.add("hidden");
-    });
 
   </script>
 
@@ -2716,6 +2701,7 @@
               #ccc 5px, #ccc 10px
           );">
       </div>
+
     </div>
   </div>
 </body>
