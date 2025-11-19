@@ -407,7 +407,14 @@
 
         const delta = e.clientX - startX;
         const newWidth = startWidth + delta;
-        box.style.width = newWidth + 'px';
+
+        // ❗ 여기서 최소폭을 "현재 시작폭(startWidth)"로 잡는다
+        const minWidth = startWidth;     // ← 줄어드는 것을 완전히 금지
+        const maxWidth = 1800;           // 원하는 경우 변경 가능
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+          box.style.width = newWidth + 'px';
+        }
       });
 
       window.addEventListener('mouseup', () => {
@@ -2440,6 +2447,11 @@
 
     window.addEventListener('beforeprint', buildPrintPortal);
     window.addEventListener('afterprint', cleanupPrintPortal);
+    window.addEventListener('afterprint', () => {
+      setTimeout(() => {
+        initializeWhiteBoxWidth();  // 인쇄로 변형된 width 복구
+      }, 50);
+    });
 
     // 세로인쇄
     document.getElementById('print-btn')?.addEventListener('click', () => {
