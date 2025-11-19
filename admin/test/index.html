@@ -10,6 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     let currentCustomerId = null; // 전역 변수로 추가
+    let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
   </script>
   <style>
     /* === print 전용 설정 === */
@@ -410,6 +411,17 @@
       });
 
       window.addEventListener('mouseup', () => {
+        if (isResizing) {
+          // 수동 리사이즈 종료 시 white-box 오른쪽 여백 저장
+          const table = document.querySelector('#white-box table');
+          const box = document.getElementById('white-box');
+
+          const tableWidth = table.offsetWidth;
+          const boxWidth = box.offsetWidth;
+
+          whiteBoxExtraGap = boxWidth - tableWidth; 
+        }
+
         isResizing = false;
         document.body.style.userSelect = '';
       });
