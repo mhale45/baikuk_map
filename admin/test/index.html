@@ -420,6 +420,24 @@
         document.body.style.userSelect = '';
       });
     })();
+
+    // 초기에 white-box 폭을 table 크기에 맞춰 정확히 설정
+    function initializeWhiteBoxWidth() {
+      const box = document.getElementById('white-box');
+      const table = document.querySelector('#white-box table');
+      if (!box || !table) return;
+
+      // 최초 table과 box 간의 여백 계산
+      const tableWidth = table.offsetWidth;
+      const boxWidth = box.offsetWidth;
+
+      whiteBoxExtraGap = boxWidth - tableWidth;
+
+      // white-box 초기 너비를 테이블+여백으로 강제로 통일
+      box.style.width = (tableWidth + whiteBoxExtraGap) + 'px';
+    }
+
+    window.addEventListener("load", initializeWhiteBoxWidth);
     
     (async () => {
       try {
