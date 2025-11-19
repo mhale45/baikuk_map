@@ -398,15 +398,17 @@
         const delta = e.clientX - startX;
         const newWidth = startWidth + delta;
 
+        // 내부 표의 실제 너비
         const table = box.querySelector("table");
-        const tableWidth = table ? table.scrollWidth : startWidth;
+        const tableWidth = table ? table.scrollWidth : 0;
 
-        const minWidth = tableWidth;     // 표보다 작아지지 않도록
-        const maxWidth = 2000;
+        // 줄어드는 것 금지 → "오른쪽으로만" 늘어날 수 있음
+        const minWidth = Math.max(tableWidth, startWidth);
 
-        if (newWidth >= minWidth && newWidth <= maxWidth) {
+        if (newWidth >= minWidth) {
           box.style.width = newWidth + 'px';
         }
+        // newWidth가 minWidth보다 작으면 아무 동작 안 함 → 줄어들지 않음
       });
 
       window.addEventListener('mouseup', () => {
@@ -414,7 +416,7 @@
         document.body.style.userSelect = '';
       });
     })();
-    
+
     (async () => {
       try {
         // 1) 로그인 세션 확인 (없으면 이동)
