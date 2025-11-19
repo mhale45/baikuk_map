@@ -2689,6 +2689,28 @@
       return true;
     }
 
+    function applySavedColors(recommendationRows) {
+      const tbody = document.getElementById("listings-body");
+      if (!tbody) return;
+
+      recommendationRows.forEach(row => {
+        const order = row.order;
+        const color = row.color;
+
+        const tr = tbody.querySelector(`tr:nth-child(${order})`);
+        if (!tr) return;
+
+        if (!color || color === "none") {
+          tr.style.backgroundColor = "";
+          tr.dataset.userColor = "";
+        } else {
+          tr.style.backgroundColor = color;
+          tr.dataset.userColor = "true";  // 줄무늬 덮어쓰기 방지
+          tr.classList.remove("bg-white", "bg-gray-50");
+        }
+      });
+    }
+
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
