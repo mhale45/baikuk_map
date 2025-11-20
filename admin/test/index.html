@@ -5171,6 +5171,10 @@
             const { data, error } = await client
                 .from('customers')
                 .select('id, customer_name, phone_last4, grade')
+                .order('grade', {
+                    ascending: true,
+                    foreignTable: null
+                })
                 .order('customer_name', { ascending: true });
 
             if (error) {
