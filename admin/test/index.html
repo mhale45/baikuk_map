@@ -5142,15 +5142,6 @@
     const toggleCustomerPanelBtn = document.getElementById('toggle-customer-panel');
     const closeCustomerPanelBtn = document.getElementById('close-customer-panel');
 
-    document.getElementById('toggle-customer-panel').onclick = () => {
-      loadCustomerListInPanel();
-      customerPanel.classList.remove('translate-x-full');
-    };
-
-    document.getElementById('close-customer-panel').onclick = () => {
-      customerPanel.classList.add('translate-x-full');
-    };
-
     function openCustomerPanel() {
       customerPanel.classList.remove('translate-x-full');
       customerPanel.classList.add('translate-x-0');
