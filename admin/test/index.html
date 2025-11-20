@@ -228,12 +228,6 @@
           <div class="flex items-center gap-2 text-sm mb-2">
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
-          <textarea
-            placeholder="고객이름"
-            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none"
-            id="top-row-input"
-            rows="2"
-          ></textarea>
           <div class="flex mt-[0.5rem]">
             <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
               손님삭제
@@ -1615,28 +1609,98 @@
           .forEach(cust => {
             const nameBtn = document.createElement('div');
             nameBtn.className = 'name-item';
+
+            // (보조 담당자 표시)
             const other = otherNameMap.get(cust.id);
 
-            const label = document.createElement('span');
-            label.textContent = cust.customer_name || '-';
-
+            // 기본 텍스트(수정하기 전 상태)
             const sub = document.createElement('span');
             sub.className = 'mr-1 text-sm text-gray-500';
             sub.textContent = other ? `(${other})` : '';
 
+            const label = document.createElement('span');
+            label.textContent = cust.customer_name || '-';
+
             nameBtn.append(sub, label);
 
-            // 접근성: 키보드 선택 지원
-            nameBtn.setAttribute('role', 'button');
-            nameBtn.tabIndex = 0;
+            // ⭐ 클릭 시 textarea로 변환해서 수정 가능하도록 처리
+            nameBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
 
-            nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
-            nameBtn.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              // 이미 textarea 상태라면 중복 방지
+              if (nameBtn.querySelector("textarea")) return;
+
+              const originalName = cust.customer_name;
+
+              // textarea로 교체
+              nameBtn.innerHTML = `
+                <textarea
+                  class="w-full border border-gray-300 rounded p-1 text-sm resize-none"
+                  rows="1"
+                  autofocus
+                >${originalName}</textarea>
+              `;
+
+              const ta = nameBtn.querySelector("textarea");
+
+              // 높이 자동조절
+              ta.style.height = "auto";
+              ta.style.height = ta.scrollHeight + "px";
+
+              ta.addEventListener("input", () => {
+                ta.style.height = "auto";
+                ta.style.height = ta.scrollHeight + "px";
+              });
+
+              // 포커스아웃 시 저장
+              ta.addEventListener("blur", async () => {
+                const newName = ta.value.trim();
+
+                // 공백이면 원래대로
+                if (!newName) {
+                  nameBtn.textContent = originalName;
+                  return;
+                }
+
+                // DB 업데이트
+                const { error } = await supabase
+                  .from("customers")
+                  .update({ customer_name: newName })
+                  .eq("id", cust.id);
+
+                if (error) {
+                  alert("이름 수정 중 오류가 발생했습니다.");
+                  nameBtn.textContent = originalName;
+                  return;
+                }
+
+                // UI 업데이트
+                nameBtn.textContent = newName;
+
+                // 고객 로드 함수도 새로운 이름 기반으로 동작해야 하므로 업데이트
+                cust.customer_name = newName;
+              });
+
+              // ※ 이름 수정 중에는 바로 loadCustomerDataByName 실행되지 않도록 클릭 버블링 막기
+            });
+
+            // 엔터 키로도 수정 후 저장되게 함
+            nameBtn.addEventListener("keydown", (e) => {
+              if (e.key === 'Enter') {
                 e.preventDefault();
-                loadCustomerDataByName(cust.customer_name);
+                const ta = nameBtn.querySelector("textarea");
+                if (ta) ta.blur();   // blur를 강제로 발생 → 저장됨
               }
             });
+
+            // 기존: 이름 클릭하면 데이터 로드 (textarea 상태가 아닐 때만)
+            nameBtn.addEventListener('click', (e) => {
+              if (nameBtn.querySelector("textarea")) return; 
+              loadCustomerDataByName(cust.customer_name);
+            });
+
+            nameBtn.setAttribute('role', 'button');
+            nameBtn.tabIndex = 0;
 
             listBox.appendChild(nameBtn);
           });

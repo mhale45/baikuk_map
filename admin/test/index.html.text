@@ -580,7 +580,10 @@
           area_py        : Number(area_py) || null,
           contents       : contents || null,
           memo          : getMemoValue(index) || null,
-          color          : color || null
+          color          : color || null,
+          row_properties: {
+            strike: getFieldValue("strike", index) === "1" ? 1 : null
+          }
         });
       });
 
@@ -1410,6 +1413,18 @@
             tr.classList.remove("bg-white", "bg-gray-50");
           }
         }
+        // === 🔥 취소선(strike) 정보 불러오기 ===
+        if (listing.row_properties?.strike === 1) {
+          setFieldValue("strike", index, "1");
+
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (tr) {
+            tr.classList.add("line-through");
+          }
+        }
+
+        // === 🔍 로딩된 취소선 정보 콘솔 출력 ===
+        console.log(`row ${index} strike =`, listing.row_properties?.strike ?? null);
 
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
@@ -1663,6 +1678,7 @@
           <td class="p-2 border text-center relative">
             ${i}
             <input type="hidden" data-field="color_${i}" value="">
+            <input type="hidden" data-field="strike_${i}" value=""> 
             <button 
               class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
               data-index="${i}"
@@ -2682,7 +2698,7 @@
               setFieldValue("strike", index, "");      // DB 저장용 hidden input
             } else {
               currentRow.classList.add("line-through");
-              setFieldValue("strike", index, "yes");   // DB 저장용 hidden input
+              setFieldValue("strike", index, "1");   // DB 저장용 hidden input
             }
 
             popup.classList.add("hidden");
@@ -2761,11 +2777,6 @@
   <div id="color-picker-popup" 
       class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
     <div class="flex gap-2">
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="none" style="background: repeating-linear-gradient(
         45deg,
         #fff,
@@ -2773,6 +2784,12 @@
         #ccc 5px,
         #ccc 10px
       );"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e5e7eb"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer flex items-center justify-center"
           data-color="strike"
           style="font-size: 18px; font-weight: bold; line-height: 1;">
