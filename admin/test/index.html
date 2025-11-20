@@ -228,6 +228,12 @@
           <div class="flex items-center gap-2 text-sm mb-2">
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
+          <textarea
+            placeholder="고객이름"
+            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none"
+            id="top-row-input"
+            rows="2"
+          ></textarea>
           <div class="flex mt-[0.5rem]">
             <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
               손님삭제
@@ -1305,16 +1311,16 @@
       return !!link || (!!cust && cust.staff_profiles_id === myId);
     }
 
-    // 손님정보 불러오는 함수 (대표/보조 둘 다 접근 가능) "고객 ID"로 로드하도록 재작성
-    async function loadCustomerDataById(customerId) {
+    // 손님정보 불러오는 함수 (대표/보조 둘 다 접근 가능)
+    async function loadCustomerDataByName(name) {
       const myId = await getMyStaffId();
       if (!myId) { showToast('로그인 필요'); return; }
 
-      // 1) 고객 ID로 조회
+      // 1) 이름으로 고객 1명 찾기 (조인 X)
       const { data: customer, error: custError } = await supabase
         .from('customers')
         .select('id, customer_name, customer_phone_number, grade, memo, staff_profiles_id')
-        .eq('id', customerId)
+        .eq('customer_name', name)
         .maybeSingle();
 
       if (custError || !customer) {
@@ -1323,7 +1329,7 @@
         return;
       }
 
-      // 2) 접근 권한 체크
+      // 2) 접근 권한 체크 (대표 또는 보조)
       const allowed = (customer.staff_profiles_id === myId) || (await isMyAssignedCustomer(customer.id));
       if (!allowed) {
         showToast('담당자가 아닌 고객은 볼 수 없습니다.');
@@ -1332,7 +1338,8 @@
 
       currentCustomerId = customer.id;
 
-      // 👉 우측 정보창 채우기 (top-row-input 삭제됨)
+      // 👉 우측 정보창 채우기
+      document.getElementById('top-row-input').value = customer.customer_name || '';
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
       document.getElementById('memo-textarea').value = customer.memo || '';
@@ -1344,13 +1351,13 @@
       const listingsBody = document.getElementById('listings-body');
       listingsBody.innerHTML = '';
 
-      // ⭐ 추천 매물 불러오기
+      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
       const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
-        .eq('customers_id', String(currentCustomerId))
-        .order('order', { ascending: true, nullsFirst: false })
-        .order('id', { ascending: true });
+        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
       if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -1358,20 +1365,23 @@
         return;
       }
 
+      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
       let nextIndex = 1;
 
       listings.forEach((listing) => {
+        // 1) 인덱스 결정
         const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
-          ? listing.order
-          : nextIndex++;
+          ? listing.order          // order가 있으면 그대로 사용
+          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
 
-        // 왼쪽 매물번호 채우기
+        // 2) 왼쪽 매물번호 채우기
         const leftInput = document.querySelector(`input[data-index="${index}"]`);
         if (leftInput) leftInput.value = listing.listing_id ?? '';
 
-        // 오른쪽 행 확보
+        // 3) 오른쪽 표 행 확보/확장
         updateListingsTableByInputs();
 
+        // 4) 필드 주입
         const setField = (field, value) => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
           if (!el) return;
@@ -1382,20 +1392,17 @@
         setField('listing_title', listing.listing_title);
         setField('full_address', listing.full_address);
 
-        // 숫자 포맷
+        // 🔹 숫자 포맷 적용 (콤마 표시)
         setField('deposit_price', formatKoreanMoney(listing.deposit_price));
         setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
         setField('premium_price', formatKoreanMoney(listing.premium_price));
-
         setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
 
         setField('description', listing.contents);
-
         const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
         const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
         if (memoEl) memoEl.value = memoValue;
-
-        // 색상 적용
+        // === 🔥 색상 정보 불러오기 ===
         if (listing.color) {
           setFieldValue("color", index, listing.color);
 
@@ -1406,8 +1413,7 @@
             tr.classList.remove("bg-white", "bg-gray-50");
           }
         }
-
-        // 취소선 적용
+        // === 🔥 취소선(strike) 정보 불러오기 ===
         if (listing.row_properties?.strike === 1) {
           setFieldValue("strike", index, "1");
 
@@ -1417,19 +1423,24 @@
           }
         }
 
+        // === 🔍 로딩된 취소선 정보 콘솔 출력 ===
+        console.log(`row ${index} strike =`, listing.row_properties?.strike ?? null);
+
+        // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
+        //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
         if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
           nextIndex = Math.max(nextIndex, listing.order + 1);
         }
       });
 
+      // 높이/스트라이프 정리
       renderMemoPanel(listings);
       syncRowHeights?.();
       applyRowStriping?.();
+      showToast(`고객 "${name}" 데이터 불러옴`);
+      setDocumentTitle(name);
 
-      showToast(`고객 "${customer.customer_name}" 데이터 불러옴`);
-      setDocumentTitle(customer.customer_name);
-
-      // 담당자 표시
+      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
       const staffInfoBox = document.getElementById('staff-info');
       if (customer.staff_profiles_id) {
         const { data: staff } = await supabase
@@ -1604,98 +1615,28 @@
           .forEach(cust => {
             const nameBtn = document.createElement('div');
             nameBtn.className = 'name-item';
-
-            // (보조 담당자 표시)
             const other = otherNameMap.get(cust.id);
-
-            // 기본 텍스트(수정하기 전 상태)
-            const sub = document.createElement('span');
-            sub.className = 'mr-1 text-sm text-gray-500';
-            sub.textContent = other ? `(${other})` : '';
 
             const label = document.createElement('span');
             label.textContent = cust.customer_name || '-';
 
+            const sub = document.createElement('span');
+            sub.className = 'mr-1 text-sm text-gray-500';
+            sub.textContent = other ? `(${other})` : '';
+
             nameBtn.append(sub, label);
 
-            // ⭐ 클릭 시 textarea로 변환해서 수정 가능하도록 처리
-            nameBtn.addEventListener("click", async (e) => {
-              e.stopPropagation();
-
-              // 이미 textarea 상태라면 중복 방지
-              if (nameBtn.querySelector("textarea")) return;
-
-              const originalName = cust.customer_name;
-
-              // textarea로 교체
-              nameBtn.innerHTML = `
-                <textarea
-                  class="w-full border border-gray-300 rounded p-1 text-sm resize-none"
-                  rows="1"
-                  autofocus
-                >${originalName}</textarea>
-              `;
-
-              const ta = nameBtn.querySelector("textarea");
-
-              // 높이 자동조절
-              ta.style.height = "auto";
-              ta.style.height = ta.scrollHeight + "px";
-
-              ta.addEventListener("input", () => {
-                ta.style.height = "auto";
-                ta.style.height = ta.scrollHeight + "px";
-              });
-
-              // 포커스아웃 시 저장
-              ta.addEventListener("blur", async () => {
-                const newName = ta.value.trim();
-
-                // 공백이면 원래대로
-                if (!newName) {
-                  nameBtn.textContent = originalName;
-                  return;
-                }
-
-                // DB 업데이트
-                const { error } = await supabase
-                  .from("customers")
-                  .update({ customer_name: newName })
-                  .eq("id", cust.id);
-
-                if (error) {
-                  alert("이름 수정 중 오류가 발생했습니다.");
-                  nameBtn.textContent = originalName;
-                  return;
-                }
-
-                // UI 업데이트
-                nameBtn.textContent = newName;
-
-                // 고객 로드 함수도 새로운 이름 기반으로 동작해야 하므로 업데이트
-                cust.customer_name = newName;
-              });
-
-              // ※ 이름 수정 중에는 바로 loadCustomerDataByName 실행되지 않도록 클릭 버블링 막기
-            });
-
-            // 엔터 키로도 수정 후 저장되게 함
-            nameBtn.addEventListener("keydown", (e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const ta = nameBtn.querySelector("textarea");
-                if (ta) ta.blur();   // blur를 강제로 발생 → 저장됨
-              }
-            });
-
-            // 기존: 이름 클릭하면 데이터 로드 (textarea 상태가 아닐 때만)
-            nameBtn.addEventListener('click', (e) => {
-              if (nameBtn.querySelector("textarea")) return; 
-              loadCustomerDataById(cust.id);
-            });
-
+            // 접근성: 키보드 선택 지원
             nameBtn.setAttribute('role', 'button');
             nameBtn.tabIndex = 0;
+
+            nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
+            nameBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadCustomerDataByName(cust.customer_name);
+              }
+            });
 
             listBox.appendChild(nameBtn);
           });
