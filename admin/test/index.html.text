@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.14/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
     let currentCustomerId = null; // 전역 변수로 추가
     let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
@@ -176,47 +176,24 @@
     .color-option {
       border: 1px solid #ccc;
     }
-    .memo-width {
-      width: 18rem;
-    }
-    .customer-list-maxheight {
-      max-height: calc(100vh - 5rem);
-    }
-    .memo-height {
-      height: 47rem;
-    }
-    .custom-maxh-60vh {
-      max-height: 60vh;
-    }
-    .custom-bg-F2C130 {
-      background-color: #F2C130;
-    }
-    .custom-hover-bg-E0B120:hover {
-      background-color: #E0B120;
-    }
-    .logo-width {
-      width: 100px;
-    }
 
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
-  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-30 hidden">
+  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
     메시지 영역
   </div>
-  <div class="absolute top-0 left-0 z-20 bg-white w-52 h-16 rounded-xl">
-    <img 
-      src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-      alt="글씨로고"
-      class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-30"
-      onclick="location.reload()" 
-    />
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()" />
   </div>
-  <div id="page-title" class="absolute top-6 left-60 text-2xl font-bold">
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
     임대추천 <span id="selected-customer" class="text-blue-600"></span>
   </div>
   <div class="flex min-h-screen">
-    <div class="w-1/12 pt-20 shadow-right text-center bg-white">
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map" target="_blank">
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div>
       </a>
@@ -232,123 +209,110 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-
-    <div id="customer-col" class="bg-gray-100 w-2/12 pt-8 shadow-right relative z-10 text-left">
+    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
+      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
       <div class="flex justify-end px-2 mb-2">
         <button id="new-customer-btn"
           class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
           새 고객
         </button>
       </div>
-
-      <div id="customer-list" class="overflow-y-auto customer-list-maxheight">
+      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
+        <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
     </div>
-
-    <div class="w-10/12 flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
-      <div class="mt-8 flex px-3 bg-gray-100">
-
+    <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
+      <div class="mt-[2rem] flex px-3 bg-gray-100">
         <div class="text-left text-base rounded outline-none resize-none">
-
+          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
           <div class="flex items-center gap-2 text-sm mb-2">
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
-
           <textarea
             placeholder="고객이름"
             class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none"
             id="top-row-input"
             rows="2"
           ></textarea>
-
-          <div class="flex mt-2">
-            <button id="delete-customer" class="ml-1 h-9 bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
+          <div class="flex mt-[0.5rem]">
+            <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
               손님삭제
             </button>
-            <button id="save-new-customer" class="ml-auto h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
+            <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
               저장
             </button>
           </div>
-
-          <div class="flex mt-2">
+          <div class="flex mt-[0.5rem]">
             <div class="flex">
               <div class="ml-1 mt-1">구분:</div>
-              <select id="customer-grade" class="ml-1 px-1 h-8 text-left box-border border border-gray-300 rounded text-base">
-                <option>A</option>
-                <option>B</option>
-                <option>C</option>
-                <option>F</option>
+              <select id="customer-grade" class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                <option >A</option>
+                <option >B</option>
+                <option >C</option>
+                <option >F</option>
                 <option>계약</option>
               </select>
             </div>
-
-            <input id="customer-phone" placeholder="전화번호"
-              class="w-40 ml-auto px-1 h-8 text-left box-border border border-gray-300 rounded text-base">
+            <input id="customer-phone" placeholder="전화번호" class="w-[10rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
           </div>
-
-          <textarea id="memo-textarea" placeholder="메모"
-            class="mt-2 ml-1 px-1 pt-1 w-72 memo-height box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
         </div>
-
-        <div class="ml-3 mt-4 flex flex-col">
+        <div class="ml-3 mt-[1rem] flex flex-col">
           <div class="mb-2 px-2 text-right flex gap-2">
-            <button id="print-btn" class="h-8 bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
+            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
               🖨️
             </button>
-            <button id="print-btn2" class="h-8 bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
+            <button id="print-btn2" class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
               🖨️
             </button>
           </div>
-
-          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
+          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
             <div class="mb-2 justify-center flex gap-2">
-              <button id="clear-left-btn" class="h-8 w-14 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
+              <button id="clear-left-btn" class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
               </button>
-              <button id="copy-link-btn" class="h-8 w-12 custom-bg-F2C130 custom-hover-bg-E0B120 text-black font-bold px-1 py-1 rounded mr-2">
+              <button id="copy-link-btn" class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
                 링크
               </button>
             </div>
-
             <div id="table-container" class="border rounded-md">
-              <table class="w-28 text-sm text-left">
+              <table class="w-[7rem] text-sm text-left">
                 <thead class="bg-gray-100 sticky top-0 z-10">
                   <tr id="header-row">
                     <th class="p-1 font-bold text-base text-center">매물번호</th>
                   </tr>
                 </thead>
-                <tbody id="left-tbody" class="bg-white"></tbody>
+                <tbody id="left-tbody" class="bg-white">
+                </tbody>
               </table>
             </div>
           </div>
-        </div>
-
+        </div>        
         <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
-            <div id="print-block">
-
+            <div id="print-block">              
               <div class="flex items-end mb-2 gap-3">
                 <img
                   src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
                   alt="백억로고"
-                  class="logo-width"
+                  class="w-[25rem]"
                 />
-
                 <div class="justify-between items-end mb-2">
+                  <!-- 날짜 -->
                   <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
-
+                  <!-- 담당자 -->
                   <div id="staff-info-container" class="text-gray-800 text-lg font-semibold relative">
+                    <!-- 직원 정보 표시부 -->
                     <div id="staff-info"
                         class="cursor-pointer px-2 py-1 rounded hover:bg-gray-200 select-none">
                     </div>
-
+                    <!-- 드롭다운 -->
                     <div id="staff-dropdown"
-                      class="hidden fixed bg-white border rounded shadow-lg z-30 max-h-60 overflow-y-auto">
-                    </div>
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                  </div>
                   </div>
                 </div>
               </div>
-
               <table>
                 <thead>
                   <tr id="header-row">
@@ -380,43 +344,41 @@
                 </thead>
                 <tbody id="listings-body"></tbody>
               </table>
-
-            </div>
+            </div>  
           </div>
-
+          <!-- 오른쪽 리사이즈 핸들 -->
           <div id="whitebox-resize-handle"
-            style="
-                position: absolute;
-                top: 0;
-                right: -4px;
-                width: 8px;
-                height: 100%;
-                cursor: ew-resize;
-                z-index: 50;
-            ">
+              style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
           </div>
         </div>
-
-        <div class="ml-3 mt-24 flex flex-col">
+        <div class="ml-3 mt-[6.2rem] flex flex-col">
           <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
+            <!-- 오른쪽(스크린샷 제외) 메모 표 -->
             <div id="memo-panel" class="print:hidden sticky top-2">
-              <table class="w-80 border-collapse">
+              <table class="w-[20rem] border-collapse">
                 <thead>
                   <tr>
                     <td class="p-1 border-b border-gray-200 align-top">
                       메모
-                    </td>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="memo-body"></tbody>
               </table>
             </div>
           </div>
-        </div>
-
+        </div>          
       </div>
     </div>
-  </div>
+  </div>  
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -448,12 +410,12 @@
 
         // === rem 단위 사용: 3rem을 px로 계산 ===
         const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize); 
-        const extraGap = remPx * 2; // 2rem
+        const extraGap = remPx * 2; // 3rem
 
         const table = document.querySelector('#white-box table');
         const tableWidth = table ? table.offsetWidth : 0;
 
-        const minWidth = tableWidth + extraGap;  // table + 2rem
+        const minWidth = tableWidth + extraGap;  // table + 3rem
 
         if (newWidth >= minWidth) {
           box.style.width = newWidth + 'px';
@@ -842,7 +804,7 @@
           <td class="p-1 border-b border-gray-200 align-top">
             <div class="flex items-start gap-2 h-full">
               <textarea
-                class="memo-width h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
+                class="w-[18rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
@@ -1800,7 +1762,7 @@
       toast.style.backgroundColor = '#F2C130';
       toast.style.color = 'black';
       toast.style.fontWeight = 'bold';
-      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-30';
+      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
 
       toast.classList.remove('hidden');
 
@@ -1863,14 +1825,15 @@
     for (let i = 1; i <= 50; i++) {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td class="border-b text-right pr-2">
+        <td class="border-b text-right pr-2"> <!-- 오른쪽 정렬 -->
           <input type="text" placeholder="입력 ${i}" 
-                class="w-20 border px-2 rounded text-base ml-auto block" 
+                class="w-[5rem] border px-2 rounded text-base ml-auto block" 
                 data-index="${i}" />
         </td>
       `;
       leftTbody.appendChild(row);
     }
+
 
     function addListingRow(i) {
       const row = document.createElement('tr');
@@ -2752,12 +2715,12 @@
   </script>
 
   <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
-  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-30">
-    <div class="bg-white w-96 max-w-full rounded-2xl shadow-2xl overflow-hidden">
+  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
+    <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
       <div class="px-5 py-3 border-b font-semibold text-lg">
         같은 이름의 고객이 이미 있습니다
       </div>
-      <div class="p-5 space-y-3 custom-maxh-60vh overflow-auto">
+      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
         <p class="text-sm text-gray-700">
           현재 입력한 내용으로 <b>기존 고객 정보를 덮어쓰시겠습니까?</b>
         </p>
@@ -2773,9 +2736,8 @@
       </div>
     </div>
   </div>
-
   <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-30 w-60">
+      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
     <div class="flex gap-2">
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
       <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
@@ -2791,6 +2753,5 @@
       );"></div>
     </div>
   </div>
-
 </body>
 </html>
