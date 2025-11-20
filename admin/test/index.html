@@ -184,32 +184,21 @@
 <body class="m-0 p-0">
     <header class="flex items-start gap-4 w-full px-2 pt-2 sm:px-3 md:px-4 bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 z-[10000]"
         style="height: var(--header-height);">
-        <!-- 상단 요소 그룹 -->
         <div class="flex flex-row items-start gap-4 w-full">
-            
-            <a href="/admin/listings/">
-                <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-                alt="글씨로고" class="h-11 w-auto cursor-pointer" />
-            </a>        
-
-            <div class="relative">
-                <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
-                        class="ml-[2rem] ml-[1rem] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
-            </div>
-
-            <div id="select-filter-wrap"></div>
-
-            <div id="filter-bar" class="mr-[1rem] ml-[1rem] flex flex-row gap-2 items-start mt-2 relative z-[1000]">
-                <div id="btn-wrap" class="flex flex-row gap-2"></div>
-            </div>
-
+          
         </div>
-
-        <!-- 아래 줄 (단독) -->
-        <div class="w-full mt-1">
-            <button id="filter-btns-wrap" class="flex gap-1"></button>
+        <a href="/admin/listings/">
+            <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" />
+        </a>        
+        <div class="relative">
+            <button id="filter-btn-init" data-default-label="초기화" onclick="resetFilters()"
+                    class="ml-[2rem] ml-[1rem] px-3 py-1.5 border border-gray-200 bg-red-100 text-red-600 rounded-md shadow-sm text-sm font-bold hover:bg-red-200 transition">초기화</button>
         </div>
-
+        <div id="select-filter-wrap"></div>
+        <div id="filter-bar" class="mr-[1rem] ml-[1rem] flex flex-row gap-2 items-start mt-2 relative z-[1000]">
+            <div id="btn-wrap" class="flex flex-row gap-2"></div>
+        </div>
         <button id="filter-btns-wrap" class="flex gap-1"></button>
         <div class="ml-auto flex items-center gap-2">
             <button id="open-listing-form-btn" class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
