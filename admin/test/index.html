@@ -5170,20 +5170,7 @@
         async function loadCustomerListInPanel() {
             const { data, error } = await client
                 .from('customers')
-                .select(`
-                    id,
-                    customer_name,
-                    phone_last4,
-                    grade,
-                    grade_sort: CASE
-                        WHEN grade = 'A' THEN 1
-                        WHEN grade = 'B' THEN 2
-                        WHEN grade = 'C' THEN 3
-                        WHEN grade = 'F' THEN 4
-                        ELSE 5
-                    END
-                `)
-                .order('grade_sort', { ascending: true })
+                .select('id, customer_name, phone_last4, grade')
                 .order('customer_name', { ascending: true });
 
             if (error) {
@@ -5198,7 +5185,6 @@
                 </div>
             `).join('');
         }
-
 
         toggleCustomerPanelBtn.addEventListener('click', openCustomerPanel);
         closeCustomerPanelBtn.addEventListener('click', closeCustomerPanel);
