@@ -1666,11 +1666,11 @@
             nameBtn.setAttribute('role', 'button');
             nameBtn.tabIndex = 0;
 
-            nameBtn.addEventListener('click', () => loadCustomerDataById(customer.id));
+            nameBtn.addEventListener('click', () => loadCustomerDataById(cust.id));
             nameBtn.addEventListener('keydown', (e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                loadCustomerDataById(customer.id);
+                loadCustomerDataById(cust.id);
               }
             });
 
