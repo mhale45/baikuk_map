@@ -309,6 +309,7 @@
         { id: 'sale',          label: '매매가',   width: 300, bg:'#e5e7eb' },
         { id: 'total_deposit', label: '총보증금', width: 300, bg:'#e5e7eb' },
         { id: 'total_rent',    label: '총월세',   width: 300, bg:'#e5e7eb' },
+        { id: 'roi',           label: '수익률',   width: 300, bg:'#e5e7eb' },
     ];
     
     const formatNumber = (val) => {
@@ -2627,7 +2628,7 @@
     }
 
     function renderFilterButtons() {
-      const grayBgFilters = ['sale', 'total_deposit', 'total_rent'];
+      const grayBgFilters = ['sale', 'total_deposit', 'total_rent', 'roi']; // 회색버튼
       const wrap = document.getElementById('filter-btns-wrap');
       wrap.innerHTML = '';
       filterDefs.forEach(def => {
@@ -4674,7 +4675,8 @@
             total_deposit: 'total_deposit',
             total_rent: 'total_rent',
             area_py: 'area_py',
-            premium_price: 'premium_price'
+            premium_price: 'premium_price',
+            roi: 'roi'
         };
 
         return listings.filter(l => {
