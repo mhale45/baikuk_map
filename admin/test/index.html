@@ -2619,13 +2619,18 @@
     }
 
     function resetFilters() {
-        resetNumericFilters();
-        selectedCategories = ['상가'];
-        selectedDealTypes = ['월세'];      
-        renderDealAndCategoryButtons();
-        resetSelectFiltersToDefault();// ⬇️ 진행상태를 '진행중'만 선택으로 초기화
-        updateFilteredListingsDebounced();
+      resetNumericFilters();
+      selectedCategories = ['상가'];
+      selectedDealTypes = ['월세'];
+
+      // 필터 버튼 다시 렌더링 → 각 버튼의 배경색(회색/흰색)을 다시 적용함
+      renderFilterButtons();
+
+      renderDealAndCategoryButtons();
+      resetSelectFiltersToDefault(); // 상태: 진행중으로 초기화
+      updateFilteredListingsDebounced();
     }
+
 
     function renderFilterButtons() {
       const grayBgFilters = ['sale', 'total_deposit', 'total_rent', 'roi']; // 회색버튼
