@@ -1423,6 +1423,9 @@
           }
         }
 
+        // === 🔍 로딩된 취소선 정보 콘솔 출력 ===
+        console.log(`row ${index} strike =`, listing.row_properties?.strike ?? null);
+
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
         if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
