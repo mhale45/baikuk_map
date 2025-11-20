@@ -2627,43 +2627,45 @@
     }
 
     function renderFilterButtons() {
-        const wrap = document.getElementById('filter-btns-wrap');
-        wrap.innerHTML = '';
-        filterDefs.forEach(def => {
-            const btn = document.createElement('button');
-            btn.id = `filter-btn-${def.id}`;
-            btn.setAttribute('data-default-label', def.label + ' ▼');
-            btn.className = "px-2 py-2 border border-gray-300 bg-white rounded-md shadow-sm text-[14px] text-gray-800 font-medium hover:bg-gray-100";
-            btn.innerText = def.label + ' ▼';
-            btn.onclick = () => toggleFilterPanel(def.id);
+      const grayBgFilters = ['sale', 'total_deposit', 'total_rent'];
+      const wrap = document.getElementById('filter-btns-wrap');
+      wrap.innerHTML = '';
+      filterDefs.forEach(def => {
+          const btn = document.createElement('button');
+          btn.id = `filter-btn-${def.id}`;
+          btn.setAttribute('data-default-label', def.label + ' ▼');
+          btn.className = `px-2 py-2 border border-gray-300 rounded-md shadow-sm text-[14px] text-gray-800 font-medium
+            ${grayBgFilters.includes(def.id) ? 'bg-gray-200 hover:bg-gray-300' : 'bg-white hover:bg-gray-100'}`;
+          btn.innerText = def.label + ' ▼';
+          btn.onclick = () => toggleFilterPanel(def.id);
 
-            const panel = document.createElement('div');
-            panel.id = `filter-panel-${def.id}`;
-            panel.className = `hidden absolute left-0 mt-1 bg-white border rounded shadow z-50`;
-            panel.style.width = `${def.width}px`;
-            panel.innerHTML = `<div class="flex items-center gap-2 p-3">
-                <input id="${def.id}_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
-                <span class="text-gray-500">~</span>
-                <input id="${def.id}_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
-            </div>`;
-            
-            const box = document.createElement('div');
-            box.className = 'relative';
-            box.appendChild(btn);
-            box.appendChild(panel);
-            wrap.appendChild(box);
+          const panel = document.createElement('div');
+          panel.id = `filter-panel-${def.id}`;
+          panel.className = `hidden absolute left-0 mt-1 bg-white border rounded shadow z-50`;
+          panel.style.width = `${def.width}px`;
+          panel.innerHTML = `<div class="flex items-center gap-2 p-3">
+              <input id="${def.id}_min" type="number" placeholder="이상" class="w-20 px-2 py-1 border rounded text-sm" />
+              <span class="text-gray-500">~</span>
+              <input id="${def.id}_max" type="number" placeholder="이하" class="w-20 px-2 py-1 border rounded text-sm" />
+          </div>`;
+          
+          const box = document.createElement('div');
+          box.className = 'relative';
+          box.appendChild(btn);
+          box.appendChild(panel);
+          wrap.appendChild(box);
 
-            setTimeout(() => {
-                const minInput = document.getElementById(`${def.id}_min`);
-                const maxInput = document.getElementById(`${def.id}_max`);
-                const update = () => {
-                    updateFilterButtonText(def.id);
-                    updateFilteredListingsDebounced();
-                };
-                if (minInput) minInput.addEventListener('input', update);
-                if (maxInput) maxInput.addEventListener('input', update);
-            }, 0);
-        });
+          setTimeout(() => {
+              const minInput = document.getElementById(`${def.id}_min`);
+              const maxInput = document.getElementById(`${def.id}_max`);
+              const update = () => {
+                  updateFilterButtonText(def.id);
+                  updateFilteredListingsDebounced();
+              };
+              if (minInput) minInput.addEventListener('input', update);
+              if (maxInput) maxInput.addEventListener('input', update);
+          }, 0);
+      });
     }
 
     function createClusterer(gridSize) {
