@@ -176,6 +176,11 @@
     .color-option {
       border: 1px solid #ccc;
     }
+    /* 클릭된 고객 강조 */
+    .customer-selected {
+      background-color: #dbeafe !important; /* 연한 파란색 */
+      font-weight: bold;
+    }
 
   </style>
 </head>
@@ -1342,6 +1347,20 @@
 
       // 👉 우측 정보창 채우기
       document.getElementById('top-row-input').value = customer.customer_name || '';
+      /* === 고객 리스트 하이라이트 처리 === */
+      function highlightCustomerInList(customerId) {
+        // 모든 선택 제거
+        document.querySelectorAll("#customer-list .name-item").forEach(el => {
+          el.classList.remove("customer-selected");
+        });
+
+        // 클릭된 고객 찾아서 강조
+        const target = document.querySelector(`#customer-list .name-item[data-id="${customerId}"]`);
+        if (target) {
+          target.classList.add("customer-selected");
+        }
+      }
+
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
       document.getElementById('memo-textarea').value = customer.memo || '';
@@ -1422,6 +1441,8 @@
             tr.classList.remove("bg-white", "bg-gray-50");
           }
         }
+
+        highlightCustomerInList(customer.id);
 
         // === 7) 취소선 복원 ===
         if (listing.row_properties?.strike === 1) {
@@ -1592,6 +1613,7 @@
           .forEach(cust => {
             const nameBtn = document.createElement('div');
             nameBtn.className = 'name-item';
+            nameBtn.dataset.id = cust.id;
             const other = otherNameMap.get(cust.id);
 
             const label = document.createElement('span');
