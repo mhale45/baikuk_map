@@ -5150,46 +5150,45 @@
     return data;
     };
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const customerPanel = document.getElementById('customer-panel');
-      const customerPanelList = document.getElementById('customer-panel-list');
-      const toggleCustomerPanelBtn = document.getElementById('toggle-customer-panel');
-      const closeCustomerPanelBtn = document.getElementById('close-customer-panel');
+    // 고객 패널 요소
+    const customerPanel = document.getElementById('customer-panel');
+    const customerPanelList = document.getElementById('customer-panel-list');
+    const toggleCustomerPanelBtn = document.getElementById('toggle-customer-panel');
+    const closeCustomerPanelBtn = document.getElementById('close-customer-panel');
 
-      function openCustomerPanel() {
-        customerPanel.classList.remove('translate-x-full');
-        customerPanel.classList.add('translate-x-0');
-        loadCustomerListInPanel();
-      }
+    function openCustomerPanel() {
+      customerPanel.classList.remove('translate-x-full');
+      customerPanel.classList.add('translate-x-0');
+      loadCustomerListInPanel();
+    }
 
-      function closeCustomerPanel() {
-        customerPanel.classList.add('translate-x-full');
-        customerPanel.classList.remove('translate-x-0');
-      }
+    function closeCustomerPanel() {
+      customerPanel.classList.add('translate-x-full');
+      customerPanel.classList.remove('translate-x-0');
+    }
 
-      async function loadCustomerListInPanel() {
-          const { data, error } = await client
-              .from('customers')
-              .select('id, customer_name, phone_last4, grade')
-              .order('customer_name', { ascending: true });
+    // 고객 리스트 로드
+    async function loadCustomerListInPanel() {
+        const { data, error } = await client
+            .from('customers')
+            .select('id, customer_name, phone_last4, grade')
+            .order('customer_name', { ascending: true });
 
-          if (error) {
-              customerPanelList.innerHTML = `<div class="p-3 text-red-500">고객 정보를 불러올 수 없습니다.</div>`;
-              return;
-          }
+        if (error) {
+            customerPanelList.innerHTML = `<div class="p-3 text-red-500">고객 정보를 불러올 수 없습니다.</div>`;
+            return;
+        }
 
-          customerPanelList.innerHTML = data.map(c => `
-              <div class="p-2 border-b cursor-pointer hover:bg-gray-50">
-                  <div class="font-semibold">${c.customer_name}</div>
-                  <div class="text-xs text-gray-500">(${c.phone_last4}) · ${c.grade || '미지정'}</div>
-              </div>
-          `).join('');
-      }
+        customerPanelList.innerHTML = data.map(c => `
+            <div class="p-2 border-b cursor-pointer hover:bg-gray-50">
+                <div class="font-semibold">${c.customer_name}</div>
+                <div class="text-xs text-gray-500">(${c.phone_last4}) · ${c.grade || '미지정'}</div>
+            </div>
+        `).join('');
+    }
 
-      toggleCustomerPanelBtn.addEventListener('click', openCustomerPanel);
-      closeCustomerPanelBtn.addEventListener('click', closeCustomerPanel);
-  });
-
+    toggleCustomerPanelBtn.addEventListener('click', openCustomerPanel);
+    closeCustomerPanelBtn.addEventListener('click', closeCustomerPanel);
 
   </script>
   <!-- 오른쪽 아래 안내창 -->
