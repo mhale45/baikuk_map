@@ -5139,15 +5139,28 @@
     // 고객 패널 요소
     const customerPanel = document.getElementById('customer-panel');
     const customerPanelList = document.getElementById('customer-panel-list');
+    const toggleCustomerPanelBtn = document.getElementById('toggle-customer-panel');
+    const closeCustomerPanelBtn = document.getElementById('close-customer-panel');
 
     document.getElementById('toggle-customer-panel').onclick = () => {
-        loadCustomerListInPanel();
-        customerPanel.classList.remove('translate-x-full');
+      loadCustomerListInPanel();
+      customerPanel.classList.remove('translate-x-full');
     };
 
     document.getElementById('close-customer-panel').onclick = () => {
-        customerPanel.classList.add('translate-x-full');
+      customerPanel.classList.add('translate-x-full');
     };
+
+    function openCustomerPanel() {
+      customerPanel.classList.remove('translate-x-full');
+      customerPanel.classList.add('translate-x-0');
+      loadCustomerListInPanel();
+    }
+
+    function closeCustomerPanel() {
+      customerPanel.classList.add('translate-x-full');
+      customerPanel.classList.remove('translate-x-0');
+    }
 
     // 고객 리스트 로드
     async function loadCustomerListInPanel() {
@@ -5168,6 +5181,9 @@
             </div>
         `).join('');
     }
+
+    toggleCustomerPanelBtn.addEventListener('click', openCustomerPanel);
+    closeCustomerPanelBtn.addEventListener('click', closeCustomerPanel);
 
   </script>
   <!-- 오른쪽 아래 안내창 -->
