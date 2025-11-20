@@ -847,14 +847,6 @@
       return (el.value || '').trim();
     }
 
-    // ✅ 공통 세터
-    function setFieldValue(field, index, value) {
-      const el = document.querySelector(`[data-field="${field}_${index}"]`);
-      if (!el) return;
-      if (el.tagName === 'SPAN') el.textContent = value ?? '';
-      else el.value = value ?? '';
-    }
-
     // ✅ 특정 필드들만 다른 행에서 복사해오기
     function copyFieldsFromRow(srcIndex, destIndex, fields) {
       fields.forEach((f) => {
@@ -1399,15 +1391,32 @@
         const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
         const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
         if (memoEl) memoEl.value = memoValue;
-        // === 🔥 색상 정보 불러오기 ===
+        // === 🔥 색상 + 취소선 불러오기 ===
         if (listing.color) {
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (!tr) return;
+
+          // "배경색,취소선"으로 분리 → 예) "#ffecec,1"
+          const [bgColor, strike] = listing.color.split(",");
+
+          // hidden input에도 원본 저장
           setFieldValue("color", index, listing.color);
 
-          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-          if (tr) {
-            tr.dataset.userColor = "true";
-            tr.style.backgroundColor = listing.color;
+          // === 배경색 적용 ===
+          if (bgColor && bgColor !== "0") {
+            tr.style.backgroundColor = bgColor;
+            tr.dataset.userColor = bgColor;
             tr.classList.remove("bg-white", "bg-gray-50");
+          } else {
+            tr.style.backgroundColor = "";
+            tr.dataset.userColor = "";
+          }
+
+          // === 취소선 적용 ===
+          if (strike === "1") {
+            tr.classList.add("line-through");
+          } else {
+            tr.classList.remove("line-through");
           }
         }
 
@@ -2667,47 +2676,50 @@
         option.style.border = "1px solid #ccc";
         option.addEventListener("click", () => {
           if (!currentRow) return;
-
           const color = option.dataset.color;
+          const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
 
-          // === 취소선 기능 추가 ===
+          // 현재 strike 여부 파악
+          const strikeNow = currentRow.classList.contains("line-through") ? "1" : "0";
+
+          // === 🔥 취소선 선택 ===
           if (color === "strike") {
-            const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
+            const strikeNew = strikeNow === "1" ? "0" : "1";
 
-            // 🔥 토글 방식: 취소선이 있으면 제거, 없으면 추가
-            const alreadyStriked = currentRow.classList.contains("line-through");
-
-            if (alreadyStriked) {
-              currentRow.classList.remove("line-through");
-              setFieldValue("strike", index, "");      // DB 저장용 hidden input
-            } else {
+            // 토글 UI
+            if (strikeNew === "1") {
               currentRow.classList.add("line-through");
-              setFieldValue("strike", index, "yes");   // DB 저장용 hidden input
+            } else {
+              currentRow.classList.remove("line-through");
             }
+
+            // 색상은 그대로, 취소선만 업데이트
+            const colorNow = currentRow.dataset.userColor || "0";
+
+            saveRowStyle(index, colorNow === "" ? "0" : colorNow, strikeNew);
 
             popup.classList.add("hidden");
             return;
           }
 
-          // === 기존 색상 해제 처리 ===
+          // === 🔥 색상 제거 ===
           if (color === "none") {
             currentRow.style.backgroundColor = "";
             currentRow.dataset.userColor = "";
 
-            const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
-            setFieldValue("color", index, "");    // 🔥 색상도 비우기
+            // 색상 0, 취소선 유지
+            saveRowStyle(index, "0", strikeNow);
 
             popup.classList.add("hidden");
             return;
           }
 
-          // === 기존 색상 선택 로직 ===
-          currentRow.dataset.userColor = "true";
-          currentRow.classList.remove('bg-white', 'bg-gray-50');
+          // === 🔥 색상 선택 ===
+          currentRow.dataset.userColor = color;
           currentRow.style.backgroundColor = color;
+          currentRow.classList.remove("bg-white", "bg-gray-50");
 
-          const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
-          setFieldValue("color", index, color);
+          saveRowStyle(index, color, strikeNow);
 
           popup.classList.add("hidden");
         });
@@ -2733,6 +2745,13 @@
         }
       });
     })();
+
+    function saveRowStyle(index, colorValue, strikeValue) {
+      // colorValue: 실제 색상 값 또는 "0"
+      // strikeValue: "0" or "1"
+      const combined = `${colorValue},${strikeValue}`;
+      setFieldValue("color", index, combined);
+    }
 
   </script>
 
