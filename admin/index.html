@@ -199,8 +199,13 @@
           <div id="filter-bar" class="mr-[1rem] ml-[1rem] flex flex-row gap-2 items-start mt-4 relative z-[1000]">
               <div id="btn-wrap" class="flex flex-row gap-2"></div>
           </div>
-        </div>
+        </div>        
         <button id="filter-btns-wrap" class="flex gap-1"></button>
+        <button id="toggle-customer-panel"
+                class="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-100 text-sm">
+            👤 고객
+        </button>
+        
         <div class="ml-auto flex items-center gap-2">
             <button id="open-listing-form-btn" class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
                 🏢 매물등록
@@ -279,6 +284,19 @@
         style="border-left-width: 0.35rem;">
     </div>
 
+  <!-- 고객 리스트 패널 -->
+  <div id="customer-panel"
+      class="fixed top-[var(--header-height)] right-0 w-[18rem] h-[calc(100vh-var(--header-height))] 
+              bg-white shadow-xl border-l border-gray-300 transform translate-x-full 
+              transition-transform duration-300 z-[15000] overflow-y-auto">
+
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <h2 class="text-sm font-semibold text-gray-700">고객 리스트</h2>
+      <button id="close-customer-panel" class="text-gray-500 hover:text-black">✕</button>
+    </div>
+
+    <div id="customer-panel-list" class="p-3 text-sm"></div>
+  </div>
   <script>
 
     const _nz = (s) => (s ?? '').toString();
@@ -5132,6 +5150,46 @@
     return data;
     };
 
+    document.addEventListener("DOMContentLoaded", () => {
+        const customerPanel = document.getElementById('customer-panel');
+        const customerPanelList = document.getElementById('customer-panel-list');
+        const toggleCustomerPanelBtn = document.getElementById('toggle-customer-panel');
+        const closeCustomerPanelBtn = document.getElementById('close-customer-panel');
+
+        function openCustomerPanel() {
+          customerPanel.classList.remove('translate-x-full');
+          customerPanel.classList.add('translate-x-0');
+          loadCustomerListInPanel();
+        }
+
+        function closeCustomerPanel() {
+          customerPanel.classList.add('translate-x-full');
+          customerPanel.classList.remove('translate-x-0');
+        }
+
+        async function loadCustomerListInPanel() {
+            const { data, error } = await client
+                .from('customers')
+                .select('id, customer_name, phone_last4, grade')
+                .order('customer_name', { ascending: true });
+
+            if (error) {
+                customerPanelList.innerHTML = `<div class="p-3 text-red-500">고객 정보를 불러올 수 없습니다.</div>`;
+                return;
+            }
+
+            customerPanelList.innerHTML = data.map(c => `
+                <div class="p-2 border-b cursor-pointer hover:bg-gray-50">
+                    <div class="font-semibold">${c.customer_name}</div>
+                    <div class="text-xs text-gray-500">(${c.phone_last4}) · ${c.grade || '미지정'}</div>
+                </div>
+            `).join('');
+        }
+
+        toggleCustomerPanelBtn.addEventListener('click', openCustomerPanel);
+        closeCustomerPanelBtn.addEventListener('click', closeCustomerPanel);
+    });
+    
   </script>
   <!-- 오른쪽 아래 안내창 -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] space-y-2"></div> 
