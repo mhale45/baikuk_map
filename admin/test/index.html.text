@@ -176,6 +176,27 @@
     .color-option {
       border: 1px solid #ccc;
     }
+    .memo-width {
+      width: 18rem;
+    }
+    .customer-list-maxheight {
+      max-height: calc(100vh - 5rem);
+    }
+    .memo-height {
+      height: 47rem;
+    }
+    .custom-maxh-60vh {
+      max-height: 60vh;
+    }
+    .custom-bg-F2C130 {
+      background-color: #F2C130;
+    }
+    .custom-hover-bg-E0B120:hover {
+      background-color: #E0B120;
+    }
+    .logo-width {
+      width: 100px;
+    }
 
   </style>
 </head>
@@ -220,7 +241,7 @@
         </button>
       </div>
 
-      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
+      <div id="customer-list" class="overflow-y-auto customer-list-maxheight">
       </div>
     </div>
 
@@ -266,7 +287,7 @@
           </div>
 
           <textarea id="memo-textarea" placeholder="메모"
-            class="mt-2 ml-1 px-1 pt-1 w-72 h-[47rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+            class="mt-2 ml-1 px-1 pt-1 w-72 memo-height box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
         </div>
 
         <div class="ml-3 mt-4 flex flex-col">
@@ -284,7 +305,7 @@
               <button id="clear-left-btn" class="h-8 w-14 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
                 지우기
               </button>
-              <button id="copy-link-btn" class="h-8 w-12 bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
+              <button id="copy-link-btn" class="h-8 w-12 custom-bg-F2C130 custom-hover-bg-E0B120 text-black font-bold px-1 py-1 rounded mr-2">
                 링크
               </button>
             </div>
@@ -310,7 +331,7 @@
                 <img
                   src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
                   alt="백억로고"
-                  class="w-[25rem]"
+                  class="logo-width"
                 />
 
                 <div class="justify-between items-end mb-2">
@@ -821,7 +842,7 @@
           <td class="p-1 border-b border-gray-200 align-top">
             <div class="flex items-start gap-2 h-full">
               <textarea
-                class="w-[18rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
+                class="memo-width h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
@@ -2736,7 +2757,7 @@
       <div class="px-5 py-3 border-b font-semibold text-lg">
         같은 이름의 고객이 이미 있습니다
       </div>
-      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
+      <div class="p-5 space-y-3 custom-maxh-60vh overflow-auto">
         <p class="text-sm text-gray-700">
           현재 입력한 내용으로 <b>기존 고객 정보를 덮어쓰시겠습니까?</b>
         </p>
