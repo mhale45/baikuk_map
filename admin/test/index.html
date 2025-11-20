@@ -1345,6 +1345,95 @@
       document.getElementById('customer-phone').value = customer.customer_phone_number || '';
       document.getElementById('customer-grade').value = customer.grade || 'F';
       document.getElementById('memo-textarea').value = customer.memo || '';
+
+      // 👉 왼쪽 매물번호 입력칸 초기화
+      document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
+
+      // 👉 오른쪽 매물입력 테이블 초기화
+      const listingsBody = document.getElementById('listings-body');
+      listingsBody.innerHTML = '';
+      const memoBody = document.getElementById('memo-body');
+      if (memoBody) memoBody.innerHTML = '';
+
+      // ========================================
+      // ⭐ 고객 추천 매물 전체 불러오기
+      // ========================================
+      const { data: listings, error: listingsError } = await supabase
+        .from('customers_recommendations')
+        .select('*')
+        .eq('customers_id', String(currentCustomerId))
+        .order('order', { ascending: true, nullsFirst: false })
+        .order('id', { ascending: true });
+
+      if (listingsError) {
+        console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
+        showToast('추천 매물 정보를 불러오지 못했습니다.');
+        return;
+      }
+
+      // === 1) 순서 잡기 ===
+      let nextIndex = 1;
+
+      listings.forEach((listing) => {
+
+        const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
+          ? listing.order
+          : nextIndex++;
+
+        // === 2) 왼쪽 매물번호 채우기 ===
+        const leftInput = document.querySelector(`input[data-index="${index}"]`);
+        if (leftInput) leftInput.value = listing.listing_id ?? '';
+
+        // === 3) 오른쪽 표 행 확보 ===
+        updateListingsTableByInputs();
+
+        // === 4) 필드 채우기 ===
+        const setField = (field, value) => {
+          const el = document.querySelector(`[data-field="${field}_${index}"]`);
+          if (!el) return;
+          if (el.tagName === 'SPAN') el.textContent = value ?? '';
+          else el.value = value ?? '';
+        };
+
+        setField('listing_title', listing.listing_title);
+        setField('full_address', listing.full_address);
+
+        setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+        setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+        setField('premium_price', formatKoreanMoney(listing.premium_price));
+
+        setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
+
+        setField('description', listing.contents);
+
+        // === 5) 행 메모 복원 ===
+        const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
+        const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+        if (memoEl) memoEl.value = memoValue;
+
+        // === 6) 색상 복원 ===
+        if (listing.color) {
+          setFieldValue("color", index, listing.color);
+
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (tr) {
+            tr.dataset.userColor = "true";
+            tr.style.backgroundColor = listing.color;
+            tr.classList.remove("bg-white", "bg-gray-50");
+          }
+        }
+
+        // === 7) 취소선 복원 ===
+        if (listing.row_properties?.strike === 1) {
+          setFieldValue("strike", index, "1");
+
+          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+          if (tr) {
+            tr.classList.add("line-through");
+          }
+        }
+      });
+
     }
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
