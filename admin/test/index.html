@@ -2188,27 +2188,32 @@
       const rightRows = document.querySelectorAll('#listings-body tr');
       const leftRows  = document.querySelectorAll('#left-tbody tr');
 
+      // 🔥 오른쪽이 비어 있으면 메모판이 사라지는 문제 방지
+      if (rightRows.length === 0) {
+        // 메모판 높이만 최소 기본값으로 유지
+        document.querySelectorAll('#memo-body tr td').forEach(td => {
+          td.style.height = '32px';
+        });
+        return;
+      }
+
       const len = Math.min(rightRows.length, leftRows.length);
       for (let i = 0; i < len; i++) {
         const r = rightRows[i];
         const l = leftRows[i];
         if (!r || !l) continue;
 
-        // 높이 재설정
         l.style.height = 'auto';
         r.style.height = 'auto';
 
         const lh = l.getBoundingClientRect().height;
         const rh = r.getBoundingClientRect().height;
-
         const max = Math.max(lh, rh);
 
-        // ✅ 오른쪽이 더 작으면 오른쪽에 높이 고정 (왼쪽이 기준)
         if (rh < lh) r.style.height = `${lh}px`;
-
-        // ✅ 왼쪽은 항상 오른쪽 높이로 맞춤
-        l.style.height = `${Math.max(lh, rh)}px`;
+        l.style.height = `${max}px`;
       }
+
       syncMemoRowHeights();
     }
 
@@ -2216,21 +2221,26 @@
       const listingRows = document.querySelectorAll('#listings-body tr');
       const memoRows    = document.querySelectorAll('#memo-body tr');
 
+      // 🔥 listings-body가 비었으면 memo가 0px 되는 오류 방지
+      if (listingRows.length === 0) {
+        memoRows.forEach(row => {
+          const td = row.querySelector('td');
+          const ta = row.querySelector('textarea');
+          if (td) td.style.height = '32px';
+          if (ta) ta.style.height = '28px';
+        });
+        return;
+      }
+
       const count = Math.min(listingRows.length, memoRows.length);
       for (let i = 0; i < count; i++) {
-        const h  = listingRows[i].offsetHeight; // 매물 행의 "최종 총높이"(패딩/보더 반영, 정수 px)
+        const h  = listingRows[i].offsetHeight;
         const td = memoRows[i].querySelector('td');
-        if (!td) continue;
+        const ta = memoRows[i].querySelector('textarea');
+        if (!td || !ta) continue;
 
-        // TD 자체를 동일 높이로 고정
         td.style.height = `${h}px`;
-
-        // 내부 textarea가 TD를 꽉 채우게
-        const ta = td.querySelector('textarea');
-        if (ta) {
-          ta.style.height   = '100%';
-          ta.style.maxHeight = 'none';
-        }
+        ta.style.height = `${h - 4}px`;
       }
     }
 
