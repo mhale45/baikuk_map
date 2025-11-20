@@ -2672,10 +2672,15 @@
 
           // 색상 해제 처리
           if (color === "none") {
-            currentRow.style.backgroundColor = "";
-            currentRow.dataset.userColor = "";
-            popup.classList.add("hidden");
-            return;
+              currentRow.style.backgroundColor = "";
+              currentRow.dataset.userColor = "";
+
+              // 🔥 색상 해제 시 hidden input에도 "" 저장해야 DB에서도 색상이 사라짐
+              const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
+              setFieldValue("color", index, "");
+
+              popup.classList.add("hidden");
+              return;
           }
 
           // 색상 적용

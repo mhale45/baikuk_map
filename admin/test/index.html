@@ -2670,25 +2670,42 @@
 
           const color = option.dataset.color;
 
-          // 색상 해제 처리
-          if (color === "none") {
-              currentRow.style.backgroundColor = "";
-              currentRow.dataset.userColor = "";
+          // === 취소선 기능 추가 ===
+          if (color === "strike") {
+            const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
 
-              // 🔥 색상 해제 시 hidden input에도 "" 저장해야 DB에서도 색상이 사라짐
-              const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
-              setFieldValue("color", index, "");
+            // 🔥 토글 방식: 취소선이 있으면 제거, 없으면 추가
+            const alreadyStriked = currentRow.classList.contains("line-through");
 
-              popup.classList.add("hidden");
-              return;
+            if (alreadyStriked) {
+              currentRow.classList.remove("line-through");
+              setFieldValue("strike", index, "");      // DB 저장용 hidden input
+            } else {
+              currentRow.classList.add("line-through");
+              setFieldValue("strike", index, "yes");   // DB 저장용 hidden input
+            }
+
+            popup.classList.add("hidden");
+            return;
           }
 
-          // 색상 적용
+          // === 기존 색상 해제 처리 ===
+          if (color === "none") {
+            currentRow.style.backgroundColor = "";
+            currentRow.dataset.userColor = "";
+
+            const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
+            setFieldValue("color", index, "");    // 🔥 색상도 비우기
+
+            popup.classList.add("hidden");
+            return;
+          }
+
+          // === 기존 색상 선택 로직 ===
           currentRow.dataset.userColor = "true";
           currentRow.classList.remove('bg-white', 'bg-gray-50');
           currentRow.style.backgroundColor = color;
 
-          // ⭐ hidden input 에도 저장
           const index = [...currentRow.parentNode.children].indexOf(currentRow) + 1;
           setFieldValue("color", index, color);
 
@@ -2756,6 +2773,11 @@
         #ccc 5px,
         #ccc 10px
       );"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer flex items-center justify-center"
+          data-color="strike"
+          style="font-size: 18px; font-weight: bold; line-height: 1;">
+        -
+      </div>
     </div>
   </div>
 </body>
