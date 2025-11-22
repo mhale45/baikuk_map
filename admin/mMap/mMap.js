@@ -113,7 +113,7 @@ async function renderListingsOnMap() {
                 overflow-wrap: break-word;
                 max-width: 240px;
                 text-indent: -12px;
-                padding-left: 12px; ">${htmlLines.join("<br/>")}</div>`;
+                padding-left: 12px; "></div>`;
 
         const info = new kakao.maps.InfoWindow({
             content: infoHtml
