@@ -45,10 +45,10 @@ async function loadBaikukListings() {
             listing_title,
             lat,
             lng,
-            deal_type,
-            sale_price,
             deposit_price,
-            monthly_rent
+            monthly_rent,
+            premium_price,
+            area_py
         `);
 
     if (error) {
@@ -81,12 +81,13 @@ async function renderListingsOnMap() {
         // 정보창
         const info = new kakao.maps.InfoWindow({
             content: `
-                <div style="padding:8px; font-size:12px;">
-                    <b>${item.listing_title || "제목 없음"}</b><br/>
-                    매물번호: ${item.listing_id}<br/>
-                    유형: ${item.deal_type || "-"}<br/>
-                    매매: ${item.sale_price || "-"}<br/>
-                    보증금: ${item.deposit_price || "-"} / 월세: ${item.monthly_rent || "-"}
+                <div style="padding:8px; font-size:12px; line-height:1.4;">
+                    🔹 매물번호: <b>${item.listing_id}</b><br/>
+                    🔹 제목: ${item.listing_title || "-"}<br/>
+                    🔹 보증금: ${item.deposit_price || "-"}<br/>
+                    🔹 월세: ${item.monthly_rent || "-"}<br/>
+                    🔹 권리금: ${item.premium_price || "-"}<br/>
+                    🔹 면적(평): ${item.area_py || "-"}
                 </div>
             `
         });
