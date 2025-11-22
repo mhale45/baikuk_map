@@ -40,31 +40,32 @@ function formatNumber(num) {
 }
 
 // =============================
-// 🔥 Supabase → baikukdbtest 지도 표시
+// 🔥 반경 2km 이내 매물만 불러오기
 // =============================
-
-// 1) 매물 데이터 불러오기
 async function loadBaikukListings() {
+    const center = map.getCenter();
+    const centerLat = center.getLat();
+    const centerLng = center.getLng();
+
     const { data, error } = await window.supabase
-        .from("baikukdbtest")
-        .select(`
-            listing_id,
-            listing_title,
-            lat,
-            lng,
-            deposit_price,
-            monthly_rent,
-            premium_price,
-            area_py
-        `);
+        .rpc("get_listings_in_radius", {
+            center_lat: centerLat,
+            center_lng: centerLng,
+            radius_m: 2000   // 2km
+        });
 
     if (error) {
-        console.error("❌ Supabase 데이터 로딩 오류:", error);
+        console.error("❌ 반경 매물 로딩 오류:", error);
         return [];
     }
 
     return data;
 }
+
+// 🔄 지도 이동이 끝나면 다시 반경 2km 매물 로딩
+kakao.maps.event.addListener(map, "idle", () => {
+    renderListingsOnMap();
+});
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
