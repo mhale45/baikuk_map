@@ -48,15 +48,17 @@ function formatNumber(num) {
 // 지도에서 Bound 가져오기
 function getCurrentBounds() {
     const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
 
-    const sw = bounds.getSouthWest(); // 남서쪽
-    const ne = bounds.getNorthEast(); // 북동쪽
+    const latBuffer = (ne.getLat() - sw.getLat()) * 0.2;
+    const lngBuffer = (ne.getLng() - sw.getLng()) * 0.2;
 
     return {
-        minLat: sw.getLat(),
-        maxLat: ne.getLat(),
-        minLng: sw.getLng(),
-        maxLng: ne.getLng()
+        minLat: sw.getLat() - latBuffer,
+        maxLat: ne.getLat() + latBuffer,
+        minLng: sw.getLng() - lngBuffer,
+        maxLng: ne.getLng() + lngBuffer
     };
 }
 
@@ -95,7 +97,9 @@ async function renderListingsOnMap() {
     // ===== 🔥 기존 마커/클러스터 제거 =====
     if (clusterer) {
         clusterer.clear();
+        clusterer = null;
     }
+
     allMarkers.forEach(m => m.setMap(null));
     allMarkers = [];
     // ======================================
@@ -213,8 +217,5 @@ function reloadListingsOnMapThrottled() {
     }, 400);
 }
 
-// 지도 드래그 종료 후
-kakao.maps.event.addListener(map, "dragend", reloadListingsOnMapThrottled);
-
-// 지도 확대/축소 후
-kakao.maps.event.addListener(map, "zoom_changed", reloadListingsOnMapThrottled);
+// 📌 지도 이동/확대/축소가 완전히 끝난 후 실행됨 (가장 안정적)
+kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);

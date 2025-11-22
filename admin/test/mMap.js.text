@@ -2,6 +2,9 @@
 
 let map;
 let currentInfoWindow = null;
+let clusterer = null;
+let allMarkers = [];
+
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -88,6 +91,15 @@ async function loadListingsByBounds() {
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
+
+    // ===== 🔥 기존 마커/클러스터 제거 =====
+    if (clusterer) {
+        clusterer.clear();
+    }
+    allMarkers.forEach(m => m.setMap(null));
+    allMarkers = [];
+    // ======================================
+
     const listings = await loadListingsByBounds();
     if (!listings.length) {
         console.warn("⚠️ 불러올 데이터가 없습니다.");
@@ -117,7 +129,7 @@ async function renderListingsOnMap() {
             position: position
         });
 
-        // 🔥 3) 그룹 전체 매물 정보를 줄바꿈으로 생성
+        // (📌 인포윈도우 내용 그대로 유지)
         let htmlLines = items.map(i => {
             return `
                 <div style="
@@ -145,8 +157,8 @@ async function renderListingsOnMap() {
                 word-break: break-word;
                 overflow-wrap: break-word;
                 word-wrap: break-word;
-                width: 360px;             /* 🔥 폭 강제 지정 */
-                display: block;           /* 🔥 카카오 기본값 무력화 */
+                width: 360px; 
+                display: block;
             ">
                 ${htmlLines.join("")}
             </div>
@@ -157,13 +169,9 @@ async function renderListingsOnMap() {
         });
 
         kakao.maps.event.addListener(marker, "click", () => {
-
-            // 이전에 열린 창 닫기
             if (currentInfoWindow) {
                 currentInfoWindow.close();
             }
-
-            // 새 창 열기
             info.open(map, marker);
             currentInfoWindow = info;
         });
@@ -172,7 +180,7 @@ async function renderListingsOnMap() {
     });
 
     // 🔥 4) 클러스터 추가
-    const clusterer = new kakao.maps.MarkerClusterer({
+    clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
         minLevel: 5,
@@ -180,6 +188,7 @@ async function renderListingsOnMap() {
     });
 
     clusterer.addMarkers(markers);
+    allMarkers = markers;
 }
 
 // 지도 로딩 후 실행
