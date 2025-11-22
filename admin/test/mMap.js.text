@@ -52,7 +52,7 @@ function formatNumber(num) {
 async function loadListingsByAddress(fullAddress) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py`)
+        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py, floor`)
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -147,12 +147,23 @@ async function renderListingsOnMap() {
                 if (currentInfoWindow) currentInfoWindow.close();
 
                 const listings = await loadListingsByAddress(item.full_address);
-
+                // 🔥 floor 기준 오름차순 정렬
+                listings.sort((a, b) => {
+                    const fa = a.floor ?? 0;
+                    const fb = b.floor ?? 0;
+                    return fa - fb;
+                });
+                
                 const html = listings.map(i => `
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong> / <strong>${formatNumber(i.monthly_rent)}</strong>
-                        권<strong>${formatNumber(i.premium_price)}</strong> <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
+                        ${
+                            (i.premium_price == null || Number(i.premium_price) === 0)
+                                ? "무권리"
+                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                        }
+                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
 
                     </div>
                 `).join("");
@@ -161,7 +172,7 @@ async function renderListingsOnMap() {
                     content: `
                         <div style="
                             padding:8px;
-                            font-size:14px;
+                            font-size:15px;
                             width:360px;
                             max-height:50vh;
 
