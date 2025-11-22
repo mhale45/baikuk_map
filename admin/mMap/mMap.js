@@ -113,15 +113,21 @@ async function renderListingsOnMap() {
             `;
         });
 
-        const infoHtml = `<div style=" padding:8px;
+        const infoHtml = `
+            <div style="
+                padding:8px;
                 font-size:12px;
                 line-height:1.4;
                 white-space: normal;
-                word-wrap: break-word;
+                word-break: break-word;
                 overflow-wrap: break-word;
-                max-width: 300px;
-                text-indent: -12px;
-                padding-left: 12px; ">${htmlLines.join(" ")}</div>`;
+                word-wrap: break-word;
+                width: 360px;             /* 🔥 폭 강제 지정 */
+                display: block;           /* 🔥 카카오 기본값 무력화 */
+            ">
+                ${htmlLines.join("")}
+            </div>
+        `;
 
         const info = new kakao.maps.InfoWindow({
             content: infoHtml
