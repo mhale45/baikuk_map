@@ -69,45 +69,58 @@ async function renderListingsOnMap() {
 
     const markers = [];
 
+    // 🔥 1) 좌표(lat, lng) 기준으로 매물 그룹핑
+    const grouped = {};
     listings.forEach(item => {
         if (!item.lat || !item.lng) return;
 
-        const position = new kakao.maps.LatLng(item.lat, item.lng);
+        const key = `${item.lat}_${item.lng}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(item);
+    });
+
+    // 🔥 2) 각 그룹마다 마커 1개만 생성
+    Object.keys(grouped).forEach(key => {
+        const items = grouped[key];
+        const first = items[0];
+
+        const position = new kakao.maps.LatLng(first.lat, first.lng);
 
         const marker = new kakao.maps.Marker({
             position: position
         });
 
-        // 정보창
+        // 🔥 3) 그룹 전체 매물 정보를 줄바꿈으로 생성
+        let htmlLines = items.map(i => {
+            return `
+                🔹 ${i.listing_id} ${i.listing_title || "-"} 
+                ${i.deposit_price || "-"} / ${i.monthly_rent || "-"} 
+                - ${i.area_py || "-"}
+            `.trim();
+        });
+
+        const infoHtml = `
+            <div style="padding:8px; font-size:12px; line-height:1.4;">
+                ${htmlLines.join("<br/>")}
+            </div>
+        `;
+
         const info = new kakao.maps.InfoWindow({
-            content: `
-                <div style="padding:8px; font-size:12px; line-height:1.4;">
-                    🔹 ${item.listing_id} ${item.listing_title || "-"} 
-                    ${item.deposit_price || "-"} / ${item.monthly_rent || "-"} 
-                    - ${item.area_py || "-"}
-                </div>
-            `
+            content: infoHtml
         });
 
         kakao.maps.event.addListener(marker, "click", () => {
-            // 🔹 다른 인포윈도우가 열려있으면 먼저 닫기
-            if (currentInfoWindow) {
-                currentInfoWindow.close();
-            }
-
-            // 🔹 새 인포윈도우 열기
             info.open(map, marker);
-            currentInfoWindow = info;
         });
 
         markers.push(marker);
     });
 
-    // 3) 카카오 클러스터 설정
+    // 🔥 4) 클러스터 추가
     const clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
-        minLevel: 5,  //  레벨 5 이상일 때 클러스터링됨
+        minLevel: 5,
         disableClickZoom: false
     });
 
