@@ -52,7 +52,6 @@ async function loadBaikukListingsInBounds() {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
-            full_address,
             listing_id,
             listing_title,
             lat,
@@ -66,8 +65,6 @@ async function loadBaikukListingsInBounds() {
         .lte("lat", ne.getLat())
         .gte("lng", sw.getLng())
         .lte("lng", ne.getLng())
-        .distinct("full_address")   // 🔥 지번 기준 1개만!
-        .order("full_address", { ascending: true })
         .limit(8000);
 
     if (error) {
