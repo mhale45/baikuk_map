@@ -214,21 +214,34 @@ async function renderListingsOnMap() {
             kakao.maps.event.addListener(marker, "click", async () => {
                 if (currentInfoWindow) currentInfoWindow.close();
 
-                const listings = await loadListingsByAddress(item.full_address);
+                // 🔥 현재 필터 상태 가져오기
+                const statusFilter = document.getElementById("filter-status")?.value || "";
+
+                // 🔥 Supabase에서 해당 주소 매물 불러오기
+                let listings = await loadListingsByAddress(item.full_address);
+
+                // 🔥 거래상태 필터가 있을 경우 필터링 적용
+                if (statusFilter !== "") {
+                    listings = listings.filter(i => {
+                        const st = i.transaction_status || "";
+                        return st.includes(statusFilter);
+                    });
+                }
+
+                // 🔥 정렬 (층수)
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
 
+                // 🔥 HTML 생성
                 const html = listings.map(i => {
                     const textColor = (() => {
                         const status = i.transaction_status || "";
-
                         if (status.includes("완료")) return "red";
                         if (status.includes("보류")) return "gray";
                         if (status.includes("진행")) return "green";
-
                         return "black";
                     })();
 
@@ -258,7 +271,7 @@ async function renderListingsOnMap() {
                             word-break:break-all;
                             overflow-wrap:break-word;
                         ">
-                            ${html}
+                            ${html || "<div>조건에 맞는 매물이 없습니다.</div>"}
                         </div>
                     `
                 });
@@ -266,6 +279,7 @@ async function renderListingsOnMap() {
                 info.open(map, marker);
                 currentInfoWindow = info;
             });
+
         }
     });
 
