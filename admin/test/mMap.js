@@ -43,6 +43,92 @@ function formatNumber(num) {
 // 🔥 Supabase → baikukdbtest 지도 표시
 // =============================
 
+// 🔥 지도 범위 기반 매물 로딩 (Bounding Box)
+async function loadBaikukListingsInBounds() {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            listing_title,
+            lat,
+            lng,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py
+        `)
+        .gte("lat", sw.getLat())
+        .lte("lat", ne.getLat())
+        .gte("lng", sw.getLng())
+        .lte("lng", ne.getLng())
+        .limit(8000);
+
+    if (error) {
+        console.error("❌ Supabase 범위 조회 오류:", error);
+        return [];
+    }
+
+    return data;
+}
+
+// 🔥 마커용 초경량 데이터 (lat, lng, listing_id만 불러오기)
+async function loadMarkerPositions() {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            lat,
+            lng
+        `)
+        .not("lat", "is", null)
+        .not("lng", "is", null);
+
+    if (error) {
+        console.error("❌ 마커 좌표 조회 오류:", error);
+        return [];
+    }
+
+    return data;
+}
+
+// 🔥 마커만 지도에 표시 (정보는 불러오지 않음)
+async function renderMarkersOnly() {
+    const positions = await loadMarkerPositions();
+
+    if (!positions.length) {
+        console.warn("⚠️ 표시할 마커 데이터가 없습니다.");
+        return;
+    }
+
+    const markers = [];
+
+    positions.forEach(item => {
+        const marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(item.lat, item.lng)
+        });
+
+        // 클릭 시 상세정보 fetch
+        kakao.maps.event.addListener(marker, "click", () => {
+            loadListingsByLatLng(item.lat, item.lng, marker);
+        });
+
+        markers.push(marker);
+    });
+
+    const clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,
+        disableClickZoom: false
+    });
+
+    clusterer.addMarkers(markers);
+}
+
 // 🔥 동일 좌표(lat, lng) 가진 매물 묶어서 조회 후 텍스트박스 출력
 async function loadListingsByLatLng(lat, lng, marker) {
     const { data, error } = await window.supabase
@@ -63,6 +149,7 @@ async function loadListingsByLatLng(lat, lng, marker) {
         return;
     }
 
+    // 기존 텍스트박스 방식 유지
     let htmlLines = data.map(i => {
         return `
             <div style="
@@ -81,10 +168,16 @@ async function loadListingsByLatLng(lat, lng, marker) {
             padding:8px;
             font-size:14px;
             line-height:1.4;
-            white-space: nowrap;
-            overflow-x: auto;
+
+            /* 🔥 가로 스크롤을 전체 박스에 적용 */
+            white-space: nowrap;     /* 자동 줄바꿈 금지 */
+            overflow-x: auto;        /* 가로 스크롤 생성 */
+
+            /* 🔥 세로 스크롤은 유지 */
             max-height: 50vh;
             overflow-y: auto;
+
+            /* 기타 UI 유지 */
             width: 360px;
             display: block;
         ">
@@ -101,101 +194,15 @@ async function loadListingsByLatLng(lat, lng, marker) {
     currentInfoWindow = infoWindow;
 }
 
-// =======================================================
-// 🔥 지번(full_address) 단위 마커 로딩 (지도 범위 + 확장)
-// =======================================================
-
-let currentMarkers = [];
-let currentClusterer = null;
-
-const BBOX_PADDING = 0.01;  // 약 1km 정도 확장
-
-async function loadGroupedMarkersInExpandedBounds() {
-    const bounds = map.getBounds();
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
-
-    const minLat = sw.getLat() - BBOX_PADDING;
-    const maxLat = ne.getLat() + BBOX_PADDING;
-    const minLng = sw.getLng() - BBOX_PADDING;
-    const maxLng = ne.getLng() + BBOX_PADDING;
-
-    // 🔥 Supabase에서 full_address 기준으로 직접 그룹핑
-    const { data, error } = await window.supabase
-        .from("baikukdbtest")
-        .select(`
-            full_address,
-            lat,
-            lng
-        `)
-        .gte("lat", minLat)
-        .lte("lat", maxLat)
-        .gte("lng", minLng)
-        .lte("lng", maxLng)
-        .group("full_address, lat, lng")   // 🔥 핵심!!
-        .order("full_address", { ascending: true });
-
-    if (error) {
-        console.error("❌ BBOX 지번 단위 조회 오류:", error);
-        return [];
-    }
-
-    return data;
-}
-
-// =======================================================
-// 🔥 지번당 1개의 마커 표시
-// =======================================================
-async function renderGroupedAddressMarkers() {
-    // 🔄 기존 클러스터러 제거
-    if (currentClusterer) {
-        currentClusterer.clear();
-        currentClusterer = null;
-    }
-
-    // 🔄 기존 마커 제거
-    currentMarkers.forEach(m => m.setMap(null));
-    currentMarkers = [];
-
-    const positions = await loadGroupedMarkersInExpandedBounds();
-    if (!positions.length) return;
-
-    const markers = [];
-
-    positions.forEach(item => {
-        if (!item.lat || !item.lng) return;
-
-        const marker = new kakao.maps.Marker({
-            position: new kakao.maps.LatLng(item.lat, item.lng)
-        });
-
-        kakao.maps.event.addListener(marker, "click", () => {
-            loadListingsByLatLng(item.lat, item.lng, marker);
-        });
-
-        markers.push(marker);
-    });
-
-    currentMarkers = markers;
-
-    currentClusterer = new kakao.maps.MarkerClusterer({
-        map: map,
-        averageCenter: true,
-        minLevel: 5,
-        disableClickZoom: false
-    });
-
-    currentClusterer.addMarkers(markers);
-}
-
-// =======================================================
-// 🔥 지도 이동/확대/축소 시 자동 새로 로딩
-// =======================================================
-kakao.maps.event.addListener(map, "idle", () => {
-    renderGroupedAddressMarkers();
+// 지도 로딩 후 실행
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        renderMarkersOnly();
+    }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
 
-// 초기 로딩 1회
-setTimeout(() => {
-    renderGroupedAddressMarkers();
-}, 600);
+// 🔥 지도 이동/줌 시 자동으로 데이터 다시 불러오기
+kakao.maps.event.addListener(map, "idle", () => {
+    renderMarkersOnly();
+});
+
