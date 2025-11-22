@@ -92,7 +92,14 @@ async function renderListingsOnMap() {
         });
 
         kakao.maps.event.addListener(marker, "click", () => {
+            // 🔹 다른 인포윈도우가 열려있으면 먼저 닫기
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+
+            // 🔹 새 인포윈도우 열기
             info.open(map, marker);
+            currentInfoWindow = info;
         });
 
         markers.push(marker);
