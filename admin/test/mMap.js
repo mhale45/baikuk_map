@@ -41,6 +41,20 @@ function formatNumber(num) {
     if (isNaN(n)) return num;
     return n.toLocaleString("ko-KR");
 }
+
+async function loadListingsByAddress(fullAddress) {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py`)
+        .eq("full_address", fullAddress);
+
+    if (error) {
+        console.error("❌ 매물 상세 조회 오류:", error);
+        return [];
+    }
+    return data;
+}
+
 // =============================
 // 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
 // =============================
@@ -64,16 +78,12 @@ async function loadListingsByBounds() {
     const b = getCurrentBounds();
 
     const { data, error } = await window.supabase
-        .from("baikukdbtest")
+        .from("baikukdbtest_address_view")
         .select(`
-            listing_id,
-            listing_title,
+            full_address,
             lat,
             lng,
-            deposit_price,
-            monthly_rent,
-            premium_price,
-            area_py
+            listing_count
         `)
         .gte("lat", b.minLat)
         .lte("lat", b.maxLat)
@@ -169,10 +179,23 @@ async function renderListingsOnMap() {
             content: infoHtml
         });
 
-        kakao.maps.event.addListener(marker, "click", () => {
-            if (currentInfoWindow) {
-                currentInfoWindow.close();
-            }
+        kakao.maps.event.addListener(marker, "click", async () => {
+            if (currentInfoWindow) currentInfoWindow.close();
+
+            const listings = await loadListingsByAddress(item.full_address);
+
+            const html = listings.map(i => `
+                <div style="margin-bottom:6px;">
+                    🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                    &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
+                    권${formatNumber(i.premium_price)} ${i.area_py ?? "-"}평
+                </div>
+            `).join("");
+
+            const info = new kakao.maps.InfoWindow({
+                content: `<div style="padding:8px; font-size:12px; width:360px;">${html}</div>`
+            });
+
             info.open(map, marker);
             currentInfoWindow = info;
         });
