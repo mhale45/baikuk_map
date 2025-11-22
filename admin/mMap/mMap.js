@@ -1,15 +1,14 @@
-// 새 mMap.js (admin 버전과 동일한 클러스터 로직 + 기본 지도 로직 통합)
+// ▷ 기본 지도 초기화 코드
 
 let map;
-let clusterer;
-let selectedClusterEl = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
-        center: new kakao.maps.LatLng(37.5665, 126.9780),
+        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
         level: 4
     });
 
+    // 현재 위치 이동 시도
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -22,130 +21,88 @@ window.addEventListener("DOMContentLoaded", () => {
             }
         );
     }
-
-    createClusterer();
 });
 
-function createClusterer() {
-    if (clusterer) clusterer.clear();
+// =============================
+// 🔥 Supabase → baikukdbtest 지도 표시
+// =============================
 
-    clusterer = new kakao.maps.MarkerClusterer({
-        map: map,
-        averageCenter: true,
-        minLevel: 1,
-        minClusterSize: 1,
-        disableClickZoom: true,
-        gridSize: 80,
-        styles: [{
-            width: '40px',
-            height: '40px',
-            background: 'transparent',
-            border: 'none',
-            color: '#fff',
-            textAlign: 'center',
-            lineHeight: '40px',
-            fontWeight: 'bold',
-            html: `
-                <div style="
-                    width:40px;
-                    height:40px;
-                    background:#F2C130;
-                    border-radius:50%;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    color:#fff;
-                    font-weight:bold;
-                    border:2px solid #F2C130;
-                "></div>
-            `
-        }]
-    });
+// 1) 매물 데이터 불러오기
+async function loadBaikukListings() {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            listing_title,
+            lat,
+            lng,
+            deal_type,
+            sale_price,
+            deposit_price,
+            monthly_rent
+        `);
 
-    kakao.maps.event.addListener(clusterer, 'clusterclick', function (cluster) {
-        if (selectedClusterEl) {
-            selectedClusterEl.style.border = "none";
-            selectedClusterEl.style.borderRadius = "50%";
+    if (error) {
+        console.error("❌ Supabase 데이터 로딩 오류:", error);
+        return [];
+    }
 
-            const prevInner = selectedClusterEl.querySelector('div');
-            if (prevInner) {
-                prevInner.style.background = "#F2C130";
-                prevInner.style.color = "#fff";
-            }
-        }
-
-        const clusterEl = cluster.getClusterMarker().getContent().parentNode;
-        if (clusterEl) {
-            clusterEl.style.background = "transparent";
-            clusterEl.style.border = "2px solid #F2C130";
-            clusterEl.style.borderRadius = "50%";
-
-            const inner = clusterEl.querySelector('div');
-            if (inner) {
-                inner.style.background = "#ffffff";
-                inner.style.color = "#F2C130";
-                inner.style.borderRadius = "50%";
-            }
-        }
-
-        selectedClusterEl = clusterEl;
-
-        const markerList = cluster.getMarkers();
-        const listings = markerList.map(mk => mk.listing_data).filter(Boolean);
-
-        console.log("클러스터 안 매물들:", listings);
-    });
+    return data;
 }
 
-function setMarkersOnMap(list) {
-    if (!clusterer) createClusterer();
+// 2) 지도에 마커 + 클러스터 표시
+async function renderListingsOnMap() {
+    const listings = await loadBaikukListings();
+    if (!listings.length) {
+        console.warn("⚠️ 불러올 데이터가 없습니다.");
+        return;
+    }
 
-    clusterer.clear();
+    const markers = [];
 
-    const markers = list.map(l => {
+    listings.forEach(item => {
+        if (!item.lat || !item.lng) return;
+
+        const position = new kakao.maps.LatLng(item.lat, item.lng);
+
         const marker = new kakao.maps.Marker({
-            position: new kakao.maps.LatLng(l.lat, l.lng)
+            position: position
         });
 
-        marker.listing_data = l;
-        return marker;
+        // 정보창
+        const info = new kakao.maps.InfoWindow({
+            content: `
+                <div style="padding:8px; font-size:12px;">
+                    <b>${item.listing_title || "제목 없음"}</b><br/>
+                    매물번호: ${item.listing_id}<br/>
+                    유형: ${item.deal_type || "-"}<br/>
+                    매매: ${item.sale_price || "-"}<br/>
+                    보증금: ${item.deposit_price || "-"} / 월세: ${item.monthly_rent || "-"}
+                </div>
+            `
+        });
+
+        kakao.maps.event.addListener(marker, "click", () => {
+            info.open(map, marker);
+        });
+
+        markers.push(marker);
+    });
+
+    // 3) 카카오 클러스터 설정
+    const clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,  //  레벨 5 이상일 때 클러스터링됨
+        disableClickZoom: false
     });
 
     clusterer.addMarkers(markers);
 }
 
-/* ======================================================
-   🔥 Supabase에서 실제 매물 불러오기
-   ====================================================== */
-export async function loadListingsFromSupabase() {
-    try {
-        const { data, error } = await window.supabase
-            .from("baikukdbtest")   // ← 실제 테이블명
-            .select("listing_id, lat, lng, deal_type, category, title, building_name")
-            .eq("transaction_status", "진행중"); // 원하면 조건 삭제 가능
-
-        if (error) {
-            console.error("매물 로드 오류:", error);
-            return [];
-        }
-
-        // 지도에 필요한 최소 정보만 구성
-        const list = data
-            .filter(item => item.lat && item.lng) // 좌표 없는 매물 제거
-            .map(item => ({
-                listing_id: item.listing_id,
-                lat: item.lat,
-                lng: item.lng,
-                title: item.title || "",
-                category: item.category,
-                deal_type: item.deal_type,
-                building_name: item.building_name
-            }));
-
-        return list;
-
-    } catch (err) {
-        console.error("loadListingsFromSupabase() 실패:", err);
-        return [];
-    }
-}
+// 지도 로딩 후 실행
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        renderListingsOnMap();
+    }, 800); // 지도 초기화 후 실행 (지연 설정)
+});
