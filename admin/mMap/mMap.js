@@ -108,6 +108,8 @@ async function renderListingsOnMap() {
                 word-wrap: break-word;
                 overflow-wrap: break-word;
                 max-width: 240px;
+                text-indent: -12px;
+                padding-left: 12px;
             ">
                 ${htmlLines.join("<br/>")}
             </div>
@@ -118,7 +120,15 @@ async function renderListingsOnMap() {
         });
 
         kakao.maps.event.addListener(marker, "click", () => {
+
+            // 이전에 열린 창 닫기
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+
+            // 새 창 열기
             info.open(map, marker);
+            currentInfoWindow = info;
         });
 
         markers.push(marker);
