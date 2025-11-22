@@ -125,15 +125,27 @@ function getVisibleBounds() {
 async function loadListingsByBounds() {
     const b = getVisibleBounds();
 
-    const { data, error } = await window.supabase
+    // 🔥 거래상태 select 값 가져오기
+    const status = document.getElementById("filter-status")?.value || "";
+
+    // 기본 쿼리
+    let query = window.supabase
         .from("baikukdbtest")
         .select(`
             full_address,
             lat,
-            lng
+            lng,
+            transaction_status
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
+
+    // 🔥 거래상태 필터가 선택된 경우 Supabase 쿼리에 조건 추가
+    if (status !== "") {
+        query = query.eq("transaction_status", status);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("❌ Bound Supabase 조회 오류:", error);
@@ -268,3 +280,8 @@ function reloadListingsOnMapThrottled() {
     }, 400);
 
 }
+
+document.getElementById("filter-status").addEventListener("change", () => {
+    // 지도 범위 Reload
+    reloadListingsOnMapThrottled();
+});
