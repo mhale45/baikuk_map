@@ -141,16 +141,7 @@ async function loadListingsByBounds() {
     const b = getVisibleBounds();
     const selectedStatuses = getSelectedStatuses();
 
-    if (selectedStatuses.length > 0) {
-        // 여러 개 선택된 경우 OR 조건 처리
-        query = query.or(
-            selectedStatuses
-                .map(s => `transaction_status.ilike.%${s}%`)
-                .join(",")
-        );
-    }
-
-    // 기본 쿼리
+    // 기본 쿼리 먼저 생성
     let query = window.supabase
         .from("baikukdbtest")
         .select(`
@@ -161,6 +152,15 @@ async function loadListingsByBounds() {
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
+
+    // 🔥 거래상태 (다중선택) 필터 적용
+    if (selectedStatuses.length > 0) {
+        query = query.or(
+            selectedStatuses
+                .map(s => `transaction_status.ilike.%${s}%`)
+                .join(",")
+        );
+    }
 
     const { data, error } = await query;
 
@@ -220,9 +220,6 @@ async function renderListingsOnMap() {
 
             kakao.maps.event.addListener(marker, "click", async () => {
                 if (currentInfoWindow) currentInfoWindow.close();
-
-                // 🔥 현재 필터 상태 가져오기
-                const statusFilter = document.getElementById("filter-status")?.value || "";
 
                 // 🔥 Supabase에서 해당 주소 매물 불러오기
                 let listings = await loadListingsByAddress(item.full_address);
