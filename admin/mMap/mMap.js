@@ -32,6 +32,13 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+function formatNumber(num) {
+    if (num === null || num === undefined || num === "-" || num === "") return "-";
+    const n = Number(num);
+    if (isNaN(n)) return num;
+    return n.toLocaleString("ko-KR");
+}
+
 // =============================
 // 🔥 Supabase → baikukdbtest 지도 표시
 // =============================
@@ -99,9 +106,10 @@ async function renderListingsOnMap() {
                     white-space: normal;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
-                ">🔹 ${i.listing_id} ${i.listing_title || "-"} <br/>
-                    &nbsp;&nbsp;${i.deposit_price || "-"} / ${i.monthly_rent || "-"} 
-                    ${i.area_py ? Number(i.area_py).toFixed(1) : "-"} </div>
+                ">
+                    🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                    &nbsp;&nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}
+                </div>
             `;
         });
 
