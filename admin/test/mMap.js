@@ -316,6 +316,23 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// 🔥 필터 박스 영역 외 클릭 시 자동 닫기
+window.addEventListener("click", (e) => {
+    const toggleBtn = document.getElementById("filter-toggle-btn");
+    const filterBox = document.getElementById("filter-box");
+
+    if (!toggleBtn || !filterBox) return;
+
+    // 클릭한 대상이 버튼도 아니고, 필터박스 내부도 아닐 때 → 닫기
+    if (
+        e.target !== toggleBtn &&
+        !toggleBtn.contains(e.target) &&
+        !filterBox.contains(e.target)
+    ) {
+        filterBox.style.display = "none";
+    }
+});
+
 // =============================
 // 🔥 지도 이동/확대/축소 시 자동 reload
 // =============================

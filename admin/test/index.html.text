@@ -78,7 +78,7 @@
 
                 <!-- 🔥 토글로 열렸다 닫히는 필터 박스 -->
                 <div id="filter-box"
-                    class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white mt-1"
+                    class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white mt-2"
                     style="display:none;">
                     
                     <label class="flex items-center gap-2">

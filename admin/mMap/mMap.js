@@ -8,7 +8,7 @@ let allMarkers = [];
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
+        level: 3
     });
 
     // 📌 클러스터러 반드시 여기서 초기화해야 함
@@ -40,7 +40,53 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
+
+    // 🔔 지도 확대 안내 문구 UI 생성
+    const zoomNotice = document.createElement("div");
+    zoomNotice.id = "zoom-notice";
+    zoomNotice.style.position = "fixed";
+    const headerHeight = document.querySelector("header").offsetHeight;
+    zoomNotice.style.top = (headerHeight + 10) + "px";  // 헤더 바로 아래 10px 여백
+    zoomNotice.style.right = "20px";
+    zoomNotice.style.zIndex = "9999";
+    zoomNotice.style.background = "rgba(0,0,0,0.7)";
+    zoomNotice.style.color = "#fff";
+    zoomNotice.style.padding = "8px 12px";
+    zoomNotice.style.borderRadius = "8px";
+    zoomNotice.style.fontSize = "14px";
+    zoomNotice.style.display = "none"; // 기본 숨김
+    zoomNotice.innerText = "지도를 확대하세요 (레벨 4 이하에서 표시됩니다)";
+    document.body.appendChild(zoomNotice);
+
 });
+
+function getSelectedStatuses() {
+    return Array.from(document.querySelectorAll(".status-check:checked"))
+        .map(cb => cb.value);
+}
+
+function enforceZoomLevelBehavior() {
+    const level = map.getLevel();
+    const notice = document.getElementById("zoom-notice");
+
+    if (level >= 4) {
+        // 문구 표시
+        notice.style.display = "block";
+
+        // 마커 숨기기
+        allMarkers.forEach(m => {
+            if (m.marker) m.marker.setMap(null);
+        });
+
+        // 클러스터러에서도 제거
+        clusterer.clear();
+
+        return false;  // 데이터 로딩 금지 신호
+    } else {
+        notice.style.display = "none";  
+        return true;   // 데이터 로딩 허용
+    }
+}
 
 function formatNumber(num) {
     if (num === null || num === undefined || num === "-" || num === "") return "-";
@@ -52,7 +98,17 @@ function formatNumber(num) {
 async function loadListingsByAddress(fullAddress) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py, floor`)
+        .select(`
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            floor,
+            transaction_status
+        `)
+
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -66,8 +122,8 @@ async function loadListingsByAddress(fullAddress) {
 // 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
 // =============================
 
-// 지도에서 Bound 가져오기
-function getCurrentBounds() {
+// 🔥 실제 보이는 지도 영역(Bounds)을 반환하는 함수
+function getVisibleBounds() {
     const bounds = map.getBounds();
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
@@ -80,25 +136,36 @@ function getCurrentBounds() {
     };
 }
 
-// 🔥 Supabase 범위 조회
+// 🔥 지도의 실제 보이는 영역(Bounds)에 포함되는 매물만 조회
 async function loadListingsByBounds() {
-    const b = getCurrentBounds();
+    const b = getVisibleBounds();
+    const selectedStatuses = getSelectedStatuses();
 
-    const { data, error } = await window.supabase
-        .from("baikukdbtest_address_view")
+    // 기본 쿼리
+    let query = window.supabase
+        .from("baikukdbtest")
         .select(`
             full_address,
             lat,
             lng,
-            listing_count
+            transaction_status
         `)
-        .gte("lat", b.minLat)
-        .lte("lat", b.maxLat)
-        .gte("lng", b.minLng)
-        .lte("lng", b.maxLng);
+        .gte("lat", b.minLat).lte("lat", b.maxLat)
+        .gte("lng", b.minLng).lte("lng", b.maxLng);
+
+    // 🔥 체크박스 다중선택 반영
+    if (selectedStatuses.length > 0) {
+        query = query.or(
+            selectedStatuses
+                .map(s => `transaction_status.ilike.%${s}%`)
+                .join(",")
+        );
+    }
+
+    const { data, error } = await query;
 
     if (error) {
-        console.error("❌ Supabase 범위 조회 오류:", error);
+        console.error("❌ Bound Supabase 조회 오류:", error);
         return [];
     }
 
@@ -107,7 +174,16 @@ async function loadListingsByBounds() {
 
 async function renderListingsOnMap() {
     const listings = await loadListingsByBounds();
-    if (!listings.length) return;
+
+    // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
+    if (!listings.length) {
+        allMarkers.forEach(m => {
+            if (m.marker) m.marker.setMap(null);
+        });
+        clusterer.clear();
+        allMarkers = [];
+        return;
+    }
 
     const nextMap = new Map();   // full_address 기준
     listings.forEach(i => {
@@ -142,31 +218,52 @@ async function renderListingsOnMap() {
                 marker: marker
             });
 
-            // 클릭 이벤트 등록
             kakao.maps.event.addListener(marker, "click", async () => {
                 if (currentInfoWindow) currentInfoWindow.close();
 
-                const listings = await loadListingsByAddress(item.full_address);
-                // 🔥 floor 기준 오름차순 정렬
+                // 🔥 Supabase에서 해당 주소 매물 불러오기
+                let listings = await loadListingsByAddress(item.full_address);
+
+                // 🔥 거래상태 필터가 있을 경우 필터링 적용
+                const selectedStatuses = getSelectedStatuses();
+
+                if (selectedStatuses.length > 0) {
+                    listings = listings.filter(i => {
+                        const st = i.transaction_status || "";
+                        return selectedStatuses.some(sel => st.includes(sel));
+                    });
+                }
+
+                // 🔥 정렬 (층수)
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
-                
-                const html = listings.map(i => `
-                    <div style="margin-bottom:6px;">
-                        🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
-                        ${
-                            (i.premium_price == null || Number(i.premium_price) === 0)
-                                ? "무권리"
-                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                        }
-                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
 
-                    </div>
-                `).join("");
+                // 🔥 HTML 생성
+                const html = listings.map(i => {
+                    const textColor = (() => {
+                        const status = i.transaction_status || "";
+                        if (status.includes("완료")) return "red";
+                        if (status.includes("보류")) return "black";
+                        if (status.includes("진행")) return "green";
+                        return "black";
+                    })();
+
+                    return `
+                        <div style="margin-bottom:6px; color:${textColor} !important;">
+                            🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                            &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
+                            ${
+                                (i.premium_price == null || Number(i.premium_price) === 0)
+                                    ? "무권리"
+                                    : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                            }
+                            <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                        </div>
+                    `;
+                }).join("");
 
                 const info = new kakao.maps.InfoWindow({
                     content: `
@@ -175,19 +272,12 @@ async function renderListingsOnMap() {
                             font-size:15px;
                             width:360px;
                             max-height:50vh;
-
-                            /* 스크롤 설정 */
-                            overflow-x:auto;   /* 가로 스크롤 */
-                            overflow-y:auto;   /* 세로 스크롤 */
-
-                            /* 줄바꿈 없음 (가로로 길게 나오도록) */
-                            white-space:nowrap;
-
-                            /* 스크롤을 위해 줄바꿈 관련 속성 해제 */
-                            word-break:keep-all;
-                            overflow-wrap:normal;
+                            overflow-x:auto;
+                            overflow-y:auto;
+                            word-break:break-all;
+                            overflow-wrap:break-word;
                         ">
-                            ${html}
+                            ${html || "<div>조건에 맞는 매물이 없습니다.</div>"}
                         </div>
                     `
                 });
@@ -195,6 +285,7 @@ async function renderListingsOnMap() {
                 info.open(map, marker);
                 currentInfoWindow = info;
             });
+
         }
     });
 
@@ -205,8 +296,24 @@ async function renderListingsOnMap() {
 // 지도 로딩 후 실행
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
-        renderListingsOnMap();
-    }, 800); // 지도 초기화 후 실행 (지연 설정)
+        if (enforceZoomLevelBehavior()) {
+            renderListingsOnMap();
+        }
+    }, 800);
+
+});
+
+// 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
+window.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("filter-toggle-btn");
+    const filterBox = document.getElementById("filter-box");
+
+    if (toggleBtn && filterBox) {
+        toggleBtn.addEventListener("click", () => {
+            filterBox.style.display =
+                filterBox.style.display === "none" ? "block" : "none";
+        });
+    }
 });
 
 // =============================
@@ -218,8 +325,18 @@ let reloadTimer = null;
 function reloadListingsOnMapThrottled() {
     if (reloadTimer) clearTimeout(reloadTimer);
 
-    // 400ms 동안 지도 이동이 멈추면 쿼리 실행
     reloadTimer = setTimeout(() => {
+        // 줌 레벨 제한 체크
+        if (!enforceZoomLevelBehavior()) return;
+
+        // 정상일 때만 데이터 로드
         renderListingsOnMap();
     }, 400);
+
 }
+
+document.querySelectorAll(".status-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
+});
