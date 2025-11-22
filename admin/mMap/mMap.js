@@ -101,8 +101,7 @@ async function renderListingsOnMap() {
                     overflow-wrap: break-word;
                 ">🔹 ${i.listing_id} ${i.listing_title || "-"} 
                     ${i.deposit_price || "-"} / ${i.monthly_rent || "-"} 
-                    - ${i.area_py || "-"}
-                </div>
+                    - ${i.area_py || "-"} </div>
             `;
         });
 
