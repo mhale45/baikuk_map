@@ -38,13 +38,29 @@ function formatNumber(num) {
     if (isNaN(n)) return num;
     return n.toLocaleString("ko-KR");
 }
-
 // =============================
-// 🔥 Supabase → baikukdbtest 지도 표시
+// 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
 // =============================
 
-// 1) 매물 데이터 불러오기
-async function loadBaikukListings() {
+// 지도에서 Bound 가져오기
+function getCurrentBounds() {
+    const bounds = map.getBounds();
+
+    const sw = bounds.getSouthWest(); // 남서쪽
+    const ne = bounds.getNorthEast(); // 북동쪽
+
+    return {
+        minLat: sw.getLat(),
+        maxLat: ne.getLat(),
+        minLng: sw.getLng(),
+        maxLng: ne.getLng()
+    };
+}
+
+// 🔥 Supabase 범위 조회
+async function loadListingsByBounds() {
+    const b = getCurrentBounds();
+
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
@@ -56,10 +72,14 @@ async function loadBaikukListings() {
             monthly_rent,
             premium_price,
             area_py
-        `);
+        `)
+        .gte("lat", b.minLat)
+        .lte("lat", b.maxLat)
+        .gte("lng", b.minLng)
+        .lte("lng", b.maxLng);
 
     if (error) {
-        console.error("❌ Supabase 데이터 로딩 오류:", error);
+        console.error("❌ Supabase 범위 조회 오류:", error);
         return [];
     }
 
@@ -68,7 +88,7 @@ async function loadBaikukListings() {
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
-    const listings = await loadBaikukListings();
+    const listings = await loadListingsByBounds();
     if (!listings.length) {
         console.warn("⚠️ 불러올 데이터가 없습니다.");
         return;
@@ -168,3 +188,24 @@ window.addEventListener("DOMContentLoaded", () => {
         renderListingsOnMap();
     }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
+
+// =============================
+// 🔥 지도 이동/확대/축소 시 자동 reload
+// =============================
+
+let reloadTimer = null;
+
+function reloadListingsOnMapThrottled() {
+    if (reloadTimer) clearTimeout(reloadTimer);
+
+    // 400ms 동안 지도 이동이 멈추면 쿼리 실행
+    reloadTimer = setTimeout(() => {
+        renderListingsOnMap();
+    }, 400);
+}
+
+// 지도 드래그 종료 후
+kakao.maps.event.addListener(map, "dragend", reloadListingsOnMapThrottled);
+
+// 지도 확대/축소 후
+kakao.maps.event.addListener(map, "zoom_changed", reloadListingsOnMapThrottled);
