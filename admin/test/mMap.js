@@ -171,16 +171,18 @@ async function loadListingsByLatLng(lat, lng, marker) {
     const infoHtml = `
         <div style="
             padding:8px;
-            font-size:14px;
+            font-size:13px;
             line-height:1.4;
-            white-space: normal;
+            white-space: normal;      /* 줄바꿈 유지 */
             word-break: break-word;
             overflow-wrap: break-word;
             word-wrap: break-word;
             width: 360px;
             display: block;
+
             max-height: 50vh;
-            overflow-y: auto;
+            overflow-y: auto;          /* 세로 스크롤 */
+            overflow-x: auto;          /* 🔥 가로 스크롤 추가 */
         ">
             ${htmlLines.join("")}
         </div>
