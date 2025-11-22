@@ -225,9 +225,9 @@ async function renderListingsOnMap() {
                     const textColor = (() => {
                         const status = i.transaction_status || "";
 
-                        if (status.includes("계약완료")) return "red";
+                        if (status.includes("완료")) return "red";
                         if (status.includes("보류")) return "gray";
-                        if (status.includes("진행중")) return "green";
+                        if (status.includes("진행")) return "green";
 
                         return "black";
                     })();
