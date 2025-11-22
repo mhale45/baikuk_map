@@ -11,8 +11,6 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 4
     });
 
-    map.setPadding({ top: 96, right: 0, bottom: 0, left: 0 }); 
-
     // 📌 클러스터러 반드시 여기서 초기화해야 함
     clusterer = new kakao.maps.MarkerClusterer({
         map: map,
@@ -270,5 +268,3 @@ function reloadListingsOnMapThrottled() {
     }, 400);
 
 }
-
-map.relayout();
