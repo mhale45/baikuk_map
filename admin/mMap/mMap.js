@@ -152,12 +152,33 @@ async function renderListingsOnMap() {
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                         &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
-                        권${formatNumber(i.premium_price)} ${i.area_py ?? "-"}평
+                        권${formatNumber(i.premium_price)} ${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}평
+
                     </div>
                 `).join("");
 
                 const info = new kakao.maps.InfoWindow({
-                    content: `<div style="padding:8px; font-size:12px; width:360px;">${html}</div>`
+                    content: `
+                        <div style="
+                            padding:8px;
+                            font-size:14px;
+                            width:360px;
+                            max-height:50vh;
+
+                            /* 스크롤 설정 */
+                            overflow-x:auto;   /* 가로 스크롤 */
+                            overflow-y:auto;   /* 세로 스크롤 */
+
+                            /* 줄바꿈 없음 (가로로 길게 나오도록) */
+                            white-space:nowrap;
+
+                            /* 스크롤을 위해 줄바꿈 관련 속성 해제 */
+                            word-break:keep-all;
+                            overflow-wrap:normal;
+                        ">
+                            ${html}
+                        </div>
+                    `
                 });
 
                 info.open(map, marker);
