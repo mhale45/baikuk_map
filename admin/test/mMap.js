@@ -219,7 +219,7 @@ async function renderListingsOnMap() {
                     const textColor = (i.transaction_status === "계약완료") ? "red" : "black";
 
                     return `
-                        <div style="margin-bottom:6px; color:${textColor};">
+                        <div style="margin-bottom:6px; color:${textColor} !important;">
                             🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
