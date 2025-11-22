@@ -161,8 +161,6 @@ async function loadListingsByLatLng(lat, lng, marker) {
                 overflow-wrap: break-word;
                 word-wrap: break-word;
                 display: block;
-                max-height: 50vh;
-                overflow-y: auto;
             ">
                 🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                 &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
@@ -181,6 +179,8 @@ async function loadListingsByLatLng(lat, lng, marker) {
             word-wrap: break-word;
             width: 360px;
             display: block;
+            max-height: 50vh;
+            overflow-y: auto;
         ">
             ${htmlLines.join("")}
         </div>
