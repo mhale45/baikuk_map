@@ -100,7 +100,15 @@ async function renderListingsOnMap() {
         });
 
         const infoHtml = `
-            <div style="padding:8px; font-size:12px; line-height:1.4;">
+            <div style="
+                padding:8px;
+                font-size:12px;
+                line-height:1.4;
+                white-space: normal;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                max-width: 240px;
+            ">
                 ${htmlLines.join("<br/>")}
             </div>
         `;
