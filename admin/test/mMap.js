@@ -193,7 +193,7 @@ async function loadListingsByBounds() {
 }
 
 async function renderListingsOnMap() {
-    const listings = await loadListingsByBounds();
+    let listings = await loadListingsByBounds();
 
     // 🔥 JS단 추가 필터링 (deal_type)
     const selectedDealTypes = getSelectedDealTypes();
