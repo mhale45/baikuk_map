@@ -1,14 +1,15 @@
-// ▷ 기본 지도 초기화 코드
+// 새 mMap.js (admin 버전과 동일한 클러스터 로직 + 기본 지도 로직 통합)
 
 let map;
+let clusterer;
+let selectedClusterEl = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
-        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
         level: 4
     });
 
-    // 현재 위치 이동 시도
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -21,15 +22,10 @@ window.addEventListener("DOMContentLoaded", () => {
             }
         );
     }
+
+    createClusterer();
 });
 
-/* ======================================================
-   🔥 admin/index.html 과 동일한 클러스터 표시 로직
-   ====================================================== */
-let clusterer;
-let selectedClusterEl = null;
-
-// 클러스터 생성 함수
 function createClusterer() {
     if (clusterer) clusterer.clear();
 
@@ -39,24 +35,34 @@ function createClusterer() {
         minLevel: 1,
         minClusterSize: 1,
         disableClickZoom: true,
-        gridSize: 80,   // 기본값
+        gridSize: 80,
         styles: [{
             width: '40px',
             height: '40px',
-            background: '#F2C130',
-            border: '2px solid #F2C130',
-            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
             color: '#fff',
-            fontWeight: 'bold',
             textAlign: 'center',
-            lineHeight: '40px'
+            lineHeight: '40px',
+            fontWeight: 'bold',
+            html: `
+                <div style="
+                    width:40px;
+                    height:40px;
+                    background:#F2C130;
+                    border-radius:50%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:#fff;
+                    font-weight:bold;
+                    border:2px solid #F2C130;
+                "></div>
+            `
         }]
     });
 
-    // ► 클러스터 클릭 이벤트
     kakao.maps.event.addListener(clusterer, 'clusterclick', function (cluster) {
-
-        // 기존 선택된 클러스터 원복
         if (selectedClusterEl) {
             selectedClusterEl.style.border = "none";
             selectedClusterEl.style.borderRadius = "50%";
@@ -68,7 +74,6 @@ function createClusterer() {
             }
         }
 
-        // 새로 클릭한 클러스터 DOM
         const clusterEl = cluster.getClusterMarker().getContent().parentNode;
         if (clusterEl) {
             clusterEl.style.background = "transparent";
@@ -85,23 +90,16 @@ function createClusterer() {
 
         selectedClusterEl = clusterEl;
 
-        // ▼ admin/index.html 과 동일하게, 클러스터 안의 매물 목록 가져오기
         const markerList = cluster.getMarkers();
-        const listings = markerList
-            .map(mk => mk.listing_data) // mMap 용 단순 필드
-            .filter(Boolean);
+        const listings = markerList.map(mk => mk.listing_data).filter(Boolean);
 
         console.log("클러스터 안 매물들:", listings);
     });
 }
 
-// ===============================
-// 🔥 마커 + 클러스터 적용.
-// ===============================
 function setMarkersOnMap(list) {
     if (!clusterer) createClusterer();
 
-    // 기존 마커 제거
     clusterer.clear();
 
     const markers = list.map(l => {
@@ -109,7 +107,6 @@ function setMarkersOnMap(list) {
             position: new kakao.maps.LatLng(l.lat, l.lng)
         });
 
-        // admin/index.html 과 같은 구조를 위해 매물 데이터 저장
         marker.listing_data = l;
         return marker;
     });
