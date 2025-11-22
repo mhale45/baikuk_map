@@ -51,14 +51,11 @@ function getCurrentBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    const latBuffer = (ne.getLat() - sw.getLat()) * 0.2;
-    const lngBuffer = (ne.getLng() - sw.getLng()) * 0.2;
-
     return {
-        minLat: sw.getLat() - latBuffer,
-        maxLat: ne.getLat() + latBuffer,
-        minLng: sw.getLng() - lngBuffer,
-        maxLng: ne.getLng() + lngBuffer
+        minLat: sw.getLat(),
+        maxLat: ne.getLat(),
+        minLng: sw.getLng(),
+        maxLng: ne.getLng()
     };
 }
 
