@@ -113,21 +113,11 @@ function getVisibleBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    const minLat = sw.getLat();
-    const maxLat = ne.getLat();
-    const minLng = sw.getLng();
-    const maxLng = ne.getLng();
-
-    // 현재 화면 lat/lng 범위
-    const latDiff = (maxLat - minLat);
-    const lngDiff = (maxLng - minLng);
-
-    // 🔥 2배 확장 (위·아래·좌·우 모두)
     return {
-        minLat: minLat - latDiff,
-        maxLat: maxLat + latDiff,
-        minLng: minLng - lngDiff,
-        maxLng: maxLng + lngDiff
+        minLat: sw.getLat(),
+        maxLat: ne.getLat(),
+        minLng: sw.getLng(),
+        maxLng: ne.getLng()
     };
 }
 
