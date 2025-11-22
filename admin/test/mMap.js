@@ -75,6 +75,105 @@ async function loadBaikukListingsInBounds() {
     return data;
 }
 
+// 🔥 마커용 초경량 데이터 (lat, lng, listing_id만 불러오기)
+async function loadMarkerPositions() {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            lat,
+            lng
+        `)
+        .not("lat", "is", null)
+        .not("lng", "is", null);
+
+    if (error) {
+        console.error("❌ 마커 좌표 조회 오류:", error);
+        return [];
+    }
+
+    return data;
+}
+
+// 🔥 마커만 지도에 표시 (정보는 불러오지 않음)
+async function renderMarkersOnly() {
+    const positions = await loadMarkerPositions();
+
+    if (!positions.length) {
+        console.warn("⚠️ 표시할 마커 데이터가 없습니다.");
+        return;
+    }
+
+    const markers = [];
+
+    positions.forEach(item => {
+        const marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(item.lat, item.lng)
+        });
+
+        // 클릭 시 상세정보 fetch
+        kakao.maps.event.addListener(marker, "click", () => {
+            loadListingDetail(item.listing_id, marker);
+        });
+
+        markers.push(marker);
+    });
+
+    const clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,
+        disableClickZoom: false
+    });
+
+    clusterer.addMarkers(markers);
+}
+
+// 🔥 마커 클릭 시 상세 조회 후 InfoWindow 오픈
+async function loadListingDetail(listing_id, marker) {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py
+        `)
+        .eq("listing_id", listing_id)
+        .single();
+
+    if (error || !data) {
+        console.error("❌ 상세정보 조회 오류:", error);
+        return;
+    }
+
+    const infoHtml = `
+        <div style="
+            padding:8px;
+            font-size:12px;
+            line-height:1.4;
+            white-space: normal;
+            word-break: break-word;
+        ">
+            <b>${data.listing_title ?? "-"}</b><br/>
+            보증금: ${formatNumber(data.deposit_price)}<br/>
+            월세: ${formatNumber(data.monthly_rent)}<br/>
+            권리금: ${formatNumber(data.premium_price)}<br/>
+            면적: ${data.area_py || "-"} 평
+        </div>
+    `;
+
+    const infoWindow = new kakao.maps.InfoWindow({
+        content: infoHtml,
+    });
+
+    if (currentInfoWindow) currentInfoWindow.close();
+    infoWindow.open(map, marker);
+    currentInfoWindow = infoWindow;
+}
+
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
     const listings = await loadBaikukListingsInBounds();
@@ -164,12 +263,12 @@ async function renderListingsOnMap() {
 // 지도 로딩 후 실행
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
-        renderListingsOnMap();
+        renderMarkersOnly();
     }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
 
 // 🔥 지도 이동/줌 시 자동으로 데이터 다시 불러오기
 kakao.maps.event.addListener(map, "idle", () => {
-    renderListingsOnMap();
+    renderMarkersOnly();
 });
 
