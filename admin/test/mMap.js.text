@@ -11,6 +11,14 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 4
     });
 
+    // 📌 클러스터러 반드시 여기서 초기화해야 함
+    clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,
+        disableClickZoom: false
+    });
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -31,7 +39,6 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 📌 idle 이벤트는 map 생성 후에 반드시 등록해야 함
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
 });
 
@@ -98,121 +105,69 @@ async function loadListingsByBounds() {
     return data;
 }
 
-// 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
-
-    // ===== 🔥 기존 마커/클러스터 제거 =====
-    if (clusterer) {
-        clusterer.clear();
-        clusterer = null;
-    }
-
-    allMarkers.forEach(m => m.setMap(null));
-    allMarkers = [];
-    // ======================================
-
     const listings = await loadListingsByBounds();
-    if (!listings.length) {
-        console.warn("⚠️ 불러올 데이터가 없습니다.");
-        return;
-    }
+    if (!listings.length) return;
 
-    const markers = [];
-
-    // 🔥 1) 좌표(lat, lng) 기준으로 매물 그룹핑
-    const grouped = {};
-    listings.forEach(item => {
-        if (!item.lat || !item.lng) return;
-
-        const key = `${item.lat}_${item.lng}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(item);
+    const nextMap = new Map();   // full_address 기준
+    listings.forEach(i => {
+        nextMap.set(i.full_address, i);
     });
 
-    // 🔥 2) 각 그룹마다 마커 1개만 생성
-    Object.keys(grouped).forEach(key => {
-        const items = grouped[key];
-        const first = items[0];
+    const currentMap = new Map();
+    allMarkers.forEach(m => {
+        currentMap.set(m.full_address, m);
+    });
 
-        const position = new kakao.maps.LatLng(first.lat, first.lng);
+    // 1) 삭제해야 할 마커 찾기
+    currentMap.forEach((markerObj, addr) => {
+        if (!nextMap.has(addr)) {
+            markerObj.marker.setMap(null);
+            clusterer.removeMarker(markerObj.marker);
+            currentMap.delete(addr);
+        }
+    });
 
-        const marker = new kakao.maps.Marker({
-            position: position
-        });
-
-        // (📌 인포윈도우 내용 그대로 유지)
-        let htmlLines = items.map(i => {
-            return `
-                <div style="
-                    text-indent: -14px;
-                    padding-left: 14px;
-                    margin-bottom: 0;
-                    white-space: normal;
-                    word-break: break-word;
-                    overflow-wrap: break-word;
-                    word-wrap: break-word;
-                    display: block;
-                ">
-                    🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                    &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
-                </div>
-            `;
-        });
-
-        const infoHtml = `
-            <div style="
-                padding:8px;
-                font-size:12px;
-                line-height:1.4;
-                white-space: normal;
-                word-break: break-word;
-                overflow-wrap: break-word;
-                word-wrap: break-word;
-                width: 360px; 
-                display: block;
-            ">
-                ${htmlLines.join("")}
-            </div>
-        `;
-
-        const info = new kakao.maps.InfoWindow({
-            content: infoHtml
-        });
-
-        kakao.maps.event.addListener(marker, "click", async () => {
-            if (currentInfoWindow) currentInfoWindow.close();
-
-            const listings = await loadListingsByAddress(item.full_address);
-
-            const html = listings.map(i => `
-                <div style="margin-bottom:6px;">
-                    🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                    &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
-                    권${formatNumber(i.premium_price)} ${i.area_py ?? "-"}평
-                </div>
-            `).join("");
-
-            const info = new kakao.maps.InfoWindow({
-                content: `<div style="padding:8px; font-size:12px; width:360px;">${html}</div>`
+    // 2) 새로 추가할 마커 추가
+    nextMap.forEach((item, addr) => {
+        if (!currentMap.has(addr)) {
+            const marker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(item.lat, item.lng)
             });
 
-            info.open(map, marker);
-            currentInfoWindow = info;
-        });
+            clusterer.addMarker(marker);
 
-        markers.push(marker);
+            currentMap.set(addr, {
+                full_address: addr,
+                marker: marker
+            });
+
+            // 클릭 이벤트 등록
+            kakao.maps.event.addListener(marker, "click", async () => {
+                if (currentInfoWindow) currentInfoWindow.close();
+
+                const listings = await loadListingsByAddress(item.full_address);
+
+                const html = listings.map(i => `
+                    <div style="margin-bottom:6px;">
+                        🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                        &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
+                        권${formatNumber(i.premium_price)} ${i.area_py ?? "-"}평
+                    </div>
+                `).join("");
+
+                const info = new kakao.maps.InfoWindow({
+                    content: `<div style="padding:8px; font-size:12px; width:360px;">${html}</div>`
+                });
+
+                info.open(map, marker);
+                currentInfoWindow = info;
+            });
+        }
     });
 
-    // 🔥 4) 클러스터 추가
-    clusterer = new kakao.maps.MarkerClusterer({
-        map: map,
-        averageCenter: true,
-        minLevel: 5,
-        disableClickZoom: false
-    });
-
-    clusterer.addMarkers(markers);
-    allMarkers = markers;
+    // 업데이트된 마커 목록 저장
+    allMarkers = Array.from(currentMap.values());
 }
 
 // 지도 로딩 후 실행

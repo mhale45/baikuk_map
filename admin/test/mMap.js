@@ -157,7 +157,20 @@ async function renderListingsOnMap() {
                 `).join("");
 
                 const info = new kakao.maps.InfoWindow({
-                    content: `<div style="padding:8px; font-size:12px; width:360px;">${html}</div>`
+                    content: `
+                        <div style="
+                            padding:8px;
+                            font-size:12px;
+                            width:360px;
+                            max-height:50vh;     /* 화면 세로의 절반 */
+                            overflow-x:auto;     /* 가로스크롤 */
+                            overflow-y:auto;     /* 세로스크롤 */
+                            white-space:normal;
+                            word-break:break-word;
+                        ">
+                            ${html}
+                        </div>
+                    `
                 });
 
                 info.open(map, marker);
