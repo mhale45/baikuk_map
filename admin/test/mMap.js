@@ -303,6 +303,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
 });
 
+// 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
+window.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("filter-toggle-btn");
+    const filterBox = document.getElementById("filter-box");
+
+    if (toggleBtn && filterBox) {
+        toggleBtn.addEventListener("click", () => {
+            filterBox.style.display =
+                filterBox.style.display === "none" ? "block" : "none";
+        });
+    }
+});
+
 // =============================
 // 🔥 지도 이동/확대/축소 시 자동 reload
 // =============================

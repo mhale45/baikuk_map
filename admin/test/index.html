@@ -69,20 +69,32 @@
     <!-- ▷ 기존 index.html 의 헤더 UI 그대로 복사한 축약본 ◁ -->
     <header class="flex items-start gap-4 w-full px-4 pt-2 bg-white shadow-md border-b border-gray-200">
         <div class="flex flex-col gap-2 mt-1">
-            <!-- 거래상태 필터 -->
-            <div id="filter-status" class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white">
+            <!-- 🔥 필터 토글 버튼 -->
+            <button id="filter-toggle-btn"
+                class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
+                거래상태
+            </button>
+
+            <!-- 🔥 토글로 열렸다 닫히는 필터 박스 -->
+            <div id="filter-box"
+                class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white mt-1"
+                style="display:none;">
+                
                 <label class="flex items-center gap-2">
                     <input type="checkbox" value="진행" class="status-check" />
                     진행중
                 </label>
+
                 <label class="flex items-center gap-2">
                     <input type="checkbox" value="보류" class="status-check" />
                     보류
                 </label>
+
                 <label class="flex items-center gap-2">
                     <input type="checkbox" value="완료" class="status-check" />
                     계약완료
                 </label>
+
             </div>
 
             <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
