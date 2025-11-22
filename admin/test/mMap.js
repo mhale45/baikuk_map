@@ -43,8 +43,12 @@ function formatNumber(num) {
 // 🔥 Supabase → baikukdbtest 지도 표시
 // =============================
 
-// 1) 매물 데이터 불러오기
-async function loadBaikukListings() {
+// 🔥 지도 범위 기반 매물 로딩 (Bounding Box)
+async function loadBaikukListingsInBounds() {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
@@ -56,10 +60,15 @@ async function loadBaikukListings() {
             monthly_rent,
             premium_price,
             area_py
-        `);
+        `)
+        .gte("lat", sw.getLat())
+        .lte("lat", ne.getLat())
+        .gte("lng", sw.getLng())
+        .lte("lng", ne.getLng())
+        .limit(2000);
 
     if (error) {
-        console.error("❌ Supabase 데이터 로딩 오류:", error);
+        console.error("❌ Supabase 범위 조회 오류:", error);
         return [];
     }
 
@@ -68,7 +77,7 @@ async function loadBaikukListings() {
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
-    const listings = await loadBaikukListings();
+    const listings = await loadBaikukListingsInBounds();
     if (!listings.length) {
         console.warn("⚠️ 불러올 데이터가 없습니다.");
         return;
@@ -97,7 +106,6 @@ async function renderListingsOnMap() {
             position: position
         });
 
-        // 🔥 3) 그룹 전체 매물 정보를 줄바꿈으로 생성
         let htmlLines = items.map(i => {
             return `
                 <div style="
@@ -125,25 +133,17 @@ async function renderListingsOnMap() {
                 word-break: break-word;
                 overflow-wrap: break-word;
                 word-wrap: break-word;
-                width: 360px;             /* 🔥 폭 강제 지정 */
-                display: block;           /* 🔥 카카오 기본값 무력화 */
+                width: 360px;
+                display: block;
             ">
                 ${htmlLines.join("")}
             </div>
         `;
 
-        const info = new kakao.maps.InfoWindow({
-            content: infoHtml
-        });
+        const info = new kakao.maps.InfoWindow({ content: infoHtml });
 
         kakao.maps.event.addListener(marker, "click", () => {
-
-            // 이전에 열린 창 닫기
-            if (currentInfoWindow) {
-                currentInfoWindow.close();
-            }
-
-            // 새 창 열기
+            if (currentInfoWindow) currentInfoWindow.close();
             info.open(map, marker);
             currentInfoWindow = info;
         });
@@ -151,7 +151,6 @@ async function renderListingsOnMap() {
         markers.push(marker);
     });
 
-    // 🔥 4) 클러스터 추가
     const clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
@@ -168,3 +167,9 @@ window.addEventListener("DOMContentLoaded", () => {
         renderListingsOnMap();
     }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
+
+// 🔥 지도 이동/줌 시 자동으로 데이터 다시 불러오기
+kakao.maps.event.addListener(map, "idle", () => {
+    renderListingsOnMap();
+});
+
