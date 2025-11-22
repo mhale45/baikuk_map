@@ -250,8 +250,8 @@ async function renderListingsOnMap() {
 
                     const textColor = (() => {
                         if (status.includes("완료")) return "red";
-                        if (status.includes("보류")) return "black";
-                        if (status.includes("진행")) return "green";
+                        if (status.includes("보류")) return "green";
+                        if (status.includes("진행")) return "black";
                         return "black";
                     })();
 
