@@ -243,8 +243,12 @@ async function renderListingsOnMap() {
 
                 // 🔥 HTML 생성
                 const html = listings.map(i => {
+                    const status = i.transaction_status || "";
+
+                    // 🔥 상태에 따른 아이콘 선택
+                    const icon = status.includes("완료") ? "🔹" : "🔸";
+
                     const textColor = (() => {
-                        const status = i.transaction_status || "";
                         if (status.includes("완료")) return "red";
                         if (status.includes("보류")) return "black";
                         if (status.includes("진행")) return "green";
@@ -253,7 +257,7 @@ async function renderListingsOnMap() {
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
-                            🔸🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                            ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
