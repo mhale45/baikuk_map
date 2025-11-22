@@ -63,6 +63,11 @@ function getSelectedStatuses() {
         .map(cb => cb.value);
 }
 
+function getSelectedDealTypes() {
+    return Array.from(document.querySelectorAll(".dealtype-check:checked"))
+        .map(cb => cb.value);
+}
+
 function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
@@ -104,7 +109,8 @@ async function loadListingsByAddress(fullAddress) {
             premium_price,
             area_py,
             floor,
-            transaction_status
+            transaction_status,
+            deal_type
         `)
 
         .eq("full_address", fullAddress);
@@ -138,6 +144,7 @@ function getVisibleBounds() {
 async function loadListingsByBounds() {
     const b = getVisibleBounds();
     const selectedStatuses = getSelectedStatuses();
+    const selectedDealTypes = getSelectedDealTypes();
 
     // 기본 쿼리
     let query = window.supabase
@@ -146,20 +153,35 @@ async function loadListingsByBounds() {
             full_address,
             lat,
             lng,
-            transaction_status
+            transaction_status,
+            deal_type
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
 
-    // 🔥 체크박스 다중선택 반영
+    // 🔥 OR 필터 전체 결합
+    let orFilters = [];
+
+    // 거래상태
     if (selectedStatuses.length > 0) {
-        query = query.or(
-            selectedStatuses
-                .map(s => `transaction_status.ilike.%${s}%`)
-                .join(",")
+        orFilters.push(
+            ...selectedStatuses.map(s => `transaction_status.ilike.%${s}%`)
         );
     }
 
+    // 거래유형 (월세/매매)
+    if (selectedDealTypes.length > 0) {
+        orFilters.push(
+            ...selectedDealTypes.map(t => `deal_type.ilike.%${t}%`)
+        );
+    }
+
+    // 조건이 하나라도 있으면 OR 로 연결
+    if (orFilters.length > 0) {
+        query = query.or(orFilters.join(","));
+    }
+
+    // 최종 Supabase 실행
     const { data, error } = await query;
 
     if (error) {
@@ -171,7 +193,16 @@ async function loadListingsByBounds() {
 }
 
 async function renderListingsOnMap() {
-    const listings = await loadListingsByBounds();
+    let listings = await loadListingsByBounds();
+
+    // 🔥 JS단 추가 필터링 (deal_type)
+    const selectedDealTypes = getSelectedDealTypes();
+    if (selectedDealTypes.length > 0) {
+        listings = listings.filter(i => {
+            const dt = i.deal_type || "";
+            return selectedDealTypes.some(sel => dt.includes(sel));
+        });
+    }
 
     // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
     if (!listings.length) {
@@ -229,6 +260,15 @@ async function renderListingsOnMap() {
                     listings = listings.filter(i => {
                         const st = i.transaction_status || "";
                         return selectedStatuses.some(sel => st.includes(sel));
+                    });
+                }
+
+                // 🔥 거래유형 필터 (월세/매매)
+                const selectedDealTypes = getSelectedDealTypes();
+                if (selectedDealTypes.length > 0) {
+                    listings = listings.filter(i => {
+                        const dt = i.deal_type || "";
+                        return selectedDealTypes.some(sel => dt.includes(sel));
                     });
                 }
 
@@ -348,6 +388,12 @@ function reloadListingsOnMapThrottled() {
 }
 
 document.querySelectorAll(".status-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
+});
+
+document.querySelectorAll(".dealtype-check").forEach(cb => {
     cb.addEventListener("change", () => {
         reloadListingsOnMapThrottled();
     });
