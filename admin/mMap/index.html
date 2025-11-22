@@ -44,6 +44,18 @@
         }
 
         enforceAuthForMMap();
+        
+        import { loadListingsFromSupabase, setMarkersOnMap } from './mMap.js';
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            // 1) Supabase에서 매물 가져오기
+            const listings = await loadListingsFromSupabase();
+
+            // 2) 지도에 표시
+            setMarkersOnMap(listings);
+
+            console.log("불러온 매물 수:", listings.length);
+        });
     </script>
 </head>
 

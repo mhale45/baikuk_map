@@ -113,3 +113,39 @@ function setMarkersOnMap(list) {
 
     clusterer.addMarkers(markers);
 }
+
+/* ======================================================
+   🔥 Supabase에서 실제 매물 불러오기
+   ====================================================== */
+export async function loadListingsFromSupabase() {
+    try {
+        const { data, error } = await window.supabase
+            .from("baikukdbtest")   // ← 실제 테이블명
+            .select("listing_id, lat, lng, deal_type, category, title, building_name")
+            .eq("transaction_status", "진행중"); // 원하면 조건 삭제 가능
+
+        if (error) {
+            console.error("매물 로드 오류:", error);
+            return [];
+        }
+
+        // 지도에 필요한 최소 정보만 구성
+        const list = data
+            .filter(item => item.lat && item.lng) // 좌표 없는 매물 제거
+            .map(item => ({
+                listing_id: item.listing_id,
+                lat: item.lat,
+                lng: item.lng,
+                title: item.title || "",
+                category: item.category,
+                deal_type: item.deal_type,
+                building_name: item.building_name
+            }));
+
+        return list;
+
+    } catch (err) {
+        console.error("loadListingsFromSupabase() 실패:", err);
+        return [];
+    }
+}
