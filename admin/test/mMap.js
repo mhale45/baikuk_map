@@ -195,6 +195,15 @@ async function loadListingsByBounds() {
 async function renderListingsOnMap() {
     const listings = await loadListingsByBounds();
 
+    // 🔥 JS단 추가 필터링 (deal_type)
+    const selectedDealTypes = getSelectedDealTypes();
+    if (selectedDealTypes.length > 0) {
+        listings = listings.filter(i => {
+            const dt = i.deal_type || "";
+            return selectedDealTypes.some(sel => dt.includes(sel));
+        });
+    }
+
     // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
     if (!listings.length) {
         allMarkers.forEach(m => {
