@@ -120,8 +120,7 @@ async function renderListingsOnMap() {
                 text-indent: -12px;
                 padding-left: 12px;
             ">
-                ${htmlLines.join("<br/>")}
-            </div>
+                ${htmlLines.join("<br/>")}</div>
         `;
 
         const info = new kakao.maps.InfoWindow({
