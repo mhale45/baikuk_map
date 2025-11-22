@@ -438,3 +438,29 @@ document.querySelectorAll(".category-check").forEach(cb => {
     });
 });
 
+// 🔥 필터 초기화 버튼
+document.getElementById("filter-reset-btn").addEventListener("click", () => {
+
+    // 전체 체크박스 모두 false 로 초기화
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => cb.checked = false);
+
+    // 🔥 기본 선택항목 다시 체크
+    const defaults = [
+        "진행중", // 거래상태(status)
+        "월세",   // deal_type
+        "상가",   // category
+        "빌딩",   // category
+        "공장"    // category (공장·창고는 실제 값이 "공장")
+    ];
+
+    // 값이 포함된 체크박스를 체크 true
+    defaults.forEach(val => {
+        document.querySelectorAll("input[type='checkbox']").forEach(cb => {
+            if (cb.value.includes(val)) cb.checked = true;
+        });
+    });
+
+    // 🔥 필터 적용하여 지도 다시 로드
+    reloadListingsOnMapThrottled();
+});
