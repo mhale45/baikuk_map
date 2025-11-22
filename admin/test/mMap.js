@@ -93,7 +93,17 @@ function formatNumber(num) {
 async function loadListingsByAddress(fullAddress) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py, floor`)
+        .select(`
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            floor,
+            transaction_status
+        `)
+
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -204,19 +214,29 @@ async function renderListingsOnMap() {
                     return fa - fb;
                 });
                 
-                const html = listings.map(i => `
-                    <div style="margin-bottom:6px;">
-                        🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
-                        ${
-                            (i.premium_price == null || Number(i.premium_price) === 0)
-                                ? "무권리"
-                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                        }
-                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                const html = listings.map(i => {
+                    // 🔥 거래상태 컬러 지정
+                    const statusColor = (i.transaction_status === "계약완료") ? "red" : "black";
 
-                    </div>
-                `).join("");
+                    return `
+                        <div style="margin-bottom:6px;">
+                            🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+
+                            <!-- 거래상태 표시 -->
+                            <span style="color:${statusColor}; font-weight:bold;">
+                                ${i.transaction_status || ""}
+                            </span><br/>
+
+                            &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
+                            ${
+                                (i.premium_price == null || Number(i.premium_price) === 0)
+                                    ? "무권리"
+                                    : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                            }
+                            <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                        </div>
+                    `;
+                }).join("");
 
                 const info = new kakao.maps.InfoWindow({
                     content: `
