@@ -113,7 +113,7 @@ async function renderMarkersOnly() {
 
         // 클릭 시 상세정보 fetch
         kakao.maps.event.addListener(marker, "click", () => {
-            loadListingDetail(item.listing_id, marker);
+            loadListingsByLatLng(item.lat, item.lng, marker);
         });
 
         markers.push(marker);
@@ -129,8 +129,8 @@ async function renderMarkersOnly() {
     clusterer.addMarkers(markers);
 }
 
-// 🔥 마커 클릭 시 상세 조회 후 InfoWindow 오픈
-async function loadListingDetail(listing_id, marker) {
+// 🔥 동일 좌표(lat, lng) 가진 매물 묶어서 조회 후 텍스트박스 출력
+async function loadListingsByLatLng(lat, lng, marker) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
@@ -141,13 +141,32 @@ async function loadListingDetail(listing_id, marker) {
             premium_price,
             area_py
         `)
-        .eq("listing_id", listing_id)
-        .single();
+        .eq("lat", lat)
+        .eq("lng", lng);
 
-    if (error || !data) {
-        console.error("❌ 상세정보 조회 오류:", error);
+    if (error || !data || !data.length) {
+        console.error("❌ 매물 조회 오류:", error);
         return;
     }
+
+    // 기존 텍스트박스 방식 유지
+    let htmlLines = data.map(i => {
+        return `
+            <div style="
+                text-indent: -14px;
+                padding-left: 14px;
+                margin-bottom: 0;
+                white-space: normal;
+                word-break: break-word;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                display: block;
+            ">
+                🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
+            </div>
+        `;
+    });
 
     const infoHtml = `
         <div style="
@@ -156,12 +175,12 @@ async function loadListingDetail(listing_id, marker) {
             line-height:1.4;
             white-space: normal;
             word-break: break-word;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            width: 360px;
+            display: block;
         ">
-            <b>${data.listing_title ?? "-"}</b><br/>
-            보증금: ${formatNumber(data.deposit_price)}<br/>
-            월세: ${formatNumber(data.monthly_rent)}<br/>
-            권리금: ${formatNumber(data.premium_price)}<br/>
-            면적: ${data.area_py || "-"} 평
+            ${htmlLines.join("")}
         </div>
     `;
 
