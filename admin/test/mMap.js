@@ -152,7 +152,7 @@ async function loadListingsByBounds() {
 
     // 🔥 거래상태 필터가 선택된 경우 Supabase 쿼리에 조건 추가
     if (status !== "") {
-        query = query.eq("transaction_status", status);
+        query = query.ilike("transaction_status", `%${status}%`);
     }
 
     const { data, error } = await query;
