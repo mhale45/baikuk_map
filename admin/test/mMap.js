@@ -43,12 +43,31 @@ function formatNumber(num) {
 // 🔥 Supabase → baikukdbtest 지도 표시
 // =============================
 
-// 1) 매물 데이터 불러오기
-async function loadBaikukListings() {
+// 🔥 현재 지도 중심 좌표 기준 반경 2km 매물만 Supabase에서 불러오기 (full_address unique)
+async function loadBaikukListingsByRadius() {
+
+    const center = map.getCenter();
+    const centerLat = center.getLat();
+    const centerLng = center.getLng();
+
+    const R = 6371; // 지구 반경(km)
+    const radius = 2; // 2km
+
+    // 위도/경도 범위 계산
+    const deltaLat = (radius / R) * (180 / Math.PI);
+    const deltaLng = (radius / (R * Math.cos(centerLat * Math.PI / 180))) * (180 / Math.PI);
+
+    const minLat = centerLat - deltaLat;
+    const maxLat = centerLat + deltaLat;
+    const minLng = centerLng - deltaLng;
+    const maxLng = centerLng + deltaLng;
+
+    // 🔥 Supabase에서 범위 검색 + full_address 기준 unique
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
             listing_id,
+            full_address,
             listing_title,
             lat,
             lng,
@@ -56,19 +75,31 @@ async function loadBaikukListings() {
             monthly_rent,
             premium_price,
             area_py
-        `);
+        `)
+        .gte("lat", minLat)
+        .lte("lat", maxLat)
+        .gte("lng", minLng)
+        .lte("lng", maxLng);
 
     if (error) {
-        console.error("❌ Supabase 데이터 로딩 오류:", error);
+        console.error("❌ 지도 반경 매물 조회 오류:", error);
         return [];
     }
 
-    return data;
+    // 🔥 full_address 기준 unique 처리
+    const uniqueMap = new Map();
+    data.forEach(item => {
+        if (!uniqueMap.has(item.full_address)) {
+            uniqueMap.set(item.full_address, item);
+        }
+    });
+
+    return Array.from(uniqueMap.values());
 }
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
-    const listings = await loadBaikukListings();
+    const listings = await loadBaikukListingsByRadius();
     if (!listings.length) {
         console.warn("⚠️ 불러올 데이터가 없습니다.");
         return;
