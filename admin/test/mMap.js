@@ -52,7 +52,7 @@ function formatNumber(num) {
 async function loadListingsByAddress(fullAddress) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py`)
+        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py, floor`)
         .eq("full_address", fullAddress);
 
     if (error) {
