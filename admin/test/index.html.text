@@ -106,6 +106,26 @@
                         매매
                     </label>
 
+                    <label class="flex items-center gap-2 mt-3">
+                        <input type="checkbox" value="상가" class="category-check" />
+                        상가
+                    </label>
+
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" value="빌딩" class="category-check" />
+                        빌딩
+                    </label>
+
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" value="공장" class="category-check" />
+                        공장·창고
+                    </label>
+
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" value="주택" class="category-check" />
+                        주택
+                    </label>
+
                 </div>
             </div>
             <div class="flex flex-col gap-2">
@@ -121,8 +141,8 @@
             position: fixed;
             top: calc(var(--header-height) + 10px);
             left: 10px;
-            width: 360px;
-            max-height: 90vh;
+            max-width: 380px;
+            max-height: 70vh;
             background: white;
             border: 1px solid #ccc;
             border-radius: 8px;
