@@ -80,25 +80,19 @@ function getCurrentBounds() {
     };
 }
 
-// 🔥 Supabase 범위 조회
+// 🔥 전체 5000개 제한으로 조회 (뷰 사용 X)
 async function loadListingsByBounds() {
-    const b = getCurrentBounds();
-
     const { data, error } = await window.supabase
-        .from("baikukdbtest_address_view")
+        .from("baikukdbtest")
         .select(`
             full_address,
             lat,
-            lng,
-            listing_count
+            lng
         `)
-        .gte("lat", b.minLat)
-        .lte("lat", b.maxLat)
-        .gte("lng", b.minLng)
-        .lte("lng", b.maxLng);
+        .limit(5000);
 
     if (error) {
-        console.error("❌ Supabase 범위 조회 오류:", error);
+        console.error("❌ Supabase 전체 조회 오류:", error);
         return [];
     }
 
