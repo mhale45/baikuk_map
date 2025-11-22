@@ -75,60 +75,6 @@ async function loadBaikukListingsInBounds() {
     return data;
 }
 
-// 🔥 마커용 초경량 데이터 (lat, lng, listing_id만 불러오기)
-async function loadMarkerPositions() {
-    const { data, error } = await window.supabase
-        .from("baikukdbtest")
-        .select(`
-            listing_id,
-            lat,
-            lng
-        `)
-        .not("lat", "is", null)
-        .not("lng", "is", null);
-
-    if (error) {
-        console.error("❌ 마커 좌표 조회 오류:", error);
-        return [];
-    }
-
-    return data;
-}
-
-// 🔥 마커만 지도에 표시 (정보는 불러오지 않음)
-async function renderMarkersOnly() {
-    const positions = await loadMarkerPositions();
-
-    if (!positions.length) {
-        console.warn("⚠️ 표시할 마커 데이터가 없습니다.");
-        return;
-    }
-
-    const markers = [];
-
-    positions.forEach(item => {
-        const marker = new kakao.maps.Marker({
-            position: new kakao.maps.LatLng(item.lat, item.lng)
-        });
-
-        // 클릭 시 상세정보 fetch
-        kakao.maps.event.addListener(marker, "click", () => {
-            loadListingsByLatLng(item.lat, item.lng, marker);
-        });
-
-        markers.push(marker);
-    });
-
-    const clusterer = new kakao.maps.MarkerClusterer({
-        map: map,
-        averageCenter: true,
-        minLevel: 5,
-        disableClickZoom: false
-    });
-
-    clusterer.addMarkers(markers);
-}
-
 // 🔥 동일 좌표(lat, lng) 가진 매물 묶어서 조회 후 텍스트박스 출력
 async function loadListingsByLatLng(lat, lng, marker) {
     const { data, error } = await window.supabase
@@ -201,8 +147,115 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
 
-// 🔥 지도 이동/줌 시 자동으로 데이터 다시 불러오기
+// =======================================================
+// 🔥 지번(full_address) 단위 마커 로딩 (지도 범위 + 확장)
+// =======================================================
+
+// 마커 & 클러스터러 전역 보관 → 반복 호출 시 삭제 가능
+let currentMarkers = [];
+let currentClusterer = null;
+
+// 범위 확장 값 (위도/경도 기준)
+const BBOX_PADDING = 0.01;  // 약 1km 정도 확장
+
+async function loadGroupedMarkersInExpandedBounds() {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    // 🔥 지도 범위를 약간 확장
+    const minLat = sw.getLat() - BBOX_PADDING;
+    const maxLat = ne.getLat() + BBOX_PADDING;
+    const minLng = sw.getLng() - BBOX_PADDING;
+    const maxLng = ne.getLng() + BBOX_PADDING;
+
+    // 🔥 지번(full_address) 기준으로 대표 좌표(lat,lng) 1개만 가져오기
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            full_address,
+            lat,
+            lng
+        `)
+        .gte("lat", minLat)
+        .lte("lat", maxLat)
+        .gte("lng", minLng)
+        .lte("lng", maxLng)
+        .order("full_address", { ascending: true });
+
+    if (error) {
+        console.error("❌ BBOX 지번 단위 조회 오류:", error);
+        return [];
+    }
+
+    // 🔥 지번(full_address) 단위 그룹핑
+    const grouped = {};
+    data.forEach(item => {
+        if (!grouped[item.full_address]) {
+            grouped[item.full_address] = {
+                lat: item.lat,
+                lng: item.lng
+            };
+        }
+    });
+
+    return Object.values(grouped);
+}
+
+// =======================================================
+// 🔥 지번당 1개의 마커 표시
+// =======================================================
+async function renderGroupedAddressMarkers() {
+    // 🔄 기존 클러스터러 제거
+    if (currentClusterer) {
+        currentClusterer.clear();
+        currentClusterer = null;
+    }
+
+    // 🔄 기존 마커 제거
+    currentMarkers.forEach(m => m.setMap(null));
+    currentMarkers = [];
+
+    const positions = await loadGroupedMarkersInExpandedBounds();
+    if (!positions.length) return;
+
+    const markers = [];
+
+    positions.forEach(item => {
+        const marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(item.lat, item.lng)
+        });
+
+        // 🔥 클릭 시 지번 전체 매물 로딩
+        kakao.maps.event.addListener(marker, "click", () => {
+            loadListingsByLatLng(item.lat, item.lng, marker);
+        });
+
+        markers.push(marker);
+    });
+
+    // 저장
+    currentMarkers = markers;
+
+    // 🔥 클러스터러 생성
+    currentClusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,
+        disableClickZoom: false
+    });
+
+    currentClusterer.addMarkers(markers);
+}
+
+// =======================================================
+// 🔥 지도 이동/확대/축소 시 자동 새로 로딩
+// =======================================================
 kakao.maps.event.addListener(map, "idle", () => {
-    renderMarkersOnly();
+    renderGroupedAddressMarkers();
 });
 
+// 초기 1회 실행
+setTimeout(() => {
+    renderGroupedAddressMarkers();
+}, 600);
