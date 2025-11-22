@@ -1,6 +1,7 @@
 // ▷ 기본 지도 초기화 코드
 
 let map;
+let currentInfoWindow = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -21,6 +22,14 @@ window.addEventListener("DOMContentLoaded", () => {
             }
         );
     }
+
+    // 🔹 지도 배경을 클릭하면 현재 열린 인포윈도우 닫기
+    kakao.maps.event.addListener(map, "click", () => {
+        if (currentInfoWindow) {
+            currentInfoWindow.close();
+            currentInfoWindow = null;
+        }
+    });
 });
 
 // =============================
