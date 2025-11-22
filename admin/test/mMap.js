@@ -80,8 +80,12 @@ function getCurrentBounds() {
     };
 }
 
-// 🔥 전체 5000개 제한으로 조회 (뷰 사용 X)
+// 🔥 지도의 현재 범위(Bounds)에 포함되는 매물만 조회
 async function loadListingsByBounds() {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
@@ -89,10 +93,11 @@ async function loadListingsByBounds() {
             lat,
             lng
         `)
-        .limit(3000);
+        .gte("lat", sw.getLat()).lte("lat", ne.getLat())
+        .gte("lng", sw.getLng()).lte("lng", ne.getLng());
 
     if (error) {
-        console.error("❌ Supabase 전체 조회 오류:", error);
+        console.error("❌ Bound Supabase 조회 오류:", error);
         return [];
     }
 
