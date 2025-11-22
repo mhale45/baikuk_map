@@ -173,7 +173,6 @@ async function loadGroupedMarkersInExpandedBounds() {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
-            full_address,
             lat,
             lng
         `)
@@ -181,7 +180,7 @@ async function loadGroupedMarkersInExpandedBounds() {
         .lte("lat", maxLat)
         .gte("lng", minLng)
         .lte("lng", maxLng)
-        .order("full_address", { ascending: true });
+        .group("lat, lng");
 
     if (error) {
         console.error("❌ BBOX 지번 단위 조회 오류:", error);
