@@ -85,18 +85,17 @@ async function loadListingsByBounds() {
     const b = getCurrentBounds();
 
     const { data, error } = await window.supabase
-        .from("baikukdbtest")
+        .from("baikukdbtest_address_view")
         .select(`
-            listing_id,
-            listing_title,
-            deposit_price,
-            monthly_rent,
-            premium_price,
-            area_py,
-            floor
+            full_address,
+            lat,
+            lng,
+            listing_count
         `)
-        .eq("full_address", fullAddress)
-        .order("floor", { ascending: true });
+        .gte("lat", b.minLat)
+        .lte("lat", b.maxLat)
+        .gte("lng", b.minLng)
+        .lte("lng", b.maxLng);
 
     if (error) {
         console.error("❌ Supabase 범위 조회 오류:", error);
