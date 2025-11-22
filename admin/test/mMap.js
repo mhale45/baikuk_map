@@ -63,7 +63,6 @@ async function loadListingsByLatLng(lat, lng, marker) {
         return;
     }
 
-    // 기존 텍스트박스 방식 유지
     let htmlLines = data.map(i => {
         return `
             <div style="
@@ -82,16 +81,10 @@ async function loadListingsByLatLng(lat, lng, marker) {
             padding:8px;
             font-size:14px;
             line-height:1.4;
-
-            /* 🔥 가로 스크롤을 전체 박스에 적용 */
-            white-space: nowrap;     /* 자동 줄바꿈 금지 */
-            overflow-x: auto;        /* 가로 스크롤 생성 */
-
-            /* 🔥 세로 스크롤은 유지 */
+            white-space: nowrap;
+            overflow-x: auto;
             max-height: 50vh;
             overflow-y: auto;
-
-            /* 기타 UI 유지 */
             width: 360px;
             display: block;
         ">
@@ -112,11 +105,9 @@ async function loadListingsByLatLng(lat, lng, marker) {
 // 🔥 지번(full_address) 단위 마커 로딩 (지도 범위 + 확장)
 // =======================================================
 
-// 마커 & 클러스터러 전역 보관 → 반복 호출 시 삭제 가능
 let currentMarkers = [];
 let currentClusterer = null;
 
-// 범위 확장 값 (위도/경도 기준)
 const BBOX_PADDING = 0.01;  // 약 1km 정도 확장
 
 async function loadGroupedMarkersInExpandedBounds() {
@@ -124,13 +115,12 @@ async function loadGroupedMarkersInExpandedBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    // 🔥 지도 범위를 약간 확장
     const minLat = sw.getLat() - BBOX_PADDING;
     const maxLat = ne.getLat() + BBOX_PADDING;
     const minLng = sw.getLng() - BBOX_PADDING;
     const maxLng = ne.getLng() + BBOX_PADDING;
 
-    // 🔥 지번(full_address) 기준으로 대표 좌표(lat,lng) 1개만 가져오기
+    // 🔥 Supabase에서 full_address 기준으로 직접 그룹핑
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
@@ -142,7 +132,7 @@ async function loadGroupedMarkersInExpandedBounds() {
         .lte("lat", maxLat)
         .gte("lng", minLng)
         .lte("lng", maxLng)
-        .group("full_address, lat, lng")
+        .group("full_address, lat, lng")   // 🔥 핵심!!
         .order("full_address", { ascending: true });
 
     if (error) {
@@ -150,18 +140,7 @@ async function loadGroupedMarkersInExpandedBounds() {
         return [];
     }
 
-    // 🔥 지번(full_address) 단위 그룹핑
-    const grouped = {};
-    data.forEach(item => {
-        if (!grouped[item.full_address]) {
-            grouped[item.full_address] = {
-                lat: item.lat,
-                lng: item.lng
-            };
-        }
-    });
-
-    return Object.values(grouped);
+    return data;
 }
 
 // =======================================================
@@ -184,11 +163,12 @@ async function renderGroupedAddressMarkers() {
     const markers = [];
 
     positions.forEach(item => {
+        if (!item.lat || !item.lng) return;
+
         const marker = new kakao.maps.Marker({
             position: new kakao.maps.LatLng(item.lat, item.lng)
         });
 
-        // 🔥 클릭 시 지번 전체 매물 로딩
         kakao.maps.event.addListener(marker, "click", () => {
             loadListingsByLatLng(item.lat, item.lng, marker);
         });
@@ -196,10 +176,8 @@ async function renderGroupedAddressMarkers() {
         markers.push(marker);
     });
 
-    // 저장
     currentMarkers = markers;
 
-    // 🔥 클러스터러 생성
     currentClusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
@@ -217,7 +195,7 @@ kakao.maps.event.addListener(map, "idle", () => {
     renderGroupedAddressMarkers();
 });
 
-// 초기 1회 실행
+// 초기 로딩 1회
 setTimeout(() => {
     renderGroupedAddressMarkers();
 }, 600);
