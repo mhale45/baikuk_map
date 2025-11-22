@@ -215,10 +215,15 @@ async function renderListingsOnMap() {
                 });
                 
                 const html = listings.map(i => {
-                    const textColor =
-                        (i.transaction_status && i.transaction_status.includes("계약완료"))
-                            ? "red"
-                            : "black";
+                    const textColor = (() => {
+                        const status = i.transaction_status || "";
+
+                        if (status.includes("계약완료")) return "red";
+                        if (status.includes("보류")) return "gray";
+                        if (status.includes("진행중")) return "green";
+
+                        return "black";  // 그 외 상태
+                    })();
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
