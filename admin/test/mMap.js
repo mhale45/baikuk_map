@@ -43,38 +43,6 @@ function formatNumber(num) {
 // 🔥 Supabase → baikukdbtest 지도 표시
 // =============================
 
-// 🔥 지도 범위 기반 매물 로딩 (Bounding Box)
-async function loadBaikukListingsInBounds() {
-    const bounds = map.getBounds();
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
-
-    const { data, error } = await window.supabase
-        .from("baikukdbtest")
-        .select(`
-            listing_id,
-            listing_title,
-            lat,
-            lng,
-            deposit_price,
-            monthly_rent,
-            premium_price,
-            area_py
-        `)
-        .gte("lat", sw.getLat())
-        .lte("lat", ne.getLat())
-        .gte("lng", sw.getLng())
-        .lte("lng", ne.getLng())
-        .limit(8000);
-
-    if (error) {
-        console.error("❌ Supabase 범위 조회 오류:", error);
-        return [];
-    }
-
-    return data;
-}
-
 // 🔥 동일 좌표(lat, lng) 가진 매물 묶어서 조회 후 텍스트박스 출력
 async function loadListingsByLatLng(lat, lng, marker) {
     const { data, error } = await window.supabase
@@ -140,13 +108,6 @@ async function loadListingsByLatLng(lat, lng, marker) {
     currentInfoWindow = infoWindow;
 }
 
-// 지도 로딩 후 실행
-window.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-        renderMarkersOnly();
-    }, 800); // 지도 초기화 후 실행 (지연 설정)
-});
-
 // =======================================================
 // 🔥 지번(full_address) 단위 마커 로딩 (지도 범위 + 확장)
 // =======================================================
@@ -173,6 +134,7 @@ async function loadGroupedMarkersInExpandedBounds() {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
         .select(`
+            full_address,
             lat,
             lng
         `)
@@ -180,7 +142,7 @@ async function loadGroupedMarkersInExpandedBounds() {
         .lte("lat", maxLat)
         .gte("lng", minLng)
         .lte("lng", maxLng)
-        .group("lat, lng");
+        .order("full_address", { ascending: true });
 
     if (error) {
         console.error("❌ BBOX 지번 단위 조회 오류:", error);
