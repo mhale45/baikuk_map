@@ -12,7 +12,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     map.relayout();
-    
+
     // 📌 클러스터러 반드시 여기서 초기화해야 함
     clusterer = new kakao.maps.MarkerClusterer({
         map: map,
@@ -111,13 +111,33 @@ async function loadListingsByAddress(fullAddress) {
 
 // 🔥 실제 보이는 지도 영역(Bounds)을 반환하는 함수
 function getVisibleBounds() {
+    const proj = map.getProjection();
     const bounds = map.getBounds();
+
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
+    // 현재 지도 크기
+    const mapContainer = document.getElementById("map");
+    const mapHeight = mapContainer.offsetHeight;
+
+    // header 만큼 실제 화면에서 잘려 있음
+    const headerHeight = document.querySelector("header").offsetHeight;
+
+    // 지도 상단이 잘린 만큼 픽셀 좌표 보정
+    // → 지도 실제 보이는 영역의 위쪽 지점을 계산
+    const topLeft = proj.pointFromLatLng(new kakao.maps.LatLng(ne.getLat(), sw.getLng()));
+
+    const correctedTopLeft = new kakao.maps.Point(
+        topLeft.x,
+        topLeft.y + headerHeight   // ← 위쪽을 내려서 실제 화면이 보이는 영역으로 전환
+    );
+
+    const correctedLatLngNE = proj.latLngFromPoint(correctedTopLeft);
+
     return {
         minLat: sw.getLat(),
-        maxLat: ne.getLat(),
+        maxLat: correctedLatLngNE.getLat(),
         minLng: sw.getLng(),
         maxLng: ne.getLng()
     };
