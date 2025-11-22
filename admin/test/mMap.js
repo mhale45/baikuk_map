@@ -236,6 +236,3 @@ function reloadListingsOnMapThrottled() {
         renderListingsOnMap();
     }, 400);
 }
-
-// 📌 지도 이동/확대/축소가 완전히 끝난 후 실행됨 (가장 안정적)
-kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
