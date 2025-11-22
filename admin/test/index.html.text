@@ -20,23 +20,25 @@
             padding: 0;
         }
 
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+
         header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             height: var(--header-height);
-            z-index: 10000;
             background: #fff;
+            z-index: 10000;
         }
 
-        #map {
-            position: absolute;
-            top: var(--header-height);
-            left: 0;
-            right: 0;
-            bottom: 0;
-        }
     </style>
 
     <!-- 🔥 Supabase Client -->
