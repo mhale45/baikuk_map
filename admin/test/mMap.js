@@ -8,7 +8,7 @@ let allMarkers = [];
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
+        level: 3
     });
 
     // 📌 클러스터러 반드시 여기서 초기화해야 함
