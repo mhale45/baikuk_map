@@ -107,22 +107,29 @@ async function loadListingsByAddress(fullAddress) {
 // 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
 // =============================
 
-// 지도에서 Bound 가져오기
+// 🔥 실제 보이는 지도 영역(Bounds)을 반환하는 함수
 function getVisibleBounds() {
-    const b = getVisibleBounds();
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
 
-    // 화면 픽셀단위의 헤더 높이
+    // 헤더 높이 픽셀 단위
     const headerHeight = document.querySelector("header").offsetHeight;
 
-    // 지도 화면의 픽셀 bounds 구하기
+    // Kakao 지도 Projection
     const proj = map.getProjection();
+
+    // SW / NE 의 container 좌표 구하기
     const swPoint = proj.containerPointFromCoords(sw);
     const nePoint = proj.containerPointFromCoords(ne);
 
-    // 헤더 부분만큼 지도 상단을 아래로 내리기
-    const adjustedNePoint = new kakao.maps.Point(nePoint.x, nePoint.y + headerHeight);
+    // 헤더만큼 지도 상단 잘려 있으므로 NE.y 를 아래로 headerHeight 만큼 이동
+    const adjustedNePoint = new kakao.maps.Point(
+        nePoint.x,
+        nePoint.y + headerHeight
+    );
 
-    // 다시 좌표(lat/lng)로 변환
+    // 다시 지도 좌표로 변환
     const adjustedNe = proj.coordsFromContainerPoint(adjustedNePoint);
 
     return {
