@@ -108,8 +108,7 @@ async function renderListingsOnMap() {
             `;
         });
 
-        const infoHtml = `<div style="
-                padding:8px;
+        const infoHtml = `<div style=" padding:8px;
                 font-size:12px;
                 line-height:1.4;
                 white-space: normal;
@@ -117,8 +116,7 @@ async function renderListingsOnMap() {
                 overflow-wrap: break-word;
                 max-width: 240px;
                 text-indent: -12px;
-                padding-left: 12px;
-            ">${htmlLines.join("<br/>")}</div>`;
+                padding-left: 12px; ">${htmlLines.join("<br/>")}</div>`;
 
         const info = new kakao.maps.InfoWindow({
             content: infoHtml
