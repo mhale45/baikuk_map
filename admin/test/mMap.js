@@ -9,6 +9,11 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 4
     });
 
+    // 🔄 지도 이동이 끝나면 다시 반경 2km 매물 로딩
+    kakao.maps.event.addListener(map, "idle", () => {
+        renderListingsOnMap();
+    });
+
     // 현재 위치 이동 시도
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -61,11 +66,6 @@ async function loadBaikukListings() {
 
     return data;
 }
-
-// 🔄 지도 이동이 끝나면 다시 반경 2km 매물 로딩
-kakao.maps.event.addListener(map, "idle", () => {
-    renderListingsOnMap();
-});
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
