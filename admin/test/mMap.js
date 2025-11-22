@@ -5,14 +5,12 @@ let currentInfoWindow = null;
 let clusterer = null;
 let allMarkers = [];
 
-
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
-        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
         level: 4
     });
 
-    // 현재 위치 이동 시도
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -26,13 +24,15 @@ window.addEventListener("DOMContentLoaded", () => {
         );
     }
 
-    // 🔹 지도 배경을 클릭하면 현재 열린 인포윈도우 닫기
     kakao.maps.event.addListener(map, "click", () => {
         if (currentInfoWindow) {
             currentInfoWindow.close();
             currentInfoWindow = null;
         }
     });
+
+    // 📌 idle 이벤트는 map 생성 후에 반드시 등록해야 함
+    kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
 });
 
 function formatNumber(num) {
