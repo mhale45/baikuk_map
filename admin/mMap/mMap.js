@@ -99,13 +99,16 @@ async function renderListingsOnMap() {
 
         // 🔥 3) 그룹 전체 매물 정보를 줄바꿈으로 생성
         let htmlLines = items.map(i => {
-            return `<div style="
+            return `
+                <div style="
                     text-indent: -14px;
                     padding-left: 14px;
                     margin-bottom: 0;
                     white-space: normal;
-                    word-wrap: break-word;
+                    word-break: break-word;
                     overflow-wrap: break-word;
+                    word-wrap: break-word;
+                    display: block;
                 ">
                     🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                     &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
