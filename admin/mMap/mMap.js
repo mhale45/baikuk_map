@@ -82,12 +82,9 @@ async function renderListingsOnMap() {
         const info = new kakao.maps.InfoWindow({
             content: `
                 <div style="padding:8px; font-size:12px; line-height:1.4;">
-                    🔹 매물번호: <b>${item.listing_id}</b><br/>
-                    🔹 제목: ${item.listing_title || "-"}<br/>
-                    🔹 보증금: ${item.deposit_price || "-"}<br/>
-                    🔹 월세: ${item.monthly_rent || "-"}<br/>
-                    🔹 권리금: ${item.premium_price || "-"}<br/>
-                    🔹 면적(평): ${item.area_py || "-"}
+                    🔹 ${item.listing_id} ${item.listing_title || "-"} 
+                    ${item.deposit_price || "-"} / ${item.monthly_rent || "-"} 
+                    - ${item.area_py || "-"}
                 </div>
             `
         });
