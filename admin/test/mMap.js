@@ -246,11 +246,7 @@ async function renderListingsOnMap() {
                     const status = i.transaction_status || "";
 
                     // 🔥 상태에 따른 아이콘 선택
-                    const icon = status.includes("완료")
-                        ? "🔹"
-                        : status.includes("보류")
-                            ? "◆"
-                            : "🔸";
+                    const icon = status.includes("완료") ? "🔹" : "🔸";
 
                     const textColor = (() => {
                         if (status.includes("완료")) return "red";
