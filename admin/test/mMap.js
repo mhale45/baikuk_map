@@ -263,6 +263,15 @@ async function renderListingsOnMap() {
                     });
                 }
 
+                // 🔥 거래유형 필터 (월세/매매)
+                const selectedDealTypes = getSelectedDealTypes();
+                if (selectedDealTypes.length > 0) {
+                    listings = listings.filter(i => {
+                        const dt = i.deal_type || "";
+                        return selectedDealTypes.some(sel => dt.includes(sel));
+                    });
+                }
+
                 // 🔥 정렬 (층수)
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
