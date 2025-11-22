@@ -374,3 +374,9 @@ document.querySelectorAll(".status-check").forEach(cb => {
         reloadListingsOnMapThrottled();
     });
 });
+
+document.querySelectorAll(".dealtype-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
+});
