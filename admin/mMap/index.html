@@ -38,6 +38,29 @@
             bottom: 0;
         }
     </style>
+
+    <!-- 🔥 Supabase Client -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+
+        window.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+
+        // 🔥 로그인 여부 확인 후 접속 불가하면 listings 로 이동
+        async function enforceAuthForMMap() {
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (!session) {
+                location.replace("/admin/listings/");
+            }
+        }
+
+        enforceAuthForMMap();
+    </script>
+
 </head>
 <body>
 
