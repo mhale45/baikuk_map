@@ -167,7 +167,16 @@ async function loadListingsByBounds() {
 
 async function renderListingsOnMap() {
     const listings = await loadListingsByBounds();
-    if (!listings.length) return;
+
+    // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
+    if (!listings.length) {
+        allMarkers.forEach(m => {
+            if (m.marker) m.marker.setMap(null);
+        });
+        clusterer.clear();
+        allMarkers = [];
+        return;
+    }
 
     const nextMap = new Map();   // full_address 기준
     listings.forEach(i => {
@@ -202,18 +211,16 @@ async function renderListingsOnMap() {
                 marker: marker
             });
 
-            // 클릭 이벤트 등록
             kakao.maps.event.addListener(marker, "click", async () => {
                 if (currentInfoWindow) currentInfoWindow.close();
 
                 const listings = await loadListingsByAddress(item.full_address);
-                // 🔥 floor 기준 오름차순 정렬
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
-                
+
                 const html = listings.map(i => {
                     const textColor = (() => {
                         const status = i.transaction_status || "";
@@ -222,7 +229,7 @@ async function renderListingsOnMap() {
                         if (status.includes("보류")) return "gray";
                         if (status.includes("진행중")) return "green";
 
-                        return "black";  // 그 외 상태
+                        return "black";
                     })();
 
                     return `
@@ -246,11 +253,8 @@ async function renderListingsOnMap() {
                             font-size:15px;
                             width:360px;
                             max-height:50vh;
-
-                            /* 스크롤 설정 */
-                            overflow-x:auto;   /* 가로 스크롤 */
-                            overflow-y:auto;   /* 세로 스크롤 */
-
+                            overflow-x:auto;
+                            overflow-y:auto;
                             word-break:break-all;
                             overflow-wrap:break-word;
                         ">
