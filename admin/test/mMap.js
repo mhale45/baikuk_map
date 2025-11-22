@@ -42,27 +42,24 @@ function formatNumber(num) {
 // 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
 // =============================
 
-// 지도에서 Bound 가져오기 → 보이는 영역보다 30% 큰 검색 범위로 확장
-function getExpandedBounds() {
+// 지도에서 Bound 가져오기
+function getCurrentBounds() {
     const bounds = map.getBounds();
 
     const sw = bounds.getSouthWest(); // 남서쪽
     const ne = bounds.getNorthEast(); // 북동쪽
 
-    const latRange = ne.getLat() - sw.getLat();
-    const lngRange = ne.getLng() - sw.getLng();
-
     return {
-        minLat: sw.getLat() - latRange,
-        maxLat: ne.getLat() + latRange,
-        minLng: sw.getLng() - lngRange*0.3,
-        maxLng: ne.getLng() + lngRange*0.3
+        minLat: sw.getLat(),
+        maxLat: ne.getLat(),
+        minLng: sw.getLng(),
+        maxLng: ne.getLng()
     };
 }
 
 // 🔥 Supabase 범위 조회
 async function loadListingsByBounds() {
-    const b = getExpandedBounds();
+    const b = getCurrentBounds();
 
     const { data, error } = await window.supabase
         .from("baikukdbtest")
