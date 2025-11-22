@@ -140,6 +140,13 @@ async function loadListingsByLatLng(lat, lng, marker) {
     currentInfoWindow = infoWindow;
 }
 
+// 지도 로딩 후 실행
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        renderMarkersOnly();
+    }, 800); // 지도 초기화 후 실행 (지연 설정)
+});
+
 // =======================================================
 // 🔥 지번(full_address) 단위 마커 로딩 (지도 범위 + 확장)
 // =======================================================
