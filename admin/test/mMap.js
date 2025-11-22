@@ -215,18 +215,12 @@ async function renderListingsOnMap() {
                 });
                 
                 const html = listings.map(i => {
-                    // 🔥 거래상태 컬러 지정
-                    const statusColor = (i.transaction_status === "계약완료") ? "red" : "black";
+                    // 계약완료 → 글씨 전체 빨간색, 아니면 기본색
+                    const textColor = (i.transaction_status === "계약완료") ? "red" : "black";
 
                     return `
-                        <div style="margin-bottom:6px;">
+                        <div style="margin-bottom:6px; color:${textColor};">
                             🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-
-                            <!-- 거래상태 표시 -->
-                            <span style="color:${statusColor}; font-weight:bold;">
-                                ${i.transaction_status || ""}
-                            </span><br/>
-
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
