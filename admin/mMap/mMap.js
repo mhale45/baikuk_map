@@ -96,7 +96,7 @@ async function renderListingsOnMap() {
                 <div style="
                     text-indent: -14px;
                     padding-left: 14px;
-                    margin-bottom: 4px;
+                    margin-bottom: 0;
                     white-space: normal;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
