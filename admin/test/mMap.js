@@ -65,7 +65,7 @@ async function loadBaikukListingsInBounds() {
         .lte("lat", ne.getLat())
         .gte("lng", sw.getLng())
         .lte("lng", ne.getLng())
-        .limit(2000);
+        .limit(8000);
 
     if (error) {
         console.error("❌ Supabase 범위 조회 오류:", error);
