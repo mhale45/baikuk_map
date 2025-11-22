@@ -55,7 +55,8 @@ window.addEventListener("DOMContentLoaded", () => {
     zoomNotice.style.display = "none"; // 기본 숨김
     zoomNotice.innerText = "지도를 확대하세요 (레벨 4 이하에서 표시됩니다)";
     document.body.appendChild(zoomNotice);
-
+    // 🔥 페이지 첫 로드 시 필터 초기화 실행
+    resetFilterSelections();
 });
 
 function getSelectedStatuses() {
@@ -438,3 +439,23 @@ document.querySelectorAll(".category-check").forEach(cb => {
     });
 });
 
+// 필터 초기화 함수
+function resetFilterSelections() {
+    // 전체 체크박스 false
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => cb.checked = false);
+
+    // 기본 선택값 적용
+    const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
+    defaults.forEach(val => {
+        document.querySelectorAll("input[type='checkbox']").forEach(cb => {
+            if (cb.value.includes(val)) cb.checked = true;
+        });
+    });
+
+    // 지도 reload
+    reloadListingsOnMapThrottled();
+}
+
+// 🔥 초기화 버튼 클릭 시 함수 실행
+document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);

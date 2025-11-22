@@ -69,7 +69,21 @@
     <!-- ▷ 기존 index.html 의 헤더 UI 그대로 복사한 축약본 ◁ -->
     <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
         <div class="flex flex-row gap-2 mt-1">
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">                
+                <button id="filter-reset-btn"
+                    style="
+                        width: 100%;
+                        padding: 6px 0;
+                        margin-bottom: 8px;
+                        border: 1px solid #aaa;
+                        border-radius: 6px;
+                        background: #f3f3f3;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">
+                    초기화
+                </button>
+                
                 <!-- 🔥 필터 토글 버튼 -->
                 <button id="filter-toggle-btn"
                     class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]">
@@ -80,9 +94,9 @@
                 <div id="filter-box"
                     class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white mt-2"
                     style="display:none;">
-                    
+
                     <label class="flex items-center gap-2">
-                        <input type="checkbox" value="진행" class="status-check" />
+                        <input type="checkbox" value="진행중" class="status-check" />
                         진행중
                     </label>
 
@@ -92,7 +106,7 @@
                     </label>
 
                     <label class="flex items-center gap-2">
-                        <input type="checkbox" value="완료" class="status-check" />
+                        <input type="checkbox" value="계약완료" class="status-check" />
                         계약완료
                     </label>
 
