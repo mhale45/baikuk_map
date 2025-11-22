@@ -155,11 +155,15 @@ async function loadListingsByLatLng(lat, lng, marker) {
             <div style="
                 text-indent: -14px;
                 padding-left: 14px;
-                margin-bottom: 0;
-                white-space: normal;
-                word-break: break-word;
-                overflow-wrap: break-word;
-                word-wrap: break-word;
+                margin-bottom: 6px;
+
+                /* 🔥 가로로 길어지는 경우 줄바꿈 없이 확장 */
+                white-space: nowrap;
+
+                /* 🔥 긴 텍스트가 박스 밖으로 나가면 스크롤 발생 */
+                overflow-x: auto;
+
+                /* 🔥 영역 넘어가면 스크롤로 처리되도록 block */
                 display: block;
             ">
                 🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
