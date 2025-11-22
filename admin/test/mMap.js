@@ -89,7 +89,7 @@ async function loadListingsByBounds() {
             lat,
             lng
         `)
-        .limit(5000);
+        .limit(3000);
 
     if (error) {
         console.error("❌ Supabase 전체 조회 오류:", error);
