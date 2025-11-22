@@ -85,17 +85,18 @@ async function loadListingsByBounds() {
     const b = getCurrentBounds();
 
     const { data, error } = await window.supabase
-        .from("baikukdbtest_address_view")
+        .from("baikukdbtest")
         .select(`
-            full_address,
-            lat,
-            lng,
-            listing_count
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            floor
         `)
-        .gte("lat", b.minLat)
-        .lte("lat", b.maxLat)
-        .gte("lng", b.minLng)
-        .lte("lng", b.maxLng);
+        .eq("full_address", fullAddress)
+        .order("floor", { ascending: true });
 
     if (error) {
         console.error("❌ Supabase 범위 조회 오류:", error);
@@ -147,7 +148,13 @@ async function renderListingsOnMap() {
                 if (currentInfoWindow) currentInfoWindow.close();
 
                 const listings = await loadListingsByAddress(item.full_address);
-
+                // 🔥 floor 기준 오름차순 정렬
+                listings.sort((a, b) => {
+                    const fa = a.floor ?? 0;
+                    const fb = b.floor ?? 0;
+                    return fa - fb;
+                });
+                
                 const html = listings.map(i => `
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
