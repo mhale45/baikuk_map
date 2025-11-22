@@ -171,7 +171,7 @@ async function loadListingsByLatLng(lat, lng, marker) {
     const infoHtml = `
         <div style="
             padding:8px;
-            font-size:13px;
+            font-size:14px;
             line-height:1.4;
             white-space: normal;      /* 줄바꿈 유지 */
             word-break: break-word;
