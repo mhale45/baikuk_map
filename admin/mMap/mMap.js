@@ -111,7 +111,7 @@ async function renderListingsOnMap() {
                 white-space: normal;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
-                max-width: 240px;
+                max-width: 300px;
                 text-indent: -12px;
                 padding-left: 12px; ">${htmlLines.join(" ")}</div>`;
 
