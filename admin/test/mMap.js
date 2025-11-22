@@ -45,7 +45,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const zoomNotice = document.createElement("div");
     zoomNotice.id = "zoom-notice";
     zoomNotice.style.position = "fixed";
-    zoomNotice.style.top = "80px";
+    const headerHeight = document.querySelector("header").offsetHeight;
+    zoomNotice.style.top = (headerHeight + 10) + "px";  // 헤더 바로 아래 10px 여백
     zoomNotice.style.right = "20px";
     zoomNotice.style.zIndex = "9999";
     zoomNotice.style.background = "rgba(0,0,0,0.7)";
@@ -107,24 +108,34 @@ async function loadListingsByAddress(fullAddress) {
 // =============================
 
 // 지도에서 Bound 가져오기
-function getCurrentBounds() {
-    const bounds = map.getBounds();
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
+function getVisibleBounds() {
+    const b = getVisibleBounds();
+
+    // 화면 픽셀단위의 헤더 높이
+    const headerHeight = document.querySelector("header").offsetHeight;
+
+    // 지도 화면의 픽셀 bounds 구하기
+    const proj = map.getProjection();
+    const swPoint = proj.containerPointFromCoords(sw);
+    const nePoint = proj.containerPointFromCoords(ne);
+
+    // 헤더 부분만큼 지도 상단을 아래로 내리기
+    const adjustedNePoint = new kakao.maps.Point(nePoint.x, nePoint.y + headerHeight);
+
+    // 다시 좌표(lat/lng)로 변환
+    const adjustedNe = proj.coordsFromContainerPoint(adjustedNePoint);
 
     return {
         minLat: sw.getLat(),
-        maxLat: ne.getLat(),
+        maxLat: adjustedNe.getLat(),
         minLng: sw.getLng(),
         maxLng: ne.getLng()
     };
 }
 
-// 🔥 지도의 현재 범위(Bounds)에 포함되는 매물만 조회
+// 🔥 지도의 실제 보이는 영역(Bounds)에 포함되는 매물만 조회
 async function loadListingsByBounds() {
-    const bounds = map.getBounds();
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
+    const b = getVisibleBounds();
 
     const { data, error } = await window.supabase
         .from("baikukdbtest")
@@ -133,8 +144,8 @@ async function loadListingsByBounds() {
             lat,
             lng
         `)
-        .gte("lat", sw.getLat()).lte("lat", ne.getLat())
-        .gte("lng", sw.getLng()).lte("lng", ne.getLng());
+        .gte("lat", b.minLat).lte("lat", b.maxLat)
+        .gte("lng", b.minLng).lte("lng", b.maxLng);
 
     if (error) {
         console.error("❌ Bound Supabase 조회 오류:", error);
