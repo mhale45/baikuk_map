@@ -20,15 +20,6 @@
             padding: 0;
         }
 
-        #map {
-            position: fixed;
-            top: var(--header-height);
-            left: 0;
-            width: 100%;
-            height: calc(100vh - var(--header-height)); /* 핵심! */
-            z-index: 1;
-        }
-
         header {
             position: fixed;
             top: 0;
@@ -37,6 +28,15 @@
             height: var(--header-height);
             background: #fff;
             z-index: 10000;
+        }
+
+        #map {
+            position: fixed;
+            top: var(--header-height);  /* 헤더 아래에 정확히 붙임 */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
         }
 
     </style>
