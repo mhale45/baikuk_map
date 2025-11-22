@@ -166,7 +166,7 @@ async function loadListingsByLatLng(lat, lng, marker) {
     const infoHtml = `
         <div style="
             padding:8px;
-            font-size:13px;
+            font-size:14px;
             line-height:1.4;
 
             /* 🔥 가로 스크롤을 전체 박스에 적용 */
