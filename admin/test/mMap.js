@@ -215,8 +215,10 @@ async function renderListingsOnMap() {
                 });
                 
                 const html = listings.map(i => {
-                    // 계약완료 → 글씨 전체 빨간색, 아니면 기본색
-                    const textColor = (i.transaction_status === "계약완료") ? "red" : "black";
+                    const textColor =
+                        (i.transaction_status && i.transaction_status.includes("계약완료"))
+                            ? "red"
+                            : "black";
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
