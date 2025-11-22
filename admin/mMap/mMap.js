@@ -108,7 +108,7 @@ async function renderListingsOnMap() {
                     overflow-wrap: break-word;
                 ">
                     🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                    &nbsp;&nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}
+                    &nbsp;&nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
                 </div>
             `;
         });
