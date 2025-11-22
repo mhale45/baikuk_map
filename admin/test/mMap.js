@@ -61,8 +61,8 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function getSelectedStatuses() {
-    const select = document.getElementById("filter-status");
-    return Array.from(select.selectedOptions).map(o => o.value);
+    return Array.from(document.querySelectorAll(".status-check:checked"))
+        .map(cb => cb.value);
 }
 
 function enforceZoomLevelBehavior() {
@@ -141,7 +141,7 @@ async function loadListingsByBounds() {
     const b = getVisibleBounds();
     const selectedStatuses = getSelectedStatuses();
 
-    // 기본 쿼리 먼저 생성
+    // 기본 쿼리
     let query = window.supabase
         .from("baikukdbtest")
         .select(`
@@ -153,7 +153,7 @@ async function loadListingsByBounds() {
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
 
-    // 🔥 거래상태 (다중선택) 필터 적용
+    // 🔥 체크박스 다중선택 반영
     if (selectedStatuses.length > 0) {
         query = query.or(
             selectedStatuses
@@ -322,7 +322,8 @@ function reloadListingsOnMapThrottled() {
 
 }
 
-document.getElementById("filter-status").addEventListener("change", () => {
-    // 지도 범위 Reload
-    reloadListingsOnMapThrottled();
+document.querySelectorAll(".status-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
 });
