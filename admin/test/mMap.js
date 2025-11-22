@@ -151,7 +151,7 @@ async function renderListingsOnMap() {
                 const html = listings.map(i => `
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong> / <strong>${formatNumber(i.monthly_rent)}</strong>
+                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                         ${
                             (i.premium_price == null || Number(i.premium_price) === 0)
                                 ? "무권리"
@@ -166,7 +166,7 @@ async function renderListingsOnMap() {
                     content: `
                         <div style="
                             padding:8px;
-                            font-size:14px;
+                            font-size:15px;
                             width:360px;
                             max-height:50vh;
 
