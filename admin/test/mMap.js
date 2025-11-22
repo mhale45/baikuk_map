@@ -9,11 +9,6 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 4
     });
 
-    // 🔄 지도 이동이 끝나면 다시 반경 2km 매물 로딩
-    kakao.maps.event.addListener(map, "idle", () => {
-        renderListingsOnMap();
-    });
-
     // 현재 위치 이동 시도
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -43,24 +38,51 @@ function formatNumber(num) {
     if (isNaN(n)) return num;
     return n.toLocaleString("ko-KR");
 }
+// =============================
+// 🔥 현재 지도 범위보다 조금 넓게 Supabase 조회
+// =============================
 
-// =============================
-// 🔥 반경 2km 이내 매물만 불러오기
-// =============================
-async function loadBaikukListings() {
-    const center = map.getCenter();
-    const centerLat = center.getLat();
-    const centerLng = center.getLng();
+// 지도에서 Bound 가져오기 → 보이는 영역보다 30% 큰 검색 범위로 확장
+function getExpandedBounds() {
+    const bounds = map.getBounds();
+
+    const sw = bounds.getSouthWest(); // 남서쪽
+    const ne = bounds.getNorthEast(); // 북동쪽
+
+    const latRange = ne.getLat() - sw.getLat();
+    const lngRange = ne.getLng() - sw.getLng();
+
+    return {
+        minLat: sw.getLat() - latRange * 0.3,
+        maxLat: ne.getLat() + latRange * 0.3,
+        minLng: sw.getLng() - lngRange * 0.3,
+        maxLng: ne.getLng() + lngRange * 0.3
+    };
+}
+
+// 🔥 Supabase 범위 조회
+async function loadListingsByBounds() {
+    const b = getExpandedBounds();
 
     const { data, error } = await window.supabase
-        .rpc("get_listings_in_radius", {
-            center_lat: centerLat,
-            center_lng: centerLng,
-            radius_m: 2000   // 2km
-        });
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            listing_title,
+            lat,
+            lng,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py
+        `)
+        .gte("lat", b.minLat)
+        .lte("lat", b.maxLat)
+        .gte("lng", b.minLng)
+        .lte("lng", b.maxLng);
 
     if (error) {
-        console.error("❌ 반경 매물 로딩 오류:", error);
+        console.error("❌ Supabase 범위 조회 오류:", error);
         return [];
     }
 
@@ -69,7 +91,7 @@ async function loadBaikukListings() {
 
 // 2) 지도에 마커 + 클러스터 표시
 async function renderListingsOnMap() {
-    const listings = await loadBaikukListings();
+    const listings = await loadListingsByBounds();
     if (!listings.length) {
         console.warn("⚠️ 불러올 데이터가 없습니다.");
         return;
@@ -169,3 +191,24 @@ window.addEventListener("DOMContentLoaded", () => {
         renderListingsOnMap();
     }, 800); // 지도 초기화 후 실행 (지연 설정)
 });
+
+// =============================
+// 🔥 지도 이동/확대/축소 시 자동 reload
+// =============================
+
+let reloadTimer = null;
+
+function reloadListingsOnMapThrottled() {
+    if (reloadTimer) clearTimeout(reloadTimer);
+
+    // 400ms 동안 지도 이동이 멈추면 쿼리 실행
+    reloadTimer = setTimeout(() => {
+        renderListingsOnMap();
+    }, 400);
+}
+
+// 지도 드래그 종료 후
+kakao.maps.event.addListener(map, "dragend", reloadListingsOnMapThrottled);
+
+// 지도 확대/축소 후
+kakao.maps.event.addListener(map, "zoom_changed", reloadListingsOnMapThrottled);
