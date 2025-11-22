@@ -126,7 +126,7 @@ function getVisibleBounds() {
     // 헤더만큼 지도 상단 잘려 있으므로 NE.y 를 아래로 headerHeight 만큼 이동
     const adjustedNePoint = new kakao.maps.Point(
         nePoint.x,
-        nePoint.y + headerHeight
+        nePoint.y - headerHeight
     );
 
     // 다시 지도 좌표로 변환
