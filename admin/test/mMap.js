@@ -113,9 +113,24 @@ function getVisibleBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
+    // 화면 픽셀 높이
+    const mapDiv = document.getElementById("map");
+    const mapHeight = mapDiv.offsetHeight;
+
+    // 헤더 높이
+    const header = document.querySelector("header");
+    const headerHeight = header ? header.offsetHeight : 0;
+
+    // 화면에서 실제로 보이지 않는 비율 계산
+    const hiddenRatio = headerHeight / mapHeight;
+
+    // 위쪽 lat 보정 (지도의 위쪽 부분이 잘려 있으므로 그만큼 lat을 줄여줌)
+    const latDiff = ne.getLat() - sw.getLat();
+    const latAdjust = latDiff * hiddenRatio;
+
     return {
-        minLat: sw.getLat(),
-        maxLat: ne.getLat(),
+        minLat: sw.getLat() + latAdjust,   // 아래쪽은 동일
+        maxLat: ne.getLat(),              // 위쪽은 실제 화면에서 보이는 만큼만
         minLng: sw.getLng(),
         maxLng: ne.getLng()
     };
