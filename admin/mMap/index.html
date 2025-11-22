@@ -11,31 +11,17 @@
     <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
 
     <style>
-        :root {
-            --header-height: 5rem;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
+        :root { --header-height: 5rem; }
+        body { margin: 0; padding: 0; }
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--header-height);
-            z-index: 10000;
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--header-height); z-index: 10000;
             background: #fff;
         }
-
         #map {
             position: absolute;
             top: var(--header-height);
-            left: 0;
-            right: 0;
-            bottom: 0;
+            left: 0; right: 0; bottom: 0;
         }
     </style>
 
@@ -50,7 +36,6 @@
             auth: { persistSession: true, autoRefreshToken: true }
         });
 
-        // 🔥 로그인 여부 확인 후 접속 불가하면 listings 로 이동
         async function enforceAuthForMMap() {
             const { data: { session } } = await window.supabase.auth.getSession();
             if (!session) {
@@ -60,43 +45,47 @@
 
         enforceAuthForMMap();
     </script>
-
 </head>
+
 <body>
 
-    <!-- ▷ 기존 index.html 의 헤더 UI 그대로 복사한 축약본 ◁ -->
-    <header class="flex items-start gap-4 w-full px-4 pt-2 bg-white shadow-md border-b border-gray-200">
-        <!-- 로고 -->
-        <a href="/admin/listings/">
-            <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-                 alt="글씨로고"
-                 class="h-11 w-auto cursor-pointer" />
-        </a>
+<header class="flex items-start gap-4 w-full px-4 pt-2 bg-white shadow-md border-b border-gray-200">
+    <a href="/admin/listings/">
+        <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+             alt="글씨로고" class="h-11 w-auto cursor-pointer" />
+    </a>
 
-        <!-- 카테고리 (원본과 동일한 자리지만 여기선 간단히만 둠) -->
-        <div class="flex flex-col gap-2 mt-1">
-            <div class="flex gap-2">
-                <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
-                    카테고리1
-                </button>
-                <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
-                    카테고리2
-                </button>
-            </div>
+    <div class="flex flex-col gap-2 mt-1">
+        <div class="flex gap-2">
+            <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">카테고리1</button>
+            <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">카테고리2</button>
         </div>
+    </div>
 
-        <!-- 우측 버튼들 -->
-        <div class="ml-auto flex items-center gap-2">
-            <button class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">
-                로그아웃
-            </button>
-        </div>
-    </header>
+    <div class="ml-auto flex items-center gap-2">
+        <button class="text-sm text-gray-600 hover:text-black border px-3 py-1 rounded">로그아웃</button>
+    </div>
+</header>
 
-    <!-- 지도 -->
-    <div id="map"></div>
+<div id="map"></div>
 
-    <script type="module" src="./mMap.js"></script>
+<!-- 🔥 admin과 완전히 동일한 클러스터 로직 mMap.js 불러오기 -->
+<script type="module" src="./mMap.js"></script>
+
+<!-- 테스트용 데이터 (원하면 제거 가능) -->
+<script type="module">
+    import { setMarkersOnMap } from './mMap.js';
+
+    const sample = [
+        { lat: 37.5665, lng: 126.9780 },
+        { lat: 37.5675, lng: 126.9790 },
+        { lat: 37.5685, lng: 126.9800 }
+    ];
+
+    window.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => setMarkersOnMap(sample), 800);
+    });
+</script>
 
 </body>
 </html>
