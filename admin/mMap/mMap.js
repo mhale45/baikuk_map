@@ -92,8 +92,7 @@ async function renderListingsOnMap() {
 
         // 🔥 3) 그룹 전체 매물 정보를 줄바꿈으로 생성
         let htmlLines = items.map(i => {
-            return `
-                <div style="
+            return `<div style="
                     text-indent: -14px;
                     padding-left: 14px;
                     margin-bottom: 0;
