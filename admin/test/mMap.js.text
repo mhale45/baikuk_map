@@ -60,6 +60,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
 });
 
+function getSelectedStatuses() {
+    return Array.from(document.querySelectorAll(".status-check:checked"))
+        .map(cb => cb.value);
+}
+
 function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
@@ -134,9 +139,7 @@ function getVisibleBounds() {
 // 🔥 지도의 실제 보이는 영역(Bounds)에 포함되는 매물만 조회
 async function loadListingsByBounds() {
     const b = getVisibleBounds();
-
-    // 🔥 거래상태 select 값 가져오기
-    const status = document.getElementById("filter-status")?.value || "";
+    const selectedStatuses = getSelectedStatuses();
 
     // 기본 쿼리
     let query = window.supabase
@@ -150,9 +153,13 @@ async function loadListingsByBounds() {
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
 
-    // 🔥 거래상태 필터가 선택된 경우 Supabase 쿼리에 조건 추가
-    if (status !== "") {
-        query = query.ilike("transaction_status", `%${status}%`);
+    // 🔥 체크박스 다중선택 반영
+    if (selectedStatuses.length > 0) {
+        query = query.or(
+            selectedStatuses
+                .map(s => `transaction_status.ilike.%${s}%`)
+                .join(",")
+        );
     }
 
     const { data, error } = await query;
@@ -214,27 +221,39 @@ async function renderListingsOnMap() {
             kakao.maps.event.addListener(marker, "click", async () => {
                 if (currentInfoWindow) currentInfoWindow.close();
 
-                const listings = await loadListingsByAddress(item.full_address);
+                // 🔥 Supabase에서 해당 주소 매물 불러오기
+                let listings = await loadListingsByAddress(item.full_address);
+
+                // 🔥 거래상태 필터가 있을 경우 필터링 적용
+                const selectedStatuses = getSelectedStatuses();
+
+                if (selectedStatuses.length > 0) {
+                    listings = listings.filter(i => {
+                        const st = i.transaction_status || "";
+                        return selectedStatuses.some(sel => st.includes(sel));
+                    });
+                }
+
+                // 🔥 정렬 (층수)
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
 
+                // 🔥 HTML 생성
                 const html = listings.map(i => {
                     const textColor = (() => {
                         const status = i.transaction_status || "";
-
                         if (status.includes("완료")) return "red";
-                        if (status.includes("보류")) return "gray";
+                        if (status.includes("보류")) return "black";
                         if (status.includes("진행")) return "green";
-
                         return "black";
                     })();
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
-                            🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                            🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
@@ -258,7 +277,7 @@ async function renderListingsOnMap() {
                             word-break:break-all;
                             overflow-wrap:break-word;
                         ">
-                            ${html}
+                            ${html || "<div>조건에 맞는 매물이 없습니다.</div>"}
                         </div>
                     `
                 });
@@ -266,6 +285,7 @@ async function renderListingsOnMap() {
                 info.open(map, marker);
                 currentInfoWindow = info;
             });
+
         }
     });
 
@@ -281,6 +301,19 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     }, 800);
 
+});
+
+// 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
+window.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("filter-toggle-btn");
+    const filterBox = document.getElementById("filter-box");
+
+    if (toggleBtn && filterBox) {
+        toggleBtn.addEventListener("click", () => {
+            filterBox.style.display =
+                filterBox.style.display === "none" ? "block" : "none";
+        });
+    }
 });
 
 // =============================
@@ -302,7 +335,8 @@ function reloadListingsOnMapThrottled() {
 
 }
 
-document.getElementById("filter-status").addEventListener("change", () => {
-    // 지도 범위 Reload
-    reloadListingsOnMapThrottled();
+document.querySelectorAll(".status-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
 });
