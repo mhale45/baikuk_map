@@ -11,6 +11,14 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 4
     });
 
+    // 📌 클러스터러 반드시 여기서 초기화해야 함
+    clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 5,
+        disableClickZoom: false
+    });
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -31,7 +39,6 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 📌 idle 이벤트는 map 생성 후에 반드시 등록해야 함
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
 });
 
