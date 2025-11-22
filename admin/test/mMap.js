@@ -115,7 +115,8 @@ async function loadListingsByAddress(fullAddress) {
             area_py,
             floor,
             transaction_status,
-            deal_type
+            deal_type,
+            category
         `)
 
         .eq("full_address", fullAddress);
