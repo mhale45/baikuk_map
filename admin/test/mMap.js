@@ -33,10 +33,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     kakao.maps.event.addListener(map, "click", () => {
-        if (currentInfoWindow) {
-            currentInfoWindow.close();
-            currentInfoWindow = null;
-        }
+        const panel = document.getElementById("side-panel");
+        panel.style.display = "none";
     });
 
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
@@ -272,25 +270,11 @@ async function renderListingsOnMap() {
                     `;
                 }).join("");
 
-                const info = new kakao.maps.InfoWindow({
-                    content: `
-                        <div style="
-                            padding:8px;
-                            font-size:15px;
-                            width:360px;
-                            max-height:50vh;
-                            overflow-x:auto;
-                            overflow-y:auto;
-                            word-break:break-all;
-                            overflow-wrap:break-word;
-                        ">
-                            ${html || "<div>조건에 맞는 매물이 없습니다.</div>"}
-                        </div>
-                    `
-                });
+                const panel = document.getElementById("side-panel");
 
-                info.open(map, marker);
-                currentInfoWindow = info;
+                panel.innerHTML = html || "<div>조건에 맞는 매물이 없습니다.</div>";
+                panel.style.display = "block";
+
             });
 
         }
