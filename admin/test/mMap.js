@@ -68,6 +68,11 @@ function getSelectedDealTypes() {
         .map(cb => cb.value);
 }
 
+function getSelectedCategories() {
+    return Array.from(document.querySelectorAll(".category-check:checked"))
+        .map(cb => cb.value);
+}
+
 function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
@@ -154,13 +159,22 @@ async function loadListingsByBounds() {
             lat,
             lng,
             transaction_status,
-            deal_type
+            deal_type,
+            category
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
 
     // 🔥 OR 필터 전체 결합
     let orFilters = [];
+
+    // 카테고리 필터 (상가/빌딩/공장/주택)
+    const selectedCategories = getSelectedCategories();
+    if (selectedCategories.length > 0) {
+        orFilters.push(
+            ...selectedCategories.map(c => `category.ilike.%${c}%`)
+        );
+    }
 
     // 거래상태
     if (selectedStatuses.length > 0) {
@@ -201,6 +215,15 @@ async function renderListingsOnMap() {
         listings = listings.filter(i => {
             const dt = i.deal_type || "";
             return selectedDealTypes.some(sel => dt.includes(sel));
+        });
+    }
+
+    // 🔥 JS단 추가 필터링 (category)
+    const selectedCategories = getSelectedCategories();
+    if (selectedCategories.length > 0) {
+        listings = listings.filter(i => {
+            const ct = i.category || "";
+            return selectedCategories.some(sel => ct.includes(sel));
         });
     }
 
@@ -269,6 +292,15 @@ async function renderListingsOnMap() {
                     listings = listings.filter(i => {
                         const dt = i.deal_type || "";
                         return selectedDealTypes.some(sel => dt.includes(sel));
+                    });
+                }
+
+                // 🔥 카테고리 필터 (상가/빌딩/공장/주택)
+                const selectedCategories = getSelectedCategories();
+                if (selectedCategories.length > 0) {
+                    listings = listings.filter(i => {
+                        const ct = i.category || "";
+                        return selectedCategories.some(sel => ct.includes(sel));
                     });
                 }
 
@@ -398,3 +430,10 @@ document.querySelectorAll(".dealtype-check").forEach(cb => {
         reloadListingsOnMapThrottled();
     });
 });
+
+document.querySelectorAll(".category-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
+});
+
