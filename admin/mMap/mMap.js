@@ -99,8 +99,7 @@ async function renderListingsOnMap() {
                     white-space: normal;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
-                ">
-                    🔹 ${i.listing_id} ${i.listing_title || "-"} 
+                ">🔹 ${i.listing_id} ${i.listing_title || "-"} 
                     ${i.deposit_price || "-"} / ${i.monthly_rent || "-"} 
                     - ${i.area_py || "-"}
                 </div>
