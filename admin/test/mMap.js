@@ -53,10 +53,10 @@ function getExpandedBounds() {
     const lngRange = ne.getLng() - sw.getLng();
 
     return {
-        minLat: sw.getLat() - latRange * 0.2,
-        maxLat: ne.getLat() + latRange * 0.2,
-        minLng: sw.getLng() - lngRange * 0.3,
-        maxLng: ne.getLng() + lngRange * 0.3
+        minLat: sw.getLat() - latRange,
+        maxLat: ne.getLat() + latRange,
+        minLng: sw.getLng() - lngRange,
+        maxLng: ne.getLng() + lngRange
     };
 }
 
