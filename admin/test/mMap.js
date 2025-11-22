@@ -113,26 +113,21 @@ function getVisibleBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    // 화면 픽셀 높이
-    const mapDiv = document.getElementById("map");
-    const mapHeight = mapDiv.offsetHeight;
+    const minLat = sw.getLat();
+    const maxLat = ne.getLat();
+    const minLng = sw.getLng();
+    const maxLng = ne.getLng();
 
-    // 헤더 높이
-    const header = document.querySelector("header");
-    const headerHeight = header ? header.offsetHeight : 0;
+    // 현재 화면 lat/lng 범위
+    const latDiff = (maxLat - minLat);
+    const lngDiff = (maxLng - minLng);
 
-    // 화면에서 실제로 보이지 않는 비율 계산
-    const hiddenRatio = headerHeight / mapHeight;
-
-    // 위쪽 lat 보정 (지도의 위쪽 부분이 잘려 있으므로 그만큼 lat을 줄여줌)
-    const latDiff = ne.getLat() - sw.getLat();
-    const latAdjust = latDiff * hiddenRatio;
-
+    // 🔥 2배 확장 (위·아래·좌·우 모두)
     return {
-        minLat: sw.getLat() + latAdjust,   // 아래쪽은 동일
-        maxLat: ne.getLat(),              // 위쪽은 실제 화면에서 보이는 만큼만
-        minLng: sw.getLng(),
-        maxLng: ne.getLng()
+        minLat: minLat - latDiff,
+        maxLat: maxLat + latDiff,
+        minLng: minLng - lngDiff,
+        maxLng: maxLng + lngDiff
     };
 }
 
