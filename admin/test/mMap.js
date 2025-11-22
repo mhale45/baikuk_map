@@ -156,15 +156,6 @@ async function loadListingsByLatLng(lat, lng, marker) {
                 text-indent: -14px;
                 padding-left: 14px;
                 margin-bottom: 6px;
-
-                /* 🔥 가로로 길어지는 경우 줄바꿈 없이 확장 */
-                white-space: nowrap;
-
-                /* 🔥 긴 텍스트가 박스 밖으로 나가면 스크롤 발생 */
-                overflow-x: auto;
-
-                /* 🔥 영역 넘어가면 스크롤로 처리되도록 block */
-                display: block;
             ">
                 🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                 &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)} 권${formatNumber(i.premium_price)} ${i.area_py ? Number(i.area_py).toFixed(1) : "-"}평
@@ -175,18 +166,20 @@ async function loadListingsByLatLng(lat, lng, marker) {
     const infoHtml = `
         <div style="
             padding:8px;
-            font-size:14px;
+            font-size:13px;
             line-height:1.4;
-            white-space: normal;      /* 줄바꿈 유지 */
-            word-break: break-word;
-            overflow-wrap: break-word;
-            word-wrap: break-word;
+
+            /* 🔥 가로 스크롤을 전체 박스에 적용 */
+            white-space: nowrap;     /* 자동 줄바꿈 금지 */
+            overflow-x: auto;        /* 가로 스크롤 생성 */
+
+            /* 🔥 세로 스크롤은 유지 */
+            max-height: 50vh;
+            overflow-y: auto;
+
+            /* 기타 UI 유지 */
             width: 360px;
             display: block;
-
-            max-height: 50vh;
-            overflow-y: auto;          /* 세로 스크롤 */
-            overflow-x: auto;          /* 🔥 가로 스크롤 추가 */
         ">
             ${htmlLines.join("")}
         </div>
