@@ -253,7 +253,7 @@ async function renderListingsOnMap() {
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
-                            🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                            🔸🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
