@@ -152,7 +152,8 @@ async function renderListingsOnMap() {
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
                         &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
-                        권${formatNumber(i.premium_price)} ${i.area_py ?? "-"}평
+                        권${formatNumber(i.premium_price)} ${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}평
+
                     </div>
                 `).join("");
 
@@ -160,7 +161,7 @@ async function renderListingsOnMap() {
                     content: `
                         <div style="
                             padding:8px;
-                            font-size:12px;
+                            font-size:14px;
                             width:360px;
                             max-height:50vh;
 
