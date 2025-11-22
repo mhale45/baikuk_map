@@ -64,7 +64,7 @@ function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
 
-    if (level >= 5) {
+    if (level >= 4) {
         // 문구 표시
         notice.style.display = "block";
 
