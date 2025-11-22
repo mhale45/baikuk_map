@@ -260,7 +260,7 @@ async function renderListingsOnMap() {
                         <div style="margin-bottom:6px; color:${textColor} !important;">
                             ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
                             <!-- 🔥 층수 추가된 부분 -->
-                            &nbsp;<strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
+                            &nbsp;<strong>${(i.floor !== null && i.floor !== undefined && i.floor !== "") ? i.floor + "층" : "-"}</strong>
                             <strong>${formatNumber(i.deposit_price)}</strong>/
                             <strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
