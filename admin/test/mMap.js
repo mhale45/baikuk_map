@@ -244,12 +244,8 @@ async function renderListingsOnMap() {
                             overflow-x:auto;   /* 가로 스크롤 */
                             overflow-y:auto;   /* 세로 스크롤 */
 
-                            /* 줄바꿈 없음 (가로로 길게 나오도록) */
-                            white-space:nowrap;
-
-                            /* 스크롤을 위해 줄바꿈 관련 속성 해제 */
-                            word-break:keep-all;
-                            overflow-wrap:normal;
+                            word-break:break-all;
+                            overflow-wrap:break-word;
                         ">
                             ${html}
                         </div>

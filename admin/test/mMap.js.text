@@ -93,7 +93,17 @@ function formatNumber(num) {
 async function loadListingsByAddress(fullAddress) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`listing_id, listing_title, deposit_price, monthly_rent, premium_price, area_py, floor`)
+        .select(`
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            floor,
+            transaction_status
+        `)
+
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -125,15 +135,27 @@ function getVisibleBounds() {
 async function loadListingsByBounds() {
     const b = getVisibleBounds();
 
-    const { data, error } = await window.supabase
+    // 🔥 거래상태 select 값 가져오기
+    const status = document.getElementById("filter-status")?.value || "";
+
+    // 기본 쿼리
+    let query = window.supabase
         .from("baikukdbtest")
         .select(`
             full_address,
             lat,
-            lng
+            lng,
+            transaction_status
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
+
+    // 🔥 거래상태 필터가 선택된 경우 Supabase 쿼리에 조건 추가
+    if (status !== "") {
+        query = query.eq("transaction_status", status);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("❌ Bound Supabase 조회 오류:", error);
@@ -192,19 +214,23 @@ async function renderListingsOnMap() {
                     return fa - fb;
                 });
                 
-                const html = listings.map(i => `
-                    <div style="margin-bottom:6px;">
-                        🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
-                        ${
-                            (i.premium_price == null || Number(i.premium_price) === 0)
-                                ? "무권리"
-                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                        }
-                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                const html = listings.map(i => {
+                    // 계약완료 → 글씨 전체 빨간색, 아니면 기본색
+                    const textColor = (i.transaction_status === "계약완료") ? "red" : "black";
 
-                    </div>
-                `).join("");
+                    return `
+                        <div style="margin-bottom:6px; color:${textColor} !important;">
+                            🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
+                            &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
+                            ${
+                                (i.premium_price == null || Number(i.premium_price) === 0)
+                                    ? "무권리"
+                                    : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                            }
+                            <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                        </div>
+                    `;
+                }).join("");
 
                 const info = new kakao.maps.InfoWindow({
                     content: `
@@ -268,3 +294,8 @@ function reloadListingsOnMapThrottled() {
     }, 400);
 
 }
+
+document.getElementById("filter-status").addEventListener("change", () => {
+    // 지도 범위 Reload
+    reloadListingsOnMapThrottled();
+});
