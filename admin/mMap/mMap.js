@@ -33,10 +33,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     kakao.maps.event.addListener(map, "click", () => {
-        if (currentInfoWindow) {
-            currentInfoWindow.close();
-            currentInfoWindow = null;
-        }
+        const panel = document.getElementById("side-panel");
+        panel.style.display = "none";
     });
 
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
@@ -243,17 +241,24 @@ async function renderListingsOnMap() {
 
                 // 🔥 HTML 생성
                 const html = listings.map(i => {
+                    const status = i.transaction_status || "";
+
+                    // 🔥 상태에 따른 아이콘 선택
+                    const icon = 
+                        status.includes("완료") ? "🔹" :
+                        status.includes("보류") ? "◆" :
+                        "🔸";
+
                     const textColor = (() => {
-                        const status = i.transaction_status || "";
                         if (status.includes("완료")) return "red";
-                        if (status.includes("보류")) return "black";
-                        if (status.includes("진행")) return "green";
+                        if (status.includes("보류")) return "green";
+                        if (status.includes("진행")) return "black";
                         return "black";
                     })();
 
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
-                            🔹 <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                            ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
                             &nbsp;<strong>${formatNumber(i.deposit_price)}</strong>/<strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
@@ -265,25 +270,11 @@ async function renderListingsOnMap() {
                     `;
                 }).join("");
 
-                const info = new kakao.maps.InfoWindow({
-                    content: `
-                        <div style="
-                            padding:8px;
-                            font-size:15px;
-                            width:360px;
-                            max-height:50vh;
-                            overflow-x:auto;
-                            overflow-y:auto;
-                            word-break:break-all;
-                            overflow-wrap:break-word;
-                        ">
-                            ${html || "<div>조건에 맞는 매물이 없습니다.</div>"}
-                        </div>
-                    `
-                });
+                const panel = document.getElementById("side-panel");
 
-                info.open(map, marker);
-                currentInfoWindow = info;
+                panel.innerHTML = html || "<div>조건에 맞는 매물이 없습니다.</div>";
+                panel.style.display = "block";
+
             });
 
         }
@@ -313,6 +304,23 @@ window.addEventListener("DOMContentLoaded", () => {
             filterBox.style.display =
                 filterBox.style.display === "none" ? "block" : "none";
         });
+    }
+});
+
+// 🔥 필터 박스 영역 외 클릭 시 자동 닫기
+window.addEventListener("click", (e) => {
+    const toggleBtn = document.getElementById("filter-toggle-btn");
+    const filterBox = document.getElementById("filter-box");
+
+    if (!toggleBtn || !filterBox) return;
+
+    // 클릭한 대상이 버튼도 아니고, 필터박스 내부도 아닐 때 → 닫기
+    if (
+        e.target !== toggleBtn &&
+        !toggleBtn.contains(e.target) &&
+        !filterBox.contains(e.target)
+    ) {
+        filterBox.style.display = "none";
     }
 });
 
