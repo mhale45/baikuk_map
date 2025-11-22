@@ -151,8 +151,8 @@ async function renderListingsOnMap() {
                 const html = listings.map(i => `
                     <div style="margin-bottom:6px;">
                         🔹 ${i.listing_id} ${i.listing_title || "-"}<br/>
-                        &nbsp;${formatNumber(i.deposit_price)} / ${formatNumber(i.monthly_rent)}
-                        권${formatNumber(i.premium_price)} ${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}평
+                        &nbsp;<strong>${formatNumber(i.deposit_price)}</strong> / <strong>${formatNumber(i.monthly_rent)}</strong>
+                        권<strong>${formatNumber(i.premium_price)}</strong> <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
 
                     </div>
                 `).join("");
