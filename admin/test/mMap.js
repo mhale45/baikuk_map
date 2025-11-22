@@ -60,6 +60,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
 });
 
+function getSelectedStatuses() {
+    const select = document.getElementById("filter-status");
+    return Array.from(select.selectedOptions).map(o => o.value);
+}
+
 function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
@@ -134,9 +139,16 @@ function getVisibleBounds() {
 // 🔥 지도의 실제 보이는 영역(Bounds)에 포함되는 매물만 조회
 async function loadListingsByBounds() {
     const b = getVisibleBounds();
+    const selectedStatuses = getSelectedStatuses();
 
-    // 🔥 거래상태 select 값 가져오기
-    const status = document.getElementById("filter-status")?.value || "";
+    if (selectedStatuses.length > 0) {
+        // 여러 개 선택된 경우 OR 조건 처리
+        query = query.or(
+            selectedStatuses
+                .map(s => `transaction_status.ilike.%${s}%`)
+                .join(",")
+        );
+    }
 
     // 기본 쿼리
     let query = window.supabase
@@ -149,11 +161,6 @@ async function loadListingsByBounds() {
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
-
-    // 🔥 거래상태 필터가 선택된 경우 Supabase 쿼리에 조건 추가
-    if (status !== "") {
-        query = query.ilike("transaction_status", `%${status}%`);
-    }
 
     const { data, error } = await query;
 
@@ -221,10 +228,12 @@ async function renderListingsOnMap() {
                 let listings = await loadListingsByAddress(item.full_address);
 
                 // 🔥 거래상태 필터가 있을 경우 필터링 적용
-                if (statusFilter !== "") {
+                const selectedStatuses = getSelectedStatuses();
+
+                if (selectedStatuses.length > 0) {
                     listings = listings.filter(i => {
                         const st = i.transaction_status || "";
-                        return st.includes(statusFilter);
+                        return selectedStatuses.some(sel => st.includes(sel));
                     });
                 }
 
@@ -240,7 +249,7 @@ async function renderListingsOnMap() {
                     const textColor = (() => {
                         const status = i.transaction_status || "";
                         if (status.includes("완료")) return "red";
-                        if (status.includes("보류")) return "gray";
+                        if (status.includes("보류")) return "black";
                         if (status.includes("진행")) return "green";
                         return "black";
                     })();
