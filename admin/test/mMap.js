@@ -162,11 +162,18 @@ async function renderListingsOnMap() {
                             padding:8px;
                             font-size:12px;
                             width:360px;
-                            max-height:50vh;     /* 화면 세로의 절반 */
-                            overflow-x:auto;     /* 가로스크롤 */
-                            overflow-y:auto;     /* 세로스크롤 */
-                            white-space:normal;
-                            word-break:break-word;
+                            max-height:50vh;
+
+                            /* 스크롤 설정 */
+                            overflow-x:auto;   /* 가로 스크롤 */
+                            overflow-y:auto;   /* 세로 스크롤 */
+
+                            /* 줄바꿈 없음 (가로로 길게 나오도록) */
+                            white-space:nowrap;
+
+                            /* 스크롤을 위해 줄바꿈 관련 속성 해제 */
+                            word-break:keep-all;
+                            overflow-wrap:normal;
                         ">
                             ${html}
                         </div>
