@@ -113,28 +113,26 @@ function getVisibleBounds() {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    // 헤더 높이 픽셀 단위
     const headerHeight = document.querySelector("header").offsetHeight;
 
-    // Kakao 지도 Projection
     const proj = map.getProjection();
 
-    // SW / NE 의 container 좌표 구하기
     const swPoint = proj.containerPointFromCoords(sw);
     const nePoint = proj.containerPointFromCoords(ne);
 
-    // 헤더만큼 지도 상단 잘려 있으므로 NE.y 를 아래로 headerHeight 만큼 이동
+    // 🔥 헤더만큼 위쪽 영역이 가려졌으므로
+    //    위쪽(NE)의 y 값을 headerHeight 만큼 아래로 이동해야 함
+    //    kakao map 은 y 증가가 아래 방향이므로: +headerHeight 가 아니라 -headerHeight!!
     const adjustedNePoint = new kakao.maps.Point(
         nePoint.x,
         nePoint.y - headerHeight
     );
 
-    // 다시 지도 좌표로 변환
     const adjustedNe = proj.coordsFromContainerPoint(adjustedNePoint);
 
     return {
-        minLat: sw.getLat(),
-        maxLat: adjustedNe.getLat(),
+        minLat: adjustedNe.getLat(),   // NE가 위쪽 → maxLat
+        maxLat: sw.getLat(),           // SW가 아래쪽 → minLat
         minLng: sw.getLng(),
         maxLng: ne.getLng()
     };
