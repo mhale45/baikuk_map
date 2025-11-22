@@ -40,7 +40,47 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
+
+    // 🔔 지도 확대 안내 문구 UI 생성
+    const zoomNotice = document.createElement("div");
+    zoomNotice.id = "zoom-notice";
+    zoomNotice.style.position = "fixed";
+    zoomNotice.style.top = "80px";
+    zoomNotice.style.right = "20px";
+    zoomNotice.style.zIndex = "9999";
+    zoomNotice.style.background = "rgba(0,0,0,0.7)";
+    zoomNotice.style.color = "#fff";
+    zoomNotice.style.padding = "8px 12px";
+    zoomNotice.style.borderRadius = "8px";
+    zoomNotice.style.fontSize = "14px";
+    zoomNotice.style.display = "none"; // 기본 숨김
+    zoomNotice.innerText = "지도를 확대하세요 (레벨 4 이하에서 표시됩니다)";
+    document.body.appendChild(zoomNotice);
+
 });
+
+function enforceZoomLevelBehavior() {
+    const level = map.getLevel();
+    const notice = document.getElementById("zoom-notice");
+
+    if (level >= 5) {
+        // 문구 표시
+        notice.style.display = "block";
+
+        // 마커 숨기기
+        allMarkers.forEach(m => {
+            if (m.marker) m.marker.setMap(null);
+        });
+
+        // 클러스터러에서도 제거
+        clusterer.clear();
+
+        return false;  // 데이터 로딩 금지 신호
+    } else {
+        notice.style.display = "none";  
+        return true;   // 데이터 로딩 허용
+    }
+}
 
 function formatNumber(num) {
     if (num === null || num === undefined || num === "-" || num === "") return "-";
@@ -204,8 +244,11 @@ async function renderListingsOnMap() {
 // 지도 로딩 후 실행
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
-        renderListingsOnMap();
-    }, 800); // 지도 초기화 후 실행 (지연 설정)
+        if (enforceZoomLevelBehavior()) {
+            renderListingsOnMap();
+        }
+    }, 800);
+
 });
 
 // =============================
@@ -217,8 +260,12 @@ let reloadTimer = null;
 function reloadListingsOnMapThrottled() {
     if (reloadTimer) clearTimeout(reloadTimer);
 
-    // 400ms 동안 지도 이동이 멈추면 쿼리 실행
     reloadTimer = setTimeout(() => {
+        // 줌 레벨 제한 체크
+        if (!enforceZoomLevelBehavior()) return;
+
+        // 정상일 때만 데이터 로드
         renderListingsOnMap();
     }, 400);
+
 }
