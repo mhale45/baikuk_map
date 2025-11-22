@@ -142,6 +142,7 @@ async function loadGroupedMarkersInExpandedBounds() {
         .lte("lat", maxLat)
         .gte("lng", minLng)
         .lte("lng", maxLng)
+        .group("full_address, lat, lng")
         .order("full_address", { ascending: true });
 
     if (error) {
