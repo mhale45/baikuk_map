@@ -211,10 +211,7 @@ async function loadListingsByBounds() {
 async function renderListingsOnMap() {
     let listings = await loadListingsByBounds();
 
-    async function renderListingsOnMap() {
-        let listings = await loadListingsByBounds();
-
-        // 🔥 주소별 매물 리스트를 미리 묶어둠
+    // 🔥 주소별 매물 리스트를 미리 묶어둠
         const listingGroup = new Map();
         listings.forEach(item => {
             if (!listingGroup.has(item.full_address)) {
@@ -222,7 +219,7 @@ async function renderListingsOnMap() {
             }
             listingGroup.get(item.full_address).push(item);
         });
-
+        
     // 🔥 JS단 추가 필터링 (deal_type)
     const selectedDealTypes = getSelectedDealTypes();
     if (selectedDealTypes.length > 0) {
