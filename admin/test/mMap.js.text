@@ -268,17 +268,17 @@ function renderListingWithFloorSeparator(listings) {
             "🔸";
 
         html += `
-            <div style="padding:4px 0; font-size:13px;">
+            <div style="padding:4px 0; font-size:14px;">
                 ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
-                <strong>${floor}층</strong>
-                <strong>${formatNumber(item.deposit_price)}</strong> /
-                <strong>${formatNumber(item.monthly_rent)}</strong>
+                <strong>${floor}층</strong> / 
+                <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
+                <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong>
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
-                        ? "무권리"
-                        : `권<strong>${formatNumber(item.premium_price)}</strong>`
+                        ? `<span style="color:red;">무권리</span>`
+                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong>`
                 }
-                <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평
             </div>
         `;
     });
