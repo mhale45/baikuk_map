@@ -805,6 +805,6 @@ function updateCustomerButtonLabel(name) {
     if (!name) {
         btn.textContent = "👤 고객 리스트";
     } else {
-        btn.textContent = `👤 고객 리스트 (${name})`;
+        btn.textContent = `👤 ${name}`;
     }
 }
