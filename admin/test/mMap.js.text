@@ -420,68 +420,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 800);
 });
 
-// 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
-window.addEventListener("DOMContentLoaded", () => {
-    const toggleBtn = document.getElementById("filter-toggle-btn");
-    const filterBox = document.getElementById("filter-box");
-
-    if (toggleBtn && filterBox) {
-        toggleBtn.addEventListener("click", () => {
-            filterBox.style.display =
-                filterBox.style.display === "none" ? "block" : "none";
-        });
-    }
-});
-
 window.addEventListener("DOMContentLoaded", () => {
     attachFilterInputEvents(onFilterChanged);
-});
-
-// 🔥 필터 박스 영역 외 클릭 시 자동 닫기
-window.addEventListener("click", (e) => {
-    const toggleBtn = document.getElementById("filter-toggle-btn");
-    const filterBox = document.getElementById("filter-box");
-
-    if (!toggleBtn || !filterBox) return;
-
-    // 클릭한 대상이 버튼도 아니고, 필터박스 내부도 아닐 때 → 닫기
-    if (
-        e.target !== toggleBtn &&
-        !toggleBtn.contains(e.target) &&
-        !filterBox.contains(e.target)
-    ) {
-        filterBox.style.display = "none";
-    }
-});
-
-// 🔥 조건 필터 박스 토글
-window.addEventListener("DOMContentLoaded", () => {
-    const conditionBtn = document.getElementById("condition-btn");
-    const conditionBox = document.getElementById("condition-filter-box");
-
-    if (conditionBtn && conditionBox) {
-        conditionBtn.addEventListener("click", () => {
-            conditionBox.style.display =
-                conditionBox.style.display === "none" ? "block" : "none";
-        });
-    }
-});
-
-// 🔥 조건 필터 박스 영역 외 클릭 시 자동 닫기
-window.addEventListener("click", (e) => {
-    const conditionBtn = document.getElementById("condition-btn");
-    const conditionBox = document.getElementById("condition-filter-box");
-
-    if (!conditionBtn || !conditionBox) return;
-
-    // 버튼도 아니고, 박스 내부도 아니면 닫기
-    if (
-        e.target !== conditionBtn &&
-        !conditionBtn.contains(e.target) &&
-        !conditionBox.contains(e.target)
-    ) {
-        conditionBox.style.display = "none";
-    }
 });
 
 // =============================
@@ -530,3 +470,32 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
+
+// 🎯 통합 필터 토글 버튼
+window.addEventListener("DOMContentLoaded", () => {
+    const filterBtn = document.getElementById("filter-btn");
+    const filterBox = document.getElementById("filter-box-merged");
+
+    if (filterBtn && filterBox) {
+        filterBtn.addEventListener("click", () => {
+            filterBox.style.display =
+                filterBox.style.display === "none" ? "block" : "none";
+        });
+    }
+});
+
+// 🎯 필터창 외 클릭하면 닫기
+window.addEventListener("click", (e) => {
+    const filterBtn = document.getElementById("filter-btn");
+    const filterBox = document.getElementById("filter-box-merged");
+
+    if (!filterBtn || !filterBox) return;
+
+    if (
+        e.target !== filterBtn &&
+        !filterBtn.contains(e.target) &&
+        !filterBox.contains(e.target)
+    ) {
+        filterBox.style.display = "none";
+    }
+});
