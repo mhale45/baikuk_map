@@ -719,7 +719,7 @@ document.addEventListener("click", async (e) => {
     document.getElementById("customer-panel").style.display = "none";
 
     // 고객 이름 라벨 표시
-    updateSelectedCustomerLabel(customerName);
+    updateMapCustomerLabel(customerName);
 
     // 고객 필터 적용
     await loadCustomerFilter(customerId);
@@ -793,17 +793,17 @@ async function loadCustomerFilter(customerId) {
 }
 
 // =====================================================================================
-// 🔥 선택된 고객 이름 표시하기
+// 🔥 지도 오른쪽 위에 고객 이름 표시
 // =====================================================================================
-function updateSelectedCustomerLabel(name) {
-    const label = document.getElementById("selected-customer-label");
-    if (!label) return;
+function updateMapCustomerLabel(name) {
+    const box = document.getElementById("map-customer-label");
+    if (!box) return;
 
     if (!name) {
-        label.textContent = "";
-        label.style.display = "none";
-    } else {
-        label.textContent = `👤 ${name}`;
-        label.style.display = "block";
+        box.style.display = "none";
+        return;
     }
+
+    box.textContent = `👤 ${name}`;
+    box.style.display = "block";
 }
