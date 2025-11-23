@@ -1438,27 +1438,26 @@
         document.getElementById('customer-phone').value = customer.customer_phone_number || '';
         document.getElementById('customer-grade').value = customer.grade || 'F';
         document.getElementById('memo-textarea').value = customer.memo || '';
-        document.getElementById("floor-min").value = data.floor_min ?? "";
-        document.getElementById("floor-max").value = data.floor_max ?? "";
-        document.getElementById("area-min").value = data.area_min ?? "";
-        document.getElementById("area-max").value = data.area_max ?? "";
-        document.getElementById("deposit-min").value = data.deposit_min ?? "";
-        document.getElementById("deposit-max").value = data.deposit_max ?? "";
-        document.getElementById("rent-min").value = data.rent_min ?? "";
-        document.getElementById("rent-max").value = data.rent_max ?? "";
-        document.getElementById("rent-per-py-min").value = data.rent_per_py_min ?? "";
-        document.getElementById("rent-per-py-max").value = data.rent_per_py_max ?? "";
-        document.getElementById("premium-min").value = data.premium_min ?? "";
-        document.getElementById("premium-max").value = data.premium_max ?? "";
-        document.getElementById("sale-min").value = data.sale_min ?? "";
-        document.getElementById("sale-max").value = data.sale_max ?? "";
-        document.getElementById("total-deposit-min").value = data.total_deposit_min ?? "";
-        document.getElementById("total-deposit-max").value = data.total_deposit_max ?? "";
-        document.getElementById("total-rent-min").value = data.total_rent_min ?? "";
-        document.getElementById("total-rent-max").value = data.total_rent_max ?? "";
-        document.getElementById("roi-min").value = data.roi_min ?? "";
-        document.getElementById("roi-max").value = data.roi_max ?? "";
-
+        document.getElementById("floor-min").value = customer.floor_min ?? "";
+        document.getElementById("floor-max").value = customer.floor_max ?? "";
+        document.getElementById("area-min").value = customer.area_min ?? "";
+        document.getElementById("area-max").value = customer.area_max ?? "";
+        document.getElementById("deposit-min").value = customer.deposit_min ?? "";
+        document.getElementById("deposit-max").value = customer.deposit_max ?? "";
+        document.getElementById("rent-min").value = customer.rent_min ?? "";
+        document.getElementById("rent-max").value = customer.rent_max ?? "";
+        document.getElementById("rent-per-py-min").value = customer.rent_per_py_min ?? "";
+        document.getElementById("rent-per-py-max").value = customer.rent_per_py_max ?? "";
+        document.getElementById("premium-min").value = customer.premium_min ?? "";
+        document.getElementById("premium-max").value = customer.premium_max ?? "";
+        document.getElementById("sale-min").value = customer.sale_min ?? "";
+        document.getElementById("sale-max").value = customer.sale_max ?? "";
+        document.getElementById("total-deposit-min").value = customer.total_deposit_min ?? "";
+        document.getElementById("total-deposit-max").value = customer.total_deposit_max ?? "";
+        document.getElementById("total-rent-min").value = customer.total_rent_min ?? "";
+        document.getElementById("total-rent-max").value = customer.total_rent_max ?? "";
+        document.getElementById("roi-min").value = customer.roi_min ?? "";
+        document.getElementById("roi-max").value = customer.roi_max ?? "";
 
         // 👉 왼쪽 매물번호 입력창 초기화
         document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
@@ -2684,11 +2683,21 @@
         const { data: inserted, error: insertErr } = await supabase
             .from("customers")
             .insert({
-            customer_name: name,
-            customer_phone_number: phone,
-            grade: grade,
-            memo: memo,
-            staff_profiles_id: selectedStaffId ?? myStaffId
+                customer_name: name,
+                customer_phone_number: phone,
+                grade: grade,
+                memo: memo,
+                staff_profiles_id: selectedStaffId ?? myStaffId,
+                floor_min, floor_max,
+                area_min, area_max,
+                deposit_min, deposit_max,
+                rent_min, rent_max,
+                rent_per_py_min, rent_per_py_max,
+                premium_min, premium_max,
+                sale_min, sale_max,
+                total_deposit_min, total_deposit_max,
+                total_rent_min, total_rent_max,
+                roi_min, roi_max
             })
             .select()
             .single();
@@ -2712,7 +2721,17 @@
             customer_name: name,
             customer_phone_number: phone,
             grade: grade,
-            memo: memo
+            memo: memo,
+            floor_min, floor_max,
+            area_min, area_max,
+            deposit_min, deposit_max,
+            rent_min, rent_max,
+            rent_per_py_min, rent_per_py_max,
+            premium_min, premium_max,
+            sale_min, sale_max,
+            total_deposit_min, total_deposit_max,
+            total_rent_min, total_rent_max,
+            roi_min, roi_max
             })
             .eq("id", currentCustomerId);
 
