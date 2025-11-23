@@ -273,7 +273,7 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         let bgColor = "";
         if (status.includes("완료")) {
-            bgColor = "background:#ffe5e5;";        // 완료 → 연한 빨간색
+            bgColor = "background:#fff0f0;";        // 완료 → 연한 빨간색
         } else if (status.includes("보류")) {
             bgColor = "background:#f0f0f0;";        // 보류 → 연한 회색
         } else {
