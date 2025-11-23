@@ -704,7 +704,7 @@ document.addEventListener("click", (e) => {
 });
 
 // =====================================================================================
-// 🔥 고객 1명 클릭하면 → 해당 고객의 필터 조건 로드
+// 🔥 고객 1명 클릭 → 필터 적용 + 고객 이름 표시
 // =====================================================================================
 document.addEventListener("click", async (e) => {
     const item = e.target.closest(".customer-item");
@@ -713,12 +713,15 @@ document.addEventListener("click", async (e) => {
     const customerId = item.dataset.id;
     if (!customerId) return;
 
-    console.log("📌 선택된 고객 ID:", customerId);
+    const customerName = item.textContent.trim();
 
     // 고객 패널 닫기
     document.getElementById("customer-panel").style.display = "none";
 
-    // 고객 필터 로드
+    // 고객 이름 라벨 표시
+    updateSelectedCustomerLabel(customerName);
+
+    // 고객 필터 적용
     await loadCustomerFilter(customerId);
 });
 
@@ -787,4 +790,20 @@ async function loadCustomerFilter(customerId) {
     // 4) 🔥 모든 필터 설정 후 지도에 적용
     // -----------------------------------------
     onFilterChanged();
+}
+
+// =====================================================================================
+// 🔥 선택된 고객 이름 표시하기
+// =====================================================================================
+function updateSelectedCustomerLabel(name) {
+    const label = document.getElementById("selected-customer-label");
+    if (!label) return;
+
+    if (!name) {
+        label.textContent = "";
+        label.style.display = "none";
+    } else {
+        label.textContent = `👤 ${name}`;
+        label.style.display = "block";
+    }
 }
