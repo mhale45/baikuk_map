@@ -258,91 +258,120 @@ async function renderListingsOnMap() {
         }
     });
 
-    // 2) 새로 추가할 마커 추가 (⚡ 상세조회 없이 바운드 데이터로만 판단)
+    // 2) 새로 추가할 마커 추가 (⚡ 주소 기준으로 필터 통과 매물 없으면 마커 미생성)
     nextMap.forEach((item, addr) => {
         if (!currentMap.has(addr)) {
 
-            // 🔥 loadListingsByBounds() 데이터만으로 필터 체크
-            const status = item.transaction_status || "";
-            const deal = item.deal_type || "";
-            const cate = item.category || "";
+            // 👉 해당 주소의 실제 매물들을 조회
+            loadListingsByAddress(addr).then(listingsAtAddr => {
 
-            const selectedStatuses = getSelectedStatuses();
-            if (selectedStatuses.length > 0 &&
-                !selectedStatuses.some(s => status.includes(s))) return;
-
-            const selectedDealTypes = getSelectedDealTypes();
-            if (selectedDealTypes.length > 0 &&
-                !selectedDealTypes.some(t => deal.includes(t))) return;
-
-            const selectedCategories = getSelectedCategories();
-            if (selectedCategories.length > 0 &&
-                !selectedCategories.some(c => cate.includes(c))) return;
-
-            // 🔥 필터 통과 → 마커 생성
-            const marker = new kakao.maps.Marker({
-                position: new kakao.maps.LatLng(item.lat, item.lng)
-            });
-
-            clusterer.addMarker(marker);
-
-            currentMap.set(addr, {
-                full_address: addr,
-                marker: marker
-            });
-
-            // 클릭 시에만 상세조회(loadListingsByAddress)
-            kakao.maps.event.addListener(marker, "click", async () => {
-                if (currentInfoWindow) currentInfoWindow.close();
-
-                let listings = await loadListingsByAddress(addr);
-
+                // 상태 필터
                 const selectedStatuses = getSelectedStatuses();
                 if (selectedStatuses.length > 0) {
-                    listings = listings.filter(i =>
+                    listingsAtAddr = listingsAtAddr.filter(i =>
                         selectedStatuses.some(s => (i.transaction_status || "").includes(s))
                     );
                 }
 
+                // 거래유형 필터
                 const selectedDealTypes = getSelectedDealTypes();
                 if (selectedDealTypes.length > 0) {
-                    listings = listings.filter(i =>
+                    listingsAtAddr = listingsAtAddr.filter(i =>
                         selectedDealTypes.some(t => (i.deal_type || "").includes(t))
                     );
                 }
 
+                // 카테고리 필터
                 const selectedCategories = getSelectedCategories();
                 if (selectedCategories.length > 0) {
-                    listings = listings.filter(i =>
+                    listingsAtAddr = listingsAtAddr.filter(i =>
                         selectedCategories.some(c => (i.category || "").includes(c))
                     );
                 }
 
-                listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
+                // 👉 필터링 후 매물이 한 건도 없다면 이 주소는 마커를 만들지 않음!!
+                if (listingsAtAddr.length === 0) return;
 
-                const panel = document.getElementById("side-panel");
-                panel.innerHTML = listings.length
-                    ? listings.map(i => {
-                        const status = i.transaction_status || "";
-                        const icon =
-                            status.includes("완료") ? "🔹" :
-                            status.includes("보류") ? "◆" :
-                            "🔸";
+                // 👉 여기서 마커 생성
+                const marker = new kakao.maps.Marker({
+                    position: new kakao.maps.LatLng(item.lat, item.lng)
+                });
 
-                        return `
-                            <div style="margin-bottom:6px;">
-                                ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                                ${i.floor || "-"}층
-                                <strong>${formatNumber(i.deposit_price)}</strong> /
-                                <strong>${formatNumber(i.monthly_rent)}</strong>
-                            </div>
-                        `;
-                    }).join("")
-                    : "<div>조건에 맞는 매물이 없습니다.</div>";
+                clusterer.addMarker(marker);
 
-                panel.style.display = "block";
+                currentMap.set(addr, {
+                    full_address: addr,
+                    marker: marker
+                });
+
+                // 👉 마커 클릭 이벤트 (기존 그대로)
+                kakao.maps.event.addListener(marker, "click", async () => {
+                    if (currentInfoWindow) currentInfoWindow.close();
+
+                    let listings = await loadListingsByAddress(addr);
+
+                    const selectedStatuses = getSelectedStatuses();
+                    if (selectedStatuses.length > 0) {
+                        listings = listings.filter(i =>
+                            selectedStatuses.some(s => (i.transaction_status || "").includes(s))
+                        );
+                    }
+
+                    const selectedDealTypes = getSelectedDealTypes();
+                    if (selectedDealTypes.length > 0) {
+                        listings = listings.filter(i =>
+                            selectedDealTypes.some(t => (i.deal_type || "").includes(t))
+                        );
+                    }
+
+                    const selectedCategories = getSelectedCategories();
+                    if (selectedCategories.length > 0) {
+                        listings = listings.filter(i =>
+                            selectedCategories.some(c => (i.category || "").includes(c))
+                        );
+                    }
+
+                    listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
+
+                    const panel = document.getElementById("side-panel");
+                    panel.innerHTML = listings.length
+                        ? listings.map(i => {
+                            const status = i.transaction_status || "";
+
+                            // 상태에 따른 아이콘
+                            const icon =
+                                status.includes("완료") ? "🔹" :
+                                status.includes("보류") ? "◆" :
+                                "🔸";
+
+                            const textColor = (() => {
+                                if (status.includes("완료")) return "red";
+                                if (status.includes("보류")) return "green";
+                                if (status.includes("진행")) return "black";
+                                return "black";
+                            })();
+
+                            return `
+                                <div style="margin-bottom:6px; color:${textColor} !important;">
+                                    ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                                    <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
+                                    <strong>${formatNumber(i.deposit_price)}</strong> /
+                                    <strong>${formatNumber(i.monthly_rent)}</strong>
+                                    ${
+                                        (i.premium_price == null || Number(i.premium_price) === 0)
+                                            ? "무권리"
+                                            : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                                    }
+                                    <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                                </div>
+                            `;
+                        }).join("")
+                        : "<div>조건에 맞는 매물이 없습니다.</div>";
+
+                    panel.style.display = "block";
+                });
+
             });
-
         }
     });
 
