@@ -612,6 +612,12 @@
     window.supabase = supabase; // 전역으로 접근
   </script>
   <script>
+    import {
+        showToast,
+        setDocumentTitle,
+        formatKoreanMoney
+    } from './recommend_imDae.js';
+
     // === 행 관찰용 전역 ===
     let listingsBody;          // tbody 캐시
     let rowObserver;           // ResizeObserver 인스턴스
@@ -1896,23 +1902,6 @@
         });
       });
     })();
-
-    function showToast(message, duration = 3000) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-
-      // 스타일 직접 지정
-      toast.style.backgroundColor = '#F2C130';
-      toast.style.color = 'black';
-      toast.style.fontWeight = 'bold';
-      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
-
-      toast.classList.remove('hidden');
-
-      setTimeout(() => {
-        toast.classList.add('hidden');
-      }, duration);
-    }
 
     // 🧭 파비콘 옆 탭 제목 업데이트
     function setDocumentTitle(name) {
