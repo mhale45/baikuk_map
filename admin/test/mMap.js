@@ -272,53 +272,22 @@ async function renderListingsOnMap() {
                 marker: marker
             });
 
-            kakao.maps.event.addListener(marker, "click", async () => {
-                if (currentInfoWindow) currentInfoWindow.close();
+            kakao.maps.event.addListener(marker, "click", () => {
+                const panel = document.getElementById("side-panel");
 
-                // 🔥 Supabase에서 해당 주소 매물 불러오기
-                let listings = await loadListingsByAddress(item.full_address);
+                let listings = listingGroup.get(addr) || [];
 
-                // 🔥 거래상태 필터가 있을 경우 필터링 적용
-                const selectedStatuses = getSelectedStatuses();
-
-                if (selectedStatuses.length > 0) {
-                    listings = listings.filter(i => {
-                        const st = i.transaction_status || "";
-                        return selectedStatuses.some(sel => st.includes(sel));
-                    });
-                }
-
-                // 🔥 거래유형 필터 (월세/매매)
-                const selectedDealTypes = getSelectedDealTypes();
-                if (selectedDealTypes.length > 0) {
-                    listings = listings.filter(i => {
-                        const dt = i.deal_type || "";
-                        return selectedDealTypes.some(sel => dt.includes(sel));
-                    });
-                }
-
-                // 🔥 카테고리 필터 (상가/빌딩/공장/주택)
-                const selectedCategories = getSelectedCategories();
-                if (selectedCategories.length > 0) {
-                    listings = listings.filter(i => {
-                        const ct = i.category || "";
-                        return selectedCategories.some(sel => ct.includes(sel));
-                    });
-                }
-
-                // 🔥 정렬 (층수)
+                // 🔥 층수 정렬 그대로 유지
                 listings.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
 
-                // 🔥 HTML 생성
                 const html = listings.map(i => {
                     const status = i.transaction_status || "";
 
-                    // 🔥 상태에 따른 아이콘 선택
-                    const icon = 
+                    const icon =
                         status.includes("완료") ? "🔹" :
                         status.includes("보류") ? "◆" :
                         "🔸";
@@ -333,9 +302,8 @@ async function renderListingsOnMap() {
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
                             ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                            <!-- 🔥 층수 추가된 부분 -->
-                            &nbsp;<strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
-                            <strong>${formatNumber(i.deposit_price)}</strong>/
+                            <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
+                            <strong>${formatNumber(i.deposit_price)}</strong> /
                             <strong>${formatNumber(i.monthly_rent)}</strong>
                             ${
                                 (i.premium_price == null || Number(i.premium_price) === 0)
@@ -345,14 +313,10 @@ async function renderListingsOnMap() {
                             <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
                         </div>
                     `;
-
                 }).join("");
-
-                const panel = document.getElementById("side-panel");
 
                 panel.innerHTML = html || "<div>조건에 맞는 매물이 없습니다.</div>";
                 panel.style.display = "block";
-
             });
 
         }
