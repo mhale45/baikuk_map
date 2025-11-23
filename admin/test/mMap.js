@@ -635,7 +635,7 @@ function renderCustomerList(customers) {
                     ${list
                         .map(c => `
                             <div class="customer-item py-1 text-sm border-b cursor-pointer"
-                                data-id="${c.id}">
+                                data-customer-id="${c.id}">
                                 ${c.customer_name}
                             </div>
                         `)
@@ -779,3 +779,52 @@ async function loadCustomerFilter(customerId) {
     // 지도에 적용
     reloadListingsOnMapThrottled();
 }
+
+// =====================================================================================
+// 🔥 고객 선택 시 — 고객의 조건을 필터에 자동 입력 + 마커 새로고침
+// =====================================================================================
+document.addEventListener("click", async (e) => {
+    const item = e.target.closest(".customer-item");
+    if (!item) return;
+
+    const customerId = item.dataset.customerId;
+    if (!customerId) return;
+
+    // 고객 조건 가져오기
+    const { data, error } = await window.supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .maybeSingle();
+
+    if (error || !data) {
+        alert("고객 정보를 불러오지 못했습니다.");
+        console.error(error);
+        return;
+    }
+
+    // 🔥 필터 입력란에 고객 조건 자동 적용
+    const keys = [
+        "floor", "area", "deposit", "rent", "rent_per_py",
+        "premium", "sale", "total_deposit", "total_rent", "roi"
+    ];
+
+    keys.forEach(key => {
+        const minInput = document.getElementById(`${key}-min`);
+        const maxInput = document.getElementById(`${key}-max`);
+        if (minInput && data[`${key}_min`] != null)
+            minInput.value = data[`${key}_min`];
+        if (maxInput && data[`${key}_max`] != null)
+            maxInput.value = data[`${key}_max`];
+    });
+
+    // 체크박스는 고객 등급 조건과 관련없으므로 초기화 후 재선택 X
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => cb.checked = false);
+
+    // 🔥 필터 변경 후 마커 전체 최신화
+    clearAllMarkers();
+    reloadListingsOnMapThrottled();
+
+    alert(`"${data.customer_name}" 고객 조건이 필터에 적용되었습니다.`);
+});
