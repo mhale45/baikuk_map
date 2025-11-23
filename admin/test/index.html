@@ -39,6 +39,18 @@
             z-index: 10000;
         }
 
+        @media (min-width: 769px) {
+            #side-panel {
+                position: absolute !important;
+                max-width: 320px;
+                max-height: 50vh;
+                left: 0;
+                top: 0;
+                transform: translate(-50%, -100%); /* 마커 위로 */
+                z-index: 999999;
+            }
+        }
+
     </style>
 
     <!-- 🔥 Supabase Client -->
