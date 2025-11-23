@@ -1,4 +1,13 @@
-// ▷ 기본 지도 초기화 코드
+import {
+    numericFilters,
+    getSelectedStatuses,
+    getSelectedDealTypes,
+    getSelectedCategories,
+    getNumericFilterRange,
+    applyNumericFilters,
+    applyAllFilters,
+    attachFilterInputEvents
+} from "./filter.js";
 
 let map;
 let currentInfoWindow = null;
@@ -55,23 +64,22 @@ window.addEventListener("DOMContentLoaded", () => {
     zoomNotice.style.display = "none"; // 기본 숨김
     zoomNotice.innerText = "지도를 확대하세요";
     document.body.appendChild(zoomNotice);
+
     // 🔥 페이지 첫 로드 시 필터 초기화 실행
     resetFilterSelections();
 });
 
-function getSelectedStatuses() {
-    return Array.from(document.querySelectorAll(".status-check:checked"))
-        .map(cb => cb.value);
+function clearAllMarkers() {
+    allMarkers.forEach(m => {
+        if (m.marker) m.marker.setMap(null);
+    });
+    clusterer.clear();
+    allMarkers = [];
 }
 
-function getSelectedDealTypes() {
-    return Array.from(document.querySelectorAll(".dealtype-check:checked"))
-        .map(cb => cb.value);
-}
-
-function getSelectedCategories() {
-    return Array.from(document.querySelectorAll(".category-check:checked"))
-        .map(cb => cb.value);
+function onFilterChanged() {
+    clearAllMarkers();
+    reloadListingsOnMapThrottled();
 }
 
 function enforceZoomLevelBehavior() {
@@ -92,7 +100,7 @@ function enforceZoomLevelBehavior() {
 
         return false;  // 데이터 로딩 금지 신호
     } else {
-        notice.style.display = "none";  
+        notice.style.display = "none";
         return true;   // 데이터 로딩 허용
     }
 }
@@ -119,7 +127,6 @@ async function loadListingsByAddress(fullAddress) {
             deal_type,
             category
         `)
-
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -211,23 +218,8 @@ async function loadListingsByBounds() {
 async function renderListingsOnMap() {
     let listings = await loadListingsByBounds();
 
-    // 🔥 JS단 추가 필터링 (deal_type)
-    const selectedDealTypes = getSelectedDealTypes();
-    if (selectedDealTypes.length > 0) {
-        listings = listings.filter(i => {
-            const dt = i.deal_type || "";
-            return selectedDealTypes.some(sel => dt.includes(sel));
-        });
-    }
-
-    // 🔥 JS단 추가 필터링 (category)
-    const selectedCategories = getSelectedCategories();
-    if (selectedCategories.length > 0) {
-        listings = listings.filter(i => {
-            const ct = i.category || "";
-            return selectedCategories.some(sel => ct.includes(sel));
-        });
-    }
+    // 🔥 JS단 추가 필터링 (층)
+    listings = applyAllFilters(listings);
 
     // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
     if (!listings.length) {
@@ -265,29 +257,8 @@ async function renderListingsOnMap() {
             // 👉 해당 주소의 실제 매물들을 조회
             loadListingsByAddress(addr).then(listingsAtAddr => {
 
-                // 상태 필터
-                const selectedStatuses = getSelectedStatuses();
-                if (selectedStatuses.length > 0) {
-                    listingsAtAddr = listingsAtAddr.filter(i =>
-                        selectedStatuses.some(s => (i.transaction_status || "").includes(s))
-                    );
-                }
-
-                // 거래유형 필터
-                const selectedDealTypes = getSelectedDealTypes();
-                if (selectedDealTypes.length > 0) {
-                    listingsAtAddr = listingsAtAddr.filter(i =>
-                        selectedDealTypes.some(t => (i.deal_type || "").includes(t))
-                    );
-                }
-
-                // 카테고리 필터
-                const selectedCategories = getSelectedCategories();
-                if (selectedCategories.length > 0) {
-                    listingsAtAddr = listingsAtAddr.filter(i =>
-                        selectedCategories.some(c => (i.category || "").includes(c))
-                    );
-                }
+                // 층 필터
+                listingsAtAddr = applyAllFilters(listingsAtAddr);
 
                 // 👉 필터링 후 매물이 한 건도 없다면 이 주소는 마커를 만들지 않음!!
                 if (listingsAtAddr.length === 0) return;
@@ -310,26 +281,8 @@ async function renderListingsOnMap() {
 
                     let listings = await loadListingsByAddress(addr);
 
-                    const selectedStatuses = getSelectedStatuses();
-                    if (selectedStatuses.length > 0) {
-                        listings = listings.filter(i =>
-                            selectedStatuses.some(s => (i.transaction_status || "").includes(s))
-                        );
-                    }
-
-                    const selectedDealTypes = getSelectedDealTypes();
-                    if (selectedDealTypes.length > 0) {
-                        listings = listings.filter(i =>
-                            selectedDealTypes.some(t => (i.deal_type || "").includes(t))
-                        );
-                    }
-
-                    const selectedCategories = getSelectedCategories();
-                    if (selectedCategories.length > 0) {
-                        listings = listings.filter(i =>
-                            selectedCategories.some(c => (i.category || "").includes(c))
-                        );
-                    }
+                    // 필터
+                    listings = applyAllFilters(listings);
 
                     listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
 
@@ -386,7 +339,6 @@ window.addEventListener("DOMContentLoaded", () => {
             renderListingsOnMap();
         }
     }, 800);
-
 });
 
 // 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
@@ -400,6 +352,10 @@ window.addEventListener("DOMContentLoaded", () => {
                 filterBox.style.display === "none" ? "block" : "none";
         });
     }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    attachFilterInputEvents(onFilterChanged);
 });
 
 // 🔥 필터 박스 영역 외 클릭 시 자동 닫기
@@ -465,26 +421,7 @@ function reloadListingsOnMapThrottled() {
         // 정상일 때만 데이터 로드
         renderListingsOnMap();
     }, 400);
-
 }
-
-document.querySelectorAll(".status-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        reloadListingsOnMapThrottled();
-    });
-});
-
-document.querySelectorAll(".dealtype-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        reloadListingsOnMapThrottled();
-    });
-});
-
-document.querySelectorAll(".category-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        reloadListingsOnMapThrottled();
-    });
-});
 
 // 필터 초기화 함수
 function resetFilterSelections() {
@@ -498,6 +435,14 @@ function resetFilterSelections() {
         document.querySelectorAll("input[type='checkbox']").forEach(cb => {
             if (cb.value.includes(val)) cb.checked = true;
         });
+    });
+
+    // 숫자 필터 초기화
+    Object.keys(numericFilters).forEach(key => {
+        const min = document.getElementById(`${key}-min`);
+        const max = document.getElementById(`${key}-max`);
+        if (min) min.value = "";
+        if (max) max.value = "";
     });
 
     // 지도 reload
