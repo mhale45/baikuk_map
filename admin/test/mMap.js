@@ -552,9 +552,11 @@ function resetFilterSelections() {
 }
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
-document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
 document.getElementById("filter-reset-btn").addEventListener("click", () => {
-    updateCustomerButtonLabel("");
+    resetFilterSelections();     // 필터 모두 초기화
+    updateCustomerButtonLabel(""); 
+    clearAllMarkers();           
+    reloadListingsOnMapThrottled();
 });
 
 // 🎯 통합 필터 토글 버튼
