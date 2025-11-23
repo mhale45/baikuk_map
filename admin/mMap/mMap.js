@@ -285,7 +285,14 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         html += `
             <div style="padding:4px 0; font-size:14px; ${bgColor}">
-                ${icon} <strong>${item.listing_id}</strong> <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
+                ${icon} 
+                <strong>
+                    <span class="copy-listing-id" data-id="${item.listing_id}" 
+                        style="cursor:pointer;">
+                        ${item.listing_id}
+                    </span>
+                </strong>
+                <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
@@ -822,3 +829,18 @@ function updateCustomerButtonLabel(name) {
         btn.textContent = `👤 ${name}`;
     }
 }
+
+document.addEventListener("click", (e) => {
+    const target = e.target.closest(".copy-listing-id");
+    if (!target) return;
+
+    const id = target.dataset.id;
+
+    navigator.clipboard.writeText(id)
+        .then(() => {
+            alert(`복사됨: ${id}`);
+        })
+        .catch(err => {
+            console.error("클립보드 복사 오류:", err);
+        });
+});

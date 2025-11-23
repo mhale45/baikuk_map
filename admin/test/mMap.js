@@ -837,10 +837,39 @@ document.addEventListener("click", (e) => {
     const id = target.dataset.id;
 
     navigator.clipboard.writeText(id)
-        .then(() => {
-            alert(`복사됨: ${id}`);
-        })
-        .catch(err => {
-            console.error("클립보드 복사 오류:", err);
-        });
+    .then(() => {
+        showToast(`복사됨: ${id}`);
+    })
+    .catch(err => {
+        console.error("클립보드 복사 오류:", err);
+    });
+
 });
+
+function showToast(message) {
+    let toast = document.getElementById("copy-toast");
+
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "copy-toast";
+        toast.style.position = "fixed";
+        toast.style.top = "20px";
+        toast.style.right = "20px";
+        toast.style.background = "rgba(0,0,0,0.75)";
+        toast.style.color = "#fff";
+        toast.style.padding = "10px 16px";
+        toast.style.borderRadius = "6px";
+        toast.style.fontSize = "14px";
+        toast.style.zIndex = "999999";
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.3s ease";
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = message;
+    toast.style.opacity = "1";
+
+    setTimeout(() => {
+        toast.style.opacity = "0";
+    }, 3000);
+}
