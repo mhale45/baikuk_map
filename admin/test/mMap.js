@@ -259,35 +259,94 @@ function renderListingWithFloorSeparator(listings) {
         if (prevFloor !== null && prevFloor !== floor) {
             html += `<div style="border-top:1px solid #ddd; margin:6px 0;"></div>`;
         }
-
         prevFloor = floor;
 
         const status = item.transaction_status || "";
+
+        // 상태별 아이콘
         const icon =
             status.includes("완료") ? "🔹" :
             status.includes("보류") ? "◆" :
             "🔸";
 
-        html += `
-            <div style="padding:4px 0; font-size:14px;">
-                ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
-                <strong>${floor}층</strong> / 
-                <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
-                <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
-                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
-                ${
-                    (!item.premium_price || Number(item.premium_price) === 0)
-                        ? `<span style="color:red;">무권리</span>`
-                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
-                }
-                ${ 
-                    item.rent_per_py 
-                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` 
-                        : "" 
-                }
+        // ============================
+        // 🔥 조건 1: 완료 (빨간색 출력)
+        // ============================
+        if (status.includes("완료")) {
+            html += `
+                <div style="padding:4px 0; font-size:14px;">
+                    ${icon} <span style="color:red;">
+                        <strong>${item.listing_id}</strong> ${item.listing_title || "-"}
+                    </span><br/>
+                    <strong>${floor}층</strong> / 
+                    <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
+                    <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+                    <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
+                    ${
+                        (!item.premium_price || Number(item.premium_price) === 0)
+                            ? `<span style="color:red;">무권리</span>`
+                            : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
+                    }
+                    ${
+                        item.rent_per_py
+                            ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
+                            : ""
+                    }
+                </div>
+            `;
+        }
 
-            </div>
-        `;
+        // ============================
+        // 🔥 조건 2: 보류 (초록색 출력)
+        // ============================
+        else if (status.includes("보류")) {
+            html += `
+                <div style="padding:4px 0; font-size:14px;">
+                    ${icon} <span style="color:green;">
+                        <strong>${item.listing_id}</strong> ${item.listing_title || "-"}
+                    </span><br/>
+                    <strong>${floor}층</strong> / 
+                    <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
+                    <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+                    <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
+                    ${
+                        (!item.premium_price || Number(item.premium_price) === 0)
+                            ? `<span style="color:red;">무권리</span>`
+                            : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
+                    }
+                    ${
+                        item.rent_per_py
+                            ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
+                            : ""
+                    }
+                </div>
+            `;
+        }
+
+        // ============================
+        // 🔥 조건 3: 나머지 (기존 그대로)
+        // ============================
+        else {
+            html += `
+                <div style="padding:4px 0; font-size:14px;">
+                    ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
+                    <strong>${floor}층</strong> / 
+                    <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
+                    <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+                    <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
+                    ${
+                        (!item.premium_price || Number(item.premium_price) === 0)
+                            ? `<span style="color:red;">무권리</span>`
+                            : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
+                    }
+                    ${
+                        item.rent_per_py
+                            ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
+                            : ""
+                    }
+                </div>
+            `;
+        }
     });
 
     return html;
