@@ -218,6 +218,46 @@ async function loadListingsByBounds() {
     return data;
 }
 
+
+function renderListingWithFloorSeparator(listings) {
+    let prevFloor = null;
+    let html = "";
+
+    listings.forEach(item => {
+        const floor = item.floor ?? "-";
+
+        // 층이 바뀌면 구분선 추가
+        if (prevFloor !== null && prevFloor !== floor) {
+            html += `<div style="border-top:1px solid #ddd; margin:6px 0;"></div>`;
+        }
+
+        prevFloor = floor;
+
+        const status = item.transaction_status || "";
+        const icon =
+            status.includes("완료") ? "🔹" :
+            status.includes("보류") ? "◆" :
+            "🔸";
+
+        html += `
+            <div style="padding:4px 0; font-size:13px;">
+                ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
+                <strong>${floor}층</strong>
+                <strong>${formatNumber(item.deposit_price)}</strong> /
+                <strong>${formatNumber(item.monthly_rent)}</strong>
+                ${
+                    (!item.premium_price || Number(item.premium_price) === 0)
+                        ? "무권리"
+                        : `권<strong>${formatNumber(item.premium_price)}</strong>`
+                }
+                <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평
+            </div>
+        `;
+    });
+
+    return html;
+}
+
 async function renderListingsOnMap() {
     let listings = await loadListingsByBounds();
 
@@ -297,27 +337,7 @@ async function renderListingsOnMap() {
                         }
 
                         const contentHTML = listings.length
-                            ? listings.map(i => {
-                                const status = i.transaction_status || "";
-                                const icon =
-                                    status.includes("완료") ? "🔹" :
-                                    status.includes("보류") ? "◆" :
-                                    "🔸";
-                                return `
-                                    <div style="padding:4px 0; font-size:13px;">
-                                        ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                                        <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
-                                        <strong>${formatNumber(i.deposit_price)}</strong> /
-                                        <strong>${formatNumber(i.monthly_rent)}</strong>
-                                        ${
-                                            (!i.premium_price || Number(i.premium_price) === 0)
-                                                ? "무권리"
-                                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                                        }
-                                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
-                                    </div>
-                                `;
-                            }).join("")
+                            ? renderListingWithFloorSeparator(listings)
                             : "<div style='font-size:13px;'>조건에 맞는 매물이 없습니다.</div>";
 
                         desktopInfoWindow = new kakao.maps.InfoWindow({
@@ -347,26 +367,7 @@ async function renderListingsOnMap() {
                     // =================================
                     const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
-                        ? listings.map(i => {
-                            const status = i.transaction_status || "";
-                            const icon =
-                                status.includes("완료") ? "🔹" :
-                                status.includes("보류") ? "◆" :
-                                "🔸";
-                            return `
-                                <div style="margin-bottom:6px;">
-                                    ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                                    <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
-                                    <strong>${formatNumber(i.deposit_price)}</strong> /
-                                    <strong>${formatNumber(i.monthly_rent)}</strong>
-                                    ${
-                                        (!i.premium_price || Number(i.premium_price) === 0)
-                                            ? "무권리"
-                                            : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                                    }
-                                    <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
-                                </div>`;
-                        }).join("")
+                        ? renderListingWithFloorSeparator(listings)
                         : "<div>조건에 맞는 매물이 없습니다.</div>";
 
                     panel.style.left = "10px";
