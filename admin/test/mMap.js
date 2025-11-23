@@ -208,6 +208,38 @@ async function loadListingsByBounds() {
     return data;
 }
 
+// 🔥 조건 필터 입력값 읽기
+function getConditionFilters() {
+    return {
+        floorMin: Number(document.getElementById("floor-min").value) || null,
+        floorMax: Number(document.getElementById("floor-max").value) || null,
+
+        areaMin: Number(document.getElementById("area-min").value) || null,
+        areaMax: Number(document.getElementById("area-max").value) || null,
+
+        depositMin: Number(document.getElementById("deposit-min").value) || null,
+        depositMax: Number(document.getElementById("deposit-max").value) || null,
+
+        rentMin: Number(document.getElementById("rent-min").value) || null,
+        rentMax: Number(document.getElementById("rent-max").value) || null,
+
+        premiumMin: Number(document.getElementById("premium-min").value) || null,
+        premiumMax: Number(document.getElementById("premium-max").value) || null,
+
+        saleMin: Number(document.getElementById("sale-min").value) || null,
+        saleMax: Number(document.getElementById("sale-max").value) || null,
+
+        totalDepositMin: Number(document.getElementById("total-deposit-min").value) || null,
+        totalDepositMax: Number(document.getElementById("total-deposit-max").value) || null,
+
+        totalRentMin: Number(document.getElementById("total-rent-min").value) || null,
+        totalRentMax: Number(document.getElementById("total-rent-max").value) || null,
+
+        roiMin: Number(document.getElementById("roi-min").value) || null,
+        roiMax: Number(document.getElementById("roi-max").value) || null,
+    };
+}
+
 async function renderListingsOnMap() {
     let listings = await loadListingsByBounds();
 
@@ -228,6 +260,49 @@ async function renderListingsOnMap() {
             return selectedCategories.some(sel => ct.includes(sel));
         });
     }
+
+    // 🔥 조건 필터 적용
+    const cond = getConditionFilters();
+
+    listings = listings.filter(i => {
+        // 층
+        if (cond.floorMin !== null && (i.floor ?? -9999) < cond.floorMin) return false;
+        if (cond.floorMax !== null && (i.floor ?? 9999) > cond.floorMax) return false;
+
+        // 전용면적(area_py)
+        if (cond.areaMin !== null && (i.area_py ?? -9999) < cond.areaMin) return false;
+        if (cond.areaMax !== null && (i.area_py ?? 9999) > cond.areaMax) return false;
+
+        // 보증금
+        if (cond.depositMin !== null && (i.deposit_price ?? -9999) < cond.depositMin) return false;
+        if (cond.depositMax !== null && (i.deposit_price ?? 9999) > cond.depositMax) return false;
+
+        // 월세
+        if (cond.rentMin !== null && (i.monthly_rent ?? -9999) < cond.rentMin) return false;
+        if (cond.rentMax !== null && (i.monthly_rent ?? 9999) > cond.rentMax) return false;
+
+        // 권리금
+        if (cond.premiumMin !== null && (i.premium_price ?? -9999) < cond.premiumMin) return false;
+        if (cond.premiumMax !== null && (i.premium_price ?? 9999) > cond.premiumMax) return false;
+
+        // 매매가
+        if (cond.saleMin !== null && (i.sale_price ?? -9999) < cond.saleMin) return false;
+        if (cond.saleMax !== null && (i.sale_price ?? 9999) > cond.saleMax) return false;
+
+        // 총보증금
+        if (cond.totalDepositMin !== null && (i.total_deposit ?? -9999) < cond.totalDepositMin) return false;
+        if (cond.totalDepositMax !== null && (i.total_deposit ?? 9999) > cond.totalDepositMax) return false;
+
+        // 총월세
+        if (cond.totalRentMin !== null && (i.total_rent ?? -9999) < cond.totalRentMin) return false;
+        if (cond.totalRentMax !== null && (i.total_rent ?? 9999) > cond.totalRentMax) return false;
+
+        // ROI
+        if (cond.roiMin !== null && (i.roi ?? -9999) < cond.roiMin) return false;
+        if (cond.roiMax !== null && (i.roi ?? 9999) > cond.roiMax) return false;
+
+        return true;
+    });
 
     // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
     if (!listings.length) {
@@ -482,6 +557,13 @@ document.querySelectorAll(".dealtype-check").forEach(cb => {
 
 document.querySelectorAll(".category-check").forEach(cb => {
     cb.addEventListener("change", () => {
+        reloadListingsOnMapThrottled();
+    });
+});
+
+// 🔥 조건 입력 변경 시 자동 적용
+document.querySelectorAll("#condition-filter-box input").forEach(input => {
+    input.addEventListener("input", () => {
         reloadListingsOnMapThrottled();
     });
 });
