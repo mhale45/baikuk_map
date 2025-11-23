@@ -459,6 +459,31 @@ async function renderListingsOnMap() {
                     panel.style.left = "10px";
                     panel.style.top = "calc(var(--header-height) + 10px)";
                     panel.style.display = "block";
+                    
+                    // 🔥 모바일에서도 클릭 이벤트 바인딩
+                    setTimeout(() => {
+                        // 매물 클릭 → 상세페이지 이동
+                        document.querySelectorAll('#side-panel .listing-item').forEach(el => {
+                            el.addEventListener('click', (e) => {
+                                if (e.target.closest('.copy-listing-id')) return;
+                                const id = el.dataset.id;
+                                openListingNewTab(id);
+                            });
+                        });
+
+                        // 매물번호 클릭 → 복사
+                        document.querySelectorAll('#side-panel .copy-listing-id').forEach(span => {
+                            span.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const id = span.dataset.id;
+
+                                navigator.clipboard.writeText(id)
+                                    .then(() => showToast(`${id} 복사완료`))
+                                    .catch(err => console.error(err));
+                            });
+                        });
+                    }, 50);
+
                 });
 
             });
