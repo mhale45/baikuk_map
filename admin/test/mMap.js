@@ -20,6 +20,9 @@ window.addEventListener("DOMContentLoaded", () => {
         level: 3
     });
 
+    // 지도가 이동하거나 줌 변경될 때마다 마커 다시 로드
+    kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
+
     // 📌 클러스터러 반드시 여기서 초기화해야 함
     clusterer = new kakao.maps.MarkerClusterer({
         map: map,
