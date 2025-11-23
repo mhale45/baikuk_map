@@ -635,7 +635,7 @@ function renderCustomerList(customers) {
                     ${list
                         .map(c => `
                             <div class="customer-item py-1 text-sm border-b cursor-pointer"
-                                data-customer-id="${c.id}">
+                                data-id="${c.id}">
                                 ${c.customer_name}
                             </div>
                         `)
@@ -730,7 +730,7 @@ document.addEventListener("click", async (e) => {
 });
 
 // =====================================================================================
-// 🔥 특정 고객의 필터(조건) 불러오기
+// 🔥 특정 고객의 필터(조건) 불러오기 — 모든 필터 채운 후 onFilterChanged() 실행
 // =====================================================================================
 async function loadCustomerFilter(customerId) {
     const { data, error } = await window.supabase
@@ -744,7 +744,9 @@ async function loadCustomerFilter(customerId) {
         return;
     }
 
-    // 숫자 필터 매핑
+    // -----------------------------------------
+    // 1) 숫자 필터 매핑 테이블
+    // -----------------------------------------
     const numericMap = {
         floor: ["floor_min", "floor_max"],
         area: ["area_min", "area_max"],
@@ -758,7 +760,9 @@ async function loadCustomerFilter(customerId) {
         roi: ["roi_min", "roi_max"]
     };
 
-    // 숫자 필터 적용
+    // -----------------------------------------
+    // 2) 숫자 필터 input 에 값 채우기
+    // -----------------------------------------
     for (const key in numericMap) {
         const [minKey, maxKey] = numericMap[key];
 
@@ -769,62 +773,16 @@ async function loadCustomerFilter(customerId) {
         if (maxInput) maxInput.value = data[maxKey] ?? "";
     }
 
-    // 체크박스 필터 기본 상태 초기화
+    // -----------------------------------------
+    // 3) 체크박스 초기화
+    // -----------------------------------------
     document.querySelectorAll(".status-check, .dealtype-check, .category-check")
         .forEach(cb => (cb.checked = false));
 
-    // 체크박스 (grade 활용 여부는 사용처에 따라 확장 가능)
-    // 여기서는 별도 정보가 없으므로 그대로 두기
+    // ⬆ 필요한 경우 고객의 선호 항목이 있으면 여기에 체크박스 매핑 가능
 
-    // 지도에 적용
-    reloadListingsOnMapThrottled();
+    // -----------------------------------------
+    // 4) 🔥 모든 필터값을 다 채운 뒤 → 지도에 필터 적용
+    // -----------------------------------------
+    onFilterChanged(); // ← ★ 핵심 변경: 이 한 줄로 지도 즉시 새로 그림
 }
-
-// =====================================================================================
-// 🔥 고객 선택 시 — 고객의 조건을 필터에 자동 입력 + 마커 새로고침
-// =====================================================================================
-document.addEventListener("click", async (e) => {
-    const item = e.target.closest(".customer-item");
-    if (!item) return;
-
-    const customerId = item.dataset.customerId;
-    if (!customerId) return;
-
-    // 고객 조건 가져오기
-    const { data, error } = await window.supabase
-        .from("customers")
-        .select("*")
-        .eq("id", customerId)
-        .maybeSingle();
-
-    if (error || !data) {
-        alert("고객 정보를 불러오지 못했습니다.");
-        console.error(error);
-        return;
-    }
-
-    // 🔥 필터 입력란에 고객 조건 자동 적용
-    const keys = [
-        "floor", "area", "deposit", "rent", "rent_per_py",
-        "premium", "sale", "total_deposit", "total_rent", "roi"
-    ];
-
-    keys.forEach(key => {
-        const minInput = document.getElementById(`${key}-min`);
-        const maxInput = document.getElementById(`${key}-max`);
-        if (minInput && data[`${key}_min`] != null)
-            minInput.value = data[`${key}_min`];
-        if (maxInput && data[`${key}_max`] != null)
-            maxInput.value = data[`${key}_max`];
-    });
-
-    // 체크박스는 고객 등급 조건과 관련없으므로 초기화 후 재선택 X
-    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
-        .forEach(cb => cb.checked = false);
-
-    // 🔥 필터 변경 후 마커 전체 최신화
-    clearAllMarkers();
-    reloadListingsOnMapThrottled();
-
-    alert(`"${data.customer_name}" 고객 조건이 필터에 적용되었습니다.`);
-});
