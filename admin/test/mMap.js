@@ -271,9 +271,16 @@ async function renderListingsOnMap() {
     // 2) 새로 추가할 마커 추가
     nextMap.forEach((item, addr) => {
         if (!currentMap.has(addr)) {
+
+            // 🔥 full_address 가 동일한 모든 매물 데이터 추출
+            const groupedItems = listings.filter(x => x.full_address === addr);
+
             const marker = new kakao.maps.Marker({
                 position: new kakao.maps.LatLng(item.lat, item.lng)
             });
+
+            // 🔥 마커 객체에 데이터 저장
+            marker.data = groupedItems;
 
             clusterer.addMarker(marker);
 
@@ -282,22 +289,24 @@ async function renderListingsOnMap() {
                 marker: marker
             });
 
-            kakao.maps.event.addListener(marker, "click", async () => {
+            kakao.maps.event.addListener(marker, "click", () => {
                 if (currentInfoWindow) currentInfoWindow.close();
 
+                // ✔ 이 마커가 가진 데이터만 사용함
+                let items = marker.data || [];
+
                 // 🔥 정렬 (층수)
-                listings.sort((a, b) => {
+                items.sort((a, b) => {
                     const fa = a.floor ?? 0;
                     const fb = b.floor ?? 0;
                     return fa - fb;
                 });
 
                 // 🔥 HTML 생성
-                const html = listings.map(i => {
+                const html = items.map(i => {
                     const status = i.transaction_status || "";
 
-                    // 🔥 상태에 따른 아이콘 선택
-                    const icon = 
+                    const icon =
                         status.includes("완료") ? "🔹" :
                         status.includes("보류") ? "◆" :
                         "🔸";
@@ -312,7 +321,6 @@ async function renderListingsOnMap() {
                     return `
                         <div style="margin-bottom:6px; color:${textColor} !important;">
                             ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                            <!-- 🔥 층수 추가된 부분 -->
                             &nbsp;<strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
                             <strong>${formatNumber(i.deposit_price)}</strong>/
                             <strong>${formatNumber(i.monthly_rent)}</strong>
@@ -324,14 +332,11 @@ async function renderListingsOnMap() {
                             <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
                         </div>
                     `;
-
                 }).join("");
 
                 const panel = document.getElementById("side-panel");
-
                 panel.innerHTML = html || "<div>조건에 맞는 매물이 없습니다.</div>";
                 panel.style.display = "block";
-
             });
 
         }
