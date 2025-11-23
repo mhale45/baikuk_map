@@ -111,7 +111,7 @@ function filterByFloor(listings) {
     return listings.filter(i => {
         const floor = Number(i.floor);
         // 층 정보가 없으면 조건 필터가 있을 때는 제외
-        if (isNaN(floor)) return false;
+        if (isNaN(floor)) return true;
         if (floorMin !== null && floor < floorMin) return false;
         if (floorMax !== null && floor > floorMax) return false;
         return true;
