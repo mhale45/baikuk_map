@@ -264,8 +264,8 @@ function renderListingWithFloorSeparator(listings) {
 
         const status = item.transaction_status || "";
         const icon =
-            status.includes("완료") ? "🔹" :
-            status.includes("보류") ? "◆" :
+            status.includes("완료") ? "◆" :
+            status.includes("보류") ? "🔹" :
             "🔸";
 
         // ==============================
@@ -273,9 +273,9 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         let bgColor = "";
         if (status.includes("완료")) {
-            bgColor = "background:#fff0f0;";        // 완료 → 연한 빨간색
+            bgColor = "background:#f0f0f0;";        // 완료 → 연한 빨간색
         } else if (status.includes("보류")) {
-            bgColor = "background:#f0f0f0;";        // 보류 → 연한 회색
+            bgColor = "background:#fff0f0;";        // 보류 → 연한 회색
         } else {
             bgColor = "background:#F7D766 ;";        // 그 외 → 연한 녹색
         }
