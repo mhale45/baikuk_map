@@ -273,11 +273,11 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         let bgColor = "";
         if (status.includes("완료")) {
-            bgColor = "background:#f0f0f0;";        // 완료 → 연한 빨간색
+            bgColor = "background:#f0f0f0;";
         } else if (status.includes("보류")) {
-            bgColor = "background:#fff0f0;";        // 보류 → 연한 회색
+            bgColor = "background:#FFE5E5;";
         } else {
-            bgColor = "background:#F7D766 ;";        // 그 외 → 연한 녹색
+            bgColor = "background:#F7DA79;";
         }
 
         // ==============================
@@ -301,8 +301,8 @@ function renderListingWithFloorSeparator(listings) {
                 <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
-                        ? `<span style="color:red;">무권리</span>`
-                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
+                        ? `<strong><span style="color:red;">무권리</span></strong>`
+                        : `<strong><span style="color:red;">권 </span></strong> <strong>${formatNumber(item.premium_price)}</strong> /`
                 }
                 ${
                     item.rent_per_py
@@ -552,9 +552,11 @@ function resetFilterSelections() {
 }
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
-document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
 document.getElementById("filter-reset-btn").addEventListener("click", () => {
-    updateCustomerButtonLabel("");
+    resetFilterSelections();     // 필터 모두 초기화
+    updateCustomerButtonLabel(""); 
+    clearAllMarkers();           
+    reloadListingsOnMapThrottled();
 });
 
 // 🎯 통합 필터 토글 버튼
