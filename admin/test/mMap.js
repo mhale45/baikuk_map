@@ -720,13 +720,6 @@ document.addEventListener("click", async (e) => {
 
     // 고객 필터 로드
     await loadCustomerFilter(customerId);
-
-    // 필터창 열기
-    const filterBox = document.getElementById("filter-box-merged");
-    filterBox.style.display = "block";
-    filterBox.style.position = "fixed";
-    filterBox.style.top = "calc(var(--header-height) + 10px)";
-    filterBox.style.left = "10px";
 });
 
 // =====================================================================================
