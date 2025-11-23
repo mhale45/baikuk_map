@@ -70,7 +70,9 @@
     <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
         <div class="flex flex-row gap-2 mt-1">  
             <div class="flex flex-col gap-2">
-                <button id="filter-reset-btn" class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
+                <button id="filter-reset-btn"
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
+                        hover:bg-gray-200 transition duration-150">
                     초기화
                 </button>
             </div> 
@@ -78,7 +80,8 @@
 
                 <!-- 🔥 필터 토글 버튼 -->
                 <button id="filter-toggle-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]">
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]
+                        hover:bg-gray-200 transition duration-150">
                     거래상태
                 </button>
 
@@ -134,11 +137,11 @@
 
                 </div>
             </div>
-            <div class="flex flex-col gap-2">
-                <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm">
-                    카테고리2
-                </button>
-            </div>
+            <button class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm
+                        hover:bg-gray-200 transition duration-150">
+                조건
+            </button>
+
         </div>        
     </header>
 
