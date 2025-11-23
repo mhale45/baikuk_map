@@ -853,16 +853,17 @@ function showToast(message) {
         toast = document.createElement("div");
         toast.id = "copy-toast";
         toast.style.position = "fixed";
-        toast.style.top = "20px";
-        toast.style.right = "20px";
+        toast.style.top = "5%";                // 🔥 위쪽
+        toast.style.left = "50%";               // 🔥 가로 중앙
+        toast.style.transform = "translate(-50%, -50%)";
         toast.style.background = "rgba(0,0,0,0.75)";
         toast.style.color = "#fff";
-        toast.style.padding = "10px 16px";
-        toast.style.borderRadius = "6px";
-        toast.style.fontSize = "14px";
+        toast.style.padding = "12px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.fontSize = "15px";
         toast.style.zIndex = "999999";
         toast.style.opacity = "0";
-        toast.style.transition = "opacity 0.3s ease";
+        toast.style.transition = "opacity 0.35s ease";
         document.body.appendChild(toast);
     }
 
