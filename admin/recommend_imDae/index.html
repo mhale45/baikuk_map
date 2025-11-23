@@ -270,7 +270,7 @@
 
             <!-- 전용면적 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">전용면적(평)</div>
+              <div class="font-semibold mb-1">면적(평)</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="area-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="area-max">
@@ -279,7 +279,7 @@
 
             <!-- 보증금 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">보증금(만원)</div>
+              <div class="font-semibold mb-1">보증금</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="deposit-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="deposit-max">
@@ -288,16 +288,25 @@
 
             <!-- 월세 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">월세(만원)</div>
+              <div class="font-semibold mb-1">월세</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-max">
               </div>
             </div>
 
+            <!-- 평당 월세 -->
+            <div class="mb-1">
+              <div class="font-semibold mb-1">평월세</div>
+              <div class="flex gap-2">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
+              </div>
+            </div>
+
             <!-- 권리금 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">권리금(만원)</div>
+              <div class="font-semibold mb-1">권리금</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="premium-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="premium-max">
@@ -306,7 +315,7 @@
 
             <!-- 매매가 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">매매가(만원)</div>
+              <div class="font-semibold mb-1">매매가</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="sale-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="sale-max">
@@ -315,7 +324,7 @@
 
             <!-- 총보증금 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">총보증금(만원)</div>
+              <div class="font-semibold mb-1">총보증금</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-deposit-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-deposit-max">
@@ -324,7 +333,7 @@
 
             <!-- 총월세 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">총월세(만원)</div>
+              <div class="font-semibold mb-1">총월세</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-rent-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-rent-max">
@@ -333,19 +342,10 @@
 
             <!-- 수익률 -->
             <div class="mb-3">
-              <div class="font-semibold mb-1">수익률(%)</div>
+              <div class="font-semibold mb-1">수익률</div>
               <div class="flex gap-2">
                 <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="roi-min">
                 <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="roi-max">
-              </div>
-            </div>
-
-            <!-- 평당 월세 -->
-            <div class="mb-1">
-              <div class="font-semibold mb-1">평당 월세(만원)</div>
-              <div class="flex gap-2">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
               </div>
             </div>
 
