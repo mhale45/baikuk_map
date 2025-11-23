@@ -284,12 +284,13 @@ function renderListingWithFloorSeparator(listings) {
         // 🔥 최종 HTML 출력
         // ==============================
         html += `
-            <div onclick="openListingNewTab('${item.listing_id}')"
-                style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
+            <div class="listing-item" data-id="${item.listing_id}" style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
                 ${icon} 
                 <strong>
-                    <span class="copy-listing-id" data-id="${item.listing_id}" 
-                        style="cursor:pointer;">
+                    <span class="copy-listing-id"
+                        data-id="${item.listing_id}"
+                        style="cursor:pointer;"
+                        onclick="event.stopPropagation();">
                         ${item.listing_id}
                     </span>
                 </strong>
@@ -416,6 +417,19 @@ async function renderListingsOnMap() {
                         });
 
                         desktopInfoWindow.open(map, marker);
+                        // 🔥 InfoWindow 내부 클릭 이벤트 연결
+                        setTimeout(() => {
+                            document.querySelectorAll('.listing-item').forEach(el => {
+                                el.addEventListener('click', (e) => {
+                                    // ID 클릭은 복사만 — 부모 클릭 막기 방지
+                                    if (e.target.closest('.copy-listing-id')) return;
+
+                                    const id = el.dataset.id;
+                                    openListingNewTab(id);
+                                });
+                            });
+                        }, 50);
+
                         return;
                     }
 
