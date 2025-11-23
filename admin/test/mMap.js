@@ -544,7 +544,40 @@ const gradeOrder = {
 // =====================================================================================
 // 🔥 Supabase에서 고객 리스트 불러오기
 // =====================================================================================
+
+// 로그인한 직원의 staff_profiles.id 가져오기
+async function getCurrentStaffProfileId() {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    if (!session) return null;
+
+    // supabase auth user.id
+    const userId = session.user.id;
+
+    const { data, error } = await window.supabase
+        .from("staff_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error || !data) {
+        console.error("❌ staff_profiles 조회 실패:", error);
+        return null;
+    }
+
+    return data.id;  // staff_profiles.id
+}
+
+// =====================================================================================
+// 🔥 로그인한 계정의 고객만 불러오기
+// =====================================================================================
 async function loadCustomers() {
+
+    const staffId = await getCurrentStaffProfileId();
+    if (!staffId) {
+        console.warn("직원 프로필을 찾을 수 없음");
+        return [];
+    }
+
     const { data, error } = await window.supabase
         .from("customers")
         .select(`
@@ -553,8 +586,10 @@ async function loadCustomers() {
             customer_phone_number,
             memo,
             grade,
-            registered_at
+            registered_at,
+            staff_profiles_id
         `)
+        .eq("staff_profiles_id", staffId)        // ← 로그인한 직원의 고객만!
         .order("registered_at", { ascending: false });
 
     if (error) {
@@ -593,7 +628,7 @@ function renderCustomerList(customers) {
 
         html += `
             <div class="font-bold text-base mt-2 mb-1 border-b pb-1">
-                📌 ${grade} 등급
+                ${grade}
             </div>
         `;
 
