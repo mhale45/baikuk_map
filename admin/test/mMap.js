@@ -437,7 +437,7 @@ async function renderListingsOnMap() {
 
                                     navigator.clipboard.writeText(id)
                                         .then(() => {
-                                            showToast(`복사됨: ${id}`);
+                                            showToast(`${id} 복사완료`);
                                         })
                                         .catch(err => console.error(err));
                                 });
@@ -867,16 +867,16 @@ function showToast(message) {
         toast = document.createElement("div");
         toast.id = "copy-toast";
         toast.style.position = "fixed";
-        toast.style.top = "3%";                // 🔥 위쪽
-        toast.style.left = "50%";               // 🔥 가로 중앙
+        toast.style.top = "3%";                
+        toast.style.left = "50%";               
         toast.style.transform = "translate(-50%, -50%)";
-        toast.style.background = "rgba(0,0,0,0.75)";
-        toast.style.color = "#fff";
+        toast.style.background = "#F2C130";          // 🔥 완전 불투명 배경
+        toast.style.color = "#000";                  // 🔥 글씨 색 검정
         toast.style.padding = "12px 20px";
         toast.style.borderRadius = "8px";
         toast.style.fontSize = "15px";
         toast.style.zIndex = "999999";
-        toast.style.opacity = "0";
+        toast.style.opacity = "0";                   // ← 애니메이션용 (배경 투명 X)
         toast.style.transition = "opacity 0.35s ease";
         document.body.appendChild(toast);
     }
