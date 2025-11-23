@@ -1903,19 +1903,6 @@
       });
     })();
 
-    // 🧭 파비콘 옆 탭 제목 업데이트
-    function setDocumentTitle(name) {
-      document.title = (name && name.trim()) ? name.trim() : '임대추천';
-    }
-
-    // --- Formatting Helpers ---
-    function formatKoreanMoney(value) {
-      if (value === null || value === undefined || value === '') return '-';
-      const num = Number(value);
-      if (isNaN(num)) return '-';
-      return num.toLocaleString('ko-KR'); // 1,000 단위 콤마 표시
-    }
-
     // === Listing Title Cleaner ===
     // 규칙: 괄호 안에 '숫자'와 '호'가 함께 있으면 그 괄호 묶음만 제거.
     // 그 외의 괄호(예: '(전,소담스레김치찌개)')는 유지.
