@@ -176,11 +176,6 @@
     .color-option {
       border: 1px solid #ccc;
     }
-    #memo-panel {
-      max-height: 70vh;
-      overflow-y: auto;    /* 내용 많으면 스크롤 */
-    }
-
   </style>
 </head>
 <body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
@@ -811,7 +806,7 @@
           <td class="p-1 border-b border-gray-200 align-top">
             <div class="flex items-start gap-2 h-full">
               <textarea
-                class="w-[18rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
+                class="w-[18rem] h-70vh resize-none outline-none bg-transparent text-sm align-top box-border p-1"
                 data-memo-index="${i}"
                 placeholder="메모 입력"
                 rows="1"
