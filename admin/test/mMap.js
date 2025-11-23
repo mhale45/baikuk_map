@@ -271,8 +271,8 @@ function renderListingWithFloorSeparator(listings) {
             <div style="padding:4px 0; font-size:13px;">
                 ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
                 <strong>${floor}층</strong>
-                <strong>${formatNumber(item.deposit_price)}</strong> /
-                <strong>${formatNumber(item.monthly_rent)}</strong>
+                <strong><span style="color:green;">보</span>${formatNumber(item.deposit_price)}</strong> /
+                <strong><span style="color:green;">월</span>${formatNumber(item.monthly_rent)}</strong>
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
                         ? "무권리"
