@@ -117,22 +117,24 @@ function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
 
-    if (level >= 5) {
-        // 문구 표시
+    // PC: level >= 5 숨김
+    // Mobile: level >= 6 숨김
+    const isMobile = window.innerWidth < 769;
+    const hideLevel = isMobile ? 6 : 5;
+
+    if (level >= hideLevel) {
         notice.style.display = "block";
 
-        // 마커 숨기기
         allMarkers.forEach(m => {
             if (m.marker) m.marker.setMap(null);
         });
 
-        // 클러스터러에서도 제거
         clusterer.clear();
 
-        return false;  // 데이터 로딩 금지 신호
+        return false;
     } else {
         notice.style.display = "none";
-        return true;   // 데이터 로딩 허용
+        return true;
     }
 }
 
