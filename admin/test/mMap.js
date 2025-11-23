@@ -296,14 +296,14 @@ async function renderListingsOnMap() {
                 const marker = new kakao.maps.Marker({
                     position: new kakao.maps.LatLng(item.lat, item.lng)
                 });
-                
+
                 // 🔥 자동 InfoWindow: 확대 레벨 2 이하 + 매물 1건일 때
                 if (map.getLevel() <= 2 && listingsAtAddr.length === 1) {
 
                     const only = listingsAtAddr[0];
 
-                    // ❌ 기존: if (currentInfoWindow) currentInfoWindow.close();
-                    // 👉 삭제! 자동으로 열리는 InfoWindow는 닫지 않는다.
+                    // ❗ 중요: 자동 InfoWindow는 다른 마커 눌러도 닫히지 않아야 하므로
+                    // currentInfoWindow.close() 같은 코드는 절대 넣지 않는다.
 
                     const iwContent = `
                         <div style="padding:6px 10px; font-size:13px;">
@@ -314,7 +314,7 @@ async function renderListingsOnMap() {
                             ${
                                 (only.premium_price == null || Number(only.premium_price) === 0)
                                     ? "무권리"
-                                    : \`권 ${formatNumber(only.premium_price)}\`
+                                    : `권 ${formatNumber(only.premium_price)}`
                             }
                         </div>
                     `;
@@ -322,13 +322,11 @@ async function renderListingsOnMap() {
                     const infoWindow = new kakao.maps.InfoWindow({
                         position: new kakao.maps.LatLng(item.lat, item.lng),
                         content: iwContent,
-                        removable: true  // X 버튼으로만 닫힘
+                        removable: true // X 버튼으로만 닫힘
                     });
 
                     infoWindow.open(map, marker);
-
-                    // ❌ 더 이상 currentInfoWindow 로 관리하지 않음
-                    // 여러 개가 떠도 문제가 없어야 하기 때문!
+                    // ❗ 자동 InfoWindow는 currentInfoWindow 로 저장하지 않음
                 }
 
                 clusterer.addMarker(marker);
@@ -340,6 +338,8 @@ async function renderListingsOnMap() {
 
                 // 👉 마커 클릭 이벤트 (기존 그대로)
                 kakao.maps.event.addListener(marker, "click", async () => {
+
+                    // ❗ 클릭하여 여는 InfoWindow는 기존 것 닫기
                     if (currentInfoWindow) currentInfoWindow.close();
 
                     let listings = await loadListingsByAddress(addr);
