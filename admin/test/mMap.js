@@ -419,15 +419,30 @@ async function renderListingsOnMap() {
                         desktopInfoWindow.open(map, marker);
                         // 🔥 InfoWindow 내부 클릭 이벤트 연결
                         setTimeout(() => {
+                            // 목록 클릭 → 상세페이지 이동
                             document.querySelectorAll('.listing-item').forEach(el => {
                                 el.addEventListener('click', (e) => {
-                                    // ID 클릭은 복사만 — 부모 클릭 막기 방지
                                     if (e.target.closest('.copy-listing-id')) return;
-
                                     const id = el.dataset.id;
                                     openListingNewTab(id);
                                 });
                             });
+
+                            // 🔥 InfoWindow 내부의 복사 이벤트 바인딩
+                            document.querySelectorAll('.copy-listing-id').forEach(span => {
+                                span.addEventListener('click', (e) => {
+                                    e.stopPropagation();   // 부모 이동 막기
+
+                                    const id = span.dataset.id;
+
+                                    navigator.clipboard.writeText(id)
+                                        .then(() => {
+                                            showToast(`복사됨: ${id}`);
+                                        })
+                                        .catch(err => console.error(err));
+                                });
+                            });
+
                         }, 50);
 
                         return;
@@ -844,22 +859,6 @@ function updateCustomerButtonLabel(name) {
         btn.textContent = `👤 ${name}`;
     }
 }
-
-document.addEventListener("click", (e) => {
-    const target = e.target.closest(".copy-listing-id");
-    if (!target) return;
-
-    const id = target.dataset.id;
-
-    navigator.clipboard.writeText(id)
-    .then(() => {
-        showToast(`복사됨: ${id}`);
-    })
-    .catch(err => {
-        console.error("클립보드 복사 오류:", err);
-    });
-
-});
 
 function showToast(message) {
     let toast = document.getElementById("copy-toast");
