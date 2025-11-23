@@ -16,7 +16,7 @@ let desktopInfoWindow = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
-        center: new kakao.maps.LatLng(37.5665, 126.9780),
+        center: new kakao.maps.LatLng(37.728761, 126.734986),
         level: 4
     });
 
