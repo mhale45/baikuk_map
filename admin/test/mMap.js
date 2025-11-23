@@ -400,16 +400,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 filterBox.style.display === "none" ? "block" : "none";
         });
     }
-    
-    const conditionBtn = document.getElementById("condition-btn");
-    const conditionBox = document.getElementById("condition-filter-box");
-
-    if (conditionBtn && conditionBox) {
-        conditionBtn.addEventListener("click", () => {
-            conditionBox.style.display =
-                conditionBox.style.display === "none" ? "block" : "none";
-        });
-    }
 });
 
 // 🔥 필터 박스 영역 외 클릭 시 자동 닫기
@@ -426,6 +416,19 @@ window.addEventListener("click", (e) => {
         !filterBox.contains(e.target)
     ) {
         filterBox.style.display = "none";
+    }
+});
+
+// 🔥 조건 필터 박스 토글
+window.addEventListener("DOMContentLoaded", () => {
+    const conditionBtn = document.getElementById("condition-btn");
+    const conditionBox = document.getElementById("condition-filter-box");
+
+    if (conditionBtn && conditionBox) {
+        conditionBtn.addEventListener("click", () => {
+            conditionBox.style.display =
+                conditionBox.style.display === "none" ? "block" : "none";
+        });
     }
 });
 
