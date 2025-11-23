@@ -335,8 +335,39 @@ async function renderListingsOnMap() {
 
                     const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
-                        ? listings.map(...).join("")
+                        ? listings.map(i => {
+                            const status = i.transaction_status || "";
+
+                            // 상태에 따른 아이콘
+                            const icon =
+                                status.includes("완료") ? "🔹" :
+                                status.includes("보류") ? "◆" :
+                                "🔸";
+
+                            const textColor = (() => {
+                                if (status.includes("완료")) return "red";
+                                if (status.includes("보류")) return "green";
+                                if (status.includes("진행")) return "black";
+                                return "black";
+                            })();
+
+                            return `
+                                <div style="margin-bottom:6px; color:${textColor} !important;">
+                                    ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                                    <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
+                                    <strong>${formatNumber(i.deposit_price)}</strong> /
+                                    <strong>${formatNumber(i.monthly_rent)}</strong>
+                                    ${
+                                        (i.premium_price == null || Number(i.premium_price) === 0)
+                                            ? "무권리"
+                                            : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                                    }
+                                    <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                                </div>
+                            `;
+                        }).join("")
                         : "<div>조건에 맞는 매물이 없습니다.</div>";
+
                     panel.style.display = "block";
                 });
 
