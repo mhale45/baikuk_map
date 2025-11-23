@@ -476,13 +476,7 @@
   </div>  
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    import { showToast, setDocumentTitle, formatKoreanMoney }
-    from "./recommend_imDae.js";
 
-    window.showToast = showToast;
-    window.setDocumentTitle = setDocumentTitle;
-    window.formatKoreanMoney = formatKoreanMoney;
-    
     const supabase = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
@@ -1902,6 +1896,36 @@
         });
       });
     })();
+
+    function showToast(message, duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+
+      // 스타일 직접 지정
+      toast.style.backgroundColor = '#F2C130';
+      toast.style.color = 'black';
+      toast.style.fontWeight = 'bold';
+      toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg z-[9999]';
+
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, duration);
+    }
+
+    // 🧭 파비콘 옆 탭 제목 업데이트
+    function setDocumentTitle(name) {
+      document.title = (name && name.trim()) ? name.trim() : '임대추천';
+    }
+
+    // --- Formatting Helpers ---
+    function formatKoreanMoney(value) {
+      if (value === null || value === undefined || value === '') return '-';
+      const num = Number(value);
+      if (isNaN(num)) return '-';
+      return num.toLocaleString('ko-KR'); // 1,000 단위 콤마 표시
+    }
 
     // === Listing Title Cleaner ===
     // 규칙: 괄호 안에 '숫자'와 '호'가 함께 있으면 그 괄호 묶음만 제거.
