@@ -266,6 +266,7 @@ function renderListingWithFloorSeparator(listings) {
         // 상태별 아이콘
         const icon =
             status.includes("보류") ? "◆" :
+            status.includes("완료") ? "◆" :
             "🔸";
 
         // ============================
