@@ -324,7 +324,7 @@ async function renderListingsOnMap() {
 
                         // side-panel의 top/left를 해당 위치로 이동
                         panel.style.left = point.x + "px";
-                        panel.style.top = point.y + "px";
+                        panel.style.top = (point.y - 40) + "px";
 
                         return;  // 모바일 로직 실행 안 함
                     }
