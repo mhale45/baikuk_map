@@ -704,11 +704,13 @@ document.addEventListener("click", (e) => {
 });
 
 // =====================================================================================
-// 🔥 고객 1명 클릭하면 → 해당 고객의 필터 조건 로드
+// 🔥 고객 1명 클릭 → 필터 적용 + 모바일에서는 필터창 열기
 // =====================================================================================
 document.addEventListener("click", async (e) => {
     const item = e.target.closest(".customer-item");
     if (!item) return;
+
+    e.stopPropagation(); // 바깥 클릭 방지
 
     const customerId = item.dataset.id;
     if (!customerId) return;
@@ -718,8 +720,19 @@ document.addEventListener("click", async (e) => {
     // 고객 패널 닫기
     document.getElementById("customer-panel").style.display = "none";
 
-    // 고객 필터 로드
+    // 필터값 로드 + 지도 적용
     await loadCustomerFilter(customerId);
+
+    // 🔥 모바일일 때만 필터창 자동 열기
+    const isMobile = window.innerWidth < 769;
+    if (isMobile) {
+        const filterBox = document.getElementById("filter-box-merged");
+        filterBox.style.display = "block";
+        filterBox.style.position = "fixed";
+        filterBox.style.top = "calc(var(--header-height) + 10px)";
+        filterBox.style.left = "10px";
+        filterBox.style.zIndex = "99999";
+    }
 });
 
 // =====================================================================================
