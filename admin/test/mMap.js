@@ -516,30 +516,22 @@ window.addEventListener("click", (e) => {
     }
 });
 
+// =====================================================================================
+// 🔥 고객창: 필터창처럼 바깥 클릭 시 닫기
+// =====================================================================================
 window.addEventListener("click", (e) => {
-    const filterBtn = document.getElementById("filter-btn");
-    const filterBox = document.getElementById("filter-box-merged");
+    const customerPanel = document.getElementById("customer-panel");
+    const customerBtn = document.getElementById("toggle-customer-panel");
 
-    if (!filterBtn || !filterBox) return;
+    // panel, button 둘 중 하나라도 클릭하면 닫지 않음
+    if (
+        customerPanel.contains(e.target) ||
+        customerBtn.contains(e.target)
+    ) return;
 
-    const clickedInside =
-        filterBox.contains(e.target) || filterBtn.contains(e.target);
-
-    if (!clickedInside) {
-        filterBox.style.display = "none";
-    }
+    // 클릭한 위치가 panel 밖이면 닫기
+    customerPanel.style.display = "none";
 });
-
-// 등급 정렬 우선순위
-const gradeOrder = {
-    "계약": 0,
-    "A": 1,
-    "B": 2,
-    "C": 3,
-    "D": 4,
-    "E": 5,
-    "F": 6
-};
 
 // =====================================================================================
 // 🔥 Supabase에서 고객 리스트 불러오기
@@ -656,7 +648,7 @@ function renderCustomerList(customers) {
 }
 
 // =====================================================================================
-// 🔥 고객 리스트 패널 열기 / 닫기
+// 🔥 고객 리스트 패널 열기 / 닫기 (필터창과 동일 UI로 동작)
 // =====================================================================================
 window.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("toggle-customer-panel");
@@ -674,9 +666,14 @@ window.addEventListener("DOMContentLoaded", () => {
                 const customers = await loadCustomers();
                 panel.innerHTML = renderCustomerList(customers);
 
-                // 필터박스는 닫기 (겹침 방지)
+                // 필터창 닫기 (겹침 방지)
                 if (filterBox) filterBox.style.display = "none";
 
+                // filter-box-merged 와 완전히 동일한 위치로 고정
+                panel.style.position = "fixed";
+                panel.style.top = "calc(var(--header-height) + 10px)";
+                panel.style.left = "10px";
+                panel.style.zIndex = "99999";
                 panel.style.display = "block";
             } 
             // 🔥 패널 닫기

@@ -232,21 +232,19 @@
         </div>        
     </div>
     
-    <!-- 🔥 고객 리스트 패널 (filter-box-merged와 동일 스타일) -->
+    <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
     <div id="customer-panel"
         class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
         style="
             display:none;
             position: fixed;
             top: calc(var(--header-height) + 10px);
-            left: 50%;
-            transform: translateX(-50%);
+            left: 10px;
             z-index: 99999;
+            max-width: 380px;
             max-height: 70vh;
             overflow-y: auto;
             background: white;
-            max-width: 90vw;
-            width: 90vw;
         ">
     </div>
 
