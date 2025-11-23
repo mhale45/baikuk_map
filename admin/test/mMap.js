@@ -867,7 +867,7 @@ function showToast(message) {
         toast = document.createElement("div");
         toast.id = "copy-toast";
         toast.style.position = "fixed";
-        toast.style.top = "3%";                
+        toast.style.top = "4%";                
         toast.style.left = "50%";               
         toast.style.transform = "translate(-50%, -50%)";
         toast.style.background = "#F2C130";          // 🔥 완전 불투명 배경
