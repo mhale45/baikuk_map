@@ -837,10 +837,45 @@ document.addEventListener("click", (e) => {
     const id = target.dataset.id;
 
     navigator.clipboard.writeText(id)
-        .then(() => {
-            alert(`복사됨: ${id}`);
-        })
-        .catch(err => {
-            console.error("클립보드 복사 오류:", err);
-        });
+    .then(() => {
+        showToast(`복사됨: ${id}`);
+    })
+    .catch(err => {
+        console.error("클립보드 복사 오류:", err);
+    });
+
 });
+
+function showToast(message) {
+    let toast = document.getElementById("copy-toast");
+
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "copy-toast";
+        toast.style.position = "fixed";
+        toast.style.top = "3%";                // 🔥 위쪽
+        toast.style.left = "50%";               // 🔥 가로 중앙
+        toast.style.transform = "translate(-50%, -50%)";
+        toast.style.background = "rgba(0,0,0,0.75)";
+        toast.style.color = "#fff";
+        toast.style.padding = "12px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.fontSize = "15px";
+        toast.style.zIndex = "999999";
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.35s ease";
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = message;
+    toast.style.opacity = "1";
+
+    setTimeout(() => {
+        toast.style.opacity = "0";
+    }, 3000);
+}
+
+function openListingNewTab(listingId) {
+    const url = `https://baikuk.com/item/view/${listingId}`;
+    window.open(url, "_blank");
+}
