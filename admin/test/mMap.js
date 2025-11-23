@@ -285,7 +285,7 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         html += `
             <div style="padding:4px 0; font-size:14px; ${bgColor}">
-                ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
+                ${icon} <strong>${item.listing_id}</strong> <span style="font-size:15px;">${item.listing_title || "-"}</span><br/>
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
