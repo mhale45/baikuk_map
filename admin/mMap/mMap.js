@@ -73,6 +73,31 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // 🔥 페이지 첫 로드 시 필터 초기화 실행
     resetFilterSelections();
+
+    // 📌 현재 위치 버튼 기능
+    const currentBtn = document.getElementById("btn-current-location");
+    if (currentBtn) {
+        currentBtn.addEventListener("click", () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+
+                        const moveLatLng = new kakao.maps.LatLng(lat, lng);
+                        map.panTo(moveLatLng);
+                    },
+                    (err) => {
+                        alert("현재 위치를 가져올 수 없습니다.");
+                        console.error(err);
+                    }
+                );
+            } else {
+                alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+            }
+        });
+    }
+
 });
 
 function clearAllMarkers() {

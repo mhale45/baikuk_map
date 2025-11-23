@@ -77,8 +77,6 @@
 
 </head>
 <body>
-
-    <!-- ▷ 기존 index.html 의 헤더 UI 그대로 복사한 축약본 ◁ -->
     <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
         <div class="flex flex-row gap-2 mt-1">  
             <div class="flex flex-col gap-2">
@@ -248,6 +246,16 @@
         </div>       
             
     </header>
+
+    <!-- 오른쪽 하단 컨트롤 버튼 -->
+    <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
+        <button id="btn-current-location"
+                class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
+                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5"
+                title="현재 위치로 이동">
+            <span class="text-xl text-black font-bold">◉</span>
+        </button>
+    </div>
 
     <div id="side-panel"
         style="
