@@ -289,7 +289,7 @@ function renderListingWithFloorSeparator(listings) {
                     }
                     ${
                         item.rent_per_py
-                            ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
+                            ? `<span style="color:red;"><strong>${Number(item.rent_per_py).toFixed(1)}만</strong></span>`
                             : ""
                     }
                 </div>
