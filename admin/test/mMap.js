@@ -477,6 +477,9 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
+document.getElementById("filter-reset-btn").addEventListener("click", () => {
+    updateCustomerButtonLabel("");
+});
 
 // 🎯 통합 필터 토글 버튼
 window.addEventListener("DOMContentLoaded", () => {
@@ -719,7 +722,7 @@ document.addEventListener("click", async (e) => {
     document.getElementById("customer-panel").style.display = "none";
 
     // 고객 이름 라벨 표시
-    updateMapCustomerLabel(customerName);
+    updateCustomerButtonLabel(customerName);
 
     // 고객 필터 적용
     await loadCustomerFilter(customerId);
@@ -793,17 +796,15 @@ async function loadCustomerFilter(customerId) {
 }
 
 // =====================================================================================
-// 🔥 지도 오른쪽 위에 고객 이름 표시
+// 🔥 고객 선택될 때 "👤 고객 리스트" 버튼에 고객 이름 표시
 // =====================================================================================
-function updateMapCustomerLabel(name) {
-    const box = document.getElementById("map-customer-label");
-    if (!box) return;
+function updateCustomerButtonLabel(name) {
+    const btn = document.getElementById("toggle-customer-panel");
+    if (!btn) return;
 
     if (!name) {
-        box.style.display = "none";
-        return;
+        btn.textContent = "👤 고객 리스트";
+    } else {
+        btn.textContent = `👤 고객 리스트 (${name})`;
     }
-
-    box.textContent = `👤 ${name}`;
-    box.style.display = "block";
 }
