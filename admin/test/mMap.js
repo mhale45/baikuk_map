@@ -875,6 +875,7 @@ function showToast(message) {
         toast.style.padding = "12px 20px";
         toast.style.borderRadius = "8px";
         toast.style.fontSize = "15px";
+        toast.style.fontWeight = "bold"; 
         toast.style.zIndex = "999999";
         toast.style.opacity = "0";                   // ← 애니메이션용 (배경 투명 X)
         toast.style.transition = "opacity 0.35s ease";
