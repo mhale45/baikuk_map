@@ -10,7 +10,8 @@ export const numericFilters = {
     sale: "sale_price",
     "total-deposit": "total_deposit",
     "total-rent": "total_rent",
-    roi: "roi"
+    roi: "roi",
+    rent_per_py: "rent_per_py"
 };
 
 // 공통: 체크박스 필터들
