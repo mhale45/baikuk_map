@@ -252,7 +252,6 @@ function renderListingWithFloorSeparator(listings) {
     let prevFloor = null;
     let html = "";
 
-    
     listings.forEach(item => {
         const floor = item.floor ?? "-";
 
@@ -269,8 +268,21 @@ function renderListingWithFloorSeparator(listings) {
             status.includes("보류") ? "◆" :
             "🔸";
 
+        // ==============================
+        // 🔥 상태별 배경색 지정
+        // ==============================
+        let bgColor = "";
+        if (status.includes("완료")) {
+            bgColor = "background:#ffe5e5;";   // 연한 빨간색
+        } else if (status.includes("보류")) {
+            bgColor = "background:#f0f0f0;";   // 연한 회색
+        }
+
+        // ==============================
+        // 🔥 최종 출력 HTML
+        // ==============================
         html += `
-            <div style="padding:4px 0; font-size:14px;">
+            <div style="padding:4px 0; font-size:14px; ${bgColor}">
                 ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
