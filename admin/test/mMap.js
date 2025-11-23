@@ -634,7 +634,8 @@ function renderCustomerList(customers) {
                 <div class="grade-content pl-2" id="grade-${grade}" style="display:none;">
                     ${list
                         .map(c => `
-                            <div class="py-1 text-sm border-b">
+                            <div class="customer-item py-1 text-sm border-b cursor-pointer"
+                                data-id="${c.id}">
                                 ${c.customer_name}
                             </div>
                         `)
@@ -701,3 +702,80 @@ document.addEventListener("click", (e) => {
     content.style.display = isHidden ? "block" : "none";
     icon.textContent = isHidden ? "▲" : "▼";
 });
+
+// =====================================================================================
+// 🔥 고객 1명 클릭하면 → 해당 고객의 필터 조건 로드
+// =====================================================================================
+document.addEventListener("click", async (e) => {
+    const item = e.target.closest(".customer-item");
+    if (!item) return;
+
+    const customerId = item.dataset.id;
+    if (!customerId) return;
+
+    console.log("📌 선택된 고객 ID:", customerId);
+
+    // 고객 패널 닫기
+    document.getElementById("customer-panel").style.display = "none";
+
+    // 고객 필터 로드
+    await loadCustomerFilter(customerId);
+
+    // 필터창 열기
+    const filterBox = document.getElementById("filter-box-merged");
+    filterBox.style.display = "block";
+    filterBox.style.position = "fixed";
+    filterBox.style.top = "calc(var(--header-height) + 10px)";
+    filterBox.style.left = "10px";
+});
+
+// =====================================================================================
+// 🔥 특정 고객의 필터(조건) 불러오기
+// =====================================================================================
+async function loadCustomerFilter(customerId) {
+    const { data, error } = await window.supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .maybeSingle();
+
+    if (error || !data) {
+        console.error("❌ 고객 필터 조회 실패:", error);
+        return;
+    }
+
+    // 숫자 필터 매핑
+    const numericMap = {
+        floor: ["floor_min", "floor_max"],
+        area: ["area_min", "area_max"],
+        deposit: ["deposit_min", "deposit_max"],
+        rent: ["rent_min", "rent_max"],
+        rent_per_py: ["rent_per_py_min", "rent_per_py_max"],
+        premium: ["premium_min", "premium_max"],
+        sale: ["sale_min", "sale_max"],
+        "total-deposit": ["total_deposit_min", "total_deposit_max"],
+        "total-rent": ["total_rent_min", "total_rent_max"],
+        roi: ["roi_min", "roi_max"]
+    };
+
+    // 숫자 필터 적용
+    for (const key in numericMap) {
+        const [minKey, maxKey] = numericMap[key];
+
+        const minInput = document.getElementById(`${key}-min`);
+        const maxInput = document.getElementById(`${key}-max`);
+
+        if (minInput) minInput.value = data[minKey] ?? "";
+        if (maxInput) maxInput.value = data[maxKey] ?? "";
+    }
+
+    // 체크박스 필터 기본 상태 초기화
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => (cb.checked = false));
+
+    // 체크박스 (grade 활용 여부는 사용처에 따라 확장 가능)
+    // 여기서는 별도 정보가 없으므로 그대로 두기
+
+    // 지도에 적용
+    reloadListingsOnMapThrottled();
+}

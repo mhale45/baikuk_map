@@ -155,7 +155,7 @@ ad_account_pw : varchar
 ad_channel : varchar
 
 - customers
-id : int8
+id : uuid
 staff_profiles_id : text
 registered_at : date
 customer_name : text
