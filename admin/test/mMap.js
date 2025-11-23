@@ -8,6 +8,8 @@ import {
     applyAllFilters,
     attachFilterInputEvents
 } from "./filter.js";
+import { showToastGreenRed } from "/admin/modules/ui/toast.js";
+
 
 let map;
 let clusterer = null;
@@ -287,7 +289,8 @@ function renderListingWithFloorSeparator(listings) {
             <div style="padding:4px 0; font-size:14px; ${bgColor}">
                 ${icon} 
                 <strong>
-                    <span class="copy-listing-id" data-id="${item.listing_id}" style="cursor:pointer; text-decoration:underline;">
+                    <span class="copy-listing-id" data-id="${item.listing_id}" 
+                        style="cursor:pointer;">
                         ${item.listing_id}
                     </span>
                 </strong>
@@ -829,17 +832,24 @@ function updateCustomerButtonLabel(name) {
     }
 }
 
+// 1) listing_id 클릭 → 복사
 document.addEventListener("click", (e) => {
-    const target = e.target.closest(".copy-listing-id");
-    if (!target) return;
+    const copyTarget = e.target.closest(".copy-listing-id");
+    if (copyTarget) {
+        const id = copyTarget.dataset.id;
 
-    const id = target.dataset.id;
+        navigator.clipboard.writeText(id)
+            .then(() => {
+                // ✔ 성공 토스트: 노란색
+                showToastGreenRed(`복사됨: ${id}`, { ok: true });
+            })
+            .catch(err => {
+                console.error("클립보드 복사 오류:", err);
 
-    navigator.clipboard.writeText(id)
-        .then(() => {
-            alert(`복사됨: ${id}`);
-        })
-        .catch(err => {
-            console.error("클립보드 복사 오류:", err);
-        });
+                // ✔ 실패 토스트: 빨간색
+                showToastGreenRed("복사 실패", { ok: false });
+            });
+
+        return;
+    }
 });
