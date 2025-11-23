@@ -355,7 +355,7 @@ async function renderListingsOnMap() {
 
                 // 👉 마커 클릭 이벤트 (기존 그대로)
                 kakao.maps.event.addListener(marker, "click", async () => {
-                    const isPC = window.innerWidth >= 769;
+                    const isPC = window.innerWidth >= 850;
 
                     let listings = await loadListingsByAddress(addr);
                     listings = applyAllFilters(listings);
