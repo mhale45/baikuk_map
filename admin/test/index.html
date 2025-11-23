@@ -476,6 +476,11 @@
   </div>  
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import {
+        showToast,
+        setDocumentTitle,
+        formatKoreanMoney
+    } from './recommend_imDae.js';
 
     const supabase = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
@@ -612,12 +617,6 @@
     window.supabase = supabase; // 전역으로 접근
   </script>
   <script>
-    import {
-        showToast,
-        setDocumentTitle,
-        formatKoreanMoney
-    } from './recommend_imDae.js';
-
     // === 행 관찰용 전역 ===
     let listingsBody;          // tbody 캐시
     let rowObserver;           // ResizeObserver 인스턴스
