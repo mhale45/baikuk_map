@@ -268,9 +268,24 @@ function renderListingWithFloorSeparator(listings) {
             status.includes("보류") ? "◆" :
             "🔸";
 
+        // ==============================
+        // 🔥 상태별 배경색 지정
+        // ==============================
+        let bgColor = "";
+        if (status.includes("완료")) {
+            bgColor = "background:#fff0f0;";        // 완료 → 연한 빨간색
+        } else if (status.includes("보류")) {
+            bgColor = "background:#f0f0f0;";        // 보류 → 연한 회색
+        } else {
+            bgColor = "background:#e8fbe8;";        // 그 외 → 연한 녹색
+        }
+
+        // ==============================
+        // 🔥 최종 HTML 출력
+        // ==============================
         html += `
-            <div style="padding:4px 0; font-size:14px;">
-                ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
+            <div style="padding:4px 0; font-size:14px; ${bgColor}">
+                ${icon} <strong>${item.listing_id}</strong> <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
@@ -280,12 +295,11 @@ function renderListingWithFloorSeparator(listings) {
                         ? `<span style="color:red;">무권리</span>`
                         : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
                 }
-                ${ 
-                    item.rent_per_py 
-                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` 
-                        : "" 
+                ${
+                    item.rent_per_py
+                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
+                        : ""
                 }
-
             </div>
         `;
     });
