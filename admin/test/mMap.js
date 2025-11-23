@@ -279,6 +279,13 @@ function renderListingWithFloorSeparator(listings) {
                         ? `<span style="color:red;">무권리</span>`
                         : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong>`
                 }
+                ${(() => {
+                    const rent = Number(item.monthly_rent);
+                    const area = Number(item.area_py);
+                    if (!rent || !area) return "";
+                    const per = (rent / area).toFixed(1);
+                    return ` / <strong style="color:#6b21a8;">${per}만</strong>`;
+                })()}
             </div>
         `;
     });
