@@ -17,7 +17,7 @@ let desktopInfoWindow = null;
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 3
+        level: 4
     });
 
     // 지도가 이동하거나 줌 변경될 때마다 마커 다시 로드
@@ -27,7 +27,7 @@ window.addEventListener("DOMContentLoaded", () => {
     clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
-        minLevel: 5,
+        minLevel: 3,
         disableClickZoom: false
     });
 
@@ -117,7 +117,7 @@ function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
 
-    if (level >= 4) {
+    if (level >= 5) {
         // 문구 표시
         notice.style.display = "block";
 
@@ -156,7 +156,8 @@ async function loadListingsByAddress(fullAddress) {
             floor,
             transaction_status,
             deal_type,
-            category
+            category,
+            rent_per_py
         `)
         .eq("full_address", fullAddress);
 
@@ -273,12 +274,18 @@ function renderListingWithFloorSeparator(listings) {
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
-                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong>
+                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
                         ? `<span style="color:red;">무권리</span>`
-                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong>`
+                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
                 }
+                ${ 
+                    item.rent_per_py 
+                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` 
+                        : "" 
+                }
+
             </div>
         `;
     });
