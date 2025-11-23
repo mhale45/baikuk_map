@@ -27,7 +27,7 @@ window.addEventListener("DOMContentLoaded", () => {
     clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
-        minLevel: 5,
+        minLevel: 3,
         disableClickZoom: false
     });
 
