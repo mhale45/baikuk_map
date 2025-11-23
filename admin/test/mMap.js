@@ -301,7 +301,7 @@ function renderListingWithFloorSeparator(listings) {
                 <strong><span style="color:green; min-width:50px;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
-                        ? `<strong><span style="color:red; min-width:55px;">무권리</span></strong>`
+                        ? `<strong><span style="color:red; min-width:55px;">무권리</span></strong> /`
                         : `<span style="color:red; min-width:55px;"><strong>권 </strong> <strong>${formatNumber(item.premium_price)}</strong></span> /`
                 }
                 ${
