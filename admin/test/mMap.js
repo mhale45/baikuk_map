@@ -17,7 +17,7 @@ let desktopInfoWindow = null;
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
+        level: 5
     });
 
     // 지도가 이동하거나 줌 변경될 때마다 마커 다시 로드
@@ -117,7 +117,7 @@ function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
 
-    if (level >= 5) {
+    if (level >= 6) {
         // 문구 표시
         notice.style.display = "block";
 
