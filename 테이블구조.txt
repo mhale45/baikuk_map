@@ -156,13 +156,33 @@ ad_channel : varchar
 
 - customers
 id : int8
-staff_profiles_id  : text
-registered_at  : date
-customer_name  : text
-customer_phone_number  : text
+staff_profiles_id : text
+registered_at : date
+customer_name : text
+customer_phone_number : text
 memo : text
 phone_last4 : numeric
 grade : text
+floor_min : numeric
+floor_max : numeric
+area_min : numeric
+area_max : numeric
+deposit_min : numeric
+deposit_max : numeric
+rent_min : numeric
+rent_max : numeric
+rent_per_py_min : numeric
+rent_per_py_max : numeric
+premium_min : numeric
+premium_max : numeric
+sale_min : numeric
+sale_max : numeric
+total_deposit_min : numeric
+total_deposit_max : numeric
+total_rent_min : numeric
+total_rent_max : numeric
+roi_min : numeric
+roi_max : numeric
 
 - customers_recommendations
 id : int8

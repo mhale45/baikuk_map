@@ -1408,66 +1408,87 @@
 
     // 손님정보 불러오는 함수 (대표/보조 둘 다 접근 가능)
     async function loadCustomerDataByName(name) {
-      const myId = await getMyStaffId();
-      if (!myId) { showToast('로그인 필요'); return; }
+        const myId = await getMyStaffId();
+        if (!myId) { showToast('로그인 필요'); return; }
 
-      // 1) 이름으로 고객 1명 찾기 (조인 X)
-      const { data: customer, error: custError } = await supabase
+        // 1) 이름으로 고객 1명 찾기 (조인 X)
+        const { data: customer, error: custError } = await supabase
         .from('customers')
         .select('id, customer_name, customer_phone_number, grade, memo, staff_profiles_id')
         .eq('customer_name', name)
         .maybeSingle();
 
-      if (custError || !customer) {
+        if (custError || !customer) {
         console.warn('❌ 고객 정보 불러오기 실패:', custError);
         showToast('고객 정보를 찾을 수 없습니다.');
         return;
-      }
+        }
 
-      // 2) 접근 권한 체크 (대표 또는 보조)
-      const allowed = (customer.staff_profiles_id === myId) || (await isMyAssignedCustomer(customer.id));
-      if (!allowed) {
+        // 2) 접근 권한 체크 (대표 또는 보조)
+        const allowed = (customer.staff_profiles_id === myId) || (await isMyAssignedCustomer(customer.id));
+        if (!allowed) {
         showToast('담당자가 아닌 고객은 볼 수 없습니다.');
         return;
-      }
+        }
 
-      currentCustomerId = customer.id;
+        currentCustomerId = customer.id;
 
-      // 👉 우측 정보창 채우기
-      document.getElementById('top-row-input').value = customer.customer_name || '';
-      document.getElementById('customer-phone').value = customer.customer_phone_number || '';
-      document.getElementById('customer-grade').value = customer.grade || 'F';
-      document.getElementById('memo-textarea').value = customer.memo || '';
+        // 👉 우측 정보창 채우기
+        document.getElementById('top-row-input').value = customer.customer_name || '';
+        document.getElementById('customer-phone').value = customer.customer_phone_number || '';
+        document.getElementById('customer-grade').value = customer.grade || 'F';
+        document.getElementById('memo-textarea').value = customer.memo || '';
+        document.getElementById("floor-min").value = data.floor_min ?? "";
+        document.getElementById("floor-max").value = data.floor_max ?? "";
+        document.getElementById("area-min").value = data.area_min ?? "";
+        document.getElementById("area-max").value = data.area_max ?? "";
+        document.getElementById("deposit-min").value = data.deposit_min ?? "";
+        document.getElementById("deposit-max").value = data.deposit_max ?? "";
+        document.getElementById("rent-min").value = data.rent_min ?? "";
+        document.getElementById("rent-max").value = data.rent_max ?? "";
+        document.getElementById("rent-per-py-min").value = data.rent_per_py_min ?? "";
+        document.getElementById("rent-per-py-max").value = data.rent_per_py_max ?? "";
+        document.getElementById("premium-min").value = data.premium_min ?? "";
+        document.getElementById("premium-max").value = data.premium_max ?? "";
+        document.getElementById("sale-min").value = data.sale_min ?? "";
+        document.getElementById("sale-max").value = data.sale_max ?? "";
+        document.getElementById("total-deposit-min").value = data.total_deposit_min ?? "";
+        document.getElementById("total-deposit-max").value = data.total_deposit_max ?? "";
+        document.getElementById("total-rent-min").value = data.total_rent_min ?? "";
+        document.getElementById("total-rent-max").value = data.total_rent_max ?? "";
+        document.getElementById("roi-min").value = data.roi_min ?? "";
+        document.getElementById("roi-max").value = data.roi_max ?? "";
 
-      // 👉 왼쪽 매물번호 입력창 초기화
-      document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
 
-      // 👉 오른쪽 매물입력 테이블 초기화
-      const listingsBody = document.getElementById('listings-body');
-      listingsBody.innerHTML = '';
+        // 👉 왼쪽 매물번호 입력창 초기화
+        document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
 
-      // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
-      const { data: listings, error: listingsError } = await supabase
+        // 👉 오른쪽 매물입력 테이블 초기화
+        const listingsBody = document.getElementById('listings-body');
+        listingsBody.innerHTML = '';
+
+        // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
+        const { data: listings, error: listingsError } = await supabase
         .from('customers_recommendations')
         .select('*')
         .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
         .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
         .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
-      if (listingsError) {
+        if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
         showToast('추천 매물 정보를 불러오지 못했습니다.');
         return;
-      }
+        }
 
-      // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
-      let nextIndex = 1;
+        // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
+        let nextIndex = 1;
 
-      listings.forEach((listing) => {
+        listings.forEach((listing) => {
         // 1) 인덱스 결정
         const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
-          ? listing.order          // order가 있으면 그대로 사용
-          : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
+            ? listing.order          // order가 있으면 그대로 사용
+            : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
 
         // 2) 왼쪽 매물번호 채우기
         const leftInput = document.querySelector(`input[data-index="${index}"]`);
@@ -1478,10 +1499,10 @@
 
         // 4) 필드 주입
         const setField = (field, value) => {
-          const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (!el) return;
-          if (el.tagName === 'SPAN') el.textContent = value ?? '';
-          else el.value = value ?? '';
+            const el = document.querySelector(`[data-field="${field}_${index}"]`);
+            if (!el) return;
+            if (el.tagName === 'SPAN') el.textContent = value ?? '';
+            else el.value = value ?? '';
         };
 
         setField('listing_title', listing.listing_title);
@@ -1499,23 +1520,23 @@
         if (memoEl) memoEl.value = memoValue;
         // === 🔥 색상 정보 불러오기 ===
         if (listing.color) {
-          setFieldValue("color", index, listing.color);
+            setFieldValue("color", index, listing.color);
 
-          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-          if (tr) {
+            const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+            if (tr) {
             tr.dataset.userColor = "true";
             tr.style.backgroundColor = listing.color;
             tr.classList.remove("bg-white", "bg-gray-50");
-          }
+            }
         }
         // === 🔥 취소선(strike) 정보 불러오기 ===
         if (listing.row_properties?.strike === 1) {
-          setFieldValue("strike", index, "1");
+            setFieldValue("strike", index, "1");
 
-          const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-          if (tr) {
+            const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+            if (tr) {
             tr.classList.add("line-through");
-          }
+            }
         }
 
         // === 🔍 로딩된 취소선 정보 콘솔 출력 ===
@@ -1524,34 +1545,34 @@
         // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
         //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
         if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
-          nextIndex = Math.max(nextIndex, listing.order + 1);
+            nextIndex = Math.max(nextIndex, listing.order + 1);
         }
-      });
+        });
 
-      // 높이/스트라이프 정리
-      renderMemoPanel(listings);
-      syncRowHeights?.();
-      applyRowStriping?.();
-      showToast(`고객 "${name}" 데이터 불러옴`);
-      setDocumentTitle(name);
+        // 높이/스트라이프 정리
+        renderMemoPanel(listings);
+        syncRowHeights?.();
+        applyRowStriping?.();
+        showToast(`고객 "${name}" 데이터 불러옴`);
+        setDocumentTitle(name);
 
-      // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
-      const staffInfoBox = document.getElementById('staff-info');
-      if (customer.staff_profiles_id) {
-        const { data: staff } = await supabase
-          .from('staff_profiles')
-          .select('position, name, phone_num')
-          .eq('id', customer.staff_profiles_id)
-          .maybeSingle();
+        // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
+        const staffInfoBox = document.getElementById('staff-info');
+        if (customer.staff_profiles_id) {
+            const { data: staff } = await supabase
+                .from('staff_profiles')
+                .select('position, name, phone_num')
+                .eq('id', customer.staff_profiles_id)
+                .maybeSingle();
 
-        if (staff && staffInfoBox) {
-          staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
-          staffInfoBox.classList.remove('hidden');
+            if (staff && staffInfoBox) {
+                staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+                staffInfoBox.classList.remove('hidden');
 
-          const staffSelect = document.getElementById('staff-select');
-          if (staffSelect) staffSelect.classList.add('hidden');
+                const staffSelect = document.getElementById('staff-select');
+                if (staffSelect) staffSelect.classList.add('hidden');
+            }
         }
-      }
     }
 
     // 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
@@ -2597,104 +2618,125 @@
 
     // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
     document.getElementById('save-new-customer').addEventListener('click', async () => {
-      const name  = document.getElementById('top-row-input').value.trim();
-      const phone = document.getElementById('customer-phone').value.trim();
-      const grade = document.getElementById('customer-grade').value.trim();
-      const memo  = document.getElementById('memo-textarea').value.trim();
+        const name  = document.getElementById('top-row-input').value.trim();
+        const phone = document.getElementById('customer-phone').value.trim();
+        const grade = document.getElementById('customer-grade').value.trim();
+        const memo  = document.getElementById('memo-textarea').value.trim();
+        
+        const floor_min = Number(document.getElementById("floor-min").value) || null;
+        const floor_max = Number(document.getElementById("floor-max").value) || null;
+        const area_min = Number(document.getElementById("area-min").value) || null;
+        const area_max = Number(document.getElementById("area-max").value) || null;
+        const deposit_min = Number(document.getElementById("deposit-min").value) || null;
+        const deposit_max = Number(document.getElementById("deposit-max").value) || null;
+        const rent_min = Number(document.getElementById("rent-min").value) || null;
+        const rent_max = Number(document.getElementById("rent-max").value) || null;
+        const rent_per_py_min = Number(document.getElementById("rent-per-py-min").value) || null;
+        const rent_per_py_max = Number(document.getElementById("rent-per-py-max").value) || null;
+        const premium_min = Number(document.getElementById("premium-min").value) || null;
+        const premium_max = Number(document.getElementById("premium-max").value) || null;
+        const sale_min = Number(document.getElementById("sale-min").value) || null;
+        const sale_max = Number(document.getElementById("sale-max").value) || null;
+        const total_deposit_min = Number(document.getElementById("total-deposit-min").value) || null;
+        const total_deposit_max = Number(document.getElementById("total-deposit-max").value) || null;
+        const total_rent_min = Number(document.getElementById("total-rent-min").value) || null;
+        const total_rent_max = Number(document.getElementById("total-rent-max").value) || null;
+        const roi_min = Number(document.getElementById("roi-min").value) || null;
+        const roi_max = Number(document.getElementById("roi-max").value) || null;
 
-      if (!name) {
+        if (!name) {
         showToast("고객 이름을 입력해주세요.");
         return;
-      }
+        }
 
-      let myStaffId = await getMyStaffId();
-      if (!myStaffId) {
+        let myStaffId = await getMyStaffId();
+        if (!myStaffId) {
         showToast("로그인이 필요합니다.");
         return;
-      }
+        }
 
-      // 🔴 여기서 한 번 더 색칠 & 중복 여부 검사
-      highlightDuplicateListingNumbers();
-      if (hasDuplicateListingNumbers()) {
+        // 🔴 여기서 한 번 더 색칠 & 중복 여부 검사
+        highlightDuplicateListingNumbers();
+        if (hasDuplicateListingNumbers()) {
         alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
         return;
-      }
+        }
 
-      let isNewCustomer = !currentCustomerId; // 신규 모드 판단
+        let isNewCustomer = !currentCustomerId; // 신규 모드 판단
 
-      // ==================================================
-      // 1) 신규 고객인 경우 → INSERT
-      // ==================================================
-      if (isNewCustomer) {
+        // ==================================================
+        // 1) 신규 고객인 경우 → INSERT
+        // ==================================================
+        if (isNewCustomer) {
         // 같은 이름이 이미 있는지 확인
         const { data: same, error: sameErr } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("customer_name", name)
-          .maybeSingle();
+            .from("customers")
+            .select("id")
+            .eq("customer_name", name)
+            .maybeSingle();
 
         if (same) {
-          showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
-          return;
+            showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
+            return;
         }
 
         // 신규 고객 INSERT
         const { data: inserted, error: insertErr } = await supabase
-          .from("customers")
-          .insert({
+            .from("customers")
+            .insert({
             customer_name: name,
             customer_phone_number: phone,
             grade: grade,
             memo: memo,
             staff_profiles_id: selectedStaffId ?? myStaffId
-          })
-          .select()
-          .single();
+            })
+            .select()
+            .single();
 
         if (insertErr || !inserted) {
-          console.error(insertErr);
-          showToast("신규 고객 저장에 실패했습니다.");
-          return;
+            console.error(insertErr);
+            showToast("신규 고객 저장에 실패했습니다.");
+            return;
         }
 
         currentCustomerId = inserted.id; // 신규 고객 ID 저장
         showToast("신규 고객이 저장되었습니다!");
-      } 
-      // ==================================================
-      // 2) 기존 고객 수정 모드 → UPDATE
-      // ==================================================
-      else {
+        } 
+        // ==================================================
+        // 2) 기존 고객 수정 모드 → UPDATE
+        // ==================================================
+        else {
         const { error: updateErr } = await supabase
-          .from("customers")
-          .update({
+            .from("customers")
+            .update({
             customer_name: name,
             customer_phone_number: phone,
             grade: grade,
             memo: memo
-          })
-          .eq("id", currentCustomerId);
+            })
+            .eq("id", currentCustomerId);
 
         if (updateErr) {
-          console.error(updateErr);
-          showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
-          return;
+            console.error(updateErr);
+            showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+            return;
         }
-      }
+        }
 
-      // ==================================================
-      // 3) 매물 정보 저장 (신규/기존 공통)
-      // ==================================================
+        // ==================================================
+        // 3) 매물 정보 저장 (신규/기존 공통)
+        // ==================================================
 
-      const saved = await saveListingsForCurrentCustomer();
-      if (!saved) {
+        const saved = await saveListingsForCurrentCustomer();
+        if (!saved) {
         showToast("매물정보 저장 중 오류가 발생했습니다.");
         return;
-      }
+        }
 
-      showToast("저장 완료!");
+        showToast("저장 완료!");
 
-      // 저장 후 고객 리스트 갱신
-      loadCustomersForCurrentStaff();
+        // 저장 후 고객 리스트 갱신
+        loadCustomersForCurrentStaff();
     });
 
     // ⭐ 신규 고객 버튼 기능
