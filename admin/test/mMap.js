@@ -53,7 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
     zoomNotice.style.borderRadius = "8px";
     zoomNotice.style.fontSize = "14px";
     zoomNotice.style.display = "none"; // 기본 숨김
-    zoomNotice.innerText = "지도를 확대하세요 (레벨 4 이하에서 표시됩니다)";
+    zoomNotice.innerText = "지도를 확대하세요";
     document.body.appendChild(zoomNotice);
     // 🔥 페이지 첫 로드 시 필터 초기화 실행
     resetFilterSelections();
