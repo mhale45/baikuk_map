@@ -268,7 +268,7 @@ function renderListingWithFloorSeparator(listings) {
             "🔸";
 
         html += `
-            <div style="padding:4px 0; font-size:13px;">
+            <div style="padding:4px 0; font-size:14px;">
                 ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
                 <strong>${floor}층</strong>
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
