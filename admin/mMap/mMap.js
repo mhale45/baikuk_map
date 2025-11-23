@@ -277,7 +277,7 @@ function renderListingWithFloorSeparator(listings) {
         } else if (status.includes("보류")) {
             bgColor = "background:#f0f0f0;";        // 보류 → 연한 회색
         } else {
-            bgColor = "background:#e8fbe8;";        // 그 외 → 연한 녹색
+            bgColor = "background:#F7D766 ;";        // 그 외 → 연한 녹색
         }
 
         // ==============================
@@ -459,7 +459,7 @@ async function renderListingsOnMap() {
                     panel.style.left = "10px";
                     panel.style.top = "calc(var(--header-height) + 10px)";
                     panel.style.display = "block";
-                    
+
                     // 🔥 모바일에서도 클릭 이벤트 바인딩
                     setTimeout(() => {
                         // 매물 클릭 → 상세페이지 이동
