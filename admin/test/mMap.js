@@ -284,7 +284,7 @@ function renderListingWithFloorSeparator(listings) {
                     const area = Number(item.area_py);
                     if (!rent || !area) return "";
                     const per = (rent / area).toFixed(1);
-                    return ` / <strong style="color:#6b21a8;">${per}만</strong>`;
+                    return ` / <strong>${per}만</strong>`;
                 })()}
             </div>
         `;
