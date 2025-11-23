@@ -730,9 +730,10 @@ document.addEventListener("click", async (e) => {
 });
 
 // =====================================================================================
-// 🔥 특정 고객의 필터(조건) 불러오기 — 모든 필터 채운 후 onFilterChanged() 실행
+// 🔥 특정 고객의 필터(조건) 불러오기 — 숫자 필터는 고객값, 체크박스는 초기화 상태로!
 // =====================================================================================
 async function loadCustomerFilter(customerId) {
+
     const { data, error } = await window.supabase
         .from("customers")
         .select("*")
@@ -774,15 +775,23 @@ async function loadCustomerFilter(customerId) {
     }
 
     // -----------------------------------------
-    // 3) 체크박스 초기화
+    // 3) 체크박스 필터는 “초기화 버튼과 동일하게 설정”
     // -----------------------------------------
+
+    // 전체 체크 해제
     document.querySelectorAll(".status-check, .dealtype-check, .category-check")
-        .forEach(cb => (cb.checked = false));
+        .forEach(cb => cb.checked = false);
 
-    // ⬆ 필요한 경우 고객의 선호 항목이 있으면 여기에 체크박스 매핑 가능
+    // 초기화 버튼의 기본 체크값과 동일하게 적용
+    const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
+    defaults.forEach(val => {
+        document.querySelectorAll("input[type='checkbox']").forEach(cb => {
+            if (cb.value.includes(val)) cb.checked = true;
+        });
+    });
 
     // -----------------------------------------
-    // 4) 🔥 모든 필터값을 다 채운 뒤 → 지도에 필터 적용
+    // 4) 🔥 모든 필터 설정 후 지도에 적용
     // -----------------------------------------
-    onFilterChanged(); // ← ★ 핵심 변경: 이 한 줄로 지도 즉시 새로 그림
+    onFilterChanged();
 }
