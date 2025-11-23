@@ -1414,7 +1414,19 @@
         // 1) 이름으로 고객 1명 찾기 (조인 X)
         const { data: customer, error: custError } = await supabase
         .from('customers')
-        .select('id, customer_name, customer_phone_number, grade, memo, staff_profiles_id')
+        .select(`
+            id, customer_name, customer_phone_number, grade, memo, staff_profiles_id,
+            floor_min, floor_max,
+            area_min, area_max,
+            deposit_min, deposit_max,
+            rent_min, rent_max,
+            rent_per_py_min, rent_per_py_max,
+            premium_min, premium_max,
+            sale_min, sale_max,
+            total_deposit_min, total_deposit_max,
+            total_rent_min, total_rent_max,
+            roi_min, roi_max
+            `)
         .eq('customer_name', name)
         .maybeSingle();
 
