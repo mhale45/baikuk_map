@@ -485,24 +485,34 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (filterBtn && filterBox) {
         filterBtn.addEventListener("click", () => {
-            filterBox.style.display =
-                filterBox.style.display === "none" ? "block" : "none";
+            const isHidden = filterBox.style.display === "none";
+
+            // 토글
+            filterBox.style.display = isHidden ? "block" : "none";
+
+            // 🔥 필터창을 항상 화면 좌측 상단 고정 위치로 설정
+            if (isHidden) {
+                filterBox.style.position = "fixed";
+                filterBox.style.top = "calc(var(--header-height) + 10px)";
+                filterBox.style.left = "10px";
+                filterBox.style.zIndex = "99999";
+            }
         });
     }
 });
 
-// 🎯 필터창 외 클릭하면 닫기
+// 🔥 필터창 외 클릭하면 닫기 (왼쪽 고정 버전)
 window.addEventListener("click", (e) => {
     const filterBtn = document.getElementById("filter-btn");
     const filterBox = document.getElementById("filter-box-merged");
 
     if (!filterBtn || !filterBox) return;
 
-    if (
-        e.target !== filterBtn &&
-        !filterBtn.contains(e.target) &&
-        !filterBox.contains(e.target)
-    ) {
+    const clickedInside =
+        filterBox.contains(e.target) || filterBtn.contains(e.target);
+
+    if (!clickedInside) {
         filterBox.style.display = "none";
     }
 });
+
