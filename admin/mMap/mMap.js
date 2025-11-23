@@ -516,3 +516,188 @@ window.addEventListener("click", (e) => {
     }
 });
 
+// =====================================================================================
+// 🔥 고객창: 필터창처럼 바깥 클릭 시 닫기
+// =====================================================================================
+window.addEventListener("click", (e) => {
+    const customerPanel = document.getElementById("customer-panel");
+    const customerBtn = document.getElementById("toggle-customer-panel");
+
+    // panel, button 둘 중 하나라도 클릭하면 닫지 않음
+    if (
+        customerPanel.contains(e.target) ||
+        customerBtn.contains(e.target)
+    ) return;
+
+    // 클릭한 위치가 panel 밖이면 닫기
+    customerPanel.style.display = "none";
+});
+
+// =====================================================================================
+// 🔥 Supabase에서 고객 리스트 불러오기
+// =====================================================================================
+
+// 로그인한 직원의 staff_profiles.id 가져오기
+async function getCurrentStaffProfileId() {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    if (!session) return null;
+
+    // supabase auth user.id
+    const userId = session.user.id;
+
+    const { data, error } = await window.supabase
+        .from("staff_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error || !data) {
+        console.error("❌ staff_profiles 조회 실패:", error);
+        return null;
+    }
+
+    return data.id;  // staff_profiles.id
+}
+
+// =====================================================================================
+// 🔥 로그인한 계정의 고객만 불러오기
+// =====================================================================================
+async function loadCustomers() {
+
+    const staffId = await getCurrentStaffProfileId();
+    if (!staffId) {
+        console.warn("직원 프로필을 찾을 수 없음");
+        return [];
+    }
+
+    const { data, error } = await window.supabase
+        .from("customers")
+        .select(`
+            id,
+            customer_name,
+            customer_phone_number,
+            memo,
+            grade,
+            registered_at,
+            staff_profiles_id
+        `)
+        .eq("staff_profiles_id", staffId)        // ← 로그인한 직원의 고객만!
+        .order("registered_at", { ascending: false });
+
+    if (error) {
+        console.error("❌ 고객 리스트 로드 오류:", error);
+        return [];
+    }
+
+    return data;
+}
+
+function renderCustomerList(customers) {
+    if (!customers.length) {
+        return "<div class='text-sm'>등록된 고객이 없습니다.</div>";
+    }
+
+    // 등급 정렬 우선순위
+    const gradeOrder = {
+        "계약": 0, "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6
+    };
+
+    // 등급별 정렬
+    customers.sort((a, b) => {
+        const aRank = gradeOrder[a.grade] ?? 999;
+        const bRank = gradeOrder[b.grade] ?? 999;
+        return aRank - bRank;
+    });
+
+    // 등급별 그룹핑
+    const grouped = customers.reduce((acc, c) => {
+        const g = c.grade || "기타";
+        if (!acc[g]) acc[g] = [];
+        acc[g].push(c);
+        return acc;
+    }, {});
+
+    let html = "";
+
+    Object.keys(gradeOrder).forEach(grade => {
+        if (!grouped[grade]) return;
+
+        const list = grouped[grade];
+
+        html += `
+            <div class="grade-wrapper border-b pb-2">
+                <div class="grade-header flex justify-between items-center py-2 cursor-pointer font-bold text-base"
+                     data-grade="${grade}">
+                    <span>${grade} (${list.length})</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="grade-content pl-2" id="grade-${grade}" style="display:none;">
+                    ${list
+                        .map(c => `
+                            <div class="py-1 text-sm border-b">
+                                ${c.customer_name}
+                            </div>
+                        `)
+                        .join("")}
+                </div>
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+// =====================================================================================
+// 🔥 고객 리스트 패널 열기 / 닫기 (필터창과 동일 UI로 동작)
+// =====================================================================================
+window.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("toggle-customer-panel");
+    const panel = document.getElementById("customer-panel");
+    const filterBox = document.getElementById("filter-box-merged");
+
+    if (btn && panel) {
+        btn.addEventListener("click", async () => {
+
+            const isHidden = panel.style.display === "none";
+
+            // 🔥 패널 열기
+            if (isHidden) {
+                // 고객 데이터 로드
+                const customers = await loadCustomers();
+                panel.innerHTML = renderCustomerList(customers);
+
+                // 필터창 닫기 (겹침 방지)
+                if (filterBox) filterBox.style.display = "none";
+
+                // filter-box-merged 와 완전히 동일한 위치로 고정
+                panel.style.position = "fixed";
+                panel.style.top = "calc(var(--header-height) + 10px)";
+                panel.style.left = "10px";
+                panel.style.zIndex = "99999";
+                panel.style.display = "block";
+            } 
+            // 🔥 패널 닫기
+            else {
+                panel.style.display = "none";
+            }
+        });
+    }
+});
+
+// =====================================================================================
+// 🔥 고객패널 아코디언 기능 (등급 접기/펼치기)
+// =====================================================================================
+document.addEventListener("click", (e) => {
+    const header = e.target.closest(".grade-header");
+    if (!header) return;
+
+    const grade = header.dataset.grade;
+    const content = document.getElementById(`grade-${grade}`);
+    const icon = header.querySelector(".toggle-icon");
+
+    if (!content) return;
+
+    const isHidden = content.style.display === "none";
+    content.style.display = isHidden ? "block" : "none";
+    icon.textContent = isHidden ? "▲" : "▼";
+});
