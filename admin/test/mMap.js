@@ -10,7 +10,6 @@ import {
 } from "./filter.js";
 
 let map;
-let currentInfoWindow = null;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
@@ -45,15 +44,11 @@ window.addEventListener("DOMContentLoaded", () => {
     kakao.maps.event.addListener(map, "click", () => {
         const panel = document.getElementById("side-panel");
         panel.style.display = "none";
-    });
 
-    kakao.maps.event.addListener(map, "idle", () => {
-        // PC에서 패널이 떠 있는 경우 → 지도 reload 방지
-        const isPC = window.innerWidth >= 769;
-        const panel = document.getElementById("side-panel");
-
-        // 모바일 또는 패널이 닫혀 있을 때만 reload
-        reloadListingsOnMapThrottled();
+        // PC 모드일 때 InfoWindow 닫기
+        if (desktopInfoWindow) {
+            desktopInfoWindow.close();
+        }
     });
 
     // 🔔 지도 확대 안내 문구 UI 생성
