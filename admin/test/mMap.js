@@ -162,7 +162,16 @@ async function loadListingsByBounds() {
             lng,
             transaction_status,
             deal_type,
-            category
+            category,
+            floor,
+            area_py,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            sale_price,
+            total_deposit,
+            total_rent,
+            roi
         `)
         .gte("lat", b.minLat).lte("lat", b.maxLat)
         .gte("lng", b.minLng).lte("lng", b.maxLng);
