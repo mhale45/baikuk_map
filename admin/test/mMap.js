@@ -277,7 +277,7 @@ function renderListingWithFloorSeparator(listings) {
         } else if (status.includes("보류")) {
             bgColor = "background:#fff0f0;";        // 보류 → 연한 회색
         } else {
-            bgColor = "background:#FDF3C0;";        // 그 외 → 연한 녹색
+            bgColor = "background:#F7DA79;";        // 그 외 → 연한 녹색
         }
 
         // ==============================
