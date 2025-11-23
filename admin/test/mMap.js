@@ -14,6 +14,7 @@ let currentInfoWindow = null;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
+let activePanelMarker = null; // 패널이 어떤 마커에 붙어있는지
 
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -316,17 +317,20 @@ async function renderListingsOnMap() {
                     // 📌 PC에서는 side-panel을 마커 위로 이동
                     // ============================
                     if (isPC) {
+                        // 🔥 클릭된 마커 저장 → 드래그/줌 시에도 패널이 따라오게 함
+                        activePanelMarker = marker;
+
+                        // 현재 위치 계산
                         const markerPos = marker.getPosition();
                         const proj = map.getProjection();
-
-                        // 지도 위 실제 픽셀 좌표 변환
                         const point = proj.containerPointFromCoords(markerPos);
 
-                        // side-panel의 top/left를 해당 위치로 이동
+                        // 패널 화면 위치
                         panel.style.left = point.x + "px";
                         panel.style.top = (point.y - 40) + "px";
+                        panel.style.zIndex = "999999";
 
-                        return;  // 모바일 로직 실행 안 함
+                        return;
                     }
 
                     // ============================
@@ -342,6 +346,20 @@ async function renderListingsOnMap() {
 
     // 업데이트된 마커 목록 저장
     allMarkers = Array.from(currentMap.values());
+}
+
+function updatePanelPosition() {
+    if (!activePanelMarker) return;
+
+    const panel = document.getElementById("side-panel");
+    const proj = map.getProjection();
+
+    // 마커 좌표 → 화면 좌표
+    const point = proj.containerPointFromCoords(activePanelMarker.getPosition());
+
+    // 40px 위로 띄우기
+    panel.style.left = point.x + "px";
+    panel.style.top = (point.y - 40) + "px";
 }
 
 // 지도 로딩 후 실행
@@ -463,3 +481,7 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
+
+kakao.maps.event.addListener(map, "idle", () => {
+    updatePanelPosition();
+});
