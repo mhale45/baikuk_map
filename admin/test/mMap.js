@@ -55,6 +55,7 @@ window.addEventListener("DOMContentLoaded", () => {
     zoomNotice.style.display = "none"; // 기본 숨김
     zoomNotice.innerText = "지도를 확대하세요";
     document.body.appendChild(zoomNotice);
+
     // 🔥 페이지 첫 로드 시 필터 초기화 실행
     resetFilterSelections();
 });
@@ -87,6 +88,36 @@ function getSelectedCategories() {
         .map(cb => cb.value);
 }
 
+// 층 필터 값 가져오기
+function getFloorRange() {
+    const minInput = document.getElementById("floor-min");
+    const maxInput = document.getElementById("floor-max");
+
+    const minVal = minInput && minInput.value !== "" ? Number(minInput.value) : null;
+    const maxVal = maxInput && maxInput.value !== "" ? Number(maxInput.value) : null;
+
+    return {
+        min: (minVal !== null && !isNaN(minVal)) ? minVal : null,
+        max: (maxVal !== null && !isNaN(maxVal)) ? maxVal : null
+    };
+}
+
+// 층 조건으로 리스트 필터링
+function filterByFloor(listings) {
+    const { min: floorMin, max: floorMax } = getFloorRange();
+
+    if (floorMin === null && floorMax === null) return listings;
+
+    return listings.filter(i => {
+        const floor = Number(i.floor);
+        // 층 정보가 없으면 조건 필터가 있을 때는 제외
+        if (isNaN(floor)) return false;
+        if (floorMin !== null && floor < floorMin) return false;
+        if (floorMax !== null && floor > floorMax) return false;
+        return true;
+    });
+}
+
 function enforceZoomLevelBehavior() {
     const level = map.getLevel();
     const notice = document.getElementById("zoom-notice");
@@ -105,7 +136,7 @@ function enforceZoomLevelBehavior() {
 
         return false;  // 데이터 로딩 금지 신호
     } else {
-        notice.style.display = "none";  
+        notice.style.display = "none";
         return true;   // 데이터 로딩 허용
     }
 }
@@ -132,7 +163,6 @@ async function loadListingsByAddress(fullAddress) {
             deal_type,
             category
         `)
-
         .eq("full_address", fullAddress);
 
     if (error) {
@@ -242,6 +272,9 @@ async function renderListingsOnMap() {
         });
     }
 
+    // 🔥 JS단 추가 필터링 (층)
+    listings = filterByFloor(listings);
+
     // 🔥 필터 결과가 0건이면 기존 마커 전부 제거하고 종료
     if (!listings.length) {
         allMarkers.forEach(m => {
@@ -302,6 +335,9 @@ async function renderListingsOnMap() {
                     );
                 }
 
+                // 층 필터
+                listingsAtAddr = filterByFloor(listingsAtAddr);
+
                 // 👉 필터링 후 매물이 한 건도 없다면 이 주소는 마커를 만들지 않음!!
                 if (listingsAtAddr.length === 0) return;
 
@@ -343,6 +379,9 @@ async function renderListingsOnMap() {
                             selectedCategories.some(c => (i.category || "").includes(c))
                         );
                     }
+
+                    // 층 필터
+                    listings = filterByFloor(listings);
 
                     listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
 
@@ -399,7 +438,6 @@ window.addEventListener("DOMContentLoaded", () => {
             renderListingsOnMap();
         }
     }, 800);
-
 });
 
 // 🔥 필터 박스 토글 기능 (버튼 클릭 → 열기/닫기)
@@ -478,13 +516,21 @@ function reloadListingsOnMapThrottled() {
         // 정상일 때만 데이터 로드
         renderListingsOnMap();
     }, 400);
-
 }
 
+// 체크박스 필터 변경 시 공통 처리
 [".status-check", ".dealtype-check", ".category-check"].forEach(selector => {
     document.querySelectorAll(selector).forEach(cb => {
         cb.addEventListener("change", onFilterChanged);
     });
+});
+
+// 층 입력값 변경 시도 필터 재적용
+["floor-min", "floor-max"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+        input.addEventListener("change", onFilterChanged);
+    }
 });
 
 // 필터 초기화 함수
@@ -500,6 +546,12 @@ function resetFilterSelections() {
             if (cb.value.includes(val)) cb.checked = true;
         });
     });
+
+    // 층 필터 초기화
+    const floorMinInput = document.getElementById("floor-min");
+    const floorMaxInput = document.getElementById("floor-max");
+    if (floorMinInput) floorMinInput.value = "";
+    if (floorMaxInput) floorMaxInput.value = "";
 
     // 지도 reload
     reloadListingsOnMapThrottled();
