@@ -516,3 +516,89 @@ window.addEventListener("click", (e) => {
     }
 });
 
+window.addEventListener("click", (e) => {
+    const filterBtn = document.getElementById("filter-btn");
+    const filterBox = document.getElementById("filter-box-merged");
+
+    if (!filterBtn || !filterBox) return;
+
+    const clickedInside =
+        filterBox.contains(e.target) || filterBtn.contains(e.target);
+
+    if (!clickedInside) {
+        filterBox.style.display = "none";
+    }
+});
+
+// =====================================================================================
+// 🔥 Supabase에서 고객 리스트 불러오기
+// =====================================================================================
+async function loadCustomers() {
+    const { data, error } = await window.supabase
+        .from("customers")
+        .select(`
+            id,
+            customer_name,
+            customer_phone_number,
+            memo,
+            grade,
+            registered_at
+        `)
+        .order("registered_at", { ascending: false });
+
+    if (error) {
+        console.error("❌ 고객 리스트 로드 오류:", error);
+        return [];
+    }
+
+    return data;
+}
+
+function renderCustomerList(customers) {
+    if (!customers.length) {
+        return "<div class='text-sm'>등록된 고객이 없습니다.</div>";
+    }
+
+    return customers
+        .map(c => `
+            <div class="p-2 border-b border-gray-200">
+                <div><strong>${c.customer_name}</strong> (${c.grade || "-"})</div>
+                <div class="text-xs text-gray-600">${c.customer_phone_number || "-"}</div>
+                <div class="text-xs">${c.memo || ""}</div>
+                <div class="text-[11px] text-gray-500 mt-1">${c.registered_at || ""}</div>
+            </div>
+        `)
+        .join("");
+}
+
+// =====================================================================================
+// 🔥 고객 리스트 패널 열기 / 닫기
+// =====================================================================================
+window.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("toggle-customer-panel");
+    const panel = document.getElementById("customer-panel");
+    const filterBox = document.getElementById("filter-box-merged");
+
+    if (btn && panel) {
+        btn.addEventListener("click", async () => {
+
+            const isHidden = panel.style.display === "none";
+
+            // 🔥 패널 열기
+            if (isHidden) {
+                // 고객 데이터 로드
+                const customers = await loadCustomers();
+                panel.innerHTML = renderCustomerList(customers);
+
+                // 필터박스는 닫기 (겹침 방지)
+                if (filterBox) filterBox.style.display = "none";
+
+                panel.style.display = "block";
+            } 
+            // 🔥 패널 닫기
+            else {
+                panel.style.display = "none";
+            }
+        });
+    }
+});
