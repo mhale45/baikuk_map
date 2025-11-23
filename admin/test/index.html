@@ -476,12 +476,9 @@
   </div>  
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    import {
-        showToast,
-        setDocumentTitle,
-        formatKoreanMoney
-    } from './recommend_imDae.js';
-    
+    import { showToast, setDocumentTitle, formatKoreanMoney }
+    from "./recommend_imDae.js";
+
     window.showToast = showToast;
     window.setDocumentTitle = setDocumentTitle;
     window.formatKoreanMoney = formatKoreanMoney;
