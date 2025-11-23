@@ -477,6 +477,9 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
+document.getElementById("filter-reset-btn").addEventListener("click", () => {
+    updateCustomerButtonLabel("");
+});
 
 // 🎯 통합 필터 토글 버튼
 window.addEventListener("DOMContentLoaded", () => {
@@ -634,7 +637,8 @@ function renderCustomerList(customers) {
                 <div class="grade-content pl-2" id="grade-${grade}" style="display:none;">
                     ${list
                         .map(c => `
-                            <div class="py-1 text-sm border-b">
+                            <div class="customer-item py-1 text-sm border-b cursor-pointer"
+                                data-id="${c.id}">
                                 ${c.customer_name}
                             </div>
                         `)
@@ -701,3 +705,106 @@ document.addEventListener("click", (e) => {
     content.style.display = isHidden ? "block" : "none";
     icon.textContent = isHidden ? "▲" : "▼";
 });
+
+// =====================================================================================
+// 🔥 고객 1명 클릭 → 필터 적용 + 고객 이름 표시
+// =====================================================================================
+document.addEventListener("click", async (e) => {
+    const item = e.target.closest(".customer-item");
+    if (!item) return;
+
+    const customerId = item.dataset.id;
+    if (!customerId) return;
+
+    const customerName = item.textContent.trim();
+
+    // 고객 패널 닫기
+    document.getElementById("customer-panel").style.display = "none";
+
+    // 고객 이름 라벨 표시
+    updateCustomerButtonLabel(customerName);
+
+    // 고객 필터 적용
+    await loadCustomerFilter(customerId);
+});
+
+// =====================================================================================
+// 🔥 특정 고객의 필터(조건) 불러오기 — 숫자 필터는 고객값, 체크박스는 초기화 상태로!
+// =====================================================================================
+async function loadCustomerFilter(customerId) {
+
+    const { data, error } = await window.supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .maybeSingle();
+
+    if (error || !data) {
+        console.error("❌ 고객 필터 조회 실패:", error);
+        return;
+    }
+
+    // -----------------------------------------
+    // 1) 숫자 필터 매핑 테이블
+    // -----------------------------------------
+    const numericMap = {
+        floor: ["floor_min", "floor_max"],
+        area: ["area_min", "area_max"],
+        deposit: ["deposit_min", "deposit_max"],
+        rent: ["rent_min", "rent_max"],
+        rent_per_py: ["rent_per_py_min", "rent_per_py_max"],
+        premium: ["premium_min", "premium_max"],
+        sale: ["sale_min", "sale_max"],
+        "total-deposit": ["total_deposit_min", "total_deposit_max"],
+        "total-rent": ["total_rent_min", "total_rent_max"],
+        roi: ["roi_min", "roi_max"]
+    };
+
+    // -----------------------------------------
+    // 2) 숫자 필터 input 에 값 채우기
+    // -----------------------------------------
+    for (const key in numericMap) {
+        const [minKey, maxKey] = numericMap[key];
+
+        const minInput = document.getElementById(`${key}-min`);
+        const maxInput = document.getElementById(`${key}-max`);
+
+        if (minInput) minInput.value = data[minKey] ?? "";
+        if (maxInput) maxInput.value = data[maxKey] ?? "";
+    }
+
+    // -----------------------------------------
+    // 3) 체크박스 필터는 “초기화 버튼과 동일하게 설정”
+    // -----------------------------------------
+
+    // 전체 체크 해제
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => cb.checked = false);
+
+    // 초기화 버튼의 기본 체크값과 동일하게 적용
+    const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
+    defaults.forEach(val => {
+        document.querySelectorAll("input[type='checkbox']").forEach(cb => {
+            if (cb.value.includes(val)) cb.checked = true;
+        });
+    });
+
+    // -----------------------------------------
+    // 4) 🔥 모든 필터 설정 후 지도에 적용
+    // -----------------------------------------
+    onFilterChanged();
+}
+
+// =====================================================================================
+// 🔥 고객 선택될 때 "👤 고객 리스트" 버튼에 고객 이름 표시
+// =====================================================================================
+function updateCustomerButtonLabel(name) {
+    const btn = document.getElementById("toggle-customer-panel");
+    if (!btn) return;
+
+    if (!name) {
+        btn.textContent = "👤 고객 리스트";
+    } else {
+        btn.textContent = `👤 ${name}`;
+    }
+}

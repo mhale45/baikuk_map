@@ -477,6 +477,9 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
+document.getElementById("filter-reset-btn").addEventListener("click", () => {
+    updateCustomerButtonLabel("");
+});
 
 // 🎯 통합 필터 토글 버튼
 window.addEventListener("DOMContentLoaded", () => {
@@ -704,7 +707,7 @@ document.addEventListener("click", (e) => {
 });
 
 // =====================================================================================
-// 🔥 고객 1명 클릭하면 → 해당 고객의 필터 조건 로드
+// 🔥 고객 1명 클릭 → 필터 적용 + 고객 이름 표시
 // =====================================================================================
 document.addEventListener("click", async (e) => {
     const item = e.target.closest(".customer-item");
@@ -713,26 +716,23 @@ document.addEventListener("click", async (e) => {
     const customerId = item.dataset.id;
     if (!customerId) return;
 
-    console.log("📌 선택된 고객 ID:", customerId);
+    const customerName = item.textContent.trim();
 
     // 고객 패널 닫기
     document.getElementById("customer-panel").style.display = "none";
 
-    // 고객 필터 로드
-    await loadCustomerFilter(customerId);
+    // 고객 이름 라벨 표시
+    updateCustomerButtonLabel(customerName);
 
-    // 필터창 열기
-    const filterBox = document.getElementById("filter-box-merged");
-    filterBox.style.display = "block";
-    filterBox.style.position = "fixed";
-    filterBox.style.top = "calc(var(--header-height) + 10px)";
-    filterBox.style.left = "10px";
+    // 고객 필터 적용
+    await loadCustomerFilter(customerId);
 });
 
 // =====================================================================================
-// 🔥 특정 고객의 필터(조건) 불러오기
+// 🔥 특정 고객의 필터(조건) 불러오기 — 숫자 필터는 고객값, 체크박스는 초기화 상태로!
 // =====================================================================================
 async function loadCustomerFilter(customerId) {
+
     const { data, error } = await window.supabase
         .from("customers")
         .select("*")
@@ -744,7 +744,9 @@ async function loadCustomerFilter(customerId) {
         return;
     }
 
-    // 숫자 필터 매핑
+    // -----------------------------------------
+    // 1) 숫자 필터 매핑 테이블
+    // -----------------------------------------
     const numericMap = {
         floor: ["floor_min", "floor_max"],
         area: ["area_min", "area_max"],
@@ -758,7 +760,9 @@ async function loadCustomerFilter(customerId) {
         roi: ["roi_min", "roi_max"]
     };
 
-    // 숫자 필터 적용
+    // -----------------------------------------
+    // 2) 숫자 필터 input 에 값 채우기
+    // -----------------------------------------
     for (const key in numericMap) {
         const [minKey, maxKey] = numericMap[key];
 
@@ -769,13 +773,38 @@ async function loadCustomerFilter(customerId) {
         if (maxInput) maxInput.value = data[maxKey] ?? "";
     }
 
-    // 체크박스 필터 기본 상태 초기화
+    // -----------------------------------------
+    // 3) 체크박스 필터는 “초기화 버튼과 동일하게 설정”
+    // -----------------------------------------
+
+    // 전체 체크 해제
     document.querySelectorAll(".status-check, .dealtype-check, .category-check")
-        .forEach(cb => (cb.checked = false));
+        .forEach(cb => cb.checked = false);
 
-    // 체크박스 (grade 활용 여부는 사용처에 따라 확장 가능)
-    // 여기서는 별도 정보가 없으므로 그대로 두기
+    // 초기화 버튼의 기본 체크값과 동일하게 적용
+    const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
+    defaults.forEach(val => {
+        document.querySelectorAll("input[type='checkbox']").forEach(cb => {
+            if (cb.value.includes(val)) cb.checked = true;
+        });
+    });
 
-    // 지도에 적용
-    reloadListingsOnMapThrottled();
+    // -----------------------------------------
+    // 4) 🔥 모든 필터 설정 후 지도에 적용
+    // -----------------------------------------
+    onFilterChanged();
+}
+
+// =====================================================================================
+// 🔥 고객 선택될 때 "👤 고객 리스트" 버튼에 고객 이름 표시
+// =====================================================================================
+function updateCustomerButtonLabel(name) {
+    const btn = document.getElementById("toggle-customer-panel");
+    if (!btn) return;
+
+    if (!name) {
+        btn.textContent = "👤 고객 리스트";
+    } else {
+        btn.textContent = `👤 ${name}`;
+    }
 }

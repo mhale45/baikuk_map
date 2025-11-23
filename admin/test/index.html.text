@@ -12,7 +12,7 @@
 
     <style>
         :root {
-            --header-height: 3.2rem;
+            --header-height: 4.3rem;
         }
 
         body {
@@ -89,20 +89,19 @@
             <div class="flex flex-col gap-2">   
                 <!-- 🔥 통합 필터 버튼 -->
                 <button id="filter-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[55px]
                         hover:bg-gray-200 transition duration-150">
                     필터
                 </button>
             </div> 
             <div class="flex flex-col gap-2">
                 <button id="toggle-customer-panel"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm max-w-[260px]
                         hover:bg-gray-200 transition duration-150">
                     👤 고객 리스트
                 </button>
             </div> 
-        </div>       
-            
+        </div>     
     </header>
 
     <!-- 오른쪽 하단 컨트롤 버튼 -->
@@ -193,8 +192,17 @@
                 <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
             </div>
 
-            <!-- 매매가 -->
+            <!-- 평당월세 -->
             <div class="flex items-center gap-2">
+                <span class="w-20">평월세</span>
+                <input id="rent_per_py-min" type="number" placeholder="이상"
+                    class="border p-1 rounded w-20" />
+                <input id="rent_per_py-max" type="number" placeholder="이하"
+                    class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 매매가 -->
+            <div class="flex items-center gap-2 mt-5">
                 <span class="w-20">매매가</span>
                 <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
                 <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
@@ -219,15 +227,6 @@
                 <span class="w-20">수익률</span>
                 <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
                 <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 평당월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">평당월세</span>
-                <input id="rent_per_py-min" type="number" placeholder="이상"
-                    class="border p-1 rounded w-20" />
-                <input id="rent_per_py-max" type="number" placeholder="이하"
-                    class="border p-1 rounded w-20" />
             </div>
         </div>        
     </div>
@@ -269,7 +268,7 @@
             display: none; /* 기본 숨김 */
         ">
     </div>
-
+        
     <!-- 지도 -->
     <div id="map"></div>
 
