@@ -10,9 +10,9 @@ import {
 } from "./filter.js";
 
 let map;
-let currentInfoWindow = null;
 let clusterer = null;
 let allMarkers = [];
+let desktopInfoWindow = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -44,9 +44,12 @@ window.addEventListener("DOMContentLoaded", () => {
     kakao.maps.event.addListener(map, "click", () => {
         const panel = document.getElementById("side-panel");
         panel.style.display = "none";
-    });
 
-    kakao.maps.event.addListener(map, "idle", reloadListingsOnMapThrottled);
+        // PC 모드일 때 InfoWindow 닫기
+        if (desktopInfoWindow) {
+            desktopInfoWindow.close();
+        }
+    });
 
     // 🔔 지도 확대 안내 문구 UI 생성
     const zoomNotice = document.createElement("div");
@@ -215,6 +218,46 @@ async function loadListingsByBounds() {
     return data;
 }
 
+
+function renderListingWithFloorSeparator(listings) {
+    let prevFloor = null;
+    let html = "";
+
+    listings.forEach(item => {
+        const floor = item.floor ?? "-";
+
+        // 층이 바뀌면 구분선 추가
+        if (prevFloor !== null && prevFloor !== floor) {
+            html += `<div style="border-top:1px solid #ddd; margin:6px 0;"></div>`;
+        }
+
+        prevFloor = floor;
+
+        const status = item.transaction_status || "";
+        const icon =
+            status.includes("완료") ? "🔹" :
+            status.includes("보류") ? "◆" :
+            "🔸";
+
+        html += `
+            <div style="padding:4px 0; font-size:13px;">
+                ${icon} <strong>${item.listing_id}</strong> ${item.listing_title || "-"}<br/>
+                <strong>${floor}층</strong>
+                <strong>${formatNumber(item.deposit_price)}</strong> /
+                <strong>${formatNumber(item.monthly_rent)}</strong>
+                ${
+                    (!item.premium_price || Number(item.premium_price) === 0)
+                        ? "무권리"
+                        : `권<strong>${formatNumber(item.premium_price)}</strong>`
+                }
+                <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평
+            </div>
+        `;
+    });
+
+    return html;
+}
+
 async function renderListingsOnMap() {
     let listings = await loadListingsByBounds();
 
@@ -277,50 +320,58 @@ async function renderListingsOnMap() {
 
                 // 👉 마커 클릭 이벤트 (기존 그대로)
                 kakao.maps.event.addListener(marker, "click", async () => {
-                    if (currentInfoWindow) currentInfoWindow.close();
+                    const isPC = window.innerWidth >= 769;
 
                     let listings = await loadListingsByAddress(addr);
-
-                    // 필터
                     listings = applyAllFilters(listings);
+                    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
-                    listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
+                    // =================================
+                    // 📌 PC — InfoWindow 사용 (끝)
+                    // =================================
+                    if (isPC) {
 
+                        // 기존 infoWindow 닫기
+                        if (desktopInfoWindow) {
+                            desktopInfoWindow.close();
+                        }
+
+                        const contentHTML = listings.length
+                            ? renderListingWithFloorSeparator(listings)
+                            : "<div style='font-size:13px;'>조건에 맞는 매물이 없습니다.</div>";
+
+                        desktopInfoWindow = new kakao.maps.InfoWindow({
+                            position: marker.getPosition(),
+                            content: `
+                                <div style="
+                                    background:#fff;
+                                    padding:10px;
+                                    border:1px solid #ccc;
+                                    border-radius:8px;
+                                    max-height:60vh;
+                                    overflow-y:auto;
+                                    font-size:13px;
+                                    white-space:nowrap;
+                                ">
+                                    ${contentHTML}
+                                </div>
+                            `
+                        });
+
+                        desktopInfoWindow.open(map, marker);
+                        return;
+                    }
+
+                    // =================================
+                    // 📌 모바일 — 기존 side-panel 그대로 유지
+                    // =================================
                     const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
-                        ? listings.map(i => {
-                            const status = i.transaction_status || "";
-
-                            // 상태에 따른 아이콘
-                            const icon =
-                                status.includes("완료") ? "🔹" :
-                                status.includes("보류") ? "◆" :
-                                "🔸";
-
-                            const textColor = (() => {
-                                if (status.includes("완료")) return "red";
-                                if (status.includes("보류")) return "green";
-                                if (status.includes("진행")) return "black";
-                                return "black";
-                            })();
-
-                            return `
-                                <div style="margin-bottom:6px; color:${textColor} !important;">
-                                    ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
-                                    <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
-                                    <strong>${formatNumber(i.deposit_price)}</strong> /
-                                    <strong>${formatNumber(i.monthly_rent)}</strong>
-                                    ${
-                                        (i.premium_price == null || Number(i.premium_price) === 0)
-                                            ? "무권리"
-                                            : `권<strong>${formatNumber(i.premium_price)}</strong>`
-                                    }
-                                    <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
-                                </div>
-                            `;
-                        }).join("")
+                        ? renderListingWithFloorSeparator(listings)
                         : "<div>조건에 맞는 매물이 없습니다.</div>";
 
+                    panel.style.left = "10px";
+                    panel.style.top = "calc(var(--header-height) + 10px)";
                     panel.style.display = "block";
                 });
 
