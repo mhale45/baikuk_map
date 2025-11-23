@@ -284,7 +284,8 @@ function renderListingWithFloorSeparator(listings) {
         // 🔥 최종 HTML 출력
         // ==============================
         html += `
-            <div style="padding:4px 0; font-size:14px; ${bgColor}">
+            <div onclick="openListingNewTab('${item.listing_id}')"
+                style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
                 ${icon} 
                 <strong>
                     <span class="copy-listing-id" data-id="${item.listing_id}" 
