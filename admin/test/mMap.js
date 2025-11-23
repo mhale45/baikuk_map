@@ -156,7 +156,8 @@ async function loadListingsByAddress(fullAddress) {
             floor,
             transaction_status,
             deal_type,
-            category
+            category,
+            rent_per_py
         `)
         .eq("full_address", fullAddress);
 
@@ -273,19 +274,18 @@ function renderListingWithFloorSeparator(listings) {
                 <strong>${floor}층</strong> / 
                 <strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평 / 
                 <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
-                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong>
+                <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
                         ? `<span style="color:red;">무권리</span>`
-                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong>`
+                        : `<span style="color:red;">권 </span><strong>${formatNumber(item.premium_price)}</strong> /`
                 }
-                ${(() => {
-                    const rent = Number(item.monthly_rent);
-                    const area = Number(item.area_py);
-                    if (!rent || !area) return "";
-                    const per = (rent / area).toFixed(1);
-                    return ` / <strong>${per}만</strong>`;
-                })()}
+                ${ 
+                    item.rent_per_py 
+                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` 
+                        : "" 
+                }
+
             </div>
         `;
     });
