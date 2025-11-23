@@ -297,38 +297,6 @@ async function renderListingsOnMap() {
                     position: new kakao.maps.LatLng(item.lat, item.lng)
                 });
 
-                // 🔥 자동 InfoWindow: 확대 레벨 2 이하 + 매물 1건일 때
-                if (map.getLevel() <= 2 && listingsAtAddr.length === 1) {
-
-                    const only = listingsAtAddr[0];
-
-                    // ❗ 중요: 자동 InfoWindow는 다른 마커 눌러도 닫히지 않아야 하므로
-                    // currentInfoWindow.close() 같은 코드는 절대 넣지 않는다.
-
-                    const iwContent = `
-                        <div style="padding:6px 10px; font-size:13px;">
-                            <strong>${only.listing_title || "-"}</strong><br/>
-                            <span>${only.floor ?? "-"}층</span>
-                            <span>${formatNumber(only.deposit_price)}</span> /
-                            <span>${formatNumber(only.monthly_rent)}</span>
-                            ${
-                                (only.premium_price == null || Number(only.premium_price) === 0)
-                                    ? "무권리"
-                                    : `권 ${formatNumber(only.premium_price)}`
-                            }
-                        </div>
-                    `;
-
-                    const infoWindow = new kakao.maps.InfoWindow({
-                        position: new kakao.maps.LatLng(item.lat, item.lng),
-                        content: iwContent,
-                        removable: true // X 버튼으로만 닫힘
-                    });
-
-                    infoWindow.open(map, marker);
-                    // ❗ 자동 InfoWindow는 currentInfoWindow 로 저장하지 않음
-                }
-
                 clusterer.addMarker(marker);
 
                 currentMap.set(addr, {
@@ -338,8 +306,6 @@ async function renderListingsOnMap() {
 
                 // 👉 마커 클릭 이벤트 (기존 그대로)
                 kakao.maps.event.addListener(marker, "click", async () => {
-
-                    // ❗ 클릭하여 여는 InfoWindow는 기존 것 닫기
                     if (currentInfoWindow) currentInfoWindow.close();
 
                     let listings = await loadListingsByAddress(addr);
