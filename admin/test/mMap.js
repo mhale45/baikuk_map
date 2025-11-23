@@ -67,6 +67,11 @@ function clearAllMarkers() {
     allMarkers = [];
 }
 
+function onFilterChanged() {
+    clearAllMarkers();
+    reloadListingsOnMapThrottled();
+}
+
 function getSelectedStatuses() {
     return Array.from(document.querySelectorAll(".status-check:checked"))
         .map(cb => cb.value);
@@ -476,24 +481,9 @@ function reloadListingsOnMapThrottled() {
 
 }
 
-document.querySelectorAll(".status-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        clearAllMarkers();
-        reloadListingsOnMapThrottled();
-    });
-});
-
-document.querySelectorAll(".dealtype-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        clearAllMarkers();
-        reloadListingsOnMapThrottled();
-    });
-});
-
-document.querySelectorAll(".category-check").forEach(cb => {
-    cb.addEventListener("change", () => {
-        clearAllMarkers();
-        reloadListingsOnMapThrottled();
+[".status-check", ".dealtype-check", ".category-check"].forEach(selector => {
+    document.querySelectorAll(selector).forEach(cb => {
+        cb.addEventListener("change", onFilterChanged);
     });
 });
 
