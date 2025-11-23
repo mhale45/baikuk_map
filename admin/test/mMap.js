@@ -8,8 +8,6 @@ import {
     applyAllFilters,
     attachFilterInputEvents
 } from "./filter.js";
-import { showToastGreenRed } from "/admin/modules/ui/toast.js";
-
 
 let map;
 let clusterer = null;
@@ -832,24 +830,17 @@ function updateCustomerButtonLabel(name) {
     }
 }
 
-// 1) listing_id 클릭 → 복사
 document.addEventListener("click", (e) => {
-    const copyTarget = e.target.closest(".copy-listing-id");
-    if (copyTarget) {
-        const id = copyTarget.dataset.id;
+    const target = e.target.closest(".copy-listing-id");
+    if (!target) return;
 
-        navigator.clipboard.writeText(id)
-            .then(() => {
-                // ✔ 성공 토스트: 노란색
-                showToastGreenRed(`복사됨: ${id}`, { ok: true });
-            })
-            .catch(err => {
-                console.error("클립보드 복사 오류:", err);
+    const id = target.dataset.id;
 
-                // ✔ 실패 토스트: 빨간색
-                showToastGreenRed("복사 실패", { ok: false });
-            });
-
-        return;
-    }
+    navigator.clipboard.writeText(id)
+        .then(() => {
+            alert(`복사됨: ${id}`);
+        })
+        .catch(err => {
+            console.error("클립보드 복사 오류:", err);
+        });
 });
