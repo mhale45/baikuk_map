@@ -328,7 +328,7 @@ async function renderListingsOnMap() {
                                     padding:10px;
                                     border:1px solid #ccc;
                                     border-radius:8px;
-                                    max-height:250px;
+                                    max-height:60vh;
                                     overflow-y:auto;
                                     font-size:13px;
                                     white-space:nowrap;
