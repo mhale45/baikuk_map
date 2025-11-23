@@ -296,6 +296,38 @@ async function renderListingsOnMap() {
                 const marker = new kakao.maps.Marker({
                     position: new kakao.maps.LatLng(item.lat, item.lng)
                 });
+                // 🔥 자동 InfoWindow: 확대 레벨 2 이하 + 매물 1건일 때
+                if (map.getLevel() <= 2 && listingsAtAddr.length === 1) {
+
+                    const only = listingsAtAddr[0]; // 단일 매물
+
+                    // 기존 InfoWindow가 열려 있으면 닫기
+                    if (currentInfoWindow) currentInfoWindow.close();
+
+                    const iwContent = `
+                        <div style="padding:6px 10px; font-size:13px;">
+                            <strong>${only.listing_title || "-"}</strong><br/>
+                            <span>${only.floor ?? "-"}층</span>
+                            <span>${formatNumber(only.deposit_price)}</span> /
+                            <span>${formatNumber(only.monthly_rent)}</span>
+                            ${
+                                (only.premium_price == null || Number(only.premium_price) === 0)
+                                    ? "무권리"
+                                    : `권 ${formatNumber(only.premium_price)}`
+                            }
+                        </div>
+                    `;
+
+                    const infoWindow = new kakao.maps.InfoWindow({
+                        position: new kakao.maps.LatLng(item.lat, item.lng),
+                        content: iwContent,
+                        removable: true
+                    });
+
+                    infoWindow.open(map, marker);
+                    currentInfoWindow = infoWindow;
+                }
+
 
                 clusterer.addMarker(marker);
 
