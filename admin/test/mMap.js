@@ -530,6 +530,17 @@ window.addEventListener("click", (e) => {
     }
 });
 
+// 등급 정렬 우선순위
+const gradeOrder = {
+    "계약": 0,
+    "A": 1,
+    "B": 2,
+    "C": 3,
+    "D": 4,
+    "E": 5,
+    "F": 6
+};
+
 // =====================================================================================
 // 🔥 Supabase에서 고객 리스트 불러오기
 // =====================================================================================
@@ -559,16 +570,50 @@ function renderCustomerList(customers) {
         return "<div class='text-sm'>등록된 고객이 없습니다.</div>";
     }
 
-    return customers
-        .map(c => `
-            <div class="p-2 border-b border-gray-200">
-                <div><strong>${c.customer_name}</strong> (${c.grade || "-"})</div>
-                <div class="text-xs text-gray-600">${c.customer_phone_number || "-"}</div>
-                <div class="text-xs">${c.memo || ""}</div>
-                <div class="text-[11px] text-gray-500 mt-1">${c.registered_at || ""}</div>
+    // 등급 정리 (빈 등급은 맨 뒤)
+    customers.sort((a, b) => {
+        const aRank = gradeOrder[a.grade] ?? 999;
+        const bRank = gradeOrder[b.grade] ?? 999;
+        return aRank - bRank;
+    });
+
+    // 등급별 그룹핑
+    const grouped = customers.reduce((acc, c) => {
+        const g = c.grade || "기타";
+        if (!acc[g]) acc[g] = [];
+        acc[g].push(c);
+        return acc;
+    }, {});
+
+    let html = "";
+
+    // 등급 순서대로 출력
+    Object.keys(gradeOrder).forEach(grade => {
+        if (!grouped[grade]) return;
+
+        html += `
+            <div class="font-bold text-base mt-2 mb-1 border-b pb-1">
+                📌 ${grade} 등급
             </div>
-        `)
-        .join("");
+        `;
+
+        html += grouped[grade]
+            .map(c => `
+                <div class="p-2 border-b border-gray-200">
+                    <div><strong>${c.customer_name}</strong></div>
+                    <div class="text-xs text-gray-600">
+                        ${c.customer_phone_number || "-"}
+                    </div>
+                    <div class="text-xs">${c.memo || ""}</div>
+                    <div class="text-[11px] text-gray-500 mt-1">
+                        ${c.registered_at || ""}
+                    </div>
+                </div>
+            `)
+            .join("");
+    });
+
+    return html;
 }
 
 // =====================================================================================
