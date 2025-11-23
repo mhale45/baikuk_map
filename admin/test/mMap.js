@@ -273,13 +273,15 @@ function renderListingWithFloorSeparator(listings) {
         // ==============================
         let bgColor = "";
         if (status.includes("완료")) {
-            bgColor = "background:#ffe5e5;";   // 연한 빨간색
+            bgColor = "background:#ffe5e5;";        // 완료 → 연한 빨간색
         } else if (status.includes("보류")) {
-            bgColor = "background:#f0f0f0;";   // 연한 회색
+            bgColor = "background:#f0f0f0;";        // 보류 → 연한 회색
+        } else {
+            bgColor = "background:#e8fbe8;";        // 그 외 → 연한 녹색
         }
 
         // ==============================
-        // 🔥 최종 출력 HTML
+        // 🔥 최종 HTML 출력
         // ==============================
         html += `
             <div style="padding:4px 0; font-size:14px; ${bgColor}">
@@ -298,7 +300,6 @@ function renderListingWithFloorSeparator(listings) {
                         ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
                         : ""
                 }
-
             </div>
         `;
     });
