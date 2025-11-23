@@ -14,8 +14,6 @@ let currentInfoWindow = null;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
-let activePanelMarker = null; // 패널이 어떤 마커에 붙어있는지
-
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -47,20 +45,12 @@ window.addEventListener("DOMContentLoaded", () => {
     kakao.maps.event.addListener(map, "click", () => {
         const panel = document.getElementById("side-panel");
         panel.style.display = "none";
-
-        // 🔥 PC 패널 닫으면 marker tracking 종료
-        activePanelMarker = null;
     });
 
     kakao.maps.event.addListener(map, "idle", () => {
         // PC에서 패널이 떠 있는 경우 → 지도 reload 방지
         const isPC = window.innerWidth >= 769;
         const panel = document.getElementById("side-panel");
-
-        if (isPC && panel.style.display === "block") {
-            updatePanelPosition();
-            return; // 🔥 reload 금지
-        }
 
         // 모바일 또는 패널이 닫혀 있을 때만 reload
         reloadListingsOnMapThrottled();
@@ -397,20 +387,6 @@ async function renderListingsOnMap() {
     allMarkers = Array.from(currentMap.values());
 }
 
-function updatePanelPosition() {
-    if (!activePanelMarker) return;
-
-    const panel = document.getElementById("side-panel");
-    const proj = map.getProjection();
-
-    // 마커 좌표 → 화면 좌표
-    const point = proj.containerPointFromCoords(activePanelMarker.getPosition());
-
-    // 40px 위로 띄우기
-    panel.style.left = point.x + "px";
-    panel.style.top = (point.y - 40) + "px";
-}
-
 // 지도 로딩 후 실행
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
@@ -530,7 +506,3 @@ function resetFilterSelections() {
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", resetFilterSelections);
-
-kakao.maps.event.addListener(map, "idle", () => {
-    updatePanelPosition();
-});
