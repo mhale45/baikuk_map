@@ -87,161 +87,119 @@
                 </button>
             </div> 
             <div class="flex flex-col gap-2">   
-
-                <!-- 🔥 필터 토글 버튼 -->
-                <button id="filter-toggle-btn"
+                <!-- 🔥 통합 필터 버튼 -->
+                <button id="filter-btn"
                     class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]
                         hover:bg-gray-200 transition duration-150">
-                    종류
+                    필터
                 </button>
 
-                <!-- 🔥 토글로 열렸다 닫히는 필터 박스 -->
-                <div id="filter-box"
-                    class="flex flex-col gap-1 text-sm border border-gray-300 rounded p-2 bg-white mt-2"
+                <!-- 🔥 통합 필터 박스 -->
+                <div id="filter-box-merged"
+                    class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
                     style="display:none;">
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="진행중" class="status-check" />
-                        진행중
-                    </label>
+                    <!-- ▼ 기존 '종류' 체크박스들 옮기기 -->
+                    <div class="flex flex-col gap-1">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="진행중" class="status-check" /> 진행중
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="보류" class="status-check" /> 보류
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
+                        </label>
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="보류" class="status-check" />
-                        보류
-                    </label>
+                        <label class="flex items-center gap-2 mt-2">
+                            <input type="checkbox" value="월세" class="dealtype-check" /> 월세
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="매매" class="dealtype-check" /> 매매
+                        </label>
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="계약완료" class="status-check" />
-                        계약완료
-                    </label>
+                        <label class="flex items-center gap-2 mt-2">
+                            <input type="checkbox" value="상가" class="category-check" /> 상가
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="공장" class="category-check" /> 공장·창고
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" value="주택" class="category-check" /> 주택
+                        </label>
+                    </div>
 
-                    <label class="flex items-center gap-2 mt-3">
-                        <input type="checkbox" value="월세" class="dealtype-check" />
-                        월세
-                    </label>
+                    <!-- ▼ 기존 '조건' 숫자 필터 전부 옮기기 -->
+                    <div class="flex flex-col gap-3">
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="매매" class="dealtype-check" />
-                        매매
-                    </label>
+                        <!-- 층 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">층</span>
+                            <input id="floor-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="floor-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
 
-                    <label class="flex items-center gap-2 mt-3">
-                        <input type="checkbox" value="상가" class="category-check" />
-                        상가
-                    </label>
+                        <!-- 전용면적 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">전용면적</span>
+                            <input id="area-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="area-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="빌딩" class="category-check" />
-                        빌딩
-                    </label>
+                        <!-- 보증금 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">보증금</span>
+                            <input id="deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="공장" class="category-check" />
-                        공장·창고
-                    </label>
+                        <!-- 월세 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">월세</span>
+                            <input id="rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" value="주택" class="category-check" />
-                        주택
-                    </label>
+                        <!-- 권리금 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">권리금</span>
+                            <input id="premium-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
 
+                        <!-- 매매가 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">매매가</span>
+                            <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
+
+                        <!-- 총보증금 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">총보증금</span>
+                            <input id="total-deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="total-deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
+
+                        <!-- 총월세 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">총월세</span>
+                            <input id="total-rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="total-rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
+
+                        <!-- 수익률 -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-20">수익률</span>
+                            <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                            <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+                        </div>
+
+                    </div>
                 </div>
-            </div>
-            <div class="flex flex-col gap-2">
-                <button id="condition-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[110px]
-                        hover:bg-gray-200 transition duration-150">
-                    조건
-                </button>
-
-                <!-- 🔥 조건 필터 박스 -->
-                <div id="condition-filter-box"
-                    class="flex flex-col gap-2 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-                    style="display:none;">
-
-                    <!-- 층 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">층</span>
-                        <input id="floor-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="floor-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 전용면적 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">전용면적</span>
-                        <input id="area-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="area-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 보증금 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">보증금</span>
-                        <input id="deposit-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="deposit-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 월세 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">월세</span>
-                        <input id="rent-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="rent-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 권리금 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">권리금</span>
-                        <input id="premium-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="premium-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 매매가 -->
-                    <div class="flex items-center gap-2 mt-3">
-                        <span class="w-20">매매가</span>
-                        <input id="sale-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="sale-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 총보증금 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">총보증금</span>
-                        <input id="total-deposit-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="total-deposit-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 총월세 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">총월세</span>
-                        <input id="total-rent-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="total-rent-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                    <!-- 수익률 -->
-                    <div class="flex items-center gap-2">
-                        <span class="w-20">수익률</span>
-                        <input id="roi-min" type="number" placeholder="이상"
-                            class="border p-1 rounded w-20" />
-                        <input id="roi-max" type="number" placeholder="이하"
-                            class="border p-1 rounded w-20" />
-                    </div>
-
-                </div>
-
             </div> 
         </div>       
             
