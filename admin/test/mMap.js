@@ -301,14 +301,73 @@ async function renderListingsOnMap() {
                     listings = applyAllFilters(listings);
                     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
-                    const panel = document.getElementById("side-panel");
+                    // =================================
+                    // 📌 PC — InfoWindow 사용 (끝)
+                    // =================================
+                    if (isPC) {
 
-                    // 내용은 기존 그대로
+                        // 기존 infoWindow 닫기
+                        if (desktopInfoWindow) {
+                            desktopInfoWindow.close();
+                        }
+
+                        const contentHTML = listings.length
+                            ? listings.map(i => {
+                                const status = i.transaction_status || "";
+                                const icon =
+                                    status.includes("완료") ? "🔹" :
+                                    status.includes("보류") ? "◆" :
+                                    "🔸";
+                                return `
+                                    <div style="padding:4px 0; font-size:13px;">
+                                        ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
+                                        <strong>${i.floor != null ? i.floor + "층" : "-"}</strong>
+                                        <strong>${formatNumber(i.deposit_price)}</strong> /
+                                        <strong>${formatNumber(i.monthly_rent)}</strong>
+                                        ${
+                                            (!i.premium_price || Number(i.premium_price) === 0)
+                                                ? "무권리"
+                                                : `권<strong>${formatNumber(i.premium_price)}</strong>`
+                                        }
+                                        <strong>${i.area_py != null ? Number(i.area_py).toFixed(1) : "-"}</strong>평
+                                    </div>
+                                `;
+                            }).join("")
+                            : "<div style='font-size:13px;'>조건에 맞는 매물이 없습니다.</div>";
+
+                        desktopInfoWindow = new kakao.maps.InfoWindow({
+                            position: marker.getPosition(),
+                            content: `
+                                <div style="
+                                    background:#fff;
+                                    padding:10px;
+                                    border:1px solid #ccc;
+                                    border-radius:8px;
+                                    max-height:250px;
+                                    overflow-y:auto;
+                                    font-size:13px;
+                                    white-space:nowrap;
+                                ">
+                                    ${contentHTML}
+                                </div>
+                            `
+                        });
+
+                        desktopInfoWindow.open(map, marker);
+                        return;
+                    }
+
+                    // =================================
+                    // 📌 모바일 — 기존 side-panel 그대로 유지
+                    // =================================
+                    const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
                         ? listings.map(i => {
                             const status = i.transaction_status || "";
-                            const icon = status.includes("완료") ? "🔹" :
-                                        status.includes("보류") ? "◆"  : "🔸";
+                            const icon =
+                                status.includes("완료") ? "🔹" :
+                                status.includes("보류") ? "◆" :
+                                "🔸";
                             return `
                                 <div style="margin-bottom:6px;">
                                     ${icon} <strong>${i.listing_id}</strong> ${i.listing_title || "-"}<br/>
@@ -316,7 +375,7 @@ async function renderListingsOnMap() {
                                     <strong>${formatNumber(i.deposit_price)}</strong> /
                                     <strong>${formatNumber(i.monthly_rent)}</strong>
                                     ${
-                                        (i.premium_price == null || Number(i.premium_price) === 0)
+                                        (!i.premium_price || Number(i.premium_price) === 0)
                                             ? "무권리"
                                             : `권<strong>${formatNumber(i.premium_price)}</strong>`
                                     }
@@ -325,34 +384,9 @@ async function renderListingsOnMap() {
                         }).join("")
                         : "<div>조건에 맞는 매물이 없습니다.</div>";
 
-                    panel.style.display = "block";
-
-
-                    // ============================
-                    // 📌 PC에서는 side-panel을 마커 위로 이동
-                    // ============================
-                    if (isPC) {
-                        // 🔥 클릭된 마커 저장 → 드래그/줌 시에도 패널이 따라오게 함
-                        activePanelMarker = marker;
-
-                        // 현재 위치 계산
-                        const markerPos = marker.getPosition();
-                        const proj = map.getProjection();
-                        const point = proj.containerPointFromCoords(markerPos);
-
-                        // 패널 화면 위치
-                        panel.style.left = point.x + "px";
-                        panel.style.top = (point.y - 40) + "px";
-                        panel.style.zIndex = "999999";
-
-                        return;
-                    }
-
-                    // ============================
-                    // 📌 모바일 - 기존 방식 그대로 유지
-                    // ============================
                     panel.style.left = "10px";
                     panel.style.top = "calc(var(--header-height) + 10px)";
+                    panel.style.display = "block";
                 });
 
             });
