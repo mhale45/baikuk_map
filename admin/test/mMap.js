@@ -296,9 +296,9 @@ function renderListingWithFloorSeparator(listings) {
                 </strong>
                 <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
                 <strong><span style="display:inline-block; min-width:30px; text-align:right;">${floor}층</span></strong> /
-                <span style="display:inline-block; min-width:40px;"><strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평</span> /
-                <strong><span style="color:blue; min-width:55px;">보 </span>${formatNumber(item.deposit_price)}</strong> /
-                <strong><span style="color:green; min-width:45px;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
+                <span style="display:inline-block; min-width:45px;"><strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평</span> /
+                <strong><span style="color:blue; min-width:60px;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+                <strong><span style="color:green; min-width:50px;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
                         ? `<strong><span style="color:red; min-width:55px;">무권리</span></strong>`
