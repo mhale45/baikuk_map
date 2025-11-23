@@ -853,7 +853,7 @@ function showToast(message) {
         toast = document.createElement("div");
         toast.id = "copy-toast";
         toast.style.position = "fixed";
-        toast.style.top = "5%";                // 🔥 위쪽
+        toast.style.top = "3%";                // 🔥 위쪽
         toast.style.left = "50%";               // 🔥 가로 중앙
         toast.style.transform = "translate(-50%, -50%)";
         toast.style.background = "rgba(0,0,0,0.75)";
@@ -873,4 +873,9 @@ function showToast(message) {
     setTimeout(() => {
         toast.style.opacity = "0";
     }, 3000);
+}
+
+function openListingNewTab(listingId) {
+    const url = `https://baikuk.com/item/view/${listingId}`;
+    window.open(url, "_blank");
 }
