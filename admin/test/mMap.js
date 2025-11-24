@@ -908,3 +908,13 @@ function openListingNewTab(listingId) {
     const url = `https://baikuk.com/item/view/${listingId}`;
     window.open(url, "_blank");
 }
+
+// 🔍 제목 검색 입력 시 자동 필터 적용
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("search-title-input");
+    if (!input) return;
+
+    input.addEventListener("input", () => {
+        onFilterChanged();  // 지도/마커 reload
+    });
+});
