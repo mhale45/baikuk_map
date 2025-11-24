@@ -13,7 +13,6 @@ let map;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
-let ignoreFiltersForNextPopup = false;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -406,15 +405,11 @@ async function renderListingsOnMap() {
             // 👉 해당 주소의 실제 매물들을 조회
             loadListingsByAddress(addr).then(listingsAtAddr => {
 
-                // 검색을 통해 연 매물일 경우 → 필터 무시하고 마커 생성
-                if (ignoreFiltersForNextPopup) {
-                    // 아무 필터 체크 안 하고 listingsAtAddr 그대로 사용
-                } else {
-                    listingsAtAddr = applyAllFilters(listingsAtAddr);
+                // 층 필터
+                listingsAtAddr = applyAllFilters(listingsAtAddr);
 
-                    // 필터링 후 매물이 없으면 마커 생성 X
-                    if (listingsAtAddr.length === 0) return;
-                }
+                // 👉 필터링 후 매물이 한 건도 없다면 이 주소는 마커를 만들지 않음!!
+                if (listingsAtAddr.length === 0) return;
 
                 // 👉 여기서 마커 생성
                 const marker = new kakao.maps.Marker({
@@ -428,24 +423,20 @@ async function renderListingsOnMap() {
                     marker: marker
                 });
 
-                // 👉 마커 클릭 이벤트
+                // 👉 마커 클릭 이벤트 (기존 그대로)
                 kakao.maps.event.addListener(marker, "click", async () => {
                     const isPC = window.innerWidth >= 769;
 
-                    let listings = await loadListingsByAddress(item.full_address);
-
-                    if (!ignoreFiltersForNextPopup) {
-                        listings = applyAllFilters(listings);
-                    }
-
-                    // 🔥 검색에서만 true가 되는데, 여기서는 항상 false로 만들어 다시 초기화
-                    ignoreFiltersForNextPopup = false;
+                    let listings = await loadListingsByAddress(addr);
+                    listings = applyAllFilters(listings);
+                    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
                     // =================================
-                    // 📌 PC — InfoWindow 사용
+                    // 📌 PC — InfoWindow 사용 (끝)
                     // =================================
                     if (isPC) {
 
+                        // 기존 infoWindow 닫기
                         if (desktopInfoWindow) {
                             desktopInfoWindow.close();
                         }
@@ -473,8 +464,9 @@ async function renderListingsOnMap() {
                         });
 
                         desktopInfoWindow.open(map, marker);
-
+                        // 🔥 InfoWindow 내부 클릭 이벤트 연결
                         setTimeout(() => {
+                            // 목록 클릭 → 상세페이지 이동
                             document.querySelectorAll('.listing-item').forEach(el => {
                                 el.addEventListener('click', (e) => {
                                     if (e.target.closest('.copy-listing-id')) return;
@@ -483,9 +475,11 @@ async function renderListingsOnMap() {
                                 });
                             });
 
+                            // 🔥 InfoWindow 내부의 복사 이벤트 바인딩
                             document.querySelectorAll('.copy-listing-id').forEach(span => {
                                 span.addEventListener('click', (e) => {
-                                    e.stopPropagation();
+                                    e.stopPropagation();   // 부모 이동 막기
+
                                     const id = span.dataset.id;
 
                                     navigator.clipboard.writeText(id)
@@ -502,7 +496,7 @@ async function renderListingsOnMap() {
                     }
 
                     // =================================
-                    // 📌 모바일 — side-panel
+                    // 📌 모바일 — 기존 side-panel 그대로 유지
                     // =================================
                     const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
@@ -513,7 +507,9 @@ async function renderListingsOnMap() {
                     panel.style.top = "calc(var(--header-height) + 10px)";
                     panel.style.display = "block";
 
+                    // 🔥 모바일에서도 클릭 이벤트 바인딩
                     setTimeout(() => {
+                        // 매물 클릭 → 상세페이지 이동
                         document.querySelectorAll('#side-panel .listing-item').forEach(el => {
                             el.addEventListener('click', (e) => {
                                 if (e.target.closest('.copy-listing-id')) return;
@@ -522,6 +518,7 @@ async function renderListingsOnMap() {
                             });
                         });
 
+                        // 매물번호 클릭 → 복사
                         document.querySelectorAll('#side-panel .copy-listing-id').forEach(span => {
                             span.addEventListener('click', (e) => {
                                 e.stopPropagation();
@@ -533,6 +530,7 @@ async function renderListingsOnMap() {
                             });
                         });
                     }, 50);
+
                 });
 
             });
@@ -998,15 +996,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// 🔥 검색결과 리스트 클릭 → URL 이동이 아니라 지도 이동하도록 설정
 document.getElementById("search-result-box").addEventListener("click", async (e) => {
     const item = e.target.closest(".listing-item");
     if (!item) return;
 
+    // 복사 버튼 클릭은 제외
+    if (e.target.closest(".copy-listing-id")) return;
+
     const listingId = item.dataset.id;
-
-    // 🔥 검색 클릭 → 필터 무시 모드 활성화
-    ignoreFiltersForNextPopup = true;
-
     await moveMapToListing(listingId);
 });
 
@@ -1047,14 +1045,7 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
-
-    if (!ignoreFiltersForNextPopup) {
-        listings = applyAllFilters(listings);
-    }
-
-    // 🔥 한 번만 적용되도록 다시 false
-    ignoreFiltersForNextPopup = false;
-
+    listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
     // ===========================
