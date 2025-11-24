@@ -21,14 +21,18 @@
         }
 
         #map {
-            position: fixed;
+            position: relative;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
             z-index: 1;
         }
-
+        #search-result-box { z-index: 2000 !important; }
+        #filter-box-merged { z-index: 3000 !important; }
+        #customer-panel { z-index: 3000 !important; position: fixed !important; }
+        #zoom-notice { z-index: 4000 !important; }
+        
         header {
             position: fixed;
             top: 0;
