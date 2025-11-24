@@ -13,6 +13,8 @@ let map;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
+let pendingMarkerClick = null;
+
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -527,6 +529,27 @@ async function renderListingsOnMap() {
 
     // 업데이트된 마커 목록 저장
     allMarkers = Array.from(currentMap.values());
+
+    // ==========================================
+    // 🔥 pendingMarkerClick이 있으면 마커 클릭 실행
+    // ==========================================
+    if (pendingMarkerClick) {
+        const { lat, lng } = pendingMarkerClick;
+
+        const markerObj = allMarkers.find(m => {
+            if (!m.marker) return false;
+            const pos = m.marker.getPosition();
+            return (
+                Math.abs(pos.getLat() - lat) < 0.000001 &&
+                Math.abs(pos.getLng() - lng) < 0.000001
+            );
+        });
+
+        if (markerObj && markerObj.marker) {
+            kakao.maps.event.trigger(markerObj.marker, 'click');
+            pendingMarkerClick = null; // 실행 후 초기화
+        }
+    }
 }
 
 // 지도 로딩 후 실행
@@ -1009,47 +1032,22 @@ async function getLatLngByListingId(listingId) {
     }
     return data;
 }
+
 async function moveMapToListing(listingId) {
     const data = await getLatLngByListingId(listingId);
     if (!data) return;
 
     const { lat, lng } = data;
-    const moveLatLng = new kakao.maps.LatLng(lat, lng);
+    const targetLatLng = new kakao.maps.LatLng(lat, lng);
 
-    // 지도 이동
-    map.panTo(moveLatLng);
+    // 지도 이동 + 레벨 조정
+    map.panTo(targetLatLng);
     map.setLevel(2);
 
     // 검색창 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-    // ======================
-    // 🔥 마커 찾기 (좌표기반)
-    // ======================
-    let attempts = 0;
-    const interval = setInterval(() => {
-        attempts++;
-
-        const markerObj = allMarkers.find(m => {
-            if (!m.marker) return false;
-            const pos = m.marker.getPosition();
-            return (
-                Math.abs(pos.getLat() - lat) < 0.000001 &&
-                Math.abs(pos.getLng() - lng) < 0.000001
-            );
-        });
-
-        if (markerObj && markerObj.marker) {
-            clearInterval(interval);
-            kakao.maps.event.trigger(markerObj.marker, 'click');
-            return;
-        }
-
-        if (attempts > 8) {
-            clearInterval(interval);
-            console.warn("❗ 좌표로도 해당 마커를 찾지 못했습니다.");
-        }
-
-    }, 100);
+    // 📌 마커를 나중에 클릭할 수 있도록 좌표만 저장
+    pendingMarkerClick = { lat, lng };
 }
