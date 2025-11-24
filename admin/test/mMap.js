@@ -1081,7 +1081,10 @@ async function moveMapToListing(listingId) {
     if (box) box.style.display = "none";
 
     // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
-    openListingPopupByAddress(full_address, lat, lng);
+    // 🔥 지도 안정화 후 InfoWindow/side-panel 실행
+    setTimeout(() => {
+        openListingPopupByAddress(full_address, lat, lng);
+    }, 120);
 }
 
 async function openListingPopupByAddress(fullAddress, lat, lng) {
