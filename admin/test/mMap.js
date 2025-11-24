@@ -406,11 +406,15 @@ async function renderListingsOnMap() {
             // 👉 해당 주소의 실제 매물들을 조회
             loadListingsByAddress(addr).then(listingsAtAddr => {
 
-                // 층 필터
-                listingsAtAddr = applyAllFilters(listingsAtAddr);
+                // 검색을 통해 연 매물일 경우 → 필터 무시하고 마커 생성
+                if (ignoreFiltersForNextPopup) {
+                    // 아무 필터 체크 안 하고 listingsAtAddr 그대로 사용
+                } else {
+                    listingsAtAddr = applyAllFilters(listingsAtAddr);
 
-                // 👉 필터링 후 매물이 한 건도 없다면 이 주소는 마커를 만들지 않음!!
-                if (listingsAtAddr.length === 0) return;
+                    // 필터링 후 매물이 없으면 마커 생성 X
+                    if (listingsAtAddr.length === 0) return;
+                }
 
                 // 👉 여기서 마커 생성
                 const marker = new kakao.maps.Marker({
