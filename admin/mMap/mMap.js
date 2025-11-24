@@ -90,7 +90,10 @@ window.addEventListener("DOMContentLoaded", () => {
 async function searchListingsByTitle(keyword) {
     if (!keyword) return [];
 
-    const { data, error } = await window.supabase
+    // 숫자 여부 판단
+    const isNumber = !isNaN(Number(keyword));
+
+    let query = window.supabase
         .from("baikukdbtest")
         .select(`
             listing_id,
@@ -102,11 +105,20 @@ async function searchListingsByTitle(keyword) {
             floor,
             transaction_status
         `)
-        .ilike("listing_title", `%${keyword}%`)
         .limit(50);
 
+    if (isNumber) {
+        // 🔥 숫자이면 listing_id 검색 + title 검색 모두 포함
+        query = query.or(`listing_id.eq.${keyword},listing_title.ilike.%${keyword}%`);
+    } else {
+        // 🔥 글자이면 제목 검색만
+        query = query.ilike("listing_title", `%${keyword}%`);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
-        console.error("❌ 제목 검색 오류:", error);
+        console.error("❌ 확장 검색 오류:", error);
         return [];
     }
     return data;

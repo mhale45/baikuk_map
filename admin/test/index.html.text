@@ -286,7 +286,7 @@
         <input
             id="search-title-input"
             type="text"
-            placeholder="제목 검색"
+            placeholder="검색"
             style="
                 width: 350px;
                 padding: 5px 8px;
