@@ -917,7 +917,7 @@ async function loadCustomerFilter(customerId) {
     // -----------------------------------------
     // 4) 🔥 모든 필터 설정 후 지도에 적용
     // -----------------------------------------
-    setTimeout(() => onFilterChanged(), 80);
+    onFilterChanged();
 }
 
 // =====================================================================================
@@ -1011,14 +1011,7 @@ document.getElementById("search-result-box").addEventListener("click", async (e)
 async function getLatLngByListingId(listingId) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select(`
-            lat,
-            lng,
-            full_address,
-            transaction_status,
-            deal_type,
-            category
-        `)
+        .select("lat, lng, full_address")
         .eq("listing_id", listingId)
         .maybeSingle();
 
@@ -1034,57 +1027,18 @@ async function moveMapToListing(listingId) {
     if (!data) return;
 
     const { lat, lng, full_address } = data;
-
-    // 🔥 [자동 필터 활성화] — 클릭한 매물이 필터에서 제외되어 있었다면 해당 필터 자동 체크
-    (function autoEnableFilters() {
-        const status = data.transaction_status || "";
-        const deal = data.deal_type || "";
-        const category = data.category || "";
-
-        // 상태 체크박스
-        document.querySelectorAll(".status-check").forEach(cb => {
-            if (status.includes(cb.value)) cb.checked = true;
-        });
-
-        // 거래유형 체크박스
-        document.querySelectorAll(".dealtype-check").forEach(cb => {
-            if (deal.includes(cb.value)) cb.checked = true;
-        });
-
-        // 카테고리 체크박스
-        document.querySelectorAll(".category-check").forEach(cb => {
-            if (category.includes(cb.value)) cb.checked = true;
-        });
-
-        // 🔥 필터 적용
-        setTimeout(() => onFilterChanged(), 80);
-    })();
-
     const pos = new kakao.maps.LatLng(lat, lng);
 
     // 지도 이동 + 레벨 2 고정
     map.panTo(pos);
     map.setLevel(2);
 
-    // 🔥 Kakao Map 타일 깨짐 방지
-    setTimeout(() => {
-        try {
-            map.relayout();
-            map.setCenter(pos);
-        } catch(e) {
-            console.error("relayout 오류:", e);
-        }
-    }, 150);
-
     // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
     // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
-    // 🔥 지도 안정화 후 InfoWindow/side-panel 실행
-    setTimeout(() => {
-        openListingPopupByAddress(full_address, lat, lng);
-    }, 120);
+    openListingPopupByAddress(full_address, lat, lng);
 }
 
 async function openListingPopupByAddress(fullAddress, lat, lng) {
@@ -1125,9 +1079,6 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
             `
         });
         desktopInfoWindow.open(map);
-
-        // 🔥 InfoWindow 로 인한 지도 크기 재계산 문제 해결
-        setTimeout(() => map.relayout(), 100);
 
         // 내부 클릭 이벤트 적용
         setTimeout(() => {
