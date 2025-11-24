@@ -429,10 +429,12 @@ async function renderListingsOnMap() {
 
                     let listings = await loadListingsByAddress(fullAddress);
 
-                    // 🔥 검색으로 직접 선택한 경우에는 필터를 적용하지 않는다!
-                    // listings = applyAllFilters(listings);  ← 삭제
+                    if (!ignoreFiltersForNextPopup) {
+                        listings = applyAllFilters(listings);
+                    }
 
-                    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
+                    // 🔥 한 번만 적용되도록 다시 false
+                    ignoreFiltersForNextPopup = false;
 
                     // =================================
                     // 📌 PC — InfoWindow 사용 (끝)
@@ -999,15 +1001,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// 🔥 검색결과 리스트 클릭 → URL 이동이 아니라 지도 이동하도록 설정
 document.getElementById("search-result-box").addEventListener("click", async (e) => {
     const item = e.target.closest(".listing-item");
     if (!item) return;
 
-    // 복사 버튼 클릭은 제외
-    if (e.target.closest(".copy-listing-id")) return;
-
     const listingId = item.dataset.id;
+
+    // 🔥 검색 클릭 → 필터 무시 모드 활성화
+    ignoreFiltersForNextPopup = true;
+
     await moveMapToListing(listingId);
 });
 
@@ -1049,8 +1051,12 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
 
     let listings = await loadListingsByAddress(fullAddress);
 
-    // 🔥 검색으로 직접 선택한 경우에는 필터를 적용하지 않는다!
-    // listings = applyAllFilters(listings);  ← 삭제
+    if (!ignoreFiltersForNextPopup) {
+        listings = applyAllFilters(listings);
+    }
+
+    // 🔥 한 번만 적용되도록 다시 false
+    ignoreFiltersForNextPopup = false;
 
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
