@@ -427,8 +427,11 @@ async function renderListingsOnMap() {
                 kakao.maps.event.addListener(marker, "click", async () => {
                     const isPC = window.innerWidth >= 769;
 
-                    let listings = await loadListingsByAddress(addr);
-                    listings = applyAllFilters(listings);
+                    let listings = await loadListingsByAddress(fullAddress);
+
+                    // 🔥 검색으로 직접 선택한 경우에는 필터를 적용하지 않는다!
+                    // listings = applyAllFilters(listings);  ← 삭제
+
                     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
                     // =================================
@@ -1045,7 +1048,10 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
-    listings = applyAllFilters(listings);
+
+    // 🔥 검색으로 직접 선택한 경우에는 필터를 적용하지 않는다!
+    // listings = applyAllFilters(listings);  ← 삭제
+
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
     // ===========================
