@@ -1015,9 +1015,15 @@ async function moveMapToListing(listingId) {
     if (!pos) return;
 
     const moveLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+
+    // 지도 이동
     map.panTo(moveLatLng);
 
-    // 검색박스 닫기
+    // 지도 레벨 3으로 고정
+    map.setLevel(3);
+
+    // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 }
+
