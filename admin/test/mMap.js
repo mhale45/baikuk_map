@@ -1031,11 +1031,22 @@ async function moveMapToListing(listingId) {
     // ===========================
     // 🔥 해당 마커 자동으로 열기
     // ===========================
-    const markerObj = allMarkers.find(m => m.full_address === full_address);
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
 
-    if (markerObj && markerObj.marker) {
-        kakao.maps.event.trigger(markerObj.marker, 'click');
-    } else {
-        console.warn("❗ 해당 주소의 마커를 찾을 수 없음:", full_address);
-    }
+        const markerObj = allMarkers.find(m => m.full_address === full_address);
+
+        if (markerObj && markerObj.marker) {
+            clearInterval(interval);
+            kakao.maps.event.trigger(markerObj.marker, 'click');
+            return;
+        }
+
+        if (attempts > 8) {  // 8 * 100ms = 최대 0.8초 대기
+            clearInterval(interval);
+            console.warn("❗ 마커를 찾지 못했습니다:", full_address);
+        }
+    }, 100);
+
 }
