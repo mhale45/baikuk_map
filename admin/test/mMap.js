@@ -1134,3 +1134,31 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
         });
     }, 50);
 }
+
+// =======================================
+// 🔥 검색창 포커스 시 z-index 최상단 / 포커스 해제 시 후순위 이동
+// =======================================
+document.addEventListener("DOMContentLoaded", () => {
+    const searchBox = document.getElementById("map-search-box");
+    const searchInput = document.getElementById("search-title-input");
+    const resultBox = document.getElementById("search-result-box");
+
+    if (!searchBox || !searchInput || !resultBox) return;
+
+    // ✔ 검색창 포커스 → 최상단
+    searchInput.addEventListener("focus", () => {
+        searchBox.style.zIndex = "20000";
+        resultBox.style.zIndex = "20000";
+    });
+
+    // ✔ 포커스 빠짐 → InfoWindow 뒤로 (하지만 완전 가려지지는 않음)
+    searchInput.addEventListener("blur", () => {
+        // 검색결과창이 열려있다면 z-index 유지 (UX)
+        const isOpen = resultBox.style.display !== "none";
+
+        if (!isOpen) {
+            searchBox.style.zIndex = "5000";
+            resultBox.style.zIndex = "5000";
+        }
+    });
+});
