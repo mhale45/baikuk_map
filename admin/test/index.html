@@ -270,6 +270,33 @@
         ">
     </div>
         
+    <!-- 🔍 제목 검색창 (지도 오른쪽 상단 고정) -->
+    <div id="map-search-box"
+        style="
+            position: fixed;
+            top: calc(var(--header-height) + 10px);
+            right: 20px;
+            z-index: 12000;
+            background: white;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+        ">
+        <input
+            id="search-title-input"
+            type="text"
+            placeholder="제목 검색"
+            style="
+                width: 160px;
+                padding: 5px 8px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
+            "
+        />
+    </div>
+
     <!-- 지도 -->
     <div id="map"></div>
 

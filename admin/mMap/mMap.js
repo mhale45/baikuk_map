@@ -31,19 +31,6 @@ window.addEventListener("DOMContentLoaded", () => {
         disableClickZoom: false
     });
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                map.setCenter(new kakao.maps.LatLng(lat, lng));
-            },
-            (err) => {
-                console.log("위치 정보를 가져올 수 없음", err);
-            }
-        );
-    }
-
     kakao.maps.event.addListener(map, "click", () => {
         const panel = document.getElementById("side-panel");
         panel.style.display = "none";
@@ -301,8 +288,8 @@ function renderListingWithFloorSeparator(listings) {
                 <strong><span style="color:green; min-width:60px; text-align:right;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
                 ${
                     (!item.premium_price || Number(item.premium_price) === 0)
-                        ? `<strong><span style="color:red; min-width:75px; text-align:right;">무권리</span></strong> /`
-                        : `<span style="min-width:75px; text-align:right;"><strong><span style="color:red;">권 </span></strong> <strong>${formatNumber(item.premium_price)}</strong></span> /`
+                        ? `<strong><span style="color:red; min-width:85px; text-align:right;">무권리</span></strong> /`
+                        : `<span style="min-width:85px; text-align:right;"><strong><span style="color:red;">권 </span></strong> <strong>${formatNumber(item.premium_price)}</strong></span> /`
                 }
                 ${
                     item.rent_per_py
