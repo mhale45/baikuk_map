@@ -13,6 +13,7 @@ let map;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
+let ignoreFiltersForNextPopup = false;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -423,25 +424,25 @@ async function renderListingsOnMap() {
                     marker: marker
                 });
 
-                // 👉 마커 클릭 이벤트 (기존 그대로)
+                // 👉 마커 클릭 이벤트
                 kakao.maps.event.addListener(marker, "click", async () => {
                     const isPC = window.innerWidth >= 769;
 
-                    let listings = await loadListingsByAddress(fullAddress);
+                    // ❗ addr(해당 주소)를 사용해야 함
+                    let listings = await loadListingsByAddress(addr);
 
                     if (!ignoreFiltersForNextPopup) {
                         listings = applyAllFilters(listings);
                     }
 
-                    // 🔥 한 번만 적용되도록 다시 false
+                    // 🔥 검색에서만 true가 되는데, 여기서는 항상 false로 만들어 다시 초기화
                     ignoreFiltersForNextPopup = false;
 
                     // =================================
-                    // 📌 PC — InfoWindow 사용 (끝)
+                    // 📌 PC — InfoWindow 사용
                     // =================================
                     if (isPC) {
 
-                        // 기존 infoWindow 닫기
                         if (desktopInfoWindow) {
                             desktopInfoWindow.close();
                         }
@@ -469,9 +470,8 @@ async function renderListingsOnMap() {
                         });
 
                         desktopInfoWindow.open(map, marker);
-                        // 🔥 InfoWindow 내부 클릭 이벤트 연결
+
                         setTimeout(() => {
-                            // 목록 클릭 → 상세페이지 이동
                             document.querySelectorAll('.listing-item').forEach(el => {
                                 el.addEventListener('click', (e) => {
                                     if (e.target.closest('.copy-listing-id')) return;
@@ -480,11 +480,9 @@ async function renderListingsOnMap() {
                                 });
                             });
 
-                            // 🔥 InfoWindow 내부의 복사 이벤트 바인딩
                             document.querySelectorAll('.copy-listing-id').forEach(span => {
                                 span.addEventListener('click', (e) => {
-                                    e.stopPropagation();   // 부모 이동 막기
-
+                                    e.stopPropagation();
                                     const id = span.dataset.id;
 
                                     navigator.clipboard.writeText(id)
@@ -501,7 +499,7 @@ async function renderListingsOnMap() {
                     }
 
                     // =================================
-                    // 📌 모바일 — 기존 side-panel 그대로 유지
+                    // 📌 모바일 — side-panel
                     // =================================
                     const panel = document.getElementById("side-panel");
                     panel.innerHTML = listings.length
@@ -512,9 +510,7 @@ async function renderListingsOnMap() {
                     panel.style.top = "calc(var(--header-height) + 10px)";
                     panel.style.display = "block";
 
-                    // 🔥 모바일에서도 클릭 이벤트 바인딩
                     setTimeout(() => {
-                        // 매물 클릭 → 상세페이지 이동
                         document.querySelectorAll('#side-panel .listing-item').forEach(el => {
                             el.addEventListener('click', (e) => {
                                 if (e.target.closest('.copy-listing-id')) return;
@@ -523,7 +519,6 @@ async function renderListingsOnMap() {
                             });
                         });
 
-                        // 매물번호 클릭 → 복사
                         document.querySelectorAll('#side-panel .copy-listing-id').forEach(span => {
                             span.addEventListener('click', (e) => {
                                 e.stopPropagation();
@@ -535,7 +530,6 @@ async function renderListingsOnMap() {
                             });
                         });
                     }, 50);
-
                 });
 
             });
