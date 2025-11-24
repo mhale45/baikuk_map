@@ -999,7 +999,7 @@ document.getElementById("search-result-box").addEventListener("click", async (e)
 async function getLatLngByListingId(listingId) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select("lat, lng")
+        .select("lat, lng, full_address")
         .eq("listing_id", listingId)
         .maybeSingle();
 
@@ -1011,19 +1011,31 @@ async function getLatLngByListingId(listingId) {
 }
 
 async function moveMapToListing(listingId) {
-    const pos = await getLatLngByListingId(listingId);
-    if (!pos) return;
+    const data = await getLatLngByListingId(listingId);
+    if (!data) return;
 
-    const moveLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+    const { lat, lng, full_address } = data;
+    const moveLatLng = new kakao.maps.LatLng(lat, lng);
 
-    // 지도 이동
+    // 🗺️ 지도 이동
     map.panTo(moveLatLng);
 
-    // 지도 레벨 3으로 고정
-    map.setLevel(2);
+    // 🔍 지도 레벨 3으로 고정
+    map.setLevel(3);
 
-    // 검색결과 박스 닫기
+    // 검색 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
-}
 
+
+    // ===========================
+    // 🔥 해당 마커 자동으로 열기
+    // ===========================
+    const markerObj = allMarkers.find(m => m.full_address === full_address);
+
+    if (markerObj && markerObj.marker) {
+        kakao.maps.event.trigger(markerObj.marker, 'click');
+    } else {
+        console.warn("❗ 해당 주소의 마커를 찾을 수 없음:", full_address);
+    }
+}
