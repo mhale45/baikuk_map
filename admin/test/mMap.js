@@ -431,6 +431,11 @@ async function renderListingsOnMap() {
                     listings = applyAllFilters(listings);
                     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
+                    // 🔥 필터에 맞는 매물이 없으면 지도만 이동시키고 팝업은 열지 않음
+                    if (listings.length === 0) {
+                        return;
+                    }
+                    
                     // =================================
                     // 📌 PC — InfoWindow 사용 (끝)
                     // =================================
@@ -1047,6 +1052,11 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     let listings = await loadListingsByAddress(fullAddress);
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
+
+    // 🔥 필터에 맞는 매물이 없으면 지도만 이동시키고 팝업은 열지 않음
+    if (listings.length === 0) {
+        return;
+    }
 
     // ===========================
     // PC : InfoWindow 방식
