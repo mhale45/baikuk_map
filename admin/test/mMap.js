@@ -13,8 +13,6 @@ let map;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
-let pendingMarkerClick = null;
-
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -529,27 +527,6 @@ async function renderListingsOnMap() {
 
     // 업데이트된 마커 목록 저장
     allMarkers = Array.from(currentMap.values());
-
-    // ==========================================
-    // 🔥 pendingMarkerClick이 있으면 마커 클릭 실행
-    // ==========================================
-    if (pendingMarkerClick) {
-        const { lat, lng } = pendingMarkerClick;
-
-        const markerObj = allMarkers.find(m => {
-            if (!m.marker) return false;
-            const pos = m.marker.getPosition();
-            return (
-                Math.abs(pos.getLat() - lat) < 0.000001 &&
-                Math.abs(pos.getLng() - lng) < 0.000001
-            );
-        });
-
-        if (markerObj && markerObj.marker) {
-            kakao.maps.event.trigger(markerObj.marker, 'click');
-            pendingMarkerClick = null; // 실행 후 초기화
-        }
-    }
 }
 
 // 지도 로딩 후 실행
@@ -1034,20 +1011,19 @@ async function getLatLngByListingId(listingId) {
 }
 
 async function moveMapToListing(listingId) {
-    const data = await getLatLngByListingId(listingId);
-    if (!data) return;
+    const pos = await getLatLngByListingId(listingId);
+    if (!pos) return;
 
-    const { lat, lng } = data;
-    const targetLatLng = new kakao.maps.LatLng(lat, lng);
+    const moveLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
 
-    // 지도 이동 + 레벨 조정
-    map.panTo(targetLatLng);
+    // 지도 이동
+    map.panTo(moveLatLng);
+
+    // 지도 레벨 2으로 고정
     map.setLevel(2);
 
-    // 검색창 닫기
+    // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
-
-    // 📌 마커를 나중에 클릭할 수 있도록 좌표만 저장
-    pendingMarkerClick = { lat, lng };
 }
+
