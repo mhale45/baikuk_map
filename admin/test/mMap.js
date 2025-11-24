@@ -1046,8 +1046,11 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
             ? renderListingWithFloorSeparator(listings)
             : "<div style='font-size:13px;'>조건에 맞는 매물이 없습니다.</div>";
 
+        // lat 을 조금 올려서 InfoWindow 를 위로 이동시키는 방식
+        const offsetLat = lat + 0.00018;
+
         desktopInfoWindow = new kakao.maps.InfoWindow({
-            position: new kakao.maps.LatLng(lat, lng),
+            position: new kakao.maps.LatLng(offsetLat, lng),
             content: `
                 <div style="
                     background:#fff;
@@ -1061,10 +1064,8 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
                 ">
                     ${contentHTML}
                 </div>
-            `,
-            pixelOffset: new kakao.maps.Point(0, -50)
+            `
         });
-
         desktopInfoWindow.open(map);
 
         // 내부 클릭 이벤트 적용
