@@ -1009,33 +1009,36 @@ async function getLatLngByListingId(listingId) {
     }
     return data;
 }
-
 async function moveMapToListing(listingId) {
     const data = await getLatLngByListingId(listingId);
     if (!data) return;
 
-    const { lat, lng, full_address } = data;
+    const { lat, lng } = data;
     const moveLatLng = new kakao.maps.LatLng(lat, lng);
 
-    // 🗺️ 지도 이동
+    // 지도 이동
     map.panTo(moveLatLng);
+    map.setLevel(3);
 
-    // 🔍 지도 레벨 2으로 고정
-    map.setLevel(2);
-
-    // 검색 박스 닫기
+    // 검색창 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-
-    // ===========================
-    // 🔥 해당 마커 자동으로 열기
-    // ===========================
+    // ======================
+    // 🔥 마커 찾기 (좌표기반)
+    // ======================
     let attempts = 0;
     const interval = setInterval(() => {
         attempts++;
 
-        const markerObj = allMarkers.find(m => m.full_address === full_address);
+        const markerObj = allMarkers.find(m => {
+            if (!m.marker) return false;
+            const pos = m.marker.getPosition();
+            return (
+                Math.abs(pos.getLat() - lat) < 0.000001 &&
+                Math.abs(pos.getLng() - lng) < 0.000001
+            );
+        });
 
         if (markerObj && markerObj.marker) {
             clearInterval(interval);
@@ -1043,10 +1046,10 @@ async function moveMapToListing(listingId) {
             return;
         }
 
-        if (attempts > 8) {  // 8 * 100ms = 최대 0.8초 대기
+        if (attempts > 8) {
             clearInterval(interval);
-            console.warn("❗ 마커를 찾지 못했습니다:", full_address);
+            console.warn("❗ 좌표로도 해당 마커를 찾지 못했습니다.");
         }
-    }, 100);
 
+    }, 100);
 }
