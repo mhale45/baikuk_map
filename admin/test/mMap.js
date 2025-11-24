@@ -1018,7 +1018,7 @@ async function moveMapToListing(listingId) {
 
     // 지도 이동
     map.panTo(moveLatLng);
-    map.setLevel(3);
+    map.setLevel(2);
 
     // 검색창 닫기
     const box = document.getElementById("search-result-box");
