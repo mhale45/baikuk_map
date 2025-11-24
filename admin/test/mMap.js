@@ -983,3 +983,41 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 200);
     });
 });
+
+// 🔥 검색결과 리스트 클릭 → URL 이동이 아니라 지도 이동하도록 설정
+document.getElementById("search-result-box").addEventListener("click", async (e) => {
+    const item = e.target.closest(".listing-item");
+    if (!item) return;
+
+    // 복사 버튼 클릭은 제외
+    if (e.target.closest(".copy-listing-id")) return;
+
+    const listingId = item.dataset.id;
+    await moveMapToListing(listingId);
+});
+
+async function getLatLngByListingId(listingId) {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select("lat, lng")
+        .eq("listing_id", listingId)
+        .maybeSingle();
+
+    if (error || !data) {
+        console.error("❌ 좌표 조회 실패:", error);
+        return null;
+    }
+    return data;
+}
+
+async function moveMapToListing(listingId) {
+    const pos = await getLatLngByListingId(listingId);
+    if (!pos) return;
+
+    const moveLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+    map.panTo(moveLatLng);
+
+    // 검색박스 닫기
+    const box = document.getElementById("search-result-box");
+    if (box) box.style.display = "none";
+}
