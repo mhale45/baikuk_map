@@ -985,36 +985,3 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 200);
     });
 });
-
-document.addEventListener("click", (e) => {
-    const item = e.target.closest(".search-item");
-    if (!item) return;
-
-    const id = item.dataset.id;
-    const url = `https://baikuk.com/item/view/${id}`;
-    window.open(url, "_blank");
-});
-
-// 검색 결과 내부 클릭 → 상세페이지 이동
-setTimeout(() => {
-    document.querySelectorAll('.listing-item').forEach(el => {
-        el.addEventListener('click', (e) => {
-            if (e.target.closest('.copy-listing-id')) return;
-            const id = el.dataset.id;
-            openListingNewTab(id);
-        });
-    });
-
-    // 복사 기능도 동일
-    document.querySelectorAll('.copy-listing-id').forEach(span => {
-        span.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = span.dataset.id;
-
-            navigator.clipboard.writeText(id)
-                .then(() => {
-                    showToast(`${id} 복사완료`);
-                });
-        });
-    });
-}, 50);

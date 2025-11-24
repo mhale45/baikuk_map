@@ -87,6 +87,56 @@ window.addEventListener("DOMContentLoaded", () => {
 
 });
 
+async function searchListingsByTitle(keyword) {
+    if (!keyword) return [];
+
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select(`
+            listing_id,
+            listing_title,
+            deposit_price,
+            monthly_rent,
+            premium_price,
+            area_py,
+            floor,
+            transaction_status
+        `)
+        .ilike("listing_title", `%${keyword}%`)
+        .limit(50);
+
+    if (error) {
+        console.error("❌ 제목 검색 오류:", error);
+        return [];
+    }
+    return data;
+}
+
+function renderSearchResults(list) {
+    const box = document.getElementById("search-result-box");
+    if (!box) return;
+
+    if (!list.length) {
+        box.innerHTML = "<div style='padding:6px;'>검색 결과가 없습니다.</div>";
+        box.style.display = "block";
+        return;
+    }
+
+    // 기존 마커 클릭 시 UI와 동일한 양식 적용
+    box.innerHTML = `
+        <div style="
+            padding:10px;
+            max-height:280px;
+            overflow-y:auto;
+            font-size:14px;
+        ">
+            ${renderListingWithFloorSeparator(list)}
+        </div>
+    `;
+
+    box.style.display = "block";
+}
+
 function clearAllMarkers() {
     allMarkers.forEach(m => {
         if (m.marker) m.marker.setMap(null);
@@ -908,3 +958,30 @@ function openListingNewTab(listingId) {
     const url = `https://baikuk.com/item/view/${listingId}`;
     window.open(url, "_blank");
 }
+
+// 검색기능 관련 함수
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("search-title-input");
+    const resultBox = document.getElementById("search-result-box");
+
+    if (!input || !resultBox) return;
+
+    let typingTimer = null;
+
+    input.addEventListener("input", () => {
+        const keyword = input.value.trim();
+
+        if (!keyword) {
+            resultBox.style.display = "none";
+            return;
+        }
+
+        // 입력 디바운싱 (검색 과부하 방지)
+        if (typingTimer) clearTimeout(typingTimer);
+
+        typingTimer = setTimeout(async () => {
+            const list = await searchListingsByTitle(keyword);
+            renderSearchResults(list);
+        }, 200);
+    });
+});
