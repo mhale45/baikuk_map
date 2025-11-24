@@ -917,7 +917,7 @@ async function loadCustomerFilter(customerId) {
     // -----------------------------------------
     // 4) 🔥 모든 필터 설정 후 지도에 적용
     // -----------------------------------------
-    onFilterChanged();
+    setTimeout(() => onFilterChanged(), 80);
 }
 
 // =====================================================================================
@@ -1034,7 +1034,7 @@ async function moveMapToListing(listingId) {
     if (!data) return;
 
     const { lat, lng, full_address } = data;
-    
+
     // 🔥 [자동 필터 활성화] — 클릭한 매물이 필터에서 제외되어 있었다면 해당 필터 자동 체크
     (function autoEnableFilters() {
         const status = data.transaction_status || "";
@@ -1057,7 +1057,7 @@ async function moveMapToListing(listingId) {
         });
 
         // 🔥 필터 적용
-        onFilterChanged();
+        setTimeout(() => onFilterChanged(), 80);
     })();
 
     const pos = new kakao.maps.LatLng(lat, lng);
@@ -1065,6 +1065,16 @@ async function moveMapToListing(listingId) {
     // 지도 이동 + 레벨 2 고정
     map.panTo(pos);
     map.setLevel(2);
+
+    // 🔥 Kakao Map 타일 깨짐 방지
+    setTimeout(() => {
+        try {
+            map.relayout();
+            map.setCenter(pos);
+        } catch(e) {
+            console.error("relayout 오류:", e);
+        }
+    }, 150);
 
     // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
@@ -1112,6 +1122,9 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
             `
         });
         desktopInfoWindow.open(map);
+
+        // 🔥 InfoWindow 로 인한 지도 크기 재계산 문제 해결
+        setTimeout(() => map.relayout(), 100);
 
         // 내부 클릭 이벤트 적용
         setTimeout(() => {
