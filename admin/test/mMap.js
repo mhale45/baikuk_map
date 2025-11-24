@@ -1020,8 +1020,8 @@ async function moveMapToListing(listingId) {
     // 🗺️ 지도 이동
     map.panTo(moveLatLng);
 
-    // 🔍 지도 레벨 3으로 고정
-    map.setLevel(3);
+    // 🔍 지도 레벨 2으로 고정
+    map.setLevel(2);
 
     // 검색 박스 닫기
     const box = document.getElementById("search-result-box");
