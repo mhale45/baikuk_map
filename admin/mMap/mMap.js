@@ -125,10 +125,8 @@ function renderSearchResults(list) {
     // 기존 마커 클릭 시 UI와 동일한 양식 적용
     box.innerHTML = `
         <div style="
-            padding:10px;
-            max-height:280px;
-            overflow-y:auto;
-            font-size:14px;
+            white-space: nowrap;   /* ← 여기 적용! */
+            display: inline-block;
         ">
             ${renderListingWithFloorSeparator(list)}
         </div>

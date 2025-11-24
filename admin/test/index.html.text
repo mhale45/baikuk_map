@@ -310,13 +310,13 @@
             border: 1px solid #ccc;
             box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
 
-            /* 🔥 핵심 */
-            white-space: nowrap;      /* 줄바꿈 금지 */
+            /* 핵심 */
             overflow-x: auto;         /* 가로 스크롤 */
             overflow-y: auto;         /* 세로 스크롤 */
             max-width: 380px;         /* 최대 폭 */
-            max-height: 70vh;         /* 최대 높이 (화면의 70%) */
+            max-height: 70vh;         /* 최대 높이 */
 
+            /* ❌ white-space 절대 넣지 않는다!! */
             display: none;
             font-size: 14px;
         ">
