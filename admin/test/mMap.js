@@ -432,8 +432,7 @@ async function renderListingsOnMap() {
                 kakao.maps.event.addListener(marker, "click", async () => {
                     const isPC = window.innerWidth >= 769;
 
-                    // ❗ addr(해당 주소)를 사용해야 함
-                    let listings = await loadListingsByAddress(addr);
+                    let listings = await loadListingsByAddress(item.full_address);
 
                     if (!ignoreFiltersForNextPopup) {
                         listings = applyAllFilters(listings);
