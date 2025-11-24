@@ -122,20 +122,17 @@ function renderSearchResults(list) {
         return;
     }
 
-    box.innerHTML = list
-        .map(item => `
-            <div class="search-item"
-                 data-id="${item.listing_id}"
-                 style="padding:6px; border-bottom:1px solid #eee; cursor:pointer;">
-                 
-                <strong>${item.listing_title}</strong><br/>
-                ${item.floor ?? "-"}층 /
-                ${item.area_py ?? "-"}평 /
-                보 ${item.deposit_price ?? "-"} /
-                월 ${item.monthly_rent ?? "-"}
-            </div>
-        `)
-        .join("");
+    // 기존 마커 클릭 시 UI와 동일한 양식 적용
+    box.innerHTML = `
+        <div style="
+            padding:10px;
+            max-height:280px;
+            overflow-y:auto;
+            font-size:14px;
+        ">
+            ${renderListingWithFloorSeparator(list)}
+        </div>
+    `;
 
     box.style.display = "block";
 }
@@ -963,7 +960,6 @@ function openListingNewTab(listingId) {
 }
 
 // 검색기능 관련 함수
-
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("search-title-input");
     const resultBox = document.getElementById("search-result-box");
@@ -998,3 +994,27 @@ document.addEventListener("click", (e) => {
     const url = `https://baikuk.com/item/view/${id}`;
     window.open(url, "_blank");
 });
+
+// 검색 결과 내부 클릭 → 상세페이지 이동
+setTimeout(() => {
+    document.querySelectorAll('.listing-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+            if (e.target.closest('.copy-listing-id')) return;
+            const id = el.dataset.id;
+            openListingNewTab(id);
+        });
+    });
+
+    // 복사 기능도 동일
+    document.querySelectorAll('.copy-listing-id').forEach(span => {
+        span.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = span.dataset.id;
+
+            navigator.clipboard.writeText(id)
+                .then(() => {
+                    showToast(`${id} 복사완료`);
+                });
+        });
+    });
+}, 50);
