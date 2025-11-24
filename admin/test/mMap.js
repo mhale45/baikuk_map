@@ -427,6 +427,7 @@ async function renderListingsOnMap() {
                 kakao.maps.event.addListener(marker, "click", async () => {
                     const isPC = window.innerWidth >= 769;
 
+                    map.panTo(marker.getPosition());
                     let listings = await loadListingsByAddress(addr);
                     listings = applyAllFilters(listings);
                     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
