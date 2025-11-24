@@ -431,11 +431,6 @@ async function renderListingsOnMap() {
                     listings = applyAllFilters(listings);
                     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
-                    // 🔥 필터에 맞는 매물이 없으면 지도만 이동시키고 팝업은 열지 않음
-                    if (listings.length === 0) {
-                        return;
-                    }
-                    
                     // =================================
                     // 📌 PC — InfoWindow 사용 (끝)
                     // =================================
@@ -1016,7 +1011,14 @@ document.getElementById("search-result-box").addEventListener("click", async (e)
 async function getLatLngByListingId(listingId) {
     const { data, error } = await window.supabase
         .from("baikukdbtest")
-        .select("lat, lng, full_address")
+        .select(`
+            lat,
+            lng,
+            full_address,
+            transaction_status,
+            deal_type,
+            category
+        `)
         .eq("listing_id", listingId)
         .maybeSingle();
 
@@ -1032,6 +1034,32 @@ async function moveMapToListing(listingId) {
     if (!data) return;
 
     const { lat, lng, full_address } = data;
+    
+    // 🔥 [자동 필터 활성화] — 클릭한 매물이 필터에서 제외되어 있었다면 해당 필터 자동 체크
+    (function autoEnableFilters() {
+        const status = data.transaction_status || "";
+        const deal = data.deal_type || "";
+        const category = data.category || "";
+
+        // 상태 체크박스
+        document.querySelectorAll(".status-check").forEach(cb => {
+            if (status.includes(cb.value)) cb.checked = true;
+        });
+
+        // 거래유형 체크박스
+        document.querySelectorAll(".dealtype-check").forEach(cb => {
+            if (deal.includes(cb.value)) cb.checked = true;
+        });
+
+        // 카테고리 체크박스
+        document.querySelectorAll(".category-check").forEach(cb => {
+            if (category.includes(cb.value)) cb.checked = true;
+        });
+
+        // 🔥 필터 적용
+        onFilterChanged();
+    })();
+
     const pos = new kakao.maps.LatLng(lat, lng);
 
     // 지도 이동 + 레벨 2 고정
@@ -1052,11 +1080,6 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     let listings = await loadListingsByAddress(fullAddress);
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
-
-    // 🔥 필터에 맞는 매물이 없으면 지도만 이동시키고 팝업은 열지 않음
-    if (listings.length === 0) {
-        return;
-    }
 
     // ===========================
     // PC : InfoWindow 방식
