@@ -1011,19 +1011,112 @@ async function getLatLngByListingId(listingId) {
 }
 
 async function moveMapToListing(listingId) {
-    const pos = await getLatLngByListingId(listingId);
-    if (!pos) return;
+    const data = await getLatLngByListingId(listingId);
+    if (!data) return;
 
-    const moveLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+    const { lat, lng, full_address } = data;
+    const pos = new kakao.maps.LatLng(lat, lng);
 
-    // 지도 이동
-    map.panTo(moveLatLng);
-
-    // 지도 레벨 2으로 고정
+    // 지도 이동 + 레벨 2 고정
+    map.panTo(pos);
     map.setLevel(2);
 
     // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
+
+    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
+    openListingPopupByAddress(full_address, lat, lng);
 }
 
+async function openListingPopupByAddress(fullAddress, lat, lng) {
+    const isPC = window.innerWidth >= 769;
+
+    let listings = await loadListingsByAddress(fullAddress);
+    listings = applyAllFilters(listings);
+    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
+
+    // ===========================
+    // PC : InfoWindow 방식
+    // ===========================
+    if (isPC) {
+        if (desktopInfoWindow) desktopInfoWindow.close();
+
+        const contentHTML = listings.length
+            ? renderListingWithFloorSeparator(listings)
+            : "<div style='font-size:13px;'>조건에 맞는 매물이 없습니다.</div>";
+
+        desktopInfoWindow = new kakao.maps.InfoWindow({
+            position: new kakao.maps.LatLng(lat, lng),
+            content: `
+                <div style="
+                    background:#fff;
+                    padding:10px;
+                    border:1px solid #ccc;
+                    border-radius:8px;
+                    max-height:60vh;
+                    overflow-y:auto;
+                    font-size:13px;
+                    white-space:nowrap;
+                ">
+                    ${contentHTML}
+                </div>
+            `
+        });
+
+        desktopInfoWindow.open(map);
+
+        // 내부 클릭 이벤트 적용
+        setTimeout(() => {
+            document.querySelectorAll('.listing-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (e.target.closest('.copy-listing-id')) return;
+                    const id = el.dataset.id;
+                    openListingNewTab(id);
+                });
+            });
+
+            document.querySelectorAll('.copy-listing-id').forEach(span => {
+                span.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = span.dataset.id;
+
+                    navigator.clipboard.writeText(id)
+                        .then(() => showToast(`${id} 복사완료`));
+                });
+            });
+        }, 50);
+
+        return;
+    }
+
+
+    // ===========================
+    // 모바일 : side-panel 방식
+    // ===========================
+    const panel = document.getElementById("side-panel");
+    panel.innerHTML = listings.length
+        ? renderListingWithFloorSeparator(listings)
+        : "<div>조건에 맞는 매물이 없습니다.</div>";
+
+    panel.style.left = "10px";
+    panel.style.top = "calc(var(--header-height) + 10px)";
+    panel.style.display = "block";
+
+    setTimeout(() => {
+        document.querySelectorAll('#side-panel .listing-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('.copy-listing-id')) return;
+                openListingNewTab(el.dataset.id);
+            });
+        });
+
+        document.querySelectorAll('#side-panel .copy-listing-id').forEach(span => {
+            span.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(span.dataset.id)
+                    .then(() => showToast(`${span.dataset.id} 복사완료`));
+            });
+        });
+    }, 50);
+}
