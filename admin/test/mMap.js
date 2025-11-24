@@ -1061,7 +1061,8 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
                 ">
                     ${contentHTML}
                 </div>
-            `
+            `,
+            pixelOffset: new kakao.maps.Point(0, -10)
         });
 
         desktopInfoWindow.open(map);
