@@ -166,6 +166,7 @@ async function searchListingsByTitle(keyword) {
     return sorted;
 
 }
+
 function renderSearchResults(list) {
     const box = document.getElementById("search-result-box");
     if (!box) return;
@@ -187,14 +188,13 @@ function renderSearchResults(list) {
         return 4;
     };
 
-    // 🔥 그룹핑
+    // 🔥 그룹 생성
     const groups = { 0: [], 1: [], 2: [], 3: [] };
     list.forEach(item => {
         const score = getScore(item);
         if (score <= 3) groups[score].push(item);
     });
 
-    // 🔥 그룹 이름
     const groupNames = [
         "📌 매물번호 매칭",
         "📝 제목 매칭",
@@ -206,30 +206,19 @@ function renderSearchResults(list) {
         <div style="white-space: nowrap; display: inline-block;">
     `;
 
-    // 🔥 그룹 반복하여 출력
     Object.keys(groups).forEach(score => {
         const items = groups[score];
         if (items.length === 0) return;
 
-        // 그룹 제목 + 구분선 추가
+        // 그룹 제목 + 구분선
         finalHTML += `
-            <div style="padding:6px 0 2px 0; font-weight:bold; color:#333;">
+            <div style="padding:6px 0 2px 0; font-weight:bold; color:#222;">
                 ${groupNames[score]}
             </div>
             <div style="border-top:1px solid #ccc; margin:4px 0 8px 0;"></div>
         `;
 
-        // 🔥 기존 UI 출력 → 여기서 item 하나씩 기존 렌더링 함수에 전달
-        // 기존 함수: renderListingWithFloorSeparator(items)
-        // 하지만 이 함수는 "여러 건의 매물 중 층 기준 정렬/구분" 형태이므로
-        // item 단위로 사용해선 안 됨
-        //
-        // 👉 대신 기존 UI가 renderSaleItem / renderRentItem 을 쓰므로,
-        //     원본 리스트와 동일하게 item만 그대로 쌓아주면 됨.
-        //
-        // renderListingWithFloorSeparator(list) 는 address 별 묶음용이므로
-        // 검색결과에서는 단순히 item 단위로 만들어야 함.
-
+        // 🔥 기존 배경색 규칙 적용
         items.forEach(item => {
             const floor = item.floor ?? "-";
             const status = item.transaction_status || "";
@@ -239,21 +228,26 @@ function renderSearchResults(list) {
                 status.includes("보류") ? "🟡" :
                 "🟢";
 
-            let html = "";
-
-            if ((item.deal_type || "").includes("매매")) {
-                html = renderSaleItem(item, floor, icon, "");
+            let bgColor = "";
+            if (status.includes("완료")) {
+                bgColor = "background:#f0f0f0;";
+            } else if (status.includes("보류")) {
+                bgColor = "background:#FFE5E5;";
             } else {
-                html = renderRentItem(item, floor, icon, "");
+                bgColor = "background:#F7DA79;";
             }
 
-            finalHTML += html;
+            // 매매/월세 UI 기존 방식 그대로 사용
+            if ((item.deal_type || "").includes("매매")) {
+                finalHTML += renderSaleItem(item, floor, icon, bgColor);
+            } else {
+                finalHTML += renderRentItem(item, floor, icon, bgColor);
+            }
         });
     });
 
     finalHTML += `</div>`;
 
-    // 최종 출력
     box.innerHTML = finalHTML;
     box.style.display = "block";
 }
