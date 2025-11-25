@@ -204,7 +204,12 @@ async function loadListingsByAddress(fullAddress) {
             transaction_status,
             deal_type,
             category,
-            rent_per_py
+            rent_per_py,
+            sale_price,
+            total_deposit,
+            total_rent,
+            roi,
+            sale_per_py
         `)
         .eq("full_address", fullAddress);
 
@@ -1049,9 +1054,10 @@ function renderSaleItem(item, floor, icon, bgColor) {
 
             <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
             <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
-            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong>(${Number(item.rent_per_py).toFixed(1)}만) /
+            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong>
+                (${item.rent_per_py ? Number(item.rent_per_py).toFixed(1) : ""}만) /
             <strong><span style="color:green;">수 </span>${formatNumber(item.roi)}</strong> /
-            <strong>${formatNumber(item.sale_per_py)}</strong>만
+            <strong>${item.sale_per_py ? formatNumber(item.sale_per_py) : ""}</strong>만
         </div>
     `;
 }
