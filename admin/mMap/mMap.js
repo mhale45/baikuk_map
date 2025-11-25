@@ -1064,8 +1064,26 @@ document.getElementById("search-result-box").addEventListener("click", async (e)
     // 복사 버튼 클릭은 제외
     if (e.target.closest(".copy-listing-id")) return;
 
+    // 클릭한 매물의 상세정보를 Supabase에서 조회하여 필터 정보 준비
     const listingId = item.dataset.id;
-    await moveMapToListing(listingId);
+
+    // 🔥 listingId 기준으로 전체 매물 데이터 가져오기
+    const listing = await getListingById(listingId);
+    if (!listing) {
+        console.error("❌ listing 데이터를 찾을 수 없음");
+        return;
+    }
+
+    // 🔥 필터에 필요한 정보만 전달할 filterInfo 구성
+    const filterInfo = {
+        transaction_status: listing.transaction_status,
+        deal_type: listing.deal_type,
+        category: listing.category
+    };
+
+    // 🔥 filterInfo를 moveMapToListing으로 전달
+    await moveMapToListing(listingId, filterInfo);
+
 });
 
 async function getLatLngByListingId(listingId) {
@@ -1082,14 +1100,29 @@ async function getLatLngByListingId(listingId) {
     return data;
 }
 
-async function moveMapToListing(listingId) {
+async function getListingById(listingId) {
+    const { data, error } = await window.supabase
+        .from("baikukdbtest")
+        .select("*")
+        .eq("listing_id", listingId)
+        .maybeSingle();
+
+    if (error) {
+        console.error("❌ getListingById 오류:", error);
+        return null;
+    }
+
+    return data;
+}
+
+async function moveMapToListing(listingId, filterInfo = null) {
     const data = await getLatLngByListingId(listingId);
     if (!data) return;
 
     const { lat, lng, full_address } = data;
     const pos = new kakao.maps.LatLng(lat, lng);
 
-    // 지도 이동 + 레벨 2 고정
+    // 지도 이동 + 레벨 고정
     map.panTo(pos);
     map.setLevel(2);
 
@@ -1097,8 +1130,8 @@ async function moveMapToListing(listingId) {
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
-    openListingPopupByAddress(full_address, lat, lng);
+    // 🔥 filterInfo 전달 추가됨
+    openListingPopupByAddress(full_address, lat, lng, filterInfo);
 }
 
 function renderSaleItem(item, floor, icon, bgColor) {
@@ -1175,7 +1208,7 @@ function renderRentItem(item, floor, icon, bgColor) {
     `;
 }
 
-async function openListingPopupByAddress(fullAddress, lat, lng) {
+async function openListingPopupByAddress(fullAddress, lat, lng, filterInfo = null) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
@@ -1183,9 +1216,12 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     // ============================================
     // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
     // ============================================
-    if (listings.length > 0) {
-        applyFiltersFromListing(listings[0], false); 
-        // false = onFilterChanged() 실행하지 않도록
+    if (filterInfo) {
+        // 사용자가 전달한 필터 기준
+        applyFiltersFromListing(filterInfo, false);
+    } else if (listings.length > 0) {
+        // 기존처럼 첫 번째 매물 기준
+        applyFiltersFromListing(listings[0], false);
     }
 
     listings = applyAllFilters(listings);
@@ -1246,7 +1282,6 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
 
         return;
     }
-
 
     // ===========================
     // 모바일 : side-panel 방식
