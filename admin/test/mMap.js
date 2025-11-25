@@ -1060,7 +1060,7 @@ function renderSaleItem(item, floor, icon, bgColor) {
                     ? (Number(item.roi) * 100).toFixed(1) + "%"
                     : "-"
             }</strong> /
-            <strong>${item.sale_per_py != null ? Number(item.sale_per_py).toFixed(1) : ""}</strong>만
+            <strong>${formatNumber(item.sale_per_py != null ? Number(item.sale_per_py).toFixed(0) : "")}</strong>
         </div>
     `;
 }
