@@ -1279,55 +1279,51 @@ async function openListingPopupByAddress(fullAddress, lat, lng, clickedListingId
 }
 
 // =====================================
-// 🔥 매물 클릭 시 해당 매물의 필터를 "그대로" 반영
-//    - 상태 / 거래유형 / 카테고리 그룹별로
-//      기존 체크를 모두 해제하고
-//      해당 매물에 맞는 것만 체크
+// 🔥 매물 클릭 시 해당 매물의 필터를 추가 체크
+//    - 기존 체크 유지
+//    - 상태 / 유형 / 카테고리를 "추가로 체크"
 // =====================================
 function applyFiltersFromListing(listing, triggerReload = true) {
     if (!listing) return;
 
-    // 0) 먼저 세 그룹 체크박스 전체 해제
-    document
-        .querySelectorAll(".status-check, .dealtype-check, .category-check")
-        .forEach(cb => (cb.checked = false));
-
-    // 1) 거래상태 (예: 진행중, 보류, 계약완료)
-    if (listing.transaction_status.includes(cb.value)) {
-        // 매물의 상태값 공백 제거
+    // -----------------------------------------
+    // 1) 상태 체크 추가
+    // -----------------------------------------
+    if (listing.transaction_status) {
         const statusValue = String(listing.transaction_status).trim();
 
         document.querySelectorAll(".status-check").forEach(cb => {
             const cbVal = cb.value.trim();
-            // 체크 여부
-            if (statusValue.includes(cbVal)){
-                cb.checked = true;
-            } else {
-                cb.checked = false;
+            if (statusValue.includes(cbVal)) {
+                cb.checked = true; // 기존 체크 유지 + 추가 체크
             }
         });
     }
 
-    // 2) 거래유형 (예: 월세, 매매)
+    // -----------------------------------------
+    // 2) 거래유형 체크 추가
+    // -----------------------------------------
     if (listing.deal_type) {
+        const dealValue = String(listing.deal_type).trim();
+
         document.querySelectorAll(".dealtype-check").forEach(cb => {
-            if (listing.deal_type === cb.value) {
-                cb.checked = true;
+            const cbVal = cb.value.trim();
+            if (dealValue.includes(cbVal)) {
+                cb.checked = true; // 기존 체크 유지 + 추가 체크
             }
         });
     }
 
-    // 3) 카테고리 (예: 상가, 빌딩, 공장, 주택)
+    // -----------------------------------------
+    // 3) 카테고리 체크 추가
+    // -----------------------------------------
     if (listing.category) {
+        const catValue = String(listing.category).trim();
+
         document.querySelectorAll(".category-check").forEach(cb => {
-            if (listing.category === cb.value) {
-                cb.checked = true;
+            const cbVal = cb.value.trim();
+            if (catValue.includes(cbVal)) {
+                cb.checked = true; // 기존 체크 유지 + 추가 체크
             }
         });
     }
-
-    // 🔥 true일 때만 지도 reload
-    if (triggerReload) {
-        onFilterChanged();
-    }
-}
