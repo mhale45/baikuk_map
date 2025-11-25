@@ -1293,33 +1293,36 @@ function applyFiltersFromListing(listing, triggerReload = true) {
         .querySelectorAll(".status-check, .dealtype-check, .category-check")
         .forEach(cb => (cb.checked = false));
 
-    // 1) 거래상태 (문구 안에 '진행중' / '완료' / '보류' 포함 여부로 판별)
+    // 1) 거래상태 (예: 진행중, 보류, 계약완료)
     if (listing.transaction_status) {
-        const rawStatus = String(listing.transaction_status).trim();
+        // 매물의 상태값 공백 제거
+        const statusValue = String(listing.transaction_status).trim();
+        console.log("=== 거래상태 디버그 시작 ===");
+        console.log("listing.transaction_status:", listing.transaction_status);
+        console.log("statusValue(trim):", statusValue);
 
-        // 매물의 상태 문자열에서 우리가 쓸 "정규화된 상태값" 뽑아내기
-        let normalizedStatus = null;
+        document.querySelectorAll(".status-check").forEach(cb => {
+            const cbVal = cb.value.trim();
 
-        if (rawStatus.includes("진행중")) {
-            normalizedStatus = "진행중";
-        } else if (rawStatus.includes("완료")) {
-            // '완료'가 들어있으면 모두 '계약완료'로 본다
-            normalizedStatus = "계약완료";
-        } else if (rawStatus.includes("보류")) {
-            normalizedStatus = "보류";
-        }
+            console.log("---- 체크박스 비교 ----");
+            console.log("cb.value:", cb.value);
+            console.log("cb.value(trim):", cbVal);
+            console.log(`비교: "${statusValue}" === "${cbVal}" ?`, statusValue === cbVal);
 
-        // 뽑아낸 상태값이 있을 때만 체크박스들에 반영
-        if (normalizedStatus) {
-            document.querySelectorAll(".status-check").forEach(cb => {
-                const cbValue = String(cb.value).trim();
+            // 체크 여부
+            if (statusValue === cbVal) {
+                cb.checked = true;
+                console.log("👉 체크됨!");
+            } else {
+                cb.checked = false;
+                console.log("❌ 체크 안함");
+            }
 
-                // 체크박스 value 안에 '진행중' / '계약완료' / '보류'가 포함되어 있으면 체크
-                if (cbValue.includes(normalizedStatus)) {
-                    cb.checked = true;
-                }
-            });
-        }
+            console.log("현재 cb.checked:", cb.checked);
+            console.log("----------------------");
+        });
+
+        console.log("=== 거래상태 디버그 끝 ===");
     }
 
     // 2) 거래유형 (예: 월세, 매매)
