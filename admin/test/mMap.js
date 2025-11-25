@@ -986,18 +986,34 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("search-title-input");
     const resultBox = document.getElementById("search-result-box");
     const clearBtn = document.getElementById("search-clear-btn");
+    const refreshBtn = document.getElementById("search-refresh-btn");
 
-    if (!input || !resultBox || !clearBtn) return;
+    // 요소가 하나라도 없으면 그냥 종료
+    if (!input || !resultBox || !clearBtn || !refreshBtn) return;
 
     let typingTimer = null;
 
-    // 🔥 X 버튼 보이기/숨기기
+    // 🔥 X 버튼 표시/숨기기
     function updateClearButtonVisibility() {
         const hasText = input.value.trim().length > 0;
         clearBtn.style.display = hasText ? "inline-flex" : "none";
     }
 
-    // 🔥 X 버튼 클릭 시: 검색어 + 결과 초기화
+    // 🔍 실제 검색 실행 함수 (input/재검색 둘 다 여기 사용)
+    async function runSearch(keyword) {
+        const trimmed = (keyword || "").trim();
+
+        if (!trimmed) {
+            resultBox.style.display = "none";
+            resultBox.innerHTML = "";
+            return;
+        }
+
+        const list = await searchListingsByTitle(trimmed);
+        renderSearchResults(list);
+    }
+
+    // ❌ X 버튼 클릭 → 검색어/결과 초기화
     clearBtn.addEventListener("click", () => {
         input.value = "";
         updateClearButtonVisibility();
@@ -1006,29 +1022,37 @@ document.addEventListener("DOMContentLoaded", () => {
         input.focus();
     });
 
-    // 🔍 입력 시 검색 수행
-    input.addEventListener("input", () => {
-        const keyword = input.value.trim();
+    // 🔄 재검색 버튼 클릭 → 현재 입력값으로 즉시 검색
+    refreshBtn.addEventListener("click", () => {
+        const keyword = input.value;
+        updateClearButtonVisibility();
+        // 디바운스 없이 바로 검색
+        runSearch(keyword);
+    });
 
-        // 버튼 표시 상태 갱신
+    // ⌨️ 타이핑 시 → 디바운스 후 자동 검색
+    input.addEventListener("input", () => {
+        const keyword = input.value;
+
         updateClearButtonVisibility();
 
-        if (!keyword) {
+        // 입력 없으면 바로 클리어
+        if (!keyword.trim()) {
             resultBox.style.display = "none";
             resultBox.innerHTML = "";
+            if (typingTimer) clearTimeout(typingTimer);
             return;
         }
 
-        // 입력 디바운싱 (검색 과부하 방지)
+        // 디바운스
         if (typingTimer) clearTimeout(typingTimer);
 
-        typingTimer = setTimeout(async () => {
-            const list = await searchListingsByTitle(keyword);
-            renderSearchResults(list);
+        typingTimer = setTimeout(() => {
+            runSearch(keyword);
         }, 200);
     });
 
-    // 페이지 로드 시 초기 표시 상태 세팅
+    // 초기 상태
     updateClearButtonVisibility();
 });
 
