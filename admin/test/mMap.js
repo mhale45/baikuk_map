@@ -116,10 +116,10 @@ async function searchListingsByTitle(keyword) {
             sale_per_py
         `)
         // 🔥 검색 결과 정렬 순서 추가
-        .order("private_note", { ascending: true })
-        .order("full_address", { ascending: true })
-        .order("listing_title", { ascending: true })
         .order("listing_id", { ascending: true })
+        .order("listing_title", { ascending: true })
+        .order("full_address", { ascending: true })
+        .order("private_note", { ascending: true })
         .limit(100);
 
     if (isNumber) {
@@ -147,7 +147,26 @@ async function searchListingsByTitle(keyword) {
         console.error("❌ 확장 검색 오류:", error);
         return [];
     }
-    return data;
+
+    const lower = keyword.toLowerCase();
+
+    // 🔥 우선순위 정렬
+    const sorted = data.sort((a, b) => {
+        // 함수: 문자열 포함 여부 체크
+        const score = (item) => {
+            if (String(item.listing_id || "").includes(keyword)) return 1;
+            if ((item.listing_title || "").toLowerCase().includes(lower)) return 2;
+            if ((item.full_address || "").toLowerCase().includes(lower)) return 3;
+            if ((item.private_note || "").toLowerCase().includes(lower)) return 4;
+            return 5; // 아무데도 매칭되지 않은 경우
+        };
+
+        return score(a) - score(b);
+    });
+
+    // 🔥 새로 정렬된 목록 반환
+    return sorted;
+
 }
 
 function renderSearchResults(list) {
