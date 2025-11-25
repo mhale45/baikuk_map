@@ -1089,17 +1089,28 @@ async function moveMapToListing(listingId) {
     const { lat, lng, full_address } = data;
     const pos = new kakao.maps.LatLng(lat, lng);
 
-    // 지도 이동 + 레벨 2 고정
+    // 🔥 1) 먼저 listingId 로 상세정보 조회 (상태/유형/카테고리)
+    const { data: listingDetail } = await window.supabase
+        .from("baikukdbtest")
+        .select("transaction_status, deal_type, category")
+        .eq("listing_id", listingId)
+        .maybeSingle();
+
+    if (listingDetail) {
+        // 🔥 2) 해당 매물의 필터 자동 추가
+        applyFiltersFromListing(listingDetail, true);
+    }
+
+    // 🔥 3) 지도 이동
     map.panTo(pos);
     map.setLevel(2);
 
-    // 검색결과 박스 닫기
+    // 🔥 4) 검색창 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄우되,
-    //    어떤 매물을 클릭했는지 listingId도 같이 넘겨준다
-    openListingPopupByAddress(full_address, lat, lng, listingId);
+    // 🔥 5) 기존처럼 리스트 패널 열기
+    openListingPopupByAddress(full_address, lat, lng);
 }
 
 function renderSaleItem(item, floor, icon, bgColor) {
