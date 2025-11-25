@@ -116,10 +116,8 @@ async function searchListingsByTitle(keyword) {
             sale_per_py
         `)
         // 🔥 검색 결과 정렬 순서 추가
-        .order("listing_id", { ascending: true })
-        .order("listing_title", { ascending: true })
         .order("full_address", { ascending: true })
-        .order("private_note", { ascending: true })
+        .order("floor", { ascending: true })
         .limit(100);
 
     if (isNumber) {
