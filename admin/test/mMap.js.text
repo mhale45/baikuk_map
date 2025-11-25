@@ -1117,6 +1117,15 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
+
+    // ============================================
+    // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
+    // ============================================
+    if (listings.length > 0) {
+        applyFiltersFromListing(listings[0], false); 
+        // false = onFilterChanged() 실행하지 않도록
+    }
+
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
@@ -1205,4 +1214,41 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
             });
         });
     }, 50);
+}
+
+// =====================================
+// 🔥 매물 클릭 시 해당 매물의 필터 자동 추가
+// =====================================
+function applyFiltersFromListing(listing, triggerReload = true) {
+    if (!listing) return;
+
+    // 1) 거래상태
+    if (listing.transaction_status) {
+        document.querySelectorAll(".status-check").forEach(cb => {
+            if (listing.transaction_status.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+    }
+
+    // 2) 거래유형
+    if (listing.deal_type) {
+        document.querySelectorAll(".dealtype-check").forEach(cb => {
+            if (listing.deal_type.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+    }
+
+    // 3) 카테고리
+    if (listing.category) {
+        document.querySelectorAll(".category-check").forEach(cb => {
+            if (listing.category.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+    }
+
+    // 🔥 true일 때만 지도 reload
+    if (triggerReload) onFilterChanged();
 }
