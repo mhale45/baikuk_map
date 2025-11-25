@@ -1293,17 +1293,33 @@ function applyFiltersFromListing(listing, triggerReload = true) {
         .querySelectorAll(".status-check, .dealtype-check, .category-check")
         .forEach(cb => (cb.checked = false));
 
-    // 1) 거래상태 (예: 진행중, 보류, 계약완료)
+    // 1) 거래상태 (문구 안에 '진행중' / '완료' / '보류' 포함 여부로 판별)
     if (listing.transaction_status) {
-        // 매물의 상태값 공백 제거
-        const statusValue = String(listing.transaction_status).trim();
+        const rawStatus = String(listing.transaction_status).trim();
 
-        document.querySelectorAll(".status-check").forEach(cb => {
-            // 체크박스 value도 공백 제거 후 비교
-            if (statusValue === cb.value.trim()) {
-                cb.checked = true;
-            }
-        });
+        // 매물의 상태 문자열에서 우리가 쓸 "정규화된 상태값" 뽑아내기
+        let normalizedStatus = null;
+
+        if (rawStatus.includes("진행중")) {
+            normalizedStatus = "진행중";
+        } else if (rawStatus.includes("완료")) {
+            // '완료'가 들어있으면 모두 '계약완료'로 본다
+            normalizedStatus = "계약완료";
+        } else if (rawStatus.includes("보류")) {
+            normalizedStatus = "보류";
+        }
+
+        // 뽑아낸 상태값이 있을 때만 체크박스들에 반영
+        if (normalizedStatus) {
+            document.querySelectorAll(".status-check").forEach(cb => {
+                const cbValue = String(cb.value).trim();
+
+                // 체크박스 value 안에 '진행중' / '계약완료' / '보류'가 포함되어 있으면 체크
+                if (cbValue.includes(normalizedStatus)) {
+                    cb.checked = true;
+                }
+            });
+        }
     }
 
     // 2) 거래유형 (예: 월세, 매매)
