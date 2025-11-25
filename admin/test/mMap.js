@@ -114,52 +114,20 @@ async function searchListingsByTitle(keyword) {
         `)
         .limit(50);
 
-        // ==============================
-        // 🔥 먼저 full_address "정확히 일치" 검색
-        // ==============================
-        const exact = await window.supabase
-            .from("baikukdbtest")
-            .select(`
-                listing_id,
-                listing_title,
-                full_address,
-                deposit_price,
-                monthly_rent,
-                premium_price,
-                area_py,
-                floor,
-                transaction_status,
-                deal_type,
-                sale_price,
-                total_deposit,
-                total_rent,
-                rent_per_py,
-                roi,
-                sale_per_py
-            `)
-            .eq("full_address", keyword)
-            .limit(50);
-
-        if (exact.data && exact.data.length > 0) {
-            // 🔥 full_address 일치하는 것만 바로 리턴
-            return exact.data;
-        }
-
-        // ==============================
-        // 🔥 일치 결과가 없을 때 기존 "포함 검색" 수행
-        // ==============================
-        if (isNumber) {
-            query = query.or(`
-                listing_id.eq.${keyword},
-                listing_title.ilike.%${keyword}%,
-                full_address.ilike.%${keyword}%`
-            );
-        } else {
-            query = query.or(`
-                listing_title.ilike.%${keyword}%,
-                full_address.ilike.%${keyword}%`
-            );
-        }
+    if (isNumber) {
+        // 🔥 숫자 입력 → 매물번호 + 제목 + 주소 모두 검색
+        query = query.or(`
+            listing_id.eq.${keyword},
+            listing_title.ilike.%${keyword}%,
+            full_address.ilike.%${keyword}%
+        `);
+    } else {
+        // 🔥 문자열 입력 → 제목 + 주소 모두 검색
+        query = query.or(`
+            listing_title.ilike.%${keyword}%,
+            full_address.ilike.%${keyword}%
+        `);
+    }
 
     const { data, error } = await query;
 
