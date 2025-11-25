@@ -1050,7 +1050,7 @@ function renderSaleItem(item, floor, icon, bgColor) {
             <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
 
             <strong><span style="display:inline-block; min-width:30px; text-align:right;">${floor}층</span></strong> /
-            <span style="display:inline-block; min-width:50px; text-align:right;"><strong>${item.area_py ? Number(item.area_py).toFixed(1) : "-"}</strong>평</span> /
+            <span style="display:inline-block; min-width:50px; text-align:right;"><strong>${item.area_py ? Number(item.area_py).toFixed(1) : ""}</strong>평</span> /
 
             <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
             <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
@@ -1058,9 +1058,16 @@ function renderSaleItem(item, floor, icon, bgColor) {
             <strong><span style="color:green;">수 </span>${
                 item.roi != null
                     ? (Number(item.roi) * 100).toFixed(1) + "%"
-                    : "-"
+                    : ""
             }</strong> /
-            <strong>${formatNumber(item.sale_per_py != null ? Number(item.sale_per_py).toFixed(0) : "")}</strong>
+            <strong>${formatNumber(item.sale_per_py != null ? Number(item.sale_per_py).toFixed(0) : "")}</strong> /
+            <strong>
+                ${ (item.total_rent != null && item.area_py > 0)
+                    ? (Number(item.total_rent) / Number(item.area_py)).toFixed(1)
+                    : ""
+                }
+            </strong>
+
         </div>
     `;
 }
