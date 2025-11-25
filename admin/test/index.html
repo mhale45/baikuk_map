@@ -1,329 +1,91 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <title>mMap</title>
+  <meta charset="UTF-8" />
+  <title>광고관리</title>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- 카카오 지도 -->
-    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
-
-    <style>
-        :root {
-            --header-height: 4.3rem;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #map {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-        }
-
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--header-height);
-            background: #fff;
-            z-index: 10000;
-        }
-
-        @media (min-width: 769px) {
-            #side-panel {
-                position: absolute !important;
-                max-width: 320px;
-                max-height: 50vh;
-                left: 0;
-                top: 0;
-                transform: translate(-50%, -100%); /* 마커 위로 */
-                z-index: 999999;
-            }
-        }
-
-    </style>
-
-    <!-- 🔥 Supabase Client -->
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-
-        window.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: { persistSession: true, autoRefreshToken: true }
-        });
-
-        // 🔥 로그인 여부 확인 후 접속 불가하면 listings 로 이동
-        async function enforceAuthForMMap() {
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) {
-                location.replace("/admin/listings/");
-            }
-        }
-
-        enforceAuthForMMap();
-    </script>
-
+  <!-- [ADD] 직원 리스트용 간단 스타일 -->
+  <style>
+    .shadow-right { box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08); }
+    .grade-header {
+      background-color: #e5e7eb;
+      color: #111827;
+      font-weight: 700;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+      user-select: none;
+    }
+    .name-item {
+      font-size: 0.9rem;
+      color: #374151;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      margin-bottom: 0.4rem;
+    }
+    .name-item:hover { background-color: #fef9c3; }
+  </style>
 </head>
-<body>
-    <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
-        <div class="flex flex-row gap-2 mt-1">  
-            <div class="flex flex-col gap-2">
-                <button id="filter-reset-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
-                        hover:bg-gray-200 transition duration-150">
-                    초기화
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">   
-                <!-- 🔥 통합 필터 버튼 -->
-                <button id="filter-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[55px]
-                        hover:bg-gray-200 transition duration-150">
-                    필터
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">
-                <button id="toggle-customer-panel"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm max-w-[260px]
-                        hover:bg-gray-200 transition duration-150">
-                    👤 고객 리스트
-                </button>
-            </div> 
-        </div>     
-    </header>
-
-    <!-- 오른쪽 하단 컨트롤 버튼 -->
-    <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
-        <button id="btn-current-location"
-                class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
-                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5"
-                title="현재 위치로 이동">
-            <span class="text-xl text-black font-bold">◉</span>
-        </button>
-    </div>
-    
-    <!-- 🔥 통합 필터 박스 -->
-    <div id="filter-box-merged"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-        style="display:none;">
-
-        <!-- ▼ 기존 '종류' 체크박스들 옮기기 -->
-        <div class="flex flex-row flex-wrap">
-            <div class="flex flex-col gap-1">
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="진행중" class="status-check" /> 진행중
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="보류" class="status-check" /> 보류
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
-                </label>
-
-                <label class="flex items-center gap-2 mt-2">
-                    <input type="checkbox" value="월세" class="dealtype-check" /> 월세
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="매매" class="dealtype-check" /> 매매
-                </label>
-            </div>
-            <div class="flex flex-col gap-1 ml-10">
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="상가" class="category-check" /> 상가
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="공장" class="category-check" /> 공장·창고
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="주택" class="category-check" /> 주택
-                </label>
-            </div>
-        </div>
-        <!-- ▼ 기존 '조건' 숫자 필터 전부 옮기기 -->
-        <div class="flex flex-col gap-1 mt-5">
-
-            <!-- 층 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">층</span>
-                <input id="floor-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="floor-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 전용면적 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">전용면적</span>
-                <input id="area-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="area-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">보증금</span>
-                <input id="deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">월세</span>
-                <input id="rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 권리금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">권리금</span>
-                <input id="premium-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 평당월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">평월세</span>
-                <input id="rent_per_py-min" type="number" placeholder="이상"
-                    class="border p-1 rounded w-20" />
-                <input id="rent_per_py-max" type="number" placeholder="이하"
-                    class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 매매가 -->
-            <div class="flex items-center gap-2 mt-5">
-                <span class="w-20">매매가</span>
-                <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총보증금</span>
-                <input id="total-deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총월세</span>
-                <input id="total-rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 수익률 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">수익률</span>
-                <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-        </div>        
-    </div>
-    
-    <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
-    <div id="customer-panel"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-        style="
-            display:none;
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            left: 10px;
-            z-index: 99999;
-            max-width: 380px;
-            max-height: 70vh;
-            overflow-y: auto;
-            background: white;
-            min-width: 220px;
-            max-width: 90vh;
-        ">
+<body class="w-screen overflow-x-hidden">
+  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
+    메시지 영역
+  </div>
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()" />
+  </div>
+  <div class="flex min-h-screen">
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+      <a href="https://baikuk.com/map"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/admin/mmap/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
+      <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
+      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
+      <a href="/admin/ad_censorship/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
+      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a href="/admin/cost_management/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">비용</div></a>
+      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      </a>
     </div>
 
-    <div id="side-panel"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            left: 10px;
-            max-width: 95vw;
-            width: auto;
-            max-height: 70vh;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 15px;
-            overflow-y: auto;
-            overflow-x: auto;
-            white-space: nowrap;
-            z-index: 9999;
-            display: none;
-        ">
+    <!-- [ADD] 직원 패널 -->
+    <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <div id="staff-list" class="overflow-y-auto">
+        <!-- JS로 렌더링 -->
+      </div>
     </div>
-        
-    <!-- 🔍 제목 검색창 (지도 오른쪽 상단 고정) -->
-    <div id="map-search-box"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            right: 20px;
-            z-index: 5000;
-            background: white;
-            padding: 6px 8px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
-        ">
+    <section id="employee-listings-panel" class="employee-listings-panel" style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
+      <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
+      <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:54.5rem;">
+        <!-- 매물 카드가 여기에 렌더링됩니다 -->
+      </div>
+    </section>
 
-        <input
-            id="search-title-input"
-            type="text"
-            placeholder="검색"
-            style="
-                width: 350px;
-                padding: 5px 8px;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                font-size: 14px;
-            "
-        />
-    </div>
+    <!-- 어두운 오버레이 -->
+    <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
+  </div>
 
-    <!-- 🔍 검색 결과 리스트 -->
-    <div id="search-result-box"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 60px);
-            right: 20px;
-            z-index: 5000;
-            background: white;
-            padding: 6px 8px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
-            overflow-x: auto;
-            overflow-y: auto;
-            max-width: 380px;
-            max-height: 70vh;
-            display: none;
-            font-size: 14px;
-        ">
+  <script type="module">
+    import { initAdCensorship } from './ad_censorship.js';
+    initAdCensorship();
 
-    </div>
-
-    <!-- 지도 -->
-    <div id="map"></div>
-
-    <script type="module" src="./mMap.js"></script>
-
+    // 광고 검열용 예시: 필터 이벤트 수신
+    document.addEventListener('adc:filter-change', (e) => {
+      const { staffId, affiliation } = e.detail || {};
+      // TODO: staffId/affiliation에 맞춰 우측 리스트 쿼리/필터 갱신
+      // console.log('[adc] filter changed:', { staffId, affiliation });
+    });
+  </script>
 </body>
 </html>
