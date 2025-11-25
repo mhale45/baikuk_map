@@ -1117,13 +1117,17 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
+
+    // ============================================
+    // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
+    // ============================================
+    if (listings.length > 0) {
+        applyFiltersFromListing(listings[0], false); 
+        // false = onFilterChanged() 실행하지 않도록
+    }
+
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
-
-    // 🔥 클릭된 매물 기준으로 필터 자동 확장
-    if (listings.length > 0) {
-        applyFiltersFromListing(listings[0]);
-    }
 
     // ===========================
     // PC : InfoWindow 방식
@@ -1215,8 +1219,7 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
 // =====================================
 // 🔥 매물 클릭 시 해당 매물의 필터 자동 추가
 // =====================================
-
-function applyFiltersFromListing(listing) {
+function applyFiltersFromListing(listing, triggerReload = true) {
     if (!listing) return;
 
     // 1) 거래상태
@@ -1228,7 +1231,7 @@ function applyFiltersFromListing(listing) {
         });
     }
 
-    // 2) 거래유형 (월세, 매매)
+    // 2) 거래유형
     if (listing.deal_type) {
         document.querySelectorAll(".dealtype-check").forEach(cb => {
             if (listing.deal_type.includes(cb.value)) {
@@ -1237,7 +1240,7 @@ function applyFiltersFromListing(listing) {
         });
     }
 
-    // 3) 카테고리 (상가, 빌딩, 공장, 주택)
+    // 3) 카테고리
     if (listing.category) {
         document.querySelectorAll(".category-check").forEach(cb => {
             if (listing.category.includes(cb.value)) {
@@ -1246,6 +1249,6 @@ function applyFiltersFromListing(listing) {
         });
     }
 
-    // 🔥 필터 적용 후 바로 지도 갱신
-    onFilterChanged();
+    // 🔥 true일 때만 지도 reload
+    if (triggerReload) onFilterChanged();
 }
