@@ -177,16 +177,66 @@ function renderSearchResults(list) {
         return;
     }
 
-    // 기존 마커 클릭 시 UI와 동일한 양식 적용
-    box.innerHTML = `
-        <div style="
-            white-space: nowrap;   /* ← 여기 적용! */
-            display: inline-block;
-        ">
-            ${renderListingWithFloorSeparator(list)}
-        </div>
-    `;
+    // groupTitle : 그룹 제목 표시
+    const groupTitle = [
+        "📌 매물번호에서 매칭됨",
+        "📝 제목에서 매칭됨",
+        "🏠 주소에서 매칭됨",
+        "🔒 비고에서 매칭됨",
+        "기타"
+    ];
 
+    // score 계산 함수 (searchListingsByTitle 과 동일하게 유지!)
+    const keyword = document.getElementById("search-title-input").value.trim().toLowerCase();
+    const getScore = (item) => {
+        if (String(item.listing_id || "").includes(keyword)) return 0;
+        if ((item.listing_title || "").toLowerCase().includes(keyword)) return 1;
+        if ((item.full_address || "").toLowerCase().includes(keyword)) return 2;
+        if ((item.private_note || "").toLowerCase().includes(keyword)) return 3;
+        return 4;
+    };
+
+    // 🔥 그룹별로 묶기
+    const groups = { 0: [], 1: [], 2: [], 3: [], 4: [] };
+
+    list.forEach(item => {
+        const score = getScore(item);
+        groups[score].push(item);
+    });
+
+    // 🔥 HTML 생성
+    let html = "";
+
+    Object.keys(groups).forEach(score => {
+        const items = groups[score];
+        if (items.length === 0) return;
+
+        // 그룹 제목 추가
+        html += `
+            <div style="padding:4px 0; font-weight:bold; margin-top:8px;">
+                ${groupTitle[score]}
+            </div>
+            <div style="border-top:1px solid #ccc; margin:6px 0 10px 0;"></div>
+        `;
+
+        // 해당 그룹 아이템 나열
+        items.forEach(item => {
+            html += `
+                <div class="listing-item"
+                     data-id="${item.listing_id}"
+                     style="padding:4px 0; cursor:pointer; white-space:nowrap;">
+                    <strong>${item.listing_id}</strong> - 
+                    ${item.listing_title || "-"}<br>
+                    <span style="font-size:12px; color:#555;">
+                        ${item.full_address || ""}
+                    </span>
+                </div>
+            `;
+        });
+    });
+
+    // 출력
+    box.innerHTML = html;
     box.style.display = "block";
 }
 
