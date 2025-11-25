@@ -1278,6 +1278,7 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
         });
     }, 50);
 }
+
 // =====================================
 // 🔥 매물 클릭 시 해당 매물의 필터를 "그대로" 반영
 //    - 상태 / 거래유형 / 카테고리 그룹별로
@@ -1294,9 +1295,12 @@ function applyFiltersFromListing(listing, triggerReload = true) {
 
     // 1) 거래상태 (예: 진행중, 보류, 계약완료)
     if (listing.transaction_status) {
+        // 매물의 상태값 공백 제거
+        const statusValue = String(listing.transaction_status).trim();
+
         document.querySelectorAll(".status-check").forEach(cb => {
-            // 문자열 완전 일치 기준으로 비교
-            if (listing.transaction_status === cb.value) {
+            // 체크박스 value도 공백 제거 후 비교
+            if (statusValue === cb.value.trim()) {
                 cb.checked = true;
             }
         });
