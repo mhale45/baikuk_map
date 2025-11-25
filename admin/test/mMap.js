@@ -212,7 +212,7 @@ function renderSearchResults(list) {
 
         // 그룹 제목 + 구분선
         finalHTML += `
-            <div style="padding:6px 0 2px 0; font-weight:bold; color:#222;">
+            <div style="margin-top:14px; padding:6px 0 2px 0; font-weight:bold; color:#222;">
                 ${groupNames[score]}
             </div>
             <div style="border-top:1px solid #ccc; margin:4px 0 8px 0;"></div>
