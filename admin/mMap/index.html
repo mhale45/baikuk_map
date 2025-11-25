@@ -301,19 +301,36 @@
         >
             ✕
         </button>
-        
+
         <input
             id="search-title-input"
             type="text"
             placeholder="검색"
             style="
-                width: 330px;
+                width: 280px;
                 padding: 5px 8px;
                 border: 1px solid #ccc;
                 border-radius: 6px;
                 font-size: 14px;
             "
         />
+        
+        <!-- 🔄 재검색 버튼 -->
+        <button
+            id="search-refresh-btn"
+            type="button"
+            style="
+                padding: 0 10px;
+                height: 30px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                background: #fef3c7;   /* 연한 노랑 */
+                font-size: 14px;
+                cursor: pointer;
+            "
+        >
+            재검색
+        </button>
     </div>
 
     <!-- 🔍 검색 결과 리스트 -->
@@ -335,7 +352,6 @@
             display: none;
             font-size: 14px;
         ">
-
     </div>
 
     <!-- 지도 -->

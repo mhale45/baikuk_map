@@ -99,6 +99,8 @@ async function searchListingsByTitle(keyword) {
             listing_id,
             listing_title,
             full_address,
+            description,
+            private_note,
             deposit_price,
             monthly_rent,
             premium_price,
@@ -116,17 +118,21 @@ async function searchListingsByTitle(keyword) {
         .limit(50);
 
     if (isNumber) {
-        // 🔥 숫자 입력 → 매물번호 + 제목 + 주소 모두 검색
+        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비고 모두 검색
         query = query.or(
             `listing_id.eq.${keyword},` +
             `listing_title.ilike.%${keyword}%,` +
-            `full_address.ilike.%${keyword}%`
+            `full_address.ilike.%${keyword}%,` +
+            `description.ilike.%${keyword}%,` +
+            `private_note.ilike.%${keyword}%`
         );
     } else {
-        // 🔥 문자열 입력 → 제목 + 주소 모두 검색
+        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비고 검색
         query = query.or(
             `listing_title.ilike.%${keyword}%,` +
-            `full_address.ilike.%${keyword}%`
+            `full_address.ilike.%${keyword}%,` +
+            `description.ilike.%${keyword}%,` +
+            `private_note.ilike.%${keyword}%`
         );
     }
 
@@ -980,8 +986,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("search-title-input");
     const resultBox = document.getElementById("search-result-box");
     const clearBtn = document.getElementById("search-clear-btn");
+    const refreshBtn = document.getElementById("search-refresh-btn");
 
-    if (!input || !resultBox || !clearBtn) return;
+    // 요소 하나라도 없으면 실행 안 함
+    if (!input || !resultBox || !clearBtn || !refreshBtn) return;
 
     let typingTimer = null;
 
@@ -1000,7 +1008,29 @@ document.addEventListener("DOMContentLoaded", () => {
         input.focus();
     });
 
-    // 🔍 입력 시 검색 수행
+    // 🔄 재검색 버튼 클릭 시: 현재 검색어로 다시 검색
+    refreshBtn.addEventListener("click", async () => {
+        const keyword = input.value.trim();
+
+        // X 버튼 표시 상태 갱신
+        updateClearButtonVisibility();
+
+        // 검색어 없으면 결과창만 닫고 종료
+        if (!keyword) {
+            resultBox.style.display = "none";
+            resultBox.innerHTML = "";
+            input.focus();
+            return;
+        }
+
+        // 타이핑 딜레이 타이머 초기화 (중복검색 방지)
+        if (typingTimer) clearTimeout(typingTimer);
+
+        const list = await searchListingsByTitle(keyword);
+        renderSearchResults(list);
+    });
+
+    // 🔍 입력 시 검색 수행 (기존 기능 유지)
     input.addEventListener("input", () => {
         const keyword = input.value.trim();
 
