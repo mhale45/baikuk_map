@@ -114,20 +114,52 @@ async function searchListingsByTitle(keyword) {
         `)
         .limit(50);
 
-    if (isNumber) {
-        // 🔥 숫자 입력 → 매물번호 + 제목 + 주소 모두 검색
-        query = query.or(`
-            listing_id.eq.${keyword},
-            listing_title.ilike.%${keyword}%,
-            full_address.ilike.%${keyword}%
-        `);
-    } else {
-        // 🔥 문자열 입력 → 제목 + 주소 모두 검색
-        query = query.or(`
-            listing_title.ilike.%${keyword}%,
-            full_address.ilike.%${keyword}%
-        `);
-    }
+        // ==============================
+        // 🔥 먼저 full_address "정확히 일치" 검색
+        // ==============================
+        const exact = await window.supabase
+            .from("baikukdbtest")
+            .select(`
+                listing_id,
+                listing_title,
+                full_address,
+                deposit_price,
+                monthly_rent,
+                premium_price,
+                area_py,
+                floor,
+                transaction_status,
+                deal_type,
+                sale_price,
+                total_deposit,
+                total_rent,
+                rent_per_py,
+                roi,
+                sale_per_py
+            `)
+            .eq("full_address", keyword)
+            .limit(50);
+
+        if (exact.data && exact.data.length > 0) {
+            // 🔥 full_address 일치하는 것만 바로 리턴
+            return exact.data;
+        }
+
+        // ==============================
+        // 🔥 일치 결과가 없을 때 기존 "포함 검색" 수행
+        // ==============================
+        if (isNumber) {
+            query = query.or(`
+                listing_id.eq.${keyword},
+                listing_title.ilike.%${keyword}%,
+                full_address.ilike.%${keyword}%`
+            );
+        } else {
+            query = query.or(`
+                listing_title.ilike.%${keyword}%,
+                full_address.ilike.%${keyword}%`
+            );
+        }
 
     const { data, error } = await query;
 
@@ -149,24 +181,15 @@ function renderSearchResults(list) {
         return;
     }
 
-    box.innerHTML = list
-        .map(item => `
-            <div class="listing-item" data-id="${item.listing_id}" 
-                style="padding:6px 0; font-size:14px; cursor:pointer; border-bottom:1px solid #eee;">
-                
-                <strong style="font-size:15px;">${item.listing_title || "-"}</strong>
-                <br>
-                <span style="color:#555;">${item.full_address || ""}</span>
-                <br>
-
-                <span style="font-size:13px;">
-                    보 ${formatNumber(item.deposit_price)} /
-                    월 ${formatNumber(item.monthly_rent)} /
-                    ${item.premium_price ? `권 ${formatNumber(item.premium_price)}` : "무권리"}
-                </span>
-            </div>
-        `)
-        .join("");
+    // 기존 마커 클릭 시 UI와 동일한 양식 적용
+    box.innerHTML = `
+        <div style="
+            white-space: nowrap;   /* ← 여기 적용! */
+            display: inline-block;
+        ">
+            ${renderListingWithFloorSeparator(list)}
+        </div>
+    `;
 
     box.style.display = "block";
 }
