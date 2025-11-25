@@ -1047,9 +1047,11 @@ function renderSaleItem(item, floor, icon, bgColor) {
             <strong>${floor}층</strong> /
             <strong>${item.area_py ? Number(item.area_py).toFixed(1) : "-"}</strong>평 /
 
-            <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong>
-
-            ${ item.sale_per_py ? `/ <strong>${Number(item.sale_per_py).toFixed(1)}만/평</strong>` : "" }
+            <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
+            <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
+            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong>(${Number(item.rent_per_py).toFixed(1)}만) /
+            <strong><span style="color:green;">수 </span>${formatNumber(item.roi)}</strong> /
+            <strong>${formatNumber(item.sale_per_py)}</strong>만
         </div>
     `;
 }
