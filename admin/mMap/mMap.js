@@ -116,14 +116,12 @@ async function searchListingsByTitle(keyword) {
             sale_per_py
         `)
         // 🔥 검색 결과 정렬 순서 추가
-        .order("listing_id", { ascending: true })
-        .order("listing_title", { ascending: true })
         .order("full_address", { ascending: true })
-        .order("private_note", { ascending: true })
+        .order("floor", { ascending: true })
         .limit(100);
 
     if (isNumber) {
-        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비고 모두 검색
+        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비밀메모 모두 검색
         query = query.or(
             `listing_id.eq.${keyword},` +
             `listing_title.ilike.%${keyword}%,` +
@@ -132,7 +130,7 @@ async function searchListingsByTitle(keyword) {
             `private_note.ilike.%${keyword}%`
         );
     } else {
-        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비고 검색
+        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비밀메모 검색
         query = query.or(
             `listing_title.ilike.%${keyword}%,` +
             `full_address.ilike.%${keyword}%,` +
@@ -179,16 +177,78 @@ function renderSearchResults(list) {
         return;
     }
 
-    // 기존 마커 클릭 시 UI와 동일한 양식 적용
-    box.innerHTML = `
-        <div style="
-            white-space: nowrap;   /* ← 여기 적용! */
-            display: inline-block;
-        ">
-            ${renderListingWithFloorSeparator(list)}
-        </div>
+    const keyword = document.getElementById("search-title-input").value.trim().toLowerCase();
+
+    // 🔥 카테고리 점수 함수
+    const getScore = (item) => {
+        if (String(item.listing_id || "").includes(keyword)) return 0;
+        if ((item.listing_title || "").toLowerCase().includes(keyword)) return 1;
+        if ((item.full_address || "").toLowerCase().includes(keyword)) return 2;
+        if ((item.private_note || "").toLowerCase().includes(keyword)) return 3;
+        return 4;
+    };
+
+    // 🔥 그룹 생성
+    const groups = { 0: [], 1: [], 2: [], 3: [] };
+    list.forEach(item => {
+        const score = getScore(item);
+        if (score <= 3) groups[score].push(item);
+    });
+
+    const groupNames = [
+        "📌 매물번호 매칭",
+        "📝 제목 매칭",
+        "🏠 주소 매칭",
+        "🔒 비밀메모 매칭"
+    ];
+
+    let finalHTML = `
+        <div style="white-space: nowrap; display: inline-block;">
     `;
 
+    Object.keys(groups).forEach(score => {
+        const items = groups[score];
+        if (items.length === 0) return;
+
+        // 그룹 제목 + 구분선
+        finalHTML += `
+            <div style="margin-top:14px; padding:6px 0 2px 0; font-weight:bold; color:#222;">
+                ${groupNames[score]}
+            </div>
+            <div style="border-top:1px solid #ccc; margin:6px 0 12px 0;"></div>
+        `;
+
+        // 🔥 기존 배경색 규칙 적용
+        items.forEach(item => {
+            const floor = item.floor ?? "-";
+            const status = item.transaction_status || "";
+
+            const icon =
+                status.includes("완료") ? "🔴" :
+                status.includes("보류") ? "🟡" :
+                "🟢";
+
+            let bgColor = "";
+            if (status.includes("완료")) {
+                bgColor = "background:#f0f0f0;";
+            } else if (status.includes("보류")) {
+                bgColor = "background:#FFE5E5;";
+            } else {
+                bgColor = "background:#F7DA79;";
+            }
+
+            // 매매/월세 UI 기존 방식 그대로 사용
+            if ((item.deal_type || "").includes("매매")) {
+                finalHTML += renderSaleItem(item, floor, icon, bgColor);
+            } else {
+                finalHTML += renderRentItem(item, floor, icon, bgColor);
+            }
+        });
+    });
+
+    finalHTML += `</div>`;
+
+    box.innerHTML = finalHTML;
     box.style.display = "block";
 }
 

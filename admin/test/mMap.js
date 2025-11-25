@@ -121,7 +121,7 @@ async function searchListingsByTitle(keyword) {
         .limit(100);
 
     if (isNumber) {
-        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비고 모두 검색
+        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비밀메모 모두 검색
         query = query.or(
             `listing_id.eq.${keyword},` +
             `listing_title.ilike.%${keyword}%,` +
@@ -130,7 +130,7 @@ async function searchListingsByTitle(keyword) {
             `private_note.ilike.%${keyword}%`
         );
     } else {
-        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비고 검색
+        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비밀메모 검색
         query = query.or(
             `listing_title.ilike.%${keyword}%,` +
             `full_address.ilike.%${keyword}%,` +
@@ -199,7 +199,7 @@ function renderSearchResults(list) {
         "📌 매물번호 매칭",
         "📝 제목 매칭",
         "🏠 주소 매칭",
-        "🔒 비고 매칭"
+        "🔒 비밀메모 매칭"
     ];
 
     let finalHTML = `
