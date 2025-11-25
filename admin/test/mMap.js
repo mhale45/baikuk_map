@@ -1035,7 +1035,7 @@ async function moveMapToListing(listingId) {
 function renderSaleItem(item, floor, icon, bgColor) {
     return `
         <div class="listing-item" data-id="${item.listing_id}" 
-             style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
+             style="padding:4px 6px; font-size:14px; cursor:pointer; ${bgColor}">
              
             ${icon}
             <strong>
