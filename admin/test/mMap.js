@@ -1097,8 +1097,9 @@ async function moveMapToListing(listingId) {
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
-    openListingPopupByAddress(full_address, lat, lng);
+    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄우되,
+    //    어떤 매물을 클릭했는지 listingId도 같이 넘겨준다
+    openListingPopupByAddress(full_address, lat, lng, listingId);
 }
 
 function renderSaleItem(item, floor, icon, bgColor) {
@@ -1175,18 +1176,35 @@ function renderRentItem(item, floor, icon, bgColor) {
     `;
 }
 
-async function openListingPopupByAddress(fullAddress, lat, lng) {
+async function openListingPopupByAddress(fullAddress, lat, lng, clickedListingId = null) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
 
     // ============================================
-    // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
-    //    → 검색결과에서 클릭했을 때는 필터도 적용하고
-    //      지도/마커도 다시 로드되도록 true 로 설정
+    // 🔥 필터로 걸러지기 전에 "클릭한 매물" 기준으로 필터 확장
+    //    - clickedListingId가 있으면 그 매물을 찾고
+    //    - 없으면 기존처럼 listings[0] 사용
     // ============================================
     if (listings.length > 0) {
-        applyFiltersFromListing(listings[0], true);  // ✅ 여기 true 로 변경
+        let targetListing = listings[0];
+
+        // 검색결과에서 클릭한 경우: listingId가 넘어옴
+        if (clickedListingId != null) {
+            const found = listings.find(
+                (item) => String(item.listing_id) === String(clickedListingId)
+            );
+            if (found) {
+                targetListing = found;
+            }
+        }
+
+        // 디버그용 로그 (원하면 나중에 지워도 됨)
+        console.log("필터 기준 매물 listing_id:", targetListing.listing_id);
+        console.log("필터 기준 매물 transaction_status:", targetListing.transaction_status);
+
+        applyFiltersFromListing(targetListing, false); 
+        // false = onFilterChanged() 실행하지 않도록
     }
 
     listings = applyAllFilters(listings);
