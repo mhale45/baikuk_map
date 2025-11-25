@@ -99,6 +99,8 @@ async function searchListingsByTitle(keyword) {
             listing_id,
             listing_title,
             full_address,
+            description,
+            private_note,
             deposit_price,
             monthly_rent,
             premium_price,
@@ -116,17 +118,21 @@ async function searchListingsByTitle(keyword) {
         .limit(50);
 
     if (isNumber) {
-        // 🔥 숫자 입력 → 매물번호 + 제목 + 주소 모두 검색
+        // 🔥 숫자 입력 → listing_id + 제목 + 주소 + 설명 + 비고 모두 검색
         query = query.or(
             `listing_id.eq.${keyword},` +
             `listing_title.ilike.%${keyword}%,` +
-            `full_address.ilike.%${keyword}%`
+            `full_address.ilike.%${keyword}%,` +
+            `description.ilike.%${keyword}%,` +
+            `private_note.ilike.%${keyword}%`
         );
     } else {
-        // 🔥 문자열 입력 → 제목 + 주소 모두 검색
+        // 🔥 문자열 입력 → 제목 + 주소 + 설명 + 비고 검색
         query = query.or(
             `listing_title.ilike.%${keyword}%,` +
-            `full_address.ilike.%${keyword}%`
+            `full_address.ilike.%${keyword}%,` +
+            `description.ilike.%${keyword}%,` +
+            `private_note.ilike.%${keyword}%`
         );
     }
 
