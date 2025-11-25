@@ -1054,9 +1054,12 @@ function renderSaleItem(item, floor, icon, bgColor) {
 
             <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
             <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
-            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong>
-                (${item.rent_per_py ? Number(item.rent_per_py).toFixed(1) : ""}만) /
-            <strong><span style="color:green;">수 </span>${item.roi != null ? Number(item.roi).toFixed(1) + "%" : ""}</strong> /
+            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong> /
+            <strong><span style="color:green;">수 </span>${
+                item.roi != null
+                    ? (Number(item.roi) * 100).toFixed(1) + "%"
+                    : "-"
+            }</strong> /
             <strong>${item.sale_per_py != null ? Number(item.sale_per_py).toFixed(1) : ""}</strong>만
         </div>
     `;
