@@ -1087,8 +1087,8 @@ function renderRentItem(item, floor, icon, bgColor) {
 
             ${
                 (!item.premium_price || Number(item.premium_price) === 0)
-                    ? `<strong><span style="color:red;">무권리</span></strong> /`
-                    : `<strong><span style="color:red;">권 ${formatNumber(item.premium_price)}</span></strong> /`
+                    ? `<strong><span style="color:#d32f2f;">무권리</span></strong> /`
+                    : `<strong><span style="color:#d32f2f;">권 ${formatNumber(item.premium_price)}</span></strong> /`
             }
 
             ${ item.rent_per_py ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` : "" }
