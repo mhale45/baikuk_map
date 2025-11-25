@@ -215,7 +215,7 @@ function renderSearchResults(list) {
             <div style="margin-top:14px; padding:6px 0 2px 0; font-weight:bold; color:#222;">
                 ${groupNames[score]}
             </div>
-            <div style="border-top:1px solid #ccc; margin:4px 0 8px 0;"></div>
+            <div style="border-top:1px solid #ccc; margin:6px 0 12px 0;"></div>
         `;
 
         // 🔥 기존 배경색 규칙 적용
