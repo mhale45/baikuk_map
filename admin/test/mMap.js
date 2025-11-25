@@ -586,6 +586,10 @@ function reloadListingsOnMapThrottled() {
 
 // 필터 초기화 함수
 function resetFilterSelections() {
+    // 전체 체크박스 false
+    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => cb.checked = false);
+
     // 기본 선택값 적용
     const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
     defaults.forEach(val => {
@@ -1085,27 +1089,15 @@ async function moveMapToListing(listingId) {
     const { lat, lng, full_address } = data;
     const pos = new kakao.maps.LatLng(lat, lng);
 
-    // 🔥 1) 먼저 listingId 로 상세정보 조회 (상태/유형/카테고리)
-    const { data: listingDetail } = await window.supabase
-        .from("baikukdbtest")
-        .select("transaction_status, deal_type, category")
-        .eq("listing_id", listingId)
-        .maybeSingle();
-
-    if (listingDetail) {
-        // 🔥 2) 해당 매물의 필터 자동 추가
-        applyFiltersFromListing(listingDetail, true);
-    }
-
-    // 🔥 3) 지도 이동
+    // 지도 이동 + 레벨 2 고정
     map.panTo(pos);
     map.setLevel(2);
 
-    // 🔥 4) 검색창 닫기
+    // 검색결과 박스 닫기
     const box = document.getElementById("search-result-box");
     if (box) box.style.display = "none";
 
-    // 🔥 5) 기존처럼 리스트 패널 열기
+    // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
     openListingPopupByAddress(full_address, lat, lng);
 }
 
@@ -1183,10 +1175,18 @@ function renderRentItem(item, floor, icon, bgColor) {
     `;
 }
 
-async function openListingPopupByAddress(fullAddress, lat, lng, clickedListingId = null) {
+async function openListingPopupByAddress(fullAddress, lat, lng) {
     const isPC = window.innerWidth >= 769;
 
     let listings = await loadListingsByAddress(fullAddress);
+
+    // ============================================
+    // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
+    // ============================================
+    if (listings.length > 0) {
+        applyFiltersFromListing(listings[0], false); 
+        // false = onFilterChanged() 실행하지 않도록
+    }
 
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
@@ -1279,51 +1279,38 @@ async function openListingPopupByAddress(fullAddress, lat, lng, clickedListingId
 }
 
 // =====================================
-// 🔥 매물 클릭 시 해당 매물의 필터를 추가 체크
-//    - 기존 체크 유지
-//    - 상태 / 유형 / 카테고리를 "추가로 체크"
+// 🔥 매물 클릭 시 해당 매물의 필터 자동 추가
 // =====================================
 function applyFiltersFromListing(listing, triggerReload = true) {
     if (!listing) return;
 
-    // -----------------------------------------
-    // 1) 상태 체크 추가
-    // -----------------------------------------
+    // 1) 거래상태
     if (listing.transaction_status) {
-        const statusValue = String(listing.transaction_status).trim();
-
         document.querySelectorAll(".status-check").forEach(cb => {
-            const cbVal = cb.value.trim();
-            if (statusValue.includes(cbVal)) {
-                cb.checked = true; // 기존 체크 유지 + 추가 체크
+            if (listing.transaction_status.includes(cb.value)) {
+                cb.checked = true;
             }
         });
     }
 
-    // -----------------------------------------
-    // 2) 거래유형 체크 추가
-    // -----------------------------------------
+    // 2) 거래유형
     if (listing.deal_type) {
-        const dealValue = String(listing.deal_type).trim();
-
         document.querySelectorAll(".dealtype-check").forEach(cb => {
-            const cbVal = cb.value.trim();
-            if (dealValue.includes(cbVal)) {
-                cb.checked = true; // 기존 체크 유지 + 추가 체크
+            if (listing.deal_type.includes(cb.value)) {
+                cb.checked = true;
             }
         });
     }
 
-    // -----------------------------------------
-    // 3) 카테고리 체크 추가
-    // -----------------------------------------
+    // 3) 카테고리
     if (listing.category) {
-        const catValue = String(listing.category).trim();
-
         document.querySelectorAll(".category-check").forEach(cb => {
-            const cbVal = cb.value.trim();
-            if (catValue.includes(cbVal)) {
-                cb.checked = true; // 기존 체크 유지 + 추가 체크
+            if (listing.category.includes(cb.value)) {
+                cb.checked = true;
             }
         });
     }
+
+    // 🔥 true일 때만 지도 reload
+    if (triggerReload) onFilterChanged();
+}
