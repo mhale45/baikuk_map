@@ -103,7 +103,14 @@ async function searchListingsByTitle(keyword) {
             premium_price,
             area_py,
             floor,
-            transaction_status
+            transaction_status,
+            deal_type,
+            sale_price,
+            total_deposit,
+            total_rent,
+            rent_per_py,
+            roi,
+            sale_per_py
         `)
         .limit(50);
 
@@ -204,7 +211,12 @@ async function loadListingsByAddress(fullAddress) {
             transaction_status,
             deal_type,
             category,
-            rent_per_py
+            rent_per_py,
+            sale_price,
+            total_deposit,
+            total_rent,
+            roi,
+            sale_per_py
         `)
         .eq("full_address", fullAddress);
 
@@ -294,7 +306,6 @@ async function loadListingsByBounds() {
     return data;
 }
 
-
 function renderListingWithFloorSeparator(listings) {
     let prevFloor = null;
     let html = "";
@@ -309,14 +320,17 @@ function renderListingWithFloorSeparator(listings) {
 
         prevFloor = floor;
 
+        // ==============================
+        // 🔥 상태 아이콘 (추천 A안 적용)
+        // ==============================
         const status = item.transaction_status || "";
         const icon =
-            status.includes("완료") ? "◆" :
-            status.includes("보류") ? "🔹" :
-            "🔸";
+            status.includes("완료") ? "🔴" :
+            status.includes("보류") ? "🟡" :
+            "🟢";    // 진행중 기본값
 
         // ==============================
-        // 🔥 상태별 배경색 지정
+        // 🔥 상태별 배경색
         // ==============================
         let bgColor = "";
         if (status.includes("완료")) {
@@ -328,36 +342,20 @@ function renderListingWithFloorSeparator(listings) {
         }
 
         // ==============================
-        // 🔥 최종 HTML 출력
+        // 🔥 월세 / 매매 분기
         // ==============================
-        html += `
-            <div class="listing-item" data-id="${item.listing_id}" style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
-                ${icon} 
-                <strong>
-                    <span class="copy-listing-id"
-                        data-id="${item.listing_id}"
-                        style="cursor:pointer;"
-                        onclick="event.stopPropagation();">
-                        ${item.listing_id}
-                    </span>
-                </strong>
-                <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
-                <strong><span style="display:inline-block; min-width:30px; text-align:right;">${floor}층</span></strong> /
-                <span style="display:inline-block; min-width:50px; text-align:right;"><strong>${item.area_py != null ? Number(item.area_py).toFixed(1) : "-"}</strong>평</span> /
-                <strong><span style="color:blue; min-width:70px; text-align:right;">보 </span>${formatNumber(item.deposit_price)}</strong> /
-                <strong><span style="color:green; min-width:60px; text-align:right;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
-                ${
-                    (!item.premium_price || Number(item.premium_price) === 0)
-                        ? `<strong><span style="color:red; min-width:85px; text-align:right;">무권리</span></strong> /`
-                        : `<span style="min-width:85px; text-align:right;"><strong><span style="color:red;">권 </span></strong> <strong>${formatNumber(item.premium_price)}</strong></span> /`
-                }
-                ${
-                    item.rent_per_py
-                        ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>`
-                        : ""
-                }
-            </div>
-        `;
+        const dealType = item.deal_type || "";
+
+        if (dealType.includes("월세")) {
+            html += renderRentItem(item, floor, icon, bgColor);
+        } 
+        else if (dealType.includes("매매")) {
+            html += renderSaleItem(item, floor, icon, bgColor);
+        } 
+        else {
+            // 혹시 모르는 기타 타입 → 기본 월세 형식 적용
+            html += renderRentItem(item, floor, icon, bgColor);
+        }
     });
 
     return html;
@@ -1039,6 +1037,80 @@ async function moveMapToListing(listingId) {
 
     // 🔥 지도 이동 후 기존 마커 클릭 기능과 동일하게 매물 리스트를 띄운다
     openListingPopupByAddress(full_address, lat, lng);
+}
+
+function renderSaleItem(item, floor, icon, bgColor) {
+    return `
+        <div class="listing-item" data-id="${item.listing_id}" 
+             style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
+             
+            ${icon}
+            <strong>
+                <span class="copy-listing-id" 
+                      data-id="${item.listing_id}" 
+                      style="cursor:pointer;" 
+                      onclick="event.stopPropagation();">
+                      ${item.listing_id}
+                </span>
+            </strong>
+
+            <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
+
+            <strong><span style="display:inline-block; min-width:30px; text-align:right;">${floor}층</span></strong> /
+            <span style="display:inline-block; min-width:50px; text-align:right;"><strong>${item.area_py ? Number(item.area_py).toFixed(1) : ""}</strong>평</span> /
+
+            <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
+            <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
+            <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong> /
+            <strong><span style="color:green;">수 </span>${
+                item.roi != null
+                    ? (Number(item.roi) * 100).toFixed(1) + "%"
+                    : ""
+            }</strong> /
+            <strong>${formatNumber(item.sale_per_py != null ? Number(item.sale_per_py).toFixed(0) : "")}</strong> /
+            <strong>
+                ${ (item.total_rent != null && item.area_py > 0)
+                    ? (Number(item.total_rent) / Number(item.area_py)).toFixed(1)
+                    : ""
+                }
+            </strong>
+
+        </div>
+    `;
+}
+
+function renderRentItem(item, floor, icon, bgColor) {
+    return `
+        <div class="listing-item" data-id="${item.listing_id}" 
+             style="padding:4px 0; font-size:14px; cursor:pointer; ${bgColor}">
+             
+            ${icon}
+            <strong>
+                <span class="copy-listing-id" 
+                      data-id="${item.listing_id}" 
+                      style="cursor:pointer;" 
+                      onclick="event.stopPropagation();">
+                      ${item.listing_id}
+                </span>
+            </strong>
+
+            <strong><span style="font-size:15px;">${item.listing_title || "-"}</span></strong><br/>
+
+            <strong><span style="display:inline-block; min-width:30px; text-align:right;">${floor}층</span></strong> /
+            <span style="display:inline-block; min-width:50px; text-align:right;"><strong>${item.area_py ? Number(item.area_py).toFixed(1) : "-"}</strong>평</span> /
+
+            <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
+            <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
+
+            ${
+                (!item.premium_price || Number(item.premium_price) === 0)
+                    ? `<strong><span style="color:#d32f2f;">무권리</span></strong> /`
+                    : `<strong><span style="color:#d32f2f;">권 ${formatNumber(item.premium_price)}</span></strong> /`
+            }
+
+            ${ item.rent_per_py ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` : "" }
+        </div>
+    `;
 }
 
 async function openListingPopupByAddress(fullAddress, lat, lng) {
