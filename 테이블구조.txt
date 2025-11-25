@@ -212,22 +212,22 @@ addr_compare : text
 building_note : text
 
 - baikukdbtest 테이블
-담당자명 agent_name : text
-거래완료 여부 transaction_status : text 
-거래유형 deal_type : text 
-대분류 1차 category : text 
-매물명 listing_title : text 
-시/도 province : text 
-구/군 city : text 
-동/읍/면 district : text 
-상세주소 detail_address  : text 
-지번주소 full_address : text 
-호수정보 unit_info : text 
-방/사무실 개수 room_count : text 
-화장실 restroom : text 
-방향 direction : text 
-제목 title : text 
-상세정보 description : text 
+agent_name : text
+transaction_status : text 
+deal_type : text 
+category : text 
+listing_title : text 
+province : text 
+city : text 
+district : text 
+detail_address  : text 
+full_address : text 
+unit_info : text 
+room_count : text 
+restroom : text 
+direction : text 
+title : text 
+description : text 
 비밀메모 private_note : text 
 상가종류 store_type : text 
 업종  store_type_detail : text 
