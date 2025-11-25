@@ -301,13 +301,13 @@
         >
             ✕
         </button>
-        
+
         <input
             id="search-title-input"
             type="text"
             placeholder="검색"
             style="
-                width: 330px;
+                width: 300px;
                 padding: 5px 8px;
                 border: 1px solid #ccc;
                 border-radius: 6px;
@@ -335,7 +335,6 @@
             display: none;
             font-size: 14px;
         ">
-
     </div>
 
     <!-- 지도 -->
