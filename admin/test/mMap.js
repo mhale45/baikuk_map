@@ -1182,10 +1182,11 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
 
     // ============================================
     // 🔥 필터로 걸러지기 전에 클릭된 매물 기준으로 필터 확장
+    //    → 검색결과에서 클릭했을 때는 필터도 적용하고
+    //      지도/마커도 다시 로드되도록 true 로 설정
     // ============================================
     if (listings.length > 0) {
-        applyFiltersFromListing(listings[0], false); 
-        // false = onFilterChanged() 실행하지 않도록
+        applyFiltersFromListing(listings[0], true);  // ✅ 여기 true 로 변경
     }
 
     listings = applyAllFilters(listings);
