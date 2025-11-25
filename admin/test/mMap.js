@@ -586,10 +586,6 @@ function reloadListingsOnMapThrottled() {
 
 // 필터 초기화 함수
 function resetFilterSelections() {
-    // 전체 체크박스 false
-    document.querySelectorAll(".status-check, .dealtype-check, .category-check")
-        .forEach(cb => cb.checked = false);
-
     // 기본 선택값 적용
     const defaults = ["진행중", "월세", "상가", "빌딩", "공장"];
     defaults.forEach(val => {
@@ -1192,32 +1188,6 @@ async function openListingPopupByAddress(fullAddress, lat, lng, clickedListingId
 
     let listings = await loadListingsByAddress(fullAddress);
 
-    // ============================================
-    // 🔥 필터로 걸러지기 전에 "클릭한 매물" 기준으로 필터 확장
-    //    - clickedListingId가 있으면 그 매물을 찾고
-    //    - 없으면 기존처럼 listings[0] 사용
-    // ============================================
-    if (listings.length > 0) {
-        let targetListing = listings[0];
-
-        // 검색결과에서 클릭한 경우: listingId가 넘어옴
-        if (clickedListingId != null) {
-            const found = listings.find(
-                (item) => String(item.listing_id) === String(clickedListingId)
-            );
-            if (found) {
-                targetListing = found;
-            }
-        }
-
-        // 디버그용 로그 (원하면 나중에 지워도 됨)
-        console.log("필터 기준 매물 listing_id:", targetListing.listing_id);
-        console.log("필터 기준 매물 transaction_status:", targetListing.transaction_status);
-
-        applyFiltersFromListing(targetListing, false); 
-        // false = onFilterChanged() 실행하지 않도록
-    }
-
     listings = applyAllFilters(listings);
     listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
 
@@ -1323,35 +1293,19 @@ function applyFiltersFromListing(listing, triggerReload = true) {
         .forEach(cb => (cb.checked = false));
 
     // 1) 거래상태 (예: 진행중, 보류, 계약완료)
-    if (listing.transaction_status) {
+    if (listing.transaction_status.includes(cb.value)) {
         // 매물의 상태값 공백 제거
         const statusValue = String(listing.transaction_status).trim();
-        console.log("=== 거래상태 디버그 시작 ===");
-        console.log("listing.transaction_status:", listing.transaction_status);
-        console.log("statusValue(trim):", statusValue);
 
         document.querySelectorAll(".status-check").forEach(cb => {
             const cbVal = cb.value.trim();
-
-            console.log("---- 체크박스 비교 ----");
-            console.log("cb.value:", cb.value);
-            console.log("cb.value(trim):", cbVal);
-            console.log(`비교: "${statusValue}" === "${cbVal}" ?`, statusValue === cbVal);
-
             // 체크 여부
-            if (statusValue === cbVal) {
+            if (statusValue.includes(cbVal)){
                 cb.checked = true;
-                console.log("👉 체크됨!");
             } else {
                 cb.checked = false;
-                console.log("❌ 체크 안함");
             }
-
-            console.log("현재 cb.checked:", cb.checked);
-            console.log("----------------------");
         });
-
-        console.log("=== 거래상태 디버그 끝 ===");
     }
 
     // 2) 거래유형 (예: 월세, 매매)
