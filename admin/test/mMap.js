@@ -90,6 +90,7 @@ window.addEventListener("DOMContentLoaded", () => {
 async function searchListingsByTitle(keyword) {
     if (!keyword) return [];
 
+    // 숫자 여부 판단
     const isNumber = !isNaN(Number(keyword));
 
     let query = window.supabase
@@ -97,7 +98,6 @@ async function searchListingsByTitle(keyword) {
         .select(`
             listing_id,
             listing_title,
-            full_address,
             deposit_price,
             monthly_rent,
             premium_price,
@@ -115,18 +115,11 @@ async function searchListingsByTitle(keyword) {
         .limit(50);
 
     if (isNumber) {
-        // 🔥 숫자 입력 → 매물번호 + 제목 + 주소 모두 검색
-        query = query.or(`
-            listing_id.eq.${keyword},
-            listing_title.ilike.%${keyword}%,
-            full_address.ilike.%${keyword}%
-        `);
+        // 🔥 숫자이면 listing_id 검색 + title 검색 모두 포함
+        query = query.or(`listing_id.eq.${keyword},listing_title.ilike.%${keyword}%`);
     } else {
-        // 🔥 문자열 입력 → 제목 + 주소 모두 검색
-        query = query.or(`
-            listing_title.ilike.%${keyword}%,
-            full_address.ilike.%${keyword}%
-        `);
+        // 🔥 글자이면 제목 검색만
+        query = query.ilike("listing_title", `%${keyword}%`);
     }
 
     const { data, error } = await query;
@@ -135,7 +128,6 @@ async function searchListingsByTitle(keyword) {
         console.error("❌ 확장 검색 오류:", error);
         return [];
     }
-
     return data;
 }
 
