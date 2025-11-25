@@ -1278,40 +1278,50 @@ async function openListingPopupByAddress(fullAddress, lat, lng) {
         });
     }, 50);
 }
-
 // =====================================
-// 🔥 매물 클릭 시 해당 매물의 필터 자동 추가
+// 🔥 매물 클릭 시 해당 매물의 필터를 "그대로" 반영
+//    - 상태 / 거래유형 / 카테고리 그룹별로
+//      기존 체크를 모두 해제하고
+//      해당 매물에 맞는 것만 체크
 // =====================================
 function applyFiltersFromListing(listing, triggerReload = true) {
     if (!listing) return;
 
-    // 1) 거래상태
+    // 0) 먼저 세 그룹 체크박스 전체 해제
+    document
+        .querySelectorAll(".status-check, .dealtype-check, .category-check")
+        .forEach(cb => (cb.checked = false));
+
+    // 1) 거래상태 (예: 진행중, 보류, 계약완료)
     if (listing.transaction_status) {
         document.querySelectorAll(".status-check").forEach(cb => {
-            if (listing.transaction_status.includes(cb.value)) {
+            // 문자열 완전 일치 기준으로 비교
+            if (listing.transaction_status === cb.value) {
                 cb.checked = true;
             }
         });
     }
 
-    // 2) 거래유형
+    // 2) 거래유형 (예: 월세, 매매)
     if (listing.deal_type) {
         document.querySelectorAll(".dealtype-check").forEach(cb => {
-            if (listing.deal_type.includes(cb.value)) {
+            if (listing.deal_type === cb.value) {
                 cb.checked = true;
             }
         });
     }
 
-    // 3) 카테고리
+    // 3) 카테고리 (예: 상가, 빌딩, 공장, 주택)
     if (listing.category) {
         document.querySelectorAll(".category-check").forEach(cb => {
-            if (listing.category.includes(cb.value)) {
+            if (listing.category === cb.value) {
                 cb.checked = true;
             }
         });
     }
 
     // 🔥 true일 때만 지도 reload
-    if (triggerReload) onFilterChanged();
+    if (triggerReload) {
+        onFilterChanged();
+    }
 }
