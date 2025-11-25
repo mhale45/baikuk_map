@@ -166,7 +166,6 @@ async function searchListingsByTitle(keyword) {
     return sorted;
 
 }
-
 function renderSearchResults(list) {
     const box = document.getElementById("search-result-box");
     if (!box) return;
@@ -177,17 +176,9 @@ function renderSearchResults(list) {
         return;
     }
 
-    // groupTitle : 그룹 제목 표시
-    const groupTitle = [
-        "📌 매물번호에서 매칭됨",
-        "📝 제목에서 매칭됨",
-        "🏠 주소에서 매칭됨",
-        "🔒 비고에서 매칭됨",
-        "기타"
-    ];
-
-    // score 계산 함수 (searchListingsByTitle 과 동일하게 유지!)
     const keyword = document.getElementById("search-title-input").value.trim().toLowerCase();
+
+    // 🔥 카테고리 점수 함수
     const getScore = (item) => {
         if (String(item.listing_id || "").includes(keyword)) return 0;
         if ((item.listing_title || "").toLowerCase().includes(keyword)) return 1;
@@ -196,47 +187,74 @@ function renderSearchResults(list) {
         return 4;
     };
 
-    // 🔥 그룹별로 묶기
-    const groups = { 0: [], 1: [], 2: [], 3: [], 4: [] };
-
+    // 🔥 그룹핑
+    const groups = { 0: [], 1: [], 2: [], 3: [] };
     list.forEach(item => {
         const score = getScore(item);
-        groups[score].push(item);
+        if (score <= 3) groups[score].push(item);
     });
 
-    // 🔥 HTML 생성
-    let html = "";
+    // 🔥 그룹 이름
+    const groupNames = [
+        "📌 매물번호 매칭",
+        "📝 제목 매칭",
+        "🏠 주소 매칭",
+        "🔒 비고 매칭"
+    ];
 
+    let finalHTML = `
+        <div style="white-space: nowrap; display: inline-block;">
+    `;
+
+    // 🔥 그룹 반복하여 출력
     Object.keys(groups).forEach(score => {
         const items = groups[score];
         if (items.length === 0) return;
 
-        // 그룹 제목 추가
-        html += `
-            <div style="padding:4px 0; font-weight:bold; margin-top:8px;">
-                ${groupTitle[score]}
+        // 그룹 제목 + 구분선 추가
+        finalHTML += `
+            <div style="padding:6px 0 2px 0; font-weight:bold; color:#333;">
+                ${groupNames[score]}
             </div>
-            <div style="border-top:1px solid #ccc; margin:6px 0 10px 0;"></div>
+            <div style="border-top:1px solid #ccc; margin:4px 0 8px 0;"></div>
         `;
 
-        // 해당 그룹 아이템 나열
+        // 🔥 기존 UI 출력 → 여기서 item 하나씩 기존 렌더링 함수에 전달
+        // 기존 함수: renderListingWithFloorSeparator(items)
+        // 하지만 이 함수는 "여러 건의 매물 중 층 기준 정렬/구분" 형태이므로
+        // item 단위로 사용해선 안 됨
+        //
+        // 👉 대신 기존 UI가 renderSaleItem / renderRentItem 을 쓰므로,
+        //     원본 리스트와 동일하게 item만 그대로 쌓아주면 됨.
+        //
+        // renderListingWithFloorSeparator(list) 는 address 별 묶음용이므로
+        // 검색결과에서는 단순히 item 단위로 만들어야 함.
+
         items.forEach(item => {
-            html += `
-                <div class="listing-item"
-                     data-id="${item.listing_id}"
-                     style="padding:4px 0; cursor:pointer; white-space:nowrap;">
-                    <strong>${item.listing_id}</strong> - 
-                    ${item.listing_title || "-"}<br>
-                    <span style="font-size:12px; color:#555;">
-                        ${item.full_address || ""}
-                    </span>
-                </div>
-            `;
+            const floor = item.floor ?? "-";
+            const status = item.transaction_status || "";
+
+            const icon =
+                status.includes("완료") ? "🔴" :
+                status.includes("보류") ? "🟡" :
+                "🟢";
+
+            let html = "";
+
+            if ((item.deal_type || "").includes("매매")) {
+                html = renderSaleItem(item, floor, icon, "");
+            } else {
+                html = renderRentItem(item, floor, icon, "");
+            }
+
+            finalHTML += html;
         });
     });
 
-    // 출력
-    box.innerHTML = html;
+    finalHTML += `</div>`;
+
+    // 최종 출력
+    box.innerHTML = finalHTML;
     box.style.display = "block";
 }
 
