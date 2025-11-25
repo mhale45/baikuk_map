@@ -149,15 +149,24 @@ function renderSearchResults(list) {
         return;
     }
 
-    // 기존 마커 클릭 시 UI와 동일한 양식 적용
-    box.innerHTML = `
-        <div style="
-            white-space: nowrap;   /* ← 여기 적용! */
-            display: inline-block;
-        ">
-            ${renderListingWithFloorSeparator(list)}
-        </div>
-    `;
+    box.innerHTML = list
+        .map(item => `
+            <div class="listing-item" data-id="${item.listing_id}" 
+                style="padding:6px 0; font-size:14px; cursor:pointer; border-bottom:1px solid #eee;">
+                
+                <strong style="font-size:15px;">${item.listing_title || "-"}</strong>
+                <br>
+                <span style="color:#555;">${item.full_address || ""}</span>
+                <br>
+
+                <span style="font-size:13px;">
+                    보 ${formatNumber(item.deposit_price)} /
+                    월 ${formatNumber(item.monthly_rent)} /
+                    ${item.premium_price ? `권 ${formatNumber(item.premium_price)}` : "무권리"}
+                </span>
+            </div>
+        `)
+        .join("");
 
     box.style.display = "block";
 }
