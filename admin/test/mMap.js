@@ -92,7 +92,7 @@ async function searchListingsByTitle(keyword) {
 
     // 숫자 여부 판단
     const isNumber = !isNaN(Number(keyword));
-
+    
     let query = window.supabase
         .from("baikukdbtest")
         .select(`
@@ -115,6 +115,11 @@ async function searchListingsByTitle(keyword) {
             roi,
             sale_per_py
         `)
+        // 🔥 검색 결과 정렬 순서 추가
+        .order("listing_id", { ascending: true })
+        .order("listing_title", { ascending: true })
+        .order("full_address", { ascending: true })
+        .order("private_note", { ascending: true })
         .limit(50);
 
     if (isNumber) {

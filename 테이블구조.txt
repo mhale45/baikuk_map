@@ -212,6 +212,7 @@ addr_compare : text
 building_note : text
 
 - baikukdbtest 테이블
+listing_id : int8
 agent_name : text
 transaction_status : text 
 deal_type : text 
@@ -228,7 +229,7 @@ restroom : text
 direction : text 
 title : text 
 description : text 
-비밀메모 private_note : text 
+private_note : text 
 상가종류 store_type : text 
 업종  store_type_detail : text 
 특징 features  : text 
@@ -236,7 +237,6 @@ description : text
 건축물용도 building_usage : text 
 키 composite_key : text 
 링크 listing_url : text 
-매물번호 listing_id : int8
 해당층 floor  : int2
 전체층 total_floors  : int2
 주차 parking : int2
