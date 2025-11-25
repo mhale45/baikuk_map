@@ -284,12 +284,30 @@
             box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
         ">
 
+        <!-- 🔥 검색어 초기화 X 버튼 -->
+        <button
+            id="search-clear-btn"
+            type="button"
+            style="
+                display: none;          /* 기본은 숨김, 글자 입력되면 JS에서 보이게 */
+                padding: 0 8px;
+                height: 30px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                background: #f3f3f3;
+                font-size: 14px;
+                cursor: pointer;
+            "
+        >
+            ✕
+        </button>
+        
         <input
             id="search-title-input"
             type="text"
             placeholder="검색"
             style="
-                width: 350px;
+                width: 330px;
                 padding: 5px 8px;
                 border: 1px solid #ccc;
                 border-radius: 6px;

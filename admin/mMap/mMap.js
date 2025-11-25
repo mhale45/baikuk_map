@@ -971,16 +971,37 @@ function openListingNewTab(listingId) {
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("search-title-input");
     const resultBox = document.getElementById("search-result-box");
+    const clearBtn = document.getElementById("search-clear-btn");
 
-    if (!input || !resultBox) return;
+    if (!input || !resultBox || !clearBtn) return;
 
     let typingTimer = null;
 
+    // 🔥 X 버튼 보이기/숨기기
+    function updateClearButtonVisibility() {
+        const hasText = input.value.trim().length > 0;
+        clearBtn.style.display = hasText ? "inline-flex" : "none";
+    }
+
+    // 🔥 X 버튼 클릭 시: 검색어 + 결과 초기화
+    clearBtn.addEventListener("click", () => {
+        input.value = "";
+        updateClearButtonVisibility();
+        resultBox.style.display = "none";
+        resultBox.innerHTML = "";
+        input.focus();
+    });
+
+    // 🔍 입력 시 검색 수행
     input.addEventListener("input", () => {
         const keyword = input.value.trim();
 
+        // 버튼 표시 상태 갱신
+        updateClearButtonVisibility();
+
         if (!keyword) {
             resultBox.style.display = "none";
+            resultBox.innerHTML = "";
             return;
         }
 
@@ -992,6 +1013,9 @@ document.addEventListener("DOMContentLoaded", () => {
             renderSearchResults(list);
         }, 200);
     });
+
+    // 페이지 로드 시 초기 표시 상태 세팅
+    updateClearButtonVisibility();
 });
 
 // 🔥 검색결과 리스트 클릭 → URL 이동이 아니라 지도 이동하도록 설정
