@@ -838,7 +838,7 @@ async function renderStaffSidebar(me) {
               let premiumLabel = '-';
               if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
                 if (premiumPrice !== undefined) {
-                  if (row.ad_premium === 0 && Number(premiumPrice) >= 1) {
+                  if (row.ad_premium === "없음" && Number(premiumPrice) >= 1) {
                     premiumLabel = '권리금 없음';
                   } else {
                     premiumLabel = premiumPrice;
