@@ -678,7 +678,6 @@
             listing_id: Number(listing_id),
             listing_title,
             full_address,
-            building_detail_info,
             deposit_price: Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
             monthly_rent: Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
             premium_price: Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
@@ -1500,7 +1499,6 @@
             .from('customers_recommendations')
             .select('*')
             .eq('customers_id', String(currentCustomerId))
-            .eq('list_name', activeListName)
             .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
             .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
