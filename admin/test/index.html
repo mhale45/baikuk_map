@@ -2685,23 +2685,29 @@
         // 1) 신규 고객인 경우 → INSERT
         // ==================================================
         if (isNewCustomer) {
-        // 같은 이름이 이미 있는지 확인
+        // ⭐ 고객이름 + 소분류 조합 중복 검사
+        const listName = document.getElementById("customer-listname").value.trim() || null;
+
         const { data: same, error: sameErr } = await supabase
             .from("customers")
             .select("id")
             .eq("customer_name", name)
+            .eq("list_name", listName)
             .maybeSingle();
 
+        // 동일한 고객이름 + 소분류 조합이 있을 때만 막기
         if (same) {
-            showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
+            showToast("이미 동일한 소분류로 저장된 고객이 있습니다.");
             return;
         }
+
 
         // 신규 고객 INSERT
         const { data: inserted, error: insertErr } = await supabase
             .from("customers")
             .insert({
                 customer_name: name,
+                list_name: listName,   // ← 추가된 부분
                 customer_phone_number: phone,
                 grade: grade,
                 memo: memo,
