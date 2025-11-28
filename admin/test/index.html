@@ -234,7 +234,7 @@
             rows="2"
           ></textarea>
             <input
-                id="customer-division"
+                id="customer-listname"
                 type="text"
                 placeholder="소분류"
                 class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base h-[2.2rem] mt-[0.4rem]"
@@ -681,6 +681,7 @@
           contents       : contents || null,
           memo          : getMemoValue(index) || null,
           color          : color || null,
+          list_name: document.getElementById("customer-listname").value || null,
           row_properties: {
             strike: getFieldValue("strike", index) === "1" ? 1 : null
           }
