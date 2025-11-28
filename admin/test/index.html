@@ -1795,53 +1795,37 @@
         }
 
         // 이름들 렌더
-        // 고객이름 기준으로 그룹화 + 소분류 묶기
-        const groupedByName = {};
-        list.forEach(c => {
-            const nm = c.customer_name || "(이름 없음)";
-            if (!groupedByName[nm]) groupedByName[nm] = [];
-            groupedByName[nm].push(c);
-        });
+        list
+          .sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || '', 'ko'))
+          .forEach(cust => {
+            const nameBtn = document.createElement('div');
+            nameBtn.className = 'name-item';
+            const other = otherNameMap.get(cust.id);
 
-        // 고객이름 가나다순 정렬
-        const nameKeys = Object.keys(groupedByName).sort((a, b) =>
-            a.localeCompare(b, "ko")
-        );
+            const label = document.createElement('span');
+            label.textContent = cust.customer_name || '-';
 
-        // 렌더링
-        nameKeys.forEach(nameKey => {
-            const nameGroup = groupedByName[nameKey];
+            const sub = document.createElement('span');
+            sub.className = 'mr-1 text-sm text-gray-500';
+            sub.textContent = other ? `(${other})` : '';
 
-            // ⭐ 고객이름(상위)
-            const header = document.createElement('div');
-            header.className = "grade-header cursor-pointer";
-            header.textContent = nameKey;
-            listBox.appendChild(header);
+            nameBtn.append(sub, label);
 
-            // 소분류(list_name) 정렬
-            const sorted = nameGroup.sort((a, b) => {
-                const la = a.list_name || "";
-                const lb = b.list_name || "";
-                return la.localeCompare(lb, "ko");
+            // 접근성: 키보드 선택 지원
+            nameBtn.setAttribute('role', 'button');
+            nameBtn.tabIndex = 0;
+
+            nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
+            nameBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadCustomerDataByName(cust.customer_name);
+              }
             });
 
-            sorted.forEach(cust => {
-                // 소분류 표시
-                const item = document.createElement("div");
-                item.className = "name-item ml-4 cursor-pointer";
+            listBox.appendChild(nameBtn);
+          });
 
-                const displayName = cust.list_name ? cust.list_name : "(소분류 없음)";
-                item.textContent = displayName;
-
-                item.addEventListener("click", () => {
-                loadCustomerData(cust.id); // ✨ 소분류 단위 고객 로드
-                });
-
-                listBox.appendChild(item);
-            });
-        });
-
-        
         // 토글 동작
         header.addEventListener('click', () => {
           const visible = listBox.style.display !== 'none';
