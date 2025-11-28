@@ -691,10 +691,14 @@
 
       try {
         // 기존 데이터 삭제
+        const activeListName = document.getElementById("customer-list-name").value || null;
+
         const { error: delErr } = await supabase
-          .from("customers_recommendations")
-          .delete()
-          .eq("customers_id", String(currentCustomerId));
+            .from("customers_recommendations")
+            .delete()
+            .eq("customers_id", String(currentCustomerId))
+            .eq("list_name", activeListName);
+
 
         if (delErr) {
           console.error(delErr);
@@ -1421,8 +1425,10 @@
         // 1) 이름으로 고객 1명 찾기 (조인 X)
         const { data: customer, error: custError } = await supabase
         .from('customers')
+        .from('customers')
         .select(`
             id, customer_name, customer_phone_number, grade, memo, staff_profiles_id,
+            list_name,
             floor_min, floor_max,
             area_min, area_max,
             deposit_min, deposit_max,
@@ -1433,7 +1439,7 @@
             total_deposit_min, total_deposit_max,
             total_rent_min, total_rent_max,
             roi_min, roi_max
-            `)
+        `)
         .eq('customer_name', name)
         .maybeSingle();
 
@@ -1488,12 +1494,15 @@
         listingsBody.innerHTML = '';
 
         // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
+        const activeListName = document.getElementById("customer-list-name").value || null;
+
         const { data: listings, error: listingsError } = await supabase
-        .from('customers_recommendations')
-        .select('*')
-        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
-        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
+            .from('customers_recommendations')
+            .select('*')
+            .eq('customers_id', String(currentCustomerId))
+            .eq('list_name', activeListName)
+            .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+            .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
         if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
