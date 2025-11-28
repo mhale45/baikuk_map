@@ -1,4 +1,23 @@
 ▶ 테이블 컬럼명시
+- naver_rent_listings
+listing_id        BIGINT PRIMARY KEY,       -- 매물번호
+    verify_type       TEXT,                     -- OWNER / NDOC1 / DOC ...
+    floor_info        TEXT,                     -- '1/1', '1/2', '2/-', 'B1/6'
+    current_floor     INTEGER,                  -- 숫자층
+    total_floor       INTEGER,                  -- 전체층
+    rent_price        INTEGER,                  -- 월세
+    deposit_price     INTEGER,                  -- 보증금
+    gross_area        NUMERIC(10,2),            -- 공급면적
+    net_area          NUMERIC(10,2),            -- 전용면적
+    direction         TEXT,                     -- 방향 (남향, 북향...)
+    confirmed_date    TEXT,                     -- 확정일자 (문자형 그대로)
+    lat               NUMERIC(12,8),            -- 위도
+    lng               NUMERIC(12,8),            -- 경도
+    feature           TEXT,                     -- 특징 (여러 단어)
+    ad_channel        TEXT,                     -- 광고채널 (부동산명)
+    realtor           TEXT,                     -- 공인중개사/중개사무소명
+    full_address      TEXT                      -- 전체주소
+
 - cost_management
 id : int8
 created_at : timestamptz
