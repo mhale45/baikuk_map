@@ -233,16 +233,6 @@
             id="top-row-input"
             rows="2"
           ></textarea>
-          <!-- 🔽 신규 추가: 고객 하위 카테고리(list_name) 입력 -->
-            <div class="mt-[0.5rem] ml-1">
-            <div class="text-sm font-semibold mb-1">하위 카테고리 (list_name)</div>
-            <input
-                id="customer-list-name"
-                placeholder="예: 1차 추천 / 2차 검토 / 상가전용 / 창고전용"
-                class="w-[17rem] px-2 py-1 border border-gray-300 rounded text-base"
-            />
-            </div>
-
           <div class="flex mt-[0.5rem]">
             <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
               손님삭제
@@ -673,31 +663,30 @@
         ) return;
 
         result.push({
-            customers_id: currentCustomerId,
-            list_name: document.getElementById("customer-list-name").value || null,  // 🔥 추가
-            listing_id: Number(listing_id),
-            listing_title,
-            full_address,
-            deposit_price: Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
-            monthly_rent: Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
-            premium_price: Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
-            area_py: Number(area_py) || null,
-            contents: contents || null,
-            memo: getMemoValue(index) || null,
-            color: color || null,
-            });
+          customers_id   : String(currentCustomerId), 
+          order          : index,
+          listing_id     : listing_id || null,
+          listing_title  : listing_title || null,
+          full_address   : full_address || null,
+          deposit_price  : Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
+          monthly_rent   : Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
+          premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
+          area_py        : Number(area_py) || null,
+          contents       : contents || null,
+          memo          : getMemoValue(index) || null,
+          color          : color || null,
+          row_properties: {
+            strike: getFieldValue("strike", index) === "1" ? 1 : null
+          }
+        });
       });
 
       try {
         // 기존 데이터 삭제
-        const activeListName = document.getElementById("customer-list-name").value || null;
-
         const { error: delErr } = await supabase
-            .from("customers_recommendations")
-            .delete()
-            .eq("customers_id", String(currentCustomerId))
-            .eq("list_name", activeListName);
-
+          .from("customers_recommendations")
+          .delete()
+          .eq("customers_id", String(currentCustomerId));
 
         if (delErr) {
           console.error(delErr);
@@ -1423,24 +1412,23 @@
 
         // 1) 이름으로 고객 1명 찾기 (조인 X)
         const { data: customer, error: custError } = await supabase
-            .from('customers')
-            .select(`
-                id, customer_name, customer_phone_number, grade, memo, staff_profiles_id,
-                list_name,
-                floor_min, floor_max,
-                area_min, area_max,
-                deposit_min, deposit_max,
-                rent_min, rent_max,
-                rent_per_py_min, rent_per_py_max,
-                premium_min, premium_max,
-                sale_min, sale_max,
-                total_deposit_min, total_deposit_max,
-                total_rent_min, total_rent_max,
-                roi_min, roi_max
+        .from('customers')
+        .select(`
+            id, customer_name, customer_phone_number, grade, memo, staff_profiles_id,
+            floor_min, floor_max,
+            area_min, area_max,
+            deposit_min, deposit_max,
+            rent_min, rent_max,
+            rent_per_py_min, rent_per_py_max,
+            premium_min, premium_max,
+            sale_min, sale_max,
+            total_deposit_min, total_deposit_max,
+            total_rent_min, total_rent_max,
+            roi_min, roi_max
             `)
-            .eq('customer_name', name)
-            .maybeSingle();
-        
+        .eq('customer_name', name)
+        .maybeSingle();
+
         if (custError || !customer) {
         console.warn('❌ 고객 정보 불러오기 실패:', custError);
         showToast('고객 정보를 찾을 수 없습니다.');
@@ -1458,8 +1446,6 @@
 
         // 👉 우측 정보창 채우기
         document.getElementById('top-row-input').value = customer.customer_name || '';
-        // 🔽 하위 카테고리(list_name) 입력창 채우기 (기본값: 빈 문자열)
-        document.getElementById('customer-list-name').value = customer.list_name || '';
         document.getElementById('customer-phone').value = customer.customer_phone_number || '';
         document.getElementById('customer-grade').value = customer.grade || 'F';
         document.getElementById('memo-textarea').value = customer.memo || '';
@@ -1492,14 +1478,12 @@
         listingsBody.innerHTML = '';
 
         // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
-        const activeListName = document.getElementById("customer-list-name").value || null;
-
         const { data: listings, error: listingsError } = await supabase
-            .from('customers_recommendations')
-            .select('*')
-            .eq('customers_id', String(currentCustomerId))
-            .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
-            .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
+        .from('customers_recommendations')
+        .select('*')
+        .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+        .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+        .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
         if (listingsError) {
         console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
@@ -2713,8 +2697,8 @@
                 customer_name: name,
                 customer_phone_number: phone,
                 grade: grade,
-                list_name: document.getElementById("customer-list-name").value || null,
                 memo: memo,
+                staff_profiles_id: selectedStaffId ?? myStaffId,
                 floor_min, floor_max,
                 area_min, area_max,
                 deposit_min, deposit_max,
@@ -2745,20 +2729,20 @@
         const { error: updateErr } = await supabase
             .from("customers")
             .update({
-                customer_name: name,
-                customer_phone_number: phone,
-                grade: grade,
-                list_name: document.getElementById("customer-list-name").value || null,
-                memo: memo,
-                area_min, area_max,
-                deposit_min, deposit_max,
-                rent_min, rent_max,
-                rent_per_py_min, rent_per_py_max,
-                premium_min, premium_max,
-                sale_min, sale_max,
-                total_deposit_min, total_deposit_max,
-                total_rent_min, total_rent_max,
-                roi_min, roi_max
+            customer_name: name,
+            customer_phone_number: phone,
+            grade: grade,
+            memo: memo,
+            floor_min, floor_max,
+            area_min, area_max,
+            deposit_min, deposit_max,
+            rent_min, rent_max,
+            rent_per_py_min, rent_per_py_max,
+            premium_min, premium_max,
+            sale_min, sale_max,
+            total_deposit_min, total_deposit_max,
+            total_rent_min, total_rent_max,
+            roi_min, roi_max
             })
             .eq("id", currentCustomerId);
 
