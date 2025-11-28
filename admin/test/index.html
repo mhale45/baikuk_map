@@ -2742,20 +2742,20 @@
         const { error: updateErr } = await supabase
             .from("customers")
             .update({
-            customer_name: name,
-            customer_phone_number: phone,
-            grade: grade,
-            memo: memo,
-            floor_min, floor_max,
-            area_min, area_max,
-            deposit_min, deposit_max,
-            rent_min, rent_max,
-            rent_per_py_min, rent_per_py_max,
-            premium_min, premium_max,
-            sale_min, sale_max,
-            total_deposit_min, total_deposit_max,
-            total_rent_min, total_rent_max,
-            roi_min, roi_max
+                customer_name: name,
+                customer_phone_number: phone,
+                grade,
+                memo,
+                floor_min, floor_max,
+                area_min, area_max,
+                deposit_min, deposit_max,
+                rent_min, rent_max,
+                rent_per_py_min, rent_per_py_max,
+                premium_min, premium_max,
+                sale_min, sale_max,
+                total_deposit_min, total_deposit_max,
+                total_rent_min, total_rent_max,
+                roi_min, roi_max
             })
             .eq("id", currentCustomerId);
 
