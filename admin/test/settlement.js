@@ -1204,9 +1204,15 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
   const subBalance  = toNumberKR($sub?.value);
+
   const $reserve = document.getElementById('d_reserves');
   const reserve = toNumberKR($reserve?.value);
 
+  // [ADD] 부가세(surtax) Input 읽기
+  const $vat = document.getElementById('d_vat');
+  const surtax = toNumberKR($vat?.value || 0);
+
+  // [MODIFY] surtax 포함하여 payload 구성
   const payload = {
     affiliation: aff,
     period_month,
@@ -1214,15 +1220,16 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     memo: (memo ?? '').trim(),
     main_balance: mainBalance,
     sub_balance:  subBalance,
-    reserve: reserve, 
+    reserve: reserve,
+    surtax: surtax,                // ← ★ 추가됨
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
   const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
     .select('id')
-    .eq('affiliation', aff)                   // ✅ FK 대신 지점명으로 매칭
-    .eq('period_month', period_month)         // ✅ 날짜 컬럼
+    .eq('affiliation', aff)                   // 지점명으로 매칭
+    .eq('period_month', period_month)         // 날짜
     .maybeSingle();
 
   if (selErr) {
@@ -1230,19 +1237,24 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     throw selErr;
   }
 
+  // UPDATE
   if (existing?.id) {
     const { error: updErr } = await supabase
       .from('branch_settlement_expenses')
       .update(payload)
       .eq('id', existing.id);
+
     if (updErr) {
       showToastGreenRed?.('저장 실패(업데이트 오류)');
       throw updErr;
     }
+
+  // INSERT
   } else {
     const { error: insErr } = await supabase
       .from('branch_settlement_expenses')
       .insert(payload);
+
     if (insErr) {
       showToastGreenRed?.('저장 실패(추가 오류)');
       throw insErr;
@@ -1284,6 +1296,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ym,
           totalExpense: cost,
           memo,
+          surtax,
         });
 
         // [ADD] 잔고 캐시도 반영
