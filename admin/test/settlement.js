@@ -448,7 +448,7 @@ async function loadBranchMonthlySales(affiliation) {
       .eq('affiliation', affiliation)
       .is('leave_date', null);
 
-    await loadBranchExpenseCache(affiliation); // ← [ADD] 월별 총비용 캐시 선로딩
+    await loadBranchExpenseCache(affiliation);
 
     if (staffErr) throw staffErr;
 
@@ -461,7 +461,6 @@ async function loadBranchMonthlySales(affiliation) {
         .maybeSingle();
       if (biErr) throw biErr;
       __LAST_AFFILIATION_EN = (bi?.affiliation_en || '').trim() || null;
-      // [ADD] 자율금 비율 캐시 (컬럼명이 하이픈이라 bracket-access)
       __LAST_AUTONOMOUS_RATE = Number(bi?.['autonomous-rate'] ?? 0) || 0;
     } catch (e) {
       console.warn('affiliation_en 조회 실패:', e?.message || e);
@@ -470,13 +469,13 @@ async function loadBranchMonthlySales(affiliation) {
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
-    const hasStaff = staffIds.size > 0; // ✅ 직원이 없어도 VAT/비용은 보여야 하므로 계속 진행
+    const hasStaff = staffIds.size > 0;
 
     // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
-      .select('id, balance_date, buyer_tax, seller_tax')
-      .eq('status', true)              // ✅ 확정된 매출만
+      .select('id, balance_date')
+      .eq('status', true)
       .not('balance_date', 'is', null);
 
     if (perfErr) throw perfErr;
@@ -499,27 +498,19 @@ async function loadBranchMonthlySales(affiliation) {
     // perf id → ym
     const perfIdToYM = new Map();
     const perfIds = [];
-    const vatMap = {}; 
 
     for (const p of perfRows) {
       const ym = ymKey(p.balance_date);
       if (!ym) continue;
-
       perfIdToYM.set(String(p.id), ym);
       perfIds.push(p.id);
-
-      // 부가세 = (buyer_tax + seller_tax) / 1.1 * 0.1
-      const bt = Number(p.buyer_tax || 0);
-      const st = Number(p.seller_tax || 0);
-      const vat = Math.round(((bt + st) / 1.1) * 0.1);
-      vatMap[ym] = (vatMap[ym] || 0) + vat;
     }
+
     if (perfIds.length === 0) {
       __LAST_SALES_MAP = {};
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
-      __LAST_VAT_MAP = vatMap; // ✅ 이 달의 부가세 합계(없으면 0 맵)
-
+      __LAST_VAT_MAP = {};
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -529,10 +520,11 @@ async function loadBranchMonthlySales(affiliation) {
       });
       return;
     }
-    // 3) allocations 조회 & 합산(관여매출 50% = 급여)
+
+    // 3) allocations 조회 & 합산
     const BATCH = 800;
-    const salesMap = {};               // 월별 잔금매출(=관여매출 합)
-    const payrollByStaff = {};         // { ym: { staffId: 급여(=관여×0.5) } }
+    const salesMap = {};
+    const payrollByStaff = {};
 
     for (let i = 0; i < perfIds.length; i += BATCH) {
       const chunk = perfIds.slice(i, i + BATCH);
@@ -546,6 +538,7 @@ async function loadBranchMonthlySales(affiliation) {
           staff_id4, involvement_sales4
         `)
         .in('performance_id', chunk);
+
       if (allocErr) throw allocErr;
 
       for (const row of (allocRows || [])) {
@@ -561,10 +554,9 @@ async function loadBranchMonthlySales(affiliation) {
 
           if (hasStaff) {
             const inv = Number(row[`involvement_sales${k}`] || 0);
-            // 잔금매출(모든 직원의 관여매출 합)
+
             salesMap[ym] = (salesMap[ym] || 0) + inv;
 
-            // 급여(=관여×50%)를 직원별로 적립
             const pay = Math.round(inv * PAYROLL_RATE);
             (payrollByStaff[ym] ||= {});
             payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
@@ -573,18 +565,37 @@ async function loadBranchMonthlySales(affiliation) {
       }
     }
 
-    // 총 급여 합계도 캐시(드로어 합계 표시용)
     const payrollTotalMap = {};
     for (const [ym, map] of Object.entries(payrollByStaff)) {
-      payrollTotalMap[ym] = Object.values(map || {}).reduce((a,b) => a + Number(b||0), 0);
+      payrollTotalMap[ym] = Object.values(map || {}).reduce((a, b) => a + Number(b || 0), 0);
     }
 
-    // 전역 캐시 저장
     __LAST_SALES_MAP = salesMap;
     __LAST_PAYROLL_BY_STAFF = payrollByStaff;
     __LAST_PAYROLL_TOTAL_MAP = payrollTotalMap;
-    __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) }; // 유지
-    __LAST_VAT_MAP = vatMap; // ✅ 부가세 캐시 저장 (누락되었던 부분)
+
+    // ----------------------------
+    // 🔥 [CHANGE] surtax 불러오기
+    // ----------------------------
+    __LAST_VAT_MAP = {}; // 초기화
+
+    const { data: surtaxRows, error: surtaxErr } = await supabase
+      .from('branch_settlement_expenses')
+      .select('period_month, affiliation, surtax')
+      .eq('affiliation', affiliation);
+
+    if (surtaxErr) {
+      console.warn('surtax 불러오기 실패:', surtaxErr.message);
+    } else if (surtaxRows) {
+      surtaxRows.forEach(row => {
+        const d = new Date(row.period_month);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
+      });
+    }
+
+    // 비용 캐시는 기존대로 유지
+    __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) };
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
@@ -593,6 +604,7 @@ async function loadBranchMonthlySales(affiliation) {
       costMap: __LAST_COST_MAP,
       staffList: __LAST_STAFF_LIST
     });
+
   } catch (e) {
     console.error('월별 합계 로딩 실패:', e);
     showToastGreenRed?.('월별 합계 로딩 실패');
