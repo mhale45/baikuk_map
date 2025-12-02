@@ -19,6 +19,7 @@ let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
 // [ADD] 월별 계좌 잔고 캐시
 let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
 let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
+let __LAST_RESERVE_MAP = {};  // [ADD] 월별 유보금
 
 
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
@@ -829,6 +830,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.classList.add('bg-gray-50', 'font-semibold');
       subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
     }
+    {
+      const reserveEl = document.getElementById('d_reserves');
+      if (reserveEl) {
+        reserveEl.value = Number(__LAST_RESERVE_MAP?.[ym] || 0).toLocaleString('ko-KR');
+      }
+    }
   }
 
   // [ADD] 순이익 아래/메모 위에 동적으로 삽입
@@ -1042,10 +1049,12 @@ async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
     let mainBalMap = {};
+    let reserveMap = {};  // [ADD]
+
     try {
       const { data: balRows, error: balErr } = await supabase
         .from('branch_settlement_expenses')
-        .select('period_month, main_balance')
+        .select('period_month, main_balance, reserve')
         .eq('affiliation', affiliation);
 
       if (balErr) throw balErr;
@@ -1054,6 +1063,7 @@ async function loadBranchExpenseCache(affiliation) {
         const ym = ymKey(String(row.period_month));
         if (!ym) continue;
         mainBalMap[ym] = Number(row.main_balance || 0);
+        reserveMap[ym] = Number(row.reserve || 0); 
       }
     } catch (e) {
       console.warn('[settlement] main balance load failed:', e?.message || e);
@@ -1263,6 +1273,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const $sub  = document.getElementById('input-sub-balance');
         __LAST_MAIN_BAL_MAP[ym] = toNumberKR($main?.value);
         __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
+        const $reserve = document.getElementById('d_reserves');
+        __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
