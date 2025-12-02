@@ -799,6 +799,22 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     if (autoAmtEl) autoAmtEl.value = fmtKR(Math.max(0, aFee));
   };
 
+  // [ADD] 부가세 입력 변경 시 재계산
+  const vatInput = document.getElementById('d_vat');
+  if (vatInput) {
+    vatInput.addEventListener('input', () => {
+      // 숫자만 남기고 콤마 포맷 적용
+      const num = Number(String(vatInput.value).replace(/[^\d.-]/g, '')) || 0;
+      vatInput.value = num.toLocaleString('ko-KR');
+
+      // 캐시에 즉시 반영
+      __LAST_VAT_MAP[ym] = num;
+
+      // 재계산
+      recompute();
+    });
+  }
+
   // 유보금 입력 변경 시 재계산
   const reserveEl = document.getElementById('d_reserves');
   if (reserveEl) {
@@ -1282,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const memo = document.getElementById('d_memo')?.value || '';
         const aff  = (__LAST_AFFILIATION || '').trim();
         const surtax = toNumberKR(document.getElementById('d_vat')?.value || 0);
-        
+
         if (!ym || !aff) {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
           return;
