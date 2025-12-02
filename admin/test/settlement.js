@@ -1296,7 +1296,6 @@ document.addEventListener('DOMContentLoaded', () => {
           ym,
           totalExpense: cost,
           memo,
-          surtax,
         });
 
         // [ADD] 잔고 캐시도 반영
@@ -1306,6 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
         const $reserve = document.getElementById('d_reserves');
         __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
+        __LAST_VAT_MAP[ym] = surtax;
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
