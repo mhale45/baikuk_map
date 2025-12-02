@@ -1115,8 +1115,10 @@ async function loadBranchExpenseCache(affiliation) {
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
     __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
+    __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
 
     return costMap;
+
   } catch (e) {
     console.warn('[settlement] expense cache load failed:', e?.message || e);
     return {};
