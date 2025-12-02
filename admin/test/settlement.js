@@ -1281,7 +1281,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
         const memo = document.getElementById('d_memo')?.value || '';
         const aff  = (__LAST_AFFILIATION || '').trim();
-
+        const surtax = toNumberKR(document.getElementById('d_vat')?.value || 0);
+        
         if (!ym || !aff) {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
           return;
