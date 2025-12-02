@@ -750,13 +750,42 @@ async function openStaffFilterModal() {
       <div class="space-y-2">
         <div class="text-sm text-gray-600">여러 명을 선택할 수 있습니다.</div>
         <div class="max-h-[50vh] overflow-y-auto divide-y border rounded">
-          ${staffs.map(s => `
-            <label class="flex items-center gap-2 px-3 py-2">
-              <input type="checkbox" class="cm-stf-chk" value="${s.id}" ${__FILTER.staffIds.includes(s.id)?'checked':''}>
-              <span class="flex-1">${s.name}</span>
-              <span class="text-xs text-gray-500">${s.affiliation || ''}</span>
-            </label>
-          `).join('')}
+          ${(() => {
+            // 지점별로 그룹화: affiliation → [staffs]
+            const groupMap = new Map();
+            for (const s of staffs) {
+                const aff = s.affiliation || '미지정';
+                if (!groupMap.has(aff)) groupMap.set(aff, []);
+                groupMap.get(aff).push(s);
+            }
+
+            // 지점명 가나다순 정렬 (내 지점이 있다면 맨 위로)
+            const affs = Array.from(groupMap.keys()).sort((a, b) => {
+                if (a === __MY_AFFILIATION) return -1;
+                if (b === __MY_AFFILIATION) return 1;
+                return a.localeCompare(b, 'ko');
+            });
+
+            // 그룹 렌더링
+            return affs.map(aff => {
+                const list = groupMap.get(aff)
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ko')); // **가나다순 정렬**
+
+                return `
+                    <div class="border-b">
+                        <div class="px-3 py-2 font-semibold bg-gray-50">${aff}</div>
+                        ${list.map(s => `
+                            <label class="flex items-center gap-2 px-3 py-2">
+                                <input type="checkbox" class="cm-stf-chk"
+                                    value="${s.id}"
+                                    ${__FILTER.staffIds.includes(s.id) ? 'checked' : ''}>
+                                <span class="flex-1">${s.name}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('');
+          })()}
         </div>
       </div>`;
     openModal({
