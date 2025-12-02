@@ -693,22 +693,35 @@ function openDateFilterModal() {
   const content = `
     <div class="space-y-3">
       <div class="text-sm text-gray-600">기간을 선택하세요.</div>
+
+      <!-- 날짜 선택 -->
       <div class="grid grid-cols-2 gap-3">
         <div>
           <div class="text-xs text-gray-500 mb-1">시작일</div>
-          <input type="date" id="cm-date-from" class="border rounded px-2 py-1.5 w-full" value="${__FILTER.dateFrom || ''}">
+          <input type="date" id="cm-date-from"
+                 class="border rounded px-2 py-1.5 w-full"
+                 value="${__FILTER.dateFrom || ''}">
         </div>
         <div>
           <div class="text-xs text-gray-500 mb-1">종료일</div>
-          <input type="date" id="cm-date-to" class="border rounded px-2 py-1.5 w-full" value="${__FILTER.dateTo || ''}">
+          <input type="date" id="cm-date-to"
+                 class="border rounded px-2 py-1.5 w-full"
+                 value="${__FILTER.dateTo || ''}">
         </div>
       </div>
-      <div class="flex gap-2">
-        <button id="cm-date-quick-7" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">최근 7일</button>
-        <button id="cm-date-quick-30" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">최근 30일</button>
-        <button id="cm-date-clear" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">기간 지우기</button>
+
+      <!-- 최근 2개월 선택 -->
+      <div class="flex flex-col gap-2">
+        <div class="text-xs text-gray-500 mb-1">최근 2개월 빠른 선택</div>
+        <div id="cm-date-month-buttons" class="flex flex-wrap gap-2"></div>
+
+        <button id="cm-date-clear"
+                class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 w-fit">
+          기간 지우기
+        </button>
       </div>
     </div>`;
+
   openModal({
     title: '기간 선택',
     contentHTML: content,
@@ -721,25 +734,56 @@ function openDateFilterModal() {
     }
   });
 
-  // 퀵 버튼 동작
-  const addDays = (d, diff) => {
-    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
-    const y = x.getFullYear(), m = String(x.getMonth()+1).padStart(2,'0'), dd = String(x.getDate()).padStart(2,'0');
-    return `${y}-${m}-${dd}`;
-  };
-  const today = new Date();
-  document.getElementById('cm-date-quick-7').onclick = () => {
-    document.getElementById('cm-date-from').value = addDays(today, -6);
-    document.getElementById('cm-date-to').value   = addDays(today, 0);
-  };
-  document.getElementById('cm-date-quick-30').onclick = () => {
-    document.getElementById('cm-date-from').value = addDays(today, -29);
-    document.getElementById('cm-date-to').value   = addDays(today, 0);
-  };
-  document.getElementById('cm-date-clear').onclick = () => {
-    document.getElementById('cm-date-from').value = '';
-    document.getElementById('cm-date-to').value   = '';
-  };
+  // === 최근 2개월 버튼 생성 ===
+  (function () {
+    const today = new Date();
+    const buttonsWrap = document.getElementById('cm-date-month-buttons');
+    if (!buttonsWrap) return;
+
+    // 해당 월의 1일 ~ 말일 계산 함수
+    const makeMonthRange = (year, month) => {
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0); // 말일 자동 계산
+      const f = `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}-01`;
+      const t = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
+      return {
+        label: `${first.getMonth() + 1}월`,
+        from: f,
+        to: t
+      };
+    };
+
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0 = 1월
+
+    // 현재월, 이전월
+    const ranges = [
+      makeMonthRange(year, month - 1),
+      makeMonthRange(year, month)
+    ];
+
+    // 버튼 생성
+    buttonsWrap.innerHTML = ranges.map(r => `
+      <button data-from="${r.from}" data-to="${r.to}"
+        class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">
+        ${r.label}
+      </button>
+    `).join('');
+
+    // 버튼 클릭 → 기간 자동 입력
+    buttonsWrap.querySelectorAll('button').forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById('cm-date-from').value = btn.dataset.from;
+        document.getElementById('cm-date-to').value = btn.dataset.to;
+      };
+    });
+
+    // 기간 지우기 버튼
+    document.getElementById('cm-date-clear').onclick = () => {
+      document.getElementById('cm-date-from').value = '';
+      document.getElementById('cm-date-to').value   = '';
+    };
+  })();
 }
 
 // === 이름(직원) 필터 ===

@@ -71,16 +71,6 @@
                     </select>
                 </div>
 
-                <!-- 3) 구분 -->
-                <div class="flex flex-col gap-1">
-                    <span class="text-sm text-gray-600">구분</span>
-                    <select id="cm-division"
-                            class="border rounded px-2 py-1.5 bg-white w-auto min-w-[6.5rem]">
-                    <option value="사용비용" selected>사용비용</option>
-                    <option value="통장 입출금">통장 입출금</option>
-                    </select>
-                </div>
-
                 <!-- 4) 금액 -->
                 <div class="flex flex-col gap-1">
                     <span class="text-sm text-gray-600">금액</span>
