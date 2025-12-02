@@ -8,19 +8,6 @@ const $$ = (sel, doc = document) => Array.from(doc.querySelectorAll(sel));
 // [ADD] 급여율: 관여매출의 50%
 const PAYROLL_RATE = 0.5;
 
-// [ADD] 비용 안내 항목(원하는 만큼 추가/수정)
-const COST_INCLUDE_HINTS  = [
-  '월세, 관리비, 공과금',
-  '네이버 광고, 현수막, 명함, 봉투',
-  '식대(만원), 사무용품',
-  '통신비, 정수기, 프린터, 주차비',
-  '직원들 대목 선물',
-];
-
-const COST_EXCLUDE_HINTS = [
-  '회식비, 교통비, 경조사비',
-];
-
 // [ADD] 월별 합계/브레이크다운 캐시(드로어/테이블에서 재사용)
 let __LAST_AFFILIATION = null;
 // 합계
@@ -155,53 +142,6 @@ async function buildTransfersMapForAllBranches({ start, end }) {
     map.set(aff, total);
   });
   return map;
-}
-
-// === [CHANGE] 드로어 비용값 주입(매출합계와 동일한 표시 스타일/속성) ===
-function setDrawerCostByYM(ym) {
-  try {
-    const dCost  = document.getElementById('d_cost');
-    const dSales = document.getElementById('d_sales'); // 기준(매출합계) 인풋
-    if (!dCost) return;
-
-    // 1) 값(천단위 콤마) 주입
-    const costNum = Number((__LAST_COST_MAP || {})[ym] || 0);
-    const formatKR = (n) => Number(n || 0).toLocaleString('ko-KR');
-    dCost.value = formatKR(costNum);
-
-    // 2) '매출합계'와 같은 비주얼/속성 적용
-    if (dSales) {
-      // 동일 class 적용
-      dCost.className = dSales.className;
-
-      // 동일 inputmode/placeholder/text-align 등 기본 속성도 맞춤
-      const salesInputmode = dSales.getAttribute('inputmode');
-      if (salesInputmode) dCost.setAttribute('inputmode', salesInputmode);
-      else dCost.removeAttribute('inputmode');
-
-      // inline style text-align 맞춤(혹시 sales가 우측정렬일 때)
-      if (dSales.style && dSales.style.textAlign) {
-        dCost.style.textAlign = dSales.style.textAlign;
-      }
-      // 높이/패딩이 인라인 스타일로 지정돼 있으면 그대로 복사
-      if (dSales.style && dSales.style.height) dCost.style.height = dSales.style.height;
-      if (dSales.style && dSales.style.padding) dCost.style.padding = dSales.style.padding;
-    }
-
-    // 3) 항상 읽기 전용(편집 불가) + 안내 툴팁
-    dCost.readOnly = true;
-    dCost.disabled = true;
-    dCost.title = '비용은 cost_management 집계값으로 자동 표시됩니다.';
-
-    // 4) 라벨 텍스트도 구분되게(선택)
-    const costLabel = document.querySelector('label[for="d_cost"]');
-    if (costLabel && !costLabel.dataset._autoTagged) {
-      costLabel.textContent = '비용(자동 집계)';
-      costLabel.dataset._autoTagged = '1';
-    }
-  } catch (e) {
-    console.warn('[settlement] setDrawerCostByYM failed:', e?.message || e);
-  }
 }
 
 // 문자열(₩,콤마 포함) → 숫자
@@ -385,7 +325,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
-    <th class="border px-2 py-2 whitespace-nowrap">비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
@@ -427,7 +366,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotal - payrollTotal - cost - vat - RESERVE;
+    const baseForAuto = balanceTotal - payrollTotal - vat - RESERVE;
 
     // [NEW] 순이익(자율금 산정 전)
     const netIncome = Math.round(baseForAuto);
@@ -451,7 +390,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(cost)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
@@ -468,11 +406,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
         sales,
         payrollTotal,
         pmap,
-        cost: __LAST_COST_MAP[ym] ?? cost,
         staffList: __LAST_STAFF_LIST
       });
-      // [ADD] 드로어 비용(해당 월 사용비용 합계) 주입 + 입력잠금
-      setDrawerCostByYM(ym);
     });
 
     tbody.appendChild(tr);
@@ -536,7 +471,7 @@ async function loadBranchMonthlySales(affiliation) {
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
       .select('id, balance_date, buyer_tax, seller_tax')
-      // .eq('status', true)              // ✅ 확정된 매출만
+      .eq('status', true)              // ✅ 확정된 매출만
       .not('balance_date', 'is', null);
 
     if (perfErr) throw perfErr;
@@ -752,8 +687,7 @@ export async function initSettlement() {
   // 지점장일 경우 본인 지점이 자동 선택/로딩됨 (renderBranchList에서 처리)
 }
 
-function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost, staffList }) {
-  __LAST_COST_MAP[ym] = Number(cost || 0); // 캐시 동기화
+function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staffList }) {
   __CURRENT_DRAWER_YM = ym; // [ADD] 현재 드로어의 YYYY-MM
 
   const drawer = document.getElementById('settlement-drawer');
@@ -767,8 +701,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   $id('d_period').value  = ym;
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
-
-  setDrawerCostByYM(ym);
 
   // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
@@ -800,14 +732,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   const autoFeeEl  = $id('d_autonomous_fee');  // 금액 표시용(readonly 권장)
   const autoAmtEl  = $id('d_autonomous_amount'); // 동일 값 표시 (필요 시)
 
-  // 비용 입력 핸들러/재계산
-  const costEl = $id('d_cost'); // 값 세팅/잠금은 setDrawerCostByYM에서 처리
-
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
-    // 비용은 입력 불가: 캐시 고정 사용
-    const c = Number((__LAST_COST_MAP || {})[ym] || 0);
-
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
 
     // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
@@ -823,7 +749,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
     const aFee = Math.round(baseForAuto * rate);
 
     // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
@@ -842,7 +768,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
     if (totalCostFormulaEl) totalCostFormulaEl.textContent = '매출합계 − 총 급여 − 순이익';
 
     const finalProfit = Math.round(
-      balanceTotalNow - Number(payrollTotal || 0) - c - vatVal - RESERVE - aFee
+      balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE - aFee
     );
 
     // 표시 업데이트
@@ -859,7 +785,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
 
     // 계산식 표시(순이익/배당금)
     const netFormulaEl = document.getElementById('d_netincome_formula');
-    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여 − 비용 − 부가세 − 유보금';
+    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여  − 부가세 − 유보금';
 
     const profitFormulaEl = document.getElementById('d_profit_formula');
     if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
@@ -961,7 +887,6 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, cost
   // 최초 계산
   recompute();
 
-  renderCostHints();
 
   // 오픈
   overlay.classList.remove('hidden');
@@ -1162,7 +1087,7 @@ async function loadBranchExpenseCache(affiliation) {
         .from('cost_management')
         .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
-        .eq('division', '통장 입출금');
+        .eq('division', '사용비용');
 
       if (bankErr) throw bankErr;
 
@@ -1389,20 +1314,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function applyLockUI(locked) {
-  const costEl = document.getElementById('d_cost');
   const memoEl = document.getElementById('d_memo');
   const saveBtn = document.getElementById('settlement-drawer-save');
   const confirmBtn = document.getElementById('settlement-confirm-btn');
   const mainEl = document.getElementById('input-main-balance');
   const subEl  = document.getElementById('input-sub-balance');
 
-  if (costEl) {
-    // 비용은 항상 입력 불가
-    costEl.readOnly = true;
-    costEl.disabled = true;
-    costEl.classList.add('bg-gray-50');
-    costEl.title = '비용은 cost_management 집계값으로 자동 표시됩니다.';
-  }
   if (memoEl) {
     memoEl.readOnly = locked;
     memoEl.disabled = locked;
@@ -1453,7 +1370,6 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       .maybeSingle();
     if (error) throw error;
 
-    const costEl = document.getElementById('d_cost');
     const memoEl = document.getElementById('d_memo');
 
     if (row) {
@@ -1557,20 +1473,4 @@ async function confirmSettlement(affiliation, ym) {
 
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
-}
-
-// [ADD] 참고/제외 항목 렌더링
-function renderCostHints() {
-  const inc = document.getElementById('d_cost_includes');
-  const exc = document.getElementById('d_cost_excludes');
-  if (inc) {
-    inc.innerHTML = (COST_INCLUDE_HINTS.length
-      ? COST_INCLUDE_HINTS.map(v => `<li>${v}</li>`).join('')
-      : `<li class="text-gray-400">없음</li>`);
-  }
-  if (exc) {
-    exc.innerHTML = (COST_EXCLUDE_HINTS.length
-      ? COST_EXCLUDE_HINTS.map(v => `<li>${v}</li>`).join('')
-      : `<li class="text-gray-400">없음</li>`);
-  }
 }
