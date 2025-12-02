@@ -1176,15 +1176,17 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
   const subBalance  = toNumberKR($sub?.value);
+  const $reserve = document.getElementById('d_reserves');
+  const reserve = toNumberKR($reserve?.value);
 
   const payload = {
     affiliation: aff,
     period_month,
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
-    // [ADD]
     main_balance: mainBalance,
     sub_balance:  subBalance,
+    reserve: reserve, 
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
