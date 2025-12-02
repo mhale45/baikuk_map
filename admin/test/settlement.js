@@ -1459,6 +1459,7 @@ async function confirmSettlement(affiliation, ym) {
         is_confirmed: true,
         main_balance: mainBalance,
         sub_balance:  subBalance,
+        reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
       })
       .eq('id', existing.id);
     if (upErr) throw upErr;
@@ -1473,6 +1474,7 @@ async function confirmSettlement(affiliation, ym) {
         is_confirmed: true,
         main_balance: mainBalance,
         sub_balance:  subBalance,
+        reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
       })
     if (insErr) throw insErr;
   }
@@ -1484,6 +1486,7 @@ async function confirmSettlement(affiliation, ym) {
   // [ADD] 확정 시점 값으로 캐시 고정
   __LAST_MAIN_BAL_MAP[ym] = mainBalance;
   __LAST_SUB_BAL_MAP[ym]  = subBalance;
+  __LAST_RESERVE_MAP[ym] = toNumberKR(document.getElementById('d_reserves')?.value);
 
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
