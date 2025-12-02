@@ -475,7 +475,7 @@ async function loadBranchMonthlySales(affiliation) {
     // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
-      .select('id, balance_date, buyer_tax, seller_tax')
+      .select('id, balance_date, buyer_tax, seller_tax, surtax')
       .eq('status', true)              // ✅ 확정된 매출만
       .not('balance_date', 'is', null);
 
@@ -508,11 +508,10 @@ async function loadBranchMonthlySales(affiliation) {
       perfIdToYM.set(String(p.id), ym);
       perfIds.push(p.id);
 
-      // 부가세 = (buyer_tax + seller_tax) / 1.1 * 0.1
-      const bt = Number(p.buyer_tax || 0);
-      const st = Number(p.seller_tax || 0);
-      const vat = Math.round(((bt + st) / 1.1) * 0.1);
-      vatMap[ym] = (vatMap[ym] || 0) + vat;
+      // 사용자가 입력한 surtax를 VAT로 사용
+      const surtax = Number(p.surtax || 0);
+      vatMap[ym] = (vatMap[ym] || 0) + surtax;
+
     }
     if (perfIds.length === 0) {
       __LAST_SALES_MAP = {};
