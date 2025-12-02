@@ -19,6 +19,7 @@ let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
 // [ADD] 월별 계좌 잔고 캐시
 let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
 let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
+let __LAST_RESERVE_MAP = {};  // [ADD] 월별 유보금
 
 
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
@@ -327,11 +328,13 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
+    <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">배당금</th>
   `;
+
   thead.innerHTML = '';
   thead.appendChild(headRow);
 
@@ -361,8 +364,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
     const balanceTotal = mainBal + subBal;
 
-    // 유보금(고정)
-    const RESERVE = 10_000_000;
+    // 유보금(입력 저장된 값 사용)
+    const RESERVE = Number(__LAST_RESERVE_MAP?.[ym] || 0);
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
@@ -385,6 +388,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
+    const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
@@ -392,6 +396,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(dispAutonomousFee)}</td>
@@ -443,7 +448,7 @@ async function loadBranchMonthlySales(affiliation) {
       .eq('affiliation', affiliation)
       .is('leave_date', null);
 
-    await loadBranchExpenseCache(affiliation); // ← [ADD] 월별 총비용 캐시 선로딩
+    await loadBranchExpenseCache(affiliation);
 
     if (staffErr) throw staffErr;
 
@@ -456,7 +461,6 @@ async function loadBranchMonthlySales(affiliation) {
         .maybeSingle();
       if (biErr) throw biErr;
       __LAST_AFFILIATION_EN = (bi?.affiliation_en || '').trim() || null;
-      // [ADD] 자율금 비율 캐시 (컬럼명이 하이픈이라 bracket-access)
       __LAST_AUTONOMOUS_RATE = Number(bi?.['autonomous-rate'] ?? 0) || 0;
     } catch (e) {
       console.warn('affiliation_en 조회 실패:', e?.message || e);
@@ -465,13 +469,13 @@ async function loadBranchMonthlySales(affiliation) {
 
     const staffIds = new Set((staffRows || []).map(r => String(r.id)));
     __LAST_STAFF_LIST = (staffRows || []).map(r => ({ id: String(r.id), name: r.name }));
-    const hasStaff = staffIds.size > 0; // ✅ 직원이 없어도 VAT/비용은 보여야 하므로 계속 진행
+    const hasStaff = staffIds.size > 0;
 
     // 2) 잔금일 있는 performance (status=true인 확정된 매출만)
     const { data: perfRows, error: perfErr } = await supabase
       .from('performance')
-      .select('id, balance_date, buyer_tax, seller_tax')
-      .eq('status', true)              // ✅ 확정된 매출만
+      .select('id, balance_date')
+      .eq('status', true)
       .not('balance_date', 'is', null);
 
     if (perfErr) throw perfErr;
@@ -494,27 +498,19 @@ async function loadBranchMonthlySales(affiliation) {
     // perf id → ym
     const perfIdToYM = new Map();
     const perfIds = [];
-    const vatMap = {}; 
 
     for (const p of perfRows) {
       const ym = ymKey(p.balance_date);
       if (!ym) continue;
-
       perfIdToYM.set(String(p.id), ym);
       perfIds.push(p.id);
-
-      // 부가세 = (buyer_tax + seller_tax) / 1.1 * 0.1
-      const bt = Number(p.buyer_tax || 0);
-      const st = Number(p.seller_tax || 0);
-      const vat = Math.round(((bt + st) / 1.1) * 0.1);
-      vatMap[ym] = (vatMap[ym] || 0) + vat;
     }
+
     if (perfIds.length === 0) {
       __LAST_SALES_MAP = {};
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
-      __LAST_VAT_MAP = vatMap; // ✅ 이 달의 부가세 합계(없으면 0 맵)
-
+      __LAST_VAT_MAP = {};
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -524,10 +520,11 @@ async function loadBranchMonthlySales(affiliation) {
       });
       return;
     }
-    // 3) allocations 조회 & 합산(관여매출 50% = 급여)
+
+    // 3) allocations 조회 & 합산
     const BATCH = 800;
-    const salesMap = {};               // 월별 잔금매출(=관여매출 합)
-    const payrollByStaff = {};         // { ym: { staffId: 급여(=관여×0.5) } }
+    const salesMap = {};
+    const payrollByStaff = {};
 
     for (let i = 0; i < perfIds.length; i += BATCH) {
       const chunk = perfIds.slice(i, i + BATCH);
@@ -541,6 +538,7 @@ async function loadBranchMonthlySales(affiliation) {
           staff_id4, involvement_sales4
         `)
         .in('performance_id', chunk);
+
       if (allocErr) throw allocErr;
 
       for (const row of (allocRows || [])) {
@@ -556,10 +554,9 @@ async function loadBranchMonthlySales(affiliation) {
 
           if (hasStaff) {
             const inv = Number(row[`involvement_sales${k}`] || 0);
-            // 잔금매출(모든 직원의 관여매출 합)
+
             salesMap[ym] = (salesMap[ym] || 0) + inv;
 
-            // 급여(=관여×50%)를 직원별로 적립
             const pay = Math.round(inv * PAYROLL_RATE);
             (payrollByStaff[ym] ||= {});
             payrollByStaff[ym][sidStr] = (payrollByStaff[ym][sidStr] || 0) + pay;
@@ -568,18 +565,37 @@ async function loadBranchMonthlySales(affiliation) {
       }
     }
 
-    // 총 급여 합계도 캐시(드로어 합계 표시용)
     const payrollTotalMap = {};
     for (const [ym, map] of Object.entries(payrollByStaff)) {
-      payrollTotalMap[ym] = Object.values(map || {}).reduce((a,b) => a + Number(b||0), 0);
+      payrollTotalMap[ym] = Object.values(map || {}).reduce((a, b) => a + Number(b || 0), 0);
     }
 
-    // 전역 캐시 저장
     __LAST_SALES_MAP = salesMap;
     __LAST_PAYROLL_BY_STAFF = payrollByStaff;
     __LAST_PAYROLL_TOTAL_MAP = payrollTotalMap;
-    __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) }; // 유지
-    __LAST_VAT_MAP = vatMap; // ✅ 부가세 캐시 저장 (누락되었던 부분)
+
+    // ----------------------------
+    // 🔥 [CHANGE] surtax 불러오기
+    // ----------------------------
+    __LAST_VAT_MAP = {}; // 초기화
+
+    const { data: surtaxRows, error: surtaxErr } = await supabase
+      .from('branch_settlement_expenses')
+      .select('period_month, affiliation, surtax')
+      .eq('affiliation', affiliation);
+
+    if (surtaxErr) {
+      console.warn('surtax 불러오기 실패:', surtaxErr.message);
+    } else if (surtaxRows) {
+      surtaxRows.forEach(row => {
+        const d = new Date(row.period_month);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
+      });
+    }
+
+    // 비용 캐시는 기존대로 유지
+    __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) };
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
@@ -588,6 +604,7 @@ async function loadBranchMonthlySales(affiliation) {
       costMap: __LAST_COST_MAP,
       staffList: __LAST_STAFF_LIST
     });
+
   } catch (e) {
     console.error('월별 합계 로딩 실패:', e);
     showToastGreenRed?.('월별 합계 로딩 실패');
@@ -736,67 +753,83 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   const recompute = () => {
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
+    // 잔고 읽기
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
     const main = toNumber(mainEl?.value ?? __LAST_MAIN_BAL_MAP?.[ym] ?? 0);
-    // sub_balance는 항상 집계값(캐시) 사용
     const sub  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
     const balanceTotalNow = main + sub;
 
-    // 유보금(현행 유지)
-    const RESERVE = 10_000_000;
+    // ✅ 유보금 읽기 (중요!)
+    const reserveEl = document.getElementById('d_reserves');
+    const RESERVE = toNumber(reserveEl?.value ?? __LAST_RESERVE_MAP?.[ym] ?? 0);
 
-    // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
+    // 자율금 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
-    const aFee = Math.round(baseForAuto * rate);
 
-    // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
-    // ※ 자율금은 빼지 않습니다(자율금 산정 전에 보는 값).
+    // 순이익 계산 기반
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
+
+    // 순이익
     const netIncome = Math.round(baseForAuto);
 
-    // [ADD] 총비용 = 매출합계 - 총급여 - 순이익
+    // 자율금
+    const aFee = Math.round(baseForAuto * rate);
+
+    // 총비용 = 매출 - 급여 - 순이익
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
 
-    // 표시 업데이트
-    const totalCostEl = document.getElementById('d_totalcost');
-    if (totalCostEl) totalCostEl.value = fmtKR(totalCost);
+    // 배당금
+    const finalProfit = Math.round(netIncome - aFee);
 
-    // 계산식 표시
-    const totalCostFormulaEl = document.getElementById('d_totalcost_formula');
-    if (totalCostFormulaEl) totalCostFormulaEl.textContent = '매출합계 − 총 급여 − 순이익';
-
-    const finalProfit = Math.round(
-      balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE - aFee
-    );
-
-    // 표시 업데이트
+    // ▼ 표시 업데이트
     const netEl = document.getElementById('d_netincome');
     if (netEl) netEl.value = fmtKR(netIncome);
 
-    if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
-    const aFeeDisplay = Math.max(0, aFee);
-    const finalProfitDisplay = Math.max(0, finalProfit);
+    const totalCostEl = document.getElementById('d_totalcost');
+    if (totalCostEl) totalCostEl.value = fmtKR(totalCost);
 
-    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFeeDisplay);
-    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFeeDisplay);
-    $id('d_profit').value = fmtKR(finalProfitDisplay);
+    const profitEl = document.getElementById('d_profit');
+    if (profitEl) profitEl.value = fmtKR(Math.max(0, finalProfit));
 
-    // 계산식 표시(순이익/배당금)
-    const netFormulaEl = document.getElementById('d_netincome_formula');
-    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여  − 부가세 − 유보금';
+    const autoFeeEl = document.getElementById('d_autonomous_fee');
+    if (autoFeeEl) autoFeeEl.value = fmtKR(Math.max(0, aFee));
 
-    const profitFormulaEl = document.getElementById('d_profit_formula');
-    if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
-
-    // 계산식 표시(자율금)
-    const formulaEl = document.getElementById('d_autonomous_formula');
-    if (formulaEl) {
-      formulaEl.textContent =
-        `순이익 × ${Math.round(rate * 100)}%`;
-    }
+    const autoAmtEl = document.getElementById('d_autonomous_amount');
+    if (autoAmtEl) autoAmtEl.value = fmtKR(Math.max(0, aFee));
   };
+
+  // [ADD] 부가세 입력 변경 시 재계산
+  const vatInput = document.getElementById('d_vat');
+  if (vatInput) {
+    vatInput.addEventListener('input', () => {
+      // 숫자만 남기고 콤마 포맷 적용
+      const num = Number(String(vatInput.value).replace(/[^\d.-]/g, '')) || 0;
+      vatInput.value = num.toLocaleString('ko-KR');
+
+      // 캐시에 즉시 반영
+      __LAST_VAT_MAP[ym] = num;
+
+      // 재계산
+      recompute();
+    });
+  }
+
+  // 유보금 입력 변경 시 재계산
+  const reserveEl = document.getElementById('d_reserves');
+  if (reserveEl) {
+    reserveEl.addEventListener('input', () => {
+      // 숫자만 남기기
+      const n = Number(String(reserveEl.value).replace(/[^\d.-]/g, '')) || 0;
+      reserveEl.value = n.toLocaleString('ko-KR');
+
+      // 유보금 캐시에 즉시 반영
+      __LAST_RESERVE_MAP[ym] = n;
+
+      // 재계산 실행
+      recompute();
+    });
+  }
 
   // 잔고 입력 변경 → 재계산
   {
@@ -828,6 +861,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
       subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+    }
+    {
+      const reserveEl = document.getElementById('d_reserves');
+      if (reserveEl) {
+        reserveEl.value = Number(__LAST_RESERVE_MAP?.[ym] || 0).toLocaleString('ko-KR');
+      }
     }
   }
 
@@ -1042,10 +1081,12 @@ async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
     let mainBalMap = {};
+    let reserveMap = {};  // [ADD]
+
     try {
       const { data: balRows, error: balErr } = await supabase
         .from('branch_settlement_expenses')
-        .select('period_month, main_balance')
+        .select('period_month, main_balance, reserve')
         .eq('affiliation', affiliation);
 
       if (balErr) throw balErr;
@@ -1054,6 +1095,7 @@ async function loadBranchExpenseCache(affiliation) {
         const ym = ymKey(String(row.period_month));
         if (!ym) continue;
         mainBalMap[ym] = Number(row.main_balance || 0);
+        reserveMap[ym] = Number(row.reserve || 0); 
       }
     } catch (e) {
       console.warn('[settlement] main balance load failed:', e?.message || e);
@@ -1105,8 +1147,10 @@ async function loadBranchExpenseCache(affiliation) {
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
     __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
+    __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
 
     return costMap;
+
   } catch (e) {
     console.warn('[settlement] expense cache load failed:', e?.message || e);
     return {};
@@ -1177,22 +1221,31 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const mainBalance = toNumberKR($main?.value);
   const subBalance  = toNumberKR($sub?.value);
 
+  const $reserve = document.getElementById('d_reserves');
+  const reserve = toNumberKR($reserve?.value);
+
+  // [ADD] 부가세(surtax) Input 읽기
+  const $vat = document.getElementById('d_vat');
+  const surtax = toNumberKR($vat?.value || 0);
+
+  // [MODIFY] surtax 포함하여 payload 구성
   const payload = {
     affiliation: aff,
     period_month,
     total_expense: Number(totalExpense || 0),
     memo: (memo ?? '').trim(),
-    // [ADD]
     main_balance: mainBalance,
     sub_balance:  subBalance,
+    reserve: reserve,
+    surtax: surtax,                // ← ★ 추가됨
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
   const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
     .select('id')
-    .eq('affiliation', aff)                   // ✅ FK 대신 지점명으로 매칭
-    .eq('period_month', period_month)         // ✅ 날짜 컬럼
+    .eq('affiliation', aff)                   // 지점명으로 매칭
+    .eq('period_month', period_month)         // 날짜
     .maybeSingle();
 
   if (selErr) {
@@ -1200,19 +1253,24 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     throw selErr;
   }
 
+  // UPDATE
   if (existing?.id) {
     const { error: updErr } = await supabase
       .from('branch_settlement_expenses')
       .update(payload)
       .eq('id', existing.id);
+
     if (updErr) {
       showToastGreenRed?.('저장 실패(업데이트 오류)');
       throw updErr;
     }
+
+  // INSERT
   } else {
     const { error: insErr } = await supabase
       .from('branch_settlement_expenses')
       .insert(payload);
+
     if (insErr) {
       showToastGreenRed?.('저장 실패(추가 오류)');
       throw insErr;
@@ -1239,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
         const memo = document.getElementById('d_memo')?.value || '';
         const aff  = (__LAST_AFFILIATION || '').trim();
+        const surtax = toNumberKR(document.getElementById('d_vat')?.value || 0);
 
         if (!ym || !aff) {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
@@ -1261,6 +1320,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const $sub  = document.getElementById('input-sub-balance');
         __LAST_MAIN_BAL_MAP[ym] = toNumberKR($main?.value);
         __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
+        const $reserve = document.getElementById('d_reserves');
+        __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
+        __LAST_VAT_MAP[ym] = surtax;
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
@@ -1445,6 +1507,7 @@ async function confirmSettlement(affiliation, ym) {
         is_confirmed: true,
         main_balance: mainBalance,
         sub_balance:  subBalance,
+        reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
       })
       .eq('id', existing.id);
     if (upErr) throw upErr;
@@ -1459,6 +1522,7 @@ async function confirmSettlement(affiliation, ym) {
         is_confirmed: true,
         main_balance: mainBalance,
         sub_balance:  subBalance,
+        reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
       })
     if (insErr) throw insErr;
   }
@@ -1470,6 +1534,7 @@ async function confirmSettlement(affiliation, ym) {
   // [ADD] 확정 시점 값으로 캐시 고정
   __LAST_MAIN_BAL_MAP[ym] = mainBalance;
   __LAST_SUB_BAL_MAP[ym]  = subBalance;
+  __LAST_RESERVE_MAP[ym] = toNumberKR(document.getElementById('d_reserves')?.value);
 
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
