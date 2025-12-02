@@ -364,8 +364,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
     const balanceTotal = mainBal + subBal;
 
-    // 유보금(고정)
-    const RESERVE = 10_000_000;
+    // 유보금(입력 저장된 값 사용)
+    const RESERVE = Number(__LAST_RESERVE_MAP?.[ym] || 0);
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
