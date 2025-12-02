@@ -741,67 +741,67 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   const recompute = () => {
     const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
 
-    // 입력칸(또는 캐시)에서 잔고값을 읽어 합계 산출
+    // 잔고 읽기
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
     const main = toNumber(mainEl?.value ?? __LAST_MAIN_BAL_MAP?.[ym] ?? 0);
-    // sub_balance는 항상 집계값(캐시) 사용
     const sub  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
     const balanceTotalNow = main + sub;
 
-    // 유보금(현행 유지)
-    const RESERVE = 10_000_000;
+    // ✅ 유보금 읽기 (중요!)
+    const reserveEl = document.getElementById('d_reserves');
+    const RESERVE = toNumber(reserveEl?.value ?? __LAST_RESERVE_MAP?.[ym] ?? 0);
 
-    // 지점자율금 = (잔고합계 − 총 급여 − 비용 − 부가세 − 유보금) × 비율
+    // 자율금 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
-    const aFee = Math.round(baseForAuto * rate);
 
-    // [ADD] 순이익(= 잔고합계 − 총 급여 − 비용 − 부가세 − 유보금)
-    // ※ 자율금은 빼지 않습니다(자율금 산정 전에 보는 값).
+    // 순이익 계산 기반
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
+
+    // 순이익
     const netIncome = Math.round(baseForAuto);
 
-    // [ADD] 총비용 = 매출합계 - 총급여 - 순이익
+    // 자율금
+    const aFee = Math.round(baseForAuto * rate);
+
+    // 총비용 = 매출 - 급여 - 순이익
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
 
-    // 표시 업데이트
-    const totalCostEl = document.getElementById('d_totalcost');
-    if (totalCostEl) totalCostEl.value = fmtKR(totalCost);
+    // 배당금
+    const finalProfit = Math.round(netIncome - aFee);
 
-    // 계산식 표시
-    const totalCostFormulaEl = document.getElementById('d_totalcost_formula');
-    if (totalCostFormulaEl) totalCostFormulaEl.textContent = '매출합계 − 총 급여 − 순이익';
-
-    const finalProfit = Math.round(
-      balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE - aFee
-    );
-
-    // 표시 업데이트
+    // ▼ 표시 업데이트
     const netEl = document.getElementById('d_netincome');
     if (netEl) netEl.value = fmtKR(netIncome);
 
-    if (autoRateEl) autoRateEl.textContent = `${Math.round(rate * 100)}%`;
-    const aFeeDisplay = Math.max(0, aFee);
-    const finalProfitDisplay = Math.max(0, finalProfit);
+    const totalCostEl = document.getElementById('d_totalcost');
+    if (totalCostEl) totalCostEl.value = fmtKR(totalCost);
 
-    if (autoFeeEl)  autoFeeEl.value = fmtKR(aFeeDisplay);
-    if (autoAmtEl)  autoAmtEl.value = fmtKR(aFeeDisplay);
-    $id('d_profit').value = fmtKR(finalProfitDisplay);
+    const profitEl = document.getElementById('d_profit');
+    if (profitEl) profitEl.value = fmtKR(Math.max(0, finalProfit));
 
-    // 계산식 표시(순이익/배당금)
-    const netFormulaEl = document.getElementById('d_netincome_formula');
-    if (netFormulaEl) netFormulaEl.textContent = '계좌잔고1 + 계좌잔고2 − 총 급여  − 부가세 − 유보금';
+    const autoFeeEl = document.getElementById('d_autonomous_fee');
+    if (autoFeeEl) autoFeeEl.value = fmtKR(Math.max(0, aFee));
 
-    const profitFormulaEl = document.getElementById('d_profit_formula');
-    if (profitFormulaEl) profitFormulaEl.textContent = '순이익 − 지점자율금';
-
-    // 계산식 표시(자율금)
-    const formulaEl = document.getElementById('d_autonomous_formula');
-    if (formulaEl) {
-      formulaEl.textContent =
-        `순이익 × ${Math.round(rate * 100)}%`;
-    }
+    const autoAmtEl = document.getElementById('d_autonomous_amount');
+    if (autoAmtEl) autoAmtEl.value = fmtKR(Math.max(0, aFee));
   };
+
+  // 유보금 입력 변경 시 재계산
+  const reserveEl = document.getElementById('d_reserves');
+  if (reserveEl) {
+    reserveEl.addEventListener('input', () => {
+      // 숫자만 남기기
+      const n = Number(String(reserveEl.value).replace(/[^\d.-]/g, '')) || 0;
+      reserveEl.value = n.toLocaleString('ko-KR');
+
+      // 유보금 캐시에 즉시 반영
+      __LAST_RESERVE_MAP[ym] = n;
+
+      // 재계산 실행
+      recompute();
+    });
+  }
 
   // 잔고 입력 변경 → 재계산
   {
