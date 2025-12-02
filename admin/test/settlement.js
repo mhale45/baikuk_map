@@ -328,8 +328,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
-    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
+    <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
     <th class="border px-2 py-2 whitespace-nowrap">지점자율금</th>
     <th class="border px-2 py-2 whitespace-nowrap">배당금</th>
@@ -396,8 +396,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-blue-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right text-purple-700">${fmt(dispAutonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(dispFinalProfit)}</td>
