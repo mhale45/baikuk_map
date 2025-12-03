@@ -509,7 +509,8 @@ async function renderListingsOnMap() {
 
                 // 👉 여기서 마커 생성
                 const marker = new kakao.maps.Marker({
-                    position: new kakao.maps.LatLng(item.lat, item.lng)
+                    position: new kakao.maps.LatLng(item.lat, item.lng),
+                    zIndex: 1
                 });
 
                 clusterer.addMarker(marker);
