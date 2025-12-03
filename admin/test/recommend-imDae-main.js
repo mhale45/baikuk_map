@@ -1192,33 +1192,35 @@ async function loadCustomersForCurrentStaff() {
         }
       });
 
-      // 리스트 wrapper
-      const sublist = document.createElement("div");
-      sublist.className = "customer-sublist hidden ml-3 mt-1";
-      custBlock.appendChild(sublist);
+      // ⭐ 리스트 DOM 생성은 리스트가 2개 이상일 때만
+      if (group.lists.length > 1) {
+        const sublist = document.createElement("div");
+        sublist.className = "customer-sublist hidden ml-3 mt-1";
+        custBlock.appendChild(sublist);
 
-      // 리스트 렌더링
-      group.lists.forEach(listName => {
-        const listItem = document.createElement("div");
-        listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
-        listItem.textContent = `- ${listName}`;
+        // 리스트 렌더링
+        group.lists.forEach(listName => {
+          const listItem = document.createElement("div");
+          listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
+          listItem.textContent = `- ${listName}`;
 
-        listItem.addEventListener("click", (e) => {
-          e.stopPropagation();
+          listItem.addEventListener("click", (e) => {
+            e.stopPropagation();
 
-          // ⭐ 기존 선택 제거
-          document.querySelectorAll(".customer-list-item.selected")
-            .forEach(el => el.classList.remove("selected"));
+            // 기존 선택 제거
+            document.querySelectorAll(".customer-list-item.selected")
+              .forEach(el => el.classList.remove("selected"));
 
-          // ⭐ 현재 클릭된 리스트 강조
-          listItem.classList.add("selected");
+            // 현재 선택 표시
+            listItem.classList.add("selected");
 
-          // 고객 정보 불러오기
-          loadCustomerDataByName(cust.customer_name, listName);
+            // 고객 정보 로딩
+            loadCustomerDataByName(cust.customer_name, listName);
+          });
+
+          sublist.appendChild(listItem);
         });
-
-        sublist.appendChild(listItem);
-      });
+      }
 
       listBox.appendChild(custBlock);
     });
