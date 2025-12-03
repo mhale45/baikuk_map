@@ -2249,6 +2249,7 @@ document.getElementById('new-customer-btn')?.addEventListener('click', () => {
   // 2) 오른쪽 고객 입력칸 초기화
   document.getElementById('top-row-input').value = '';
   document.getElementById('customer-phone').value = '';
+  document.getElementById('list-name-input').value = '리스트';
   document.getElementById('customer-grade').value = 'A';
   document.getElementById('memo-textarea').value = '';
 
