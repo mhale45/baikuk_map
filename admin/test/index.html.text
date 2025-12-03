@@ -71,7 +71,7 @@
           <!-- 🔽 리스트 이름 입력 -->
           <input
             id="list-name-input"
-            placeholder="리스트 이름 (예: 일산, 파주)"
+            placeholder="리스트 이름"
             class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base mt-2 h-[2rem]"
           />
           <div class="flex mt-[0.5rem]">

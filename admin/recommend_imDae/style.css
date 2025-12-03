@@ -165,16 +165,17 @@ tbody tr:nth-child(even) {
     padding-left: 0.25rem;
     border-left: 2px solid #e5e7eb; /* 살짝 라인 */
 }
-
 .customer-list-item {
     font-size: 0.85rem;
     padding: 0.2rem 0.4rem;
     color: #374151;                 /* text-gray-700 */
     border-radius: 0.25rem;
     cursor: pointer;
+    background-color: #fcfcfc;      /* ⭐ 기본 배경: 더 하얀 회색 */
     transition: background-color 0.15s ease;
 }
+
 .customer-list-item:hover {
-    background-color: #f3f4f6;      /* 더 은은한 hover */
+    background-color: #f0f0f0;      /* ⭐ hover 시 조금 진한 회색 */
     text-decoration: underline;
 }
