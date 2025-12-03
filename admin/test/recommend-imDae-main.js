@@ -1099,7 +1099,7 @@ async function loadCustomersForCurrentStaff() {
       header.querySelector('.caret').style.transform = 'rotate(-90deg)';
     }
 
-    /* 📌 고객이름 아래에 리스트이름 출력 */
+    /* ---- 고객이름 아래에 리스트이름 출력 ---- */
     const customersByName = {};
 
     list.forEach(c => {
@@ -1121,7 +1121,7 @@ async function loadCustomersForCurrentStaff() {
 
       // 고객이름 (대표/보조 / 다른 담당자 표시)
       const nameRow = document.createElement("div");
-      nameRow.className = "customer-name font-bold cursor-default";
+      nameRow.className = "customer-name font-bold cursor-pointer";
 
       const other = otherNameMap.get(cust.id);
       const otherText = other ? `(${other})` : "";
@@ -1129,24 +1129,36 @@ async function loadCustomersForCurrentStaff() {
       nameRow.textContent = `${cust.customer_name} ${otherText}`;
       custBlock.appendChild(nameRow);
 
-      // 리스트 목록
+      // ⭐ 고객명 클릭 → 하위 리스트 토글
+      nameRow.addEventListener("click", () => {
+        const sub = custBlock.querySelector(".customer-sublist");
+        if (sub) sub.classList.toggle("hidden");
+      });
+
+      // 하위 리스트 목록 wrapper
+      const sublist = document.createElement("div");
+      sublist.className = "customer-sublist hidden ml-3 mt-1";
+      custBlock.appendChild(sublist);
+
+      // 리스트 목록 렌더링
       group.lists.forEach(listName => {
         const listItem = document.createElement("div");
         listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
         listItem.textContent = `- ${listName}`;
 
         // 리스트 이름 클릭하면 고객+매물 전부 불러오기
-        listItem.addEventListener("click", () => {
+        listItem.addEventListener("click", (e) => {
+          e.stopPropagation(); // 고객명 토글과 충돌 방지
           loadCustomerDataByName(cust.customer_name, listName);
         });
 
-        custBlock.appendChild(listItem);
+        sublist.appendChild(listItem);
       });
 
       listBox.appendChild(custBlock);
     });
 
-    /* 토글 */
+    /* 등급 그룹 접기/펼치기 */
     header.addEventListener('click', () => {
       const visible = listBox.style.display !== 'none';
       listBox.style.display = visible ? 'none' : '';
