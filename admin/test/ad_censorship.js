@@ -699,6 +699,17 @@ async function renderStaffSidebar(me) {
               const baseFloorRaw = info?.floor ?? '';
               const baseFloorNorm = String(baseFloorRaw).replace(/\s+/g, '').trim();
 
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '해당층 확인' (빨강)
+              const hasAdFloor   = !!adFloorFront;
+              const hasBaseFloor = !!baseFloorNorm;
+              const needFloorCheck = hasAdFloor && hasBaseFloor && adFloorFront !== baseFloorNorm;
+
+              // 4) 출력 셀: 다르면 '해당층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adFloorFront) → 기준측 원본(baseFloorRaw) → '-'
+              const floorCell = needFloorCheck
+                ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
+                : (hasAdFloor ? adFloorFront : (baseFloorRaw ? String(baseFloorRaw) : '-'));
+
               // === [총층] 비교 ===
               // 1) 광고(ad_baikuk_listings): ad_floor_info에서 '/' 뒤쪽만 추출하고 공백 제거
               const adTotalRaw = row.ad_floor_info ?? '';
@@ -706,28 +717,21 @@ async function renderStaffSidebar(me) {
                 ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
                 : '';
 
-              // ================================
-              // 🔍 ad_floor_info 예외 처리 추가
-              // 앞(해당층) 값이 뒤(총층)보다 크면 서로 뒤바꿀 것
-              // ================================
-              let adFloor = adFloorFront;
-              let adTotal = adTotalBack;
-
-              if (
-                adFloor &&
-                adTotal &&
-                !isNaN(Number(adFloor)) &&
-                !isNaN(Number(adTotal)) &&
-                Number(adFloor) > Number(adTotal)
-              ) {
-                const tmp = adFloor;
-                adFloor = adTotal;  // 총층
-                adTotal = tmp;      // 해당층
-              }
-
               // 2) 기준(baikukdbtest): total_floors에서 공백 제거
               const baseTotalRaw = info?.total_floors ?? '';
               const baseTotalNorm = String(baseTotalRaw).replace(/\s+/g, '').trim();
+
+              // 3) 비교: 둘 다 값이 있고 서로 다르면 '총층 확인' (빨강)
+              const hasAdTotal   = !!adTotalBack;
+              const hasBaseTotal = !!baseTotalNorm;
+              const needTotalCheck = hasAdTotal && hasBaseTotal && adTotalBack !== baseTotalNorm;
+
+              // 4) 출력 셀: 다르면 '총층 확인', 같거나 한쪽이 비어있으면 표시 가능한 값 우선
+              //    - 우선순위: 광고측 값(adTotalBack, 원형 표시가 필요하면 원본 사용) → 기준측 원본(baseTotalRaw) → '-'
+              const totalFloorCell = needTotalCheck
+                ? '<span class="text-red-600 font-semibold">총층 확인</span>'
+                : (hasAdTotal ? (String(adTotalRaw).includes('/') ? String(adTotalRaw).split('/')[1].trim() : adTotalBack) // 시각적으로 광고 원형 유지
+                              : (baseTotalRaw ? String(baseTotalRaw) : '-'));
 
               // === [면적] 비교 ===
               // 월세일 때만 적용
