@@ -792,186 +792,107 @@ async function isMyAssignedCustomer(customerId) {
   return !!link || (!!cust && cust.staff_profiles_id === myId);
 }
 
-// 손님정보 불러오는 함수 (대표/보조 둘 다 접근 가능)
-async function loadCustomerDataByName(name) {
-    const myId = await getMyStaffId();
-    if (!myId) { showToast('로그인 필요'); return; }
+async function loadCustomerDataByName(name, list_name = null) {
 
-    // 1) 이름으로 고객 1명 찾기 (조인 X)
-    const { data: customer, error: custError } = await supabase
-    .from('customers')
-    .select(`
-        id, customer_name, customer_phone_number, grade, memo, staff_profiles_id,
-        floor_min, floor_max,
-        area_min, area_max,
-        deposit_min, deposit_max,
-        rent_min, rent_max,
-        rent_per_py_min, rent_per_py_max,
-        premium_min, premium_max,
-        sale_min, sale_max,
-        total_deposit_min, total_deposit_max,
-        total_rent_min, total_rent_max,
-        roi_min, roi_max,
-        list_name
-        `)
-    .eq('customer_name', name)
-    .maybeSingle();
+    // 1) 고객을 정확히 조회 (이름 + 리스트 조합)
+    let query = supabase
+        .from("customers")
+        .select("*")
+        .eq("customer_name", name);
 
-    if (custError || !customer) {
-    console.warn('❌ 고객 정보 불러오기 실패:', custError);
-    showToast('고객 정보를 찾을 수 없습니다.');
-    return;
+    if (list_name) {
+        query = query.eq("list_name", list_name);
     }
 
-    // 2) 접근 권한 체크 (대표 또는 보조)
-    const allowed = (customer.staff_profiles_id === myId) || (await isMyAssignedCustomer(customer.id));
-    if (!allowed) {
-    showToast('담당자가 아닌 고객은 볼 수 없습니다.');
-    return;
+    const { data: customer, error } = await query.maybeSingle();
+
+    if (error || !customer) {
+        showToast("고객 정보를 불러올 수 없습니다.");
+        return;
     }
 
+    // 2) 고객 기본 정보 채우기
+    document.getElementById("top-row-input").value = customer.customer_name || "";
+    document.getElementById("list-name-input").value = customer.list_name || "";
+    document.getElementById("customer-phone").value = customer.customer_phone_number || "";
+    document.getElementById("customer-grade").value = customer.grade || "F";
+    document.getElementById("memo-textarea").value = customer.memo || "";
+
+    // 숫자 필드들
+    const fill = (id, v) => document.getElementById(id).value = v ?? "";
+    fill("floor-min", customer.floor_min);
+    fill("floor-max", customer.floor_max);
+    fill("area-min", customer.area_min);
+    fill("area-max", customer.area_max);
+    fill("deposit-min", customer.deposit_min);
+    fill("deposit-max", customer.deposit_max);
+    fill("rent-min", customer.rent_min);
+    fill("rent-max", customer.rent_max);
+    fill("rent-per-py-min", customer.rent_per_py_min);
+    fill("rent-per-py-max", customer.rent_per_py_max);
+    fill("premium-min", customer.premium_min);
+    fill("premium-max", customer.premium_max);
+    fill("sale-min", customer.sale_min);
+    fill("sale-max", customer.sale_max);
+    fill("total-deposit-min", customer.total_deposit_min);
+    fill("total-deposit-max", customer.total_deposit_max);
+    fill("total-rent-min", customer.total_rent_min);
+    fill("total-rent-max", customer.total_rent_max);
+    fill("roi-min", customer.roi_min);
+    fill("roi-max", customer.roi_max);
+
+    // 3) 현재 고객 ID 저장
     currentCustomerId = customer.id;
 
-    // 👉 우측 정보창 채우기
-    document.getElementById('top-row-input').value = customer.customer_name || '';
-    document.getElementById('list-name-input').value = customer.list_name || '';
-    document.getElementById('customer-phone').value = customer.customer_phone_number || '';
-    document.getElementById('customer-grade').value = customer.grade || 'F';
-    document.getElementById('memo-textarea').value = customer.memo || '';
-    document.getElementById("floor-min").value = customer.floor_min ?? "";
-    document.getElementById("floor-max").value = customer.floor_max ?? "";
-    document.getElementById("area-min").value = customer.area_min ?? "";
-    document.getElementById("area-max").value = customer.area_max ?? "";
-    document.getElementById("deposit-min").value = customer.deposit_min ?? "";
-    document.getElementById("deposit-max").value = customer.deposit_max ?? "";
-    document.getElementById("rent-min").value = customer.rent_min ?? "";
-    document.getElementById("rent-max").value = customer.rent_max ?? "";
-    document.getElementById("rent-per-py-min").value = customer.rent_per_py_min ?? "";
-    document.getElementById("rent-per-py-max").value = customer.rent_per_py_max ?? "";
-    document.getElementById("premium-min").value = customer.premium_min ?? "";
-    document.getElementById("premium-max").value = customer.premium_max ?? "";
-    document.getElementById("sale-min").value = customer.sale_min ?? "";
-    document.getElementById("sale-max").value = customer.sale_max ?? "";
-    document.getElementById("total-deposit-min").value = customer.total_deposit_min ?? "";
-    document.getElementById("total-deposit-max").value = customer.total_deposit_max ?? "";
-    document.getElementById("total-rent-min").value = customer.total_rent_min ?? "";
-    document.getElementById("total-rent-max").value = customer.total_rent_max ?? "";
-    document.getElementById("roi-min").value = customer.roi_min ?? "";
-    document.getElementById("roi-max").value = customer.roi_max ?? "";
+    // 4) 매물 정보 로딩
+    await loadListingsForCustomerId(customer.id);
+}
 
-    // 👉 왼쪽 매물번호 입력창 초기화
-    document.querySelectorAll('input[data-index]').forEach(input => input.value = '');
+async function loadListingsForCustomerId(customerId) {
 
-    // 👉 오른쪽 매물입력 테이블 초기화
-    const listingsBody = document.getElementById('listings-body');
-    listingsBody.innerHTML = '';
+    // 입력 UI 초기화
+    document.querySelectorAll('input[data-index]').forEach(i => i.value = '');
+    document.getElementById("listings-body").innerHTML = '';
 
-    // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
-    const { data: listings, error: listingsError } = await supabase
-    .from('customers_recommendations')
-    .select('*')
-    .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-    .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
-    .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
+    const { data: listings, error } = await supabase
+        .from("customers_recommendations")
+        .select("*")
+        .eq("customers_id", customerId)
+        .order("order", { ascending: true });
 
-    if (listingsError) {
-    console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
-    showToast('추천 매물 정보를 불러오지 못했습니다.');
-    return;
+    if (error) {
+        showToast("매물 정보를 불러오지 못했습니다.");
+        return;
     }
 
-    // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
     let nextIndex = 1;
 
-    listings.forEach((listing) => {
-    // 1) 인덱스 결정
-    const index = (typeof listing.order === 'number' && !Number.isNaN(listing.order))
-        ? listing.order          // order가 있으면 그대로 사용
-        : nextIndex++;           // order가 NULL이면 예전처럼 순서대로
+    listings.forEach(listing => {
+        const index = listing.order ?? nextIndex++;
 
-    // 2) 왼쪽 매물번호 채우기
-    const leftInput = document.querySelector(`input[data-index="${index}"]`);
-    if (leftInput) leftInput.value = listing.listing_id ?? '';
+        const leftInput = document.querySelector(`input[data-index="${index}"]`);
+        if (leftInput) leftInput.value = listing.listing_id ?? "";
 
-    // 3) 오른쪽 표 행 확보/확장
-    updateListingsTableByInputs();
+        updateListingsTableByInputs();
 
-    // 4) 필드 주입
-    const setField = (field, value) => {
-        const el = document.querySelector(`[data-field="${field}_${index}"]`);
-        if (!el) return;
-        if (el.tagName === 'SPAN') el.textContent = value ?? '';
-        else el.value = value ?? '';
-    };
+        const setField = (field, value) => {
+            const el = document.querySelector(`[data-field="${field}_${index}"]`);
+            if (!el) return;
+            if (el.tagName === "SPAN") el.textContent = value ?? "";
+            else el.value = value ?? "";
+        };
 
-    setField('listing_title', listing.listing_title);
-    setField('full_address', listing.full_address);
+        setField('listing_title', listing.listing_title);
+        setField('full_address', listing.full_address);
+        setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+        setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+        setField('premium_price', formatKoreanMoney(listing.premium_price));
+        setField('area_py', listing.area_py);
+        setField('description', listing.contents);
 
-    // 🔹 숫자 포맷 적용 (콤마 표시)
-    setField('deposit_price', formatKoreanMoney(listing.deposit_price));
-    setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
-    setField('premium_price', formatKoreanMoney(listing.premium_price));
-    setField('area_py', isNaN(Number(listing.area_py)) ? '-' : Number(listing.area_py).toFixed(1));
-
-    setField('description', listing.contents);
-    const memoValue = typeof listing.memo === 'string' ? listing.memo : '';
-    const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
-    if (memoEl) memoEl.value = memoValue;
-    // === 🔥 색상 정보 불러오기 ===
-    if (listing.color) {
-        setFieldValue("color", index, listing.color);
-
-        const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-        if (tr) {
-        tr.dataset.userColor = "true";
-        tr.style.backgroundColor = listing.color;
-        tr.classList.remove("bg-white", "bg-gray-50");
-        }
-    }
-    // === 🔥 취소선(strike) 정보 불러오기 ===
-    if (listing.row_properties?.strike === 1) {
-        setFieldValue("strike", index, "1");
-
-        const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-        if (tr) {
-        tr.classList.add("line-through");
-        }
-    }
-
-    // === 🔍 로딩된 취소선 정보 콘솔 출력 ===
-    console.log(`row ${index} strike =`, listing.row_properties?.strike ?? null);
-
-    // 5) nextIndex 보정: order가 있는 레코드라면 다음 NULL 끼워넣기가
-    //    겹치지 않도록 nextIndex를 항상 '최대 사용 인덱스 + 1'로 맞춰줍니다.
-    if (typeof listing.order === 'number' && !Number.isNaN(listing.order)) {
-        nextIndex = Math.max(nextIndex, listing.order + 1);
-    }
+        const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+        if (memoEl) memoEl.value = listing.memo ?? "";
     });
-
-    // 높이/스트라이프 정리
-    renderMemoPanel(listings);
-    syncRowHeights?.();
-    applyRowStriping?.();
-    showToast(`고객 "${name}" 데이터 불러옴`);
-    setDocumentTitle(name);
-
-    // --- 👇 담당자 텍스트 표시 (읽기모드용) ---
-    const staffInfoBox = document.getElementById('staff-info');
-    if (customer.staff_profiles_id) {
-        const { data: staff } = await supabase
-            .from('staff_profiles')
-            .select('position, name, phone_num')
-            .eq('id', customer.staff_profiles_id)
-            .maybeSingle();
-
-        if (staff && staffInfoBox) {
-            staffInfoBox.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
-            staffInfoBox.classList.remove('hidden');
-
-            const staffSelect = document.getElementById('staff-select');
-            if (staffSelect) staffSelect.classList.add('hidden');
-        }
-    }
 }
 
 async function loadCustomerByNameAndList(name, list_name) {
@@ -1216,7 +1137,7 @@ async function loadCustomersForCurrentStaff() {
 
         // 리스트 이름 클릭하면 고객+매물 전부 불러오기
         listItem.addEventListener("click", () => {
-          loadCustomerByNameAndList(cust.customer_name, listName);
+          loadCustomerDataByName(cust.customer_name, listName);
         });
 
         custBlock.appendChild(listItem);
