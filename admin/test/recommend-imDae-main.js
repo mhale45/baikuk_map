@@ -4,6 +4,35 @@ let rowObserver;           // ResizeObserver 인스턴스
 // 직원 선택 저장용 전역 변수
 let selectedStaffId = null;
 
+// ⭐ 동일 customer_name 모든 리스트 정보 업데이트
+async function updateAllSameNameCustomers() {
+  const name = document.getElementById("top-row-input").value.trim();
+  const grade = document.getElementById("customer-grade").value.trim();
+  const phone = document.getElementById("customer-phone").value.trim();
+  const memo = document.getElementById("memo-textarea").value.trim();
+
+  if (!name) return;
+
+  try {
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        grade: grade,
+        customer_phone_number: phone,
+        memo: memo
+      })
+      .eq("customer_name", name);
+
+    if (error) {
+      console.error(error);
+      showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("고객 정보 업데이트 중 예외가 발생했습니다.");
+  }
+}
+
 /* ----------------------------------------------------
   [매물 저장 기능]
   현재 선택된 고객(currentCustomerId)의 매물정보를
@@ -92,6 +121,9 @@ async function saveListingsForCurrentCustomer() {
       return false;
     }
 
+    // ⭐ 고객이름 전체에 구분/전화/메모 동기화
+    await updateAllSameNameCustomers();
+    
     return true;
   } catch (e) {
     console.error(e);
