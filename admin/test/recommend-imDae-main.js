@@ -3,7 +3,6 @@ let listingsBody;          // tbody 캐시
 let rowObserver;           // ResizeObserver 인스턴스
 // 직원 선택 저장용 전역 변수
 let selectedStaffId = null;
-let currentListName = null; // 고객이름 하위 리스트이름
 
 /* ----------------------------------------------------
   [매물 저장 기능]
@@ -16,46 +15,35 @@ async function saveListingsForCurrentCustomer() {
     return false;
   }
 
+  // 🔽 리스트 이름 가져오기
+  const listName = (document.getElementById('list-name-input')?.value || '').trim();
+  if (!listName) {
+    showToast("리스트 이름을 입력해주세요.");
+    return false;
+  }
+
+  // 🔽 중복 체크
+  const { data: existingList, error: checkErr } = await supabase
+    .from("customers_recommendations")
+    .select("id")
+    .eq("customers_id", String(currentCustomerId))
+    .eq("list_name", listName)
+    .limit(1);
+
+  if (checkErr) {
+    console.error(checkErr);
+    showToast("중복 체크 중 오류가 발생했습니다.");
+    return false;
+  }
+
+  if (existingList?.length > 0) {
+    showToast(`이미 존재하는 리스트 이름입니다: "${listName}"`);
+    return false;
+  }
+
   // 권한 확인(대표/보조만 가능)
   if (!(await isMyAssignedCustomer(currentCustomerId))) {
     showToast("담당자가 아닌 고객의 매물은 저장할 수 없습니다.");
-    return false;
-  }
-
-  // 🔥 (고객이름 + 리스트이름 조합 중복 체크)
-  const customerName = document.getElementById("top-row-input").value?.trim();
-  const listName = currentListName?.trim() || "";
-
-  if (!customerName) {
-    showToast("고객 이름이 없습니다.");
-    return false;
-  }
-
-  // list_name 은 비어도 저장 가능하도록 하고 싶다면 아래 조건 조정 가능
-  if (!listName) {
-    showToast("리스트 이름이 없습니다.");
-    return false;
-  }
-
-  // === Supabase 에서 중복 체크 ===
-  const { data: dupList, error: dupErr } = await supabase
-    .from("customers_recommendations")
-    .select("id, customers_id, list_name")
-    .eq("list_name", listName);
-
-  if (dupErr) {
-    showToast("중복 검사 중 오류가 발생했습니다.");
-    console.error(dupErr);
-    return false;
-  }
-
-  // 🔍 동일 고객 이름 + 동일 list_name 조합이 이미 DB 에 존재하는지 체크
-  const isDuplicate = dupList?.some(row => {
-    return row.customers_id === String(currentCustomerId);
-  });
-
-  if (isDuplicate) {
-    showToast(`이미 존재하는 리스트입니다: "${customerName}" 고객의 [${listName}]`);
     return false;
   }
 
@@ -89,7 +77,7 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
-      list_name      : currentListName || null,
+      list_name      : listName,
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
@@ -108,11 +96,12 @@ async function saveListingsForCurrentCustomer() {
   });
 
   try {
-    // 기존 데이터 삭제
+    // 🔽 기존 같은 list_name 만 삭제
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId));
+      .eq("customers_id", String(currentCustomerId))
+      .eq("list_name", listName);
 
     if (delErr) {
       console.error(delErr);
@@ -1076,20 +1065,6 @@ async function loadCustomersForCurrentStaff() {
     .select('customer_id, staff_profiles!inner(id, name)')
     .in('customer_id', custIds);
 
-  // == 고객별 추천 리스트 가져오기 (렌더링보다 먼저 준비해야 함!) ==
-  const { data: recList } = await supabase
-    .from("customers_recommendations")
-    .select("customers_id, list_name")
-    .in("customers_id", custIds);
-
-  const listNameMap = new Map();
-  (recList || []).forEach(r => {
-    if (!listNameMap.has(r.customers_id)) {
-      listNameMap.set(r.customers_id, new Set());
-    }
-    if (r.list_name) listNameMap.get(r.customers_id).add(r.list_name);
-  });
-
   const otherNameMap = new Map();
   if (!assAllErr && assigneesAll) {
     // customer_id별로 담당자 id/name 모으기 (중복 제거)
@@ -1192,36 +1167,6 @@ async function loadCustomersForCurrentStaff() {
 
         nameBtn.append(sub, label);
 
-        // 🔽 list_name 목록 표시 ------------------------------------
-        const lists = Array.from(listNameMap.get(cust.id) || []);
-        if (lists.length > 0) {
-          const ul = document.createElement("ul");
-          ul.className = "ml-4 mt-1 text-sm text-gray-700";
-
-          lists.forEach(name => {
-            const li = document.createElement("li");
-            li.textContent = "• " + name;
-
-            li.addEventListener("click", async (e) => {
-              e.stopPropagation();
-
-              // 리스트 선택
-              currentListName = name;
-
-              // 오른쪽 입력창에 선택된 리스트 이름 표시
-              const listInput = document.getElementById("list-name-input");
-              if (listInput) listInput.value = name;
-
-              // 고객 + 리스트 조합으로 매물 로딩
-              await loadCustomerAndList(cust.id, name);
-            });
-
-            ul.appendChild(li);
-          });
-
-          nameBtn.appendChild(ul);
-        }
-
         // 접근성: 키보드 선택 지원
         nameBtn.setAttribute('role', 'button');
         nameBtn.tabIndex = 0;
@@ -1244,8 +1189,7 @@ async function loadCustomersForCurrentStaff() {
       const caret = header.querySelector('.caret');
       caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
     });
-  });    
-  
+  });      
 }
 
 let buildingMap = new Map();
@@ -2387,95 +2331,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
-
-async function loadCustomerAndList(customerId, listName) {
-  currentCustomerId = customerId;
-  currentListName = listName;
-
-  // 손님 기본 정보 불러오기
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("id", customerId)
-    .maybeSingle();
-
-  if (!customer) return;
-
-  // 우측 고객 정보 UI 채움
-  document.getElementById('top-row-input').value = customer.customer_name || '';
-  document.getElementById('customer-phone').value = customer.customer_phone_number || '';
-  document.getElementById('customer-grade').value = customer.grade || 'F';
-  document.getElementById('memo-textarea').value = customer.memo || '';
-
-  // 리스트 이름 입력칸 세팅
-  const listInput = document.getElementById("list-name-input");
-  if (listInput) listInput.value = listName || "";
-
-  // 매물 테이블 초기화
-  document.querySelectorAll('input[data-index]').forEach(inp => inp.value = '');
-  const listingsBody = document.getElementById('listings-body');
-  listingsBody.innerHTML = '';
-
-  // ⭐ 리스트별 매물 불러오기 (중요)
-  const { data: listings } = await supabase
-    .from("customers_recommendations")
-    .select("*")
-    .eq("customers_id", String(customerId))
-    .eq("list_name", listName)        // ← 리스트별 필터
-    .order("order", { ascending: true });
-
-  // 기존 loadCustomerDataByName에서 행 그리는 부분 그대로 복붙 가능
-  if (listings && listings.length) {
-    renderListRows(listings);  // 아래에서 제공
-  }
-
-  showToast(`"${customer.customer_name}" 고객 - [${listName}] 리스트 로딩됨`);
-}
-
-function renderListRows(listings) {
-  let nextIndex = 1;
-
-  listings.forEach(listing => {
-    const index = listing.order || nextIndex++;
-
-    const leftInput = document.querySelector(`input[data-index="${index}"]`);
-    if (leftInput) leftInput.value = listing.listing_id ?? '';
-
-    updateListingsTableByInputs();
-
-    const setField = (field, value) => {
-      const el = document.querySelector(`[data-field="${field}_${index}"]`);
-      if (!el) return;
-      if (el.tagName === 'SPAN') el.textContent = value ?? '';
-      else el.value = value ?? '';
-    };
-
-    setField('listing_title', listing.listing_title);
-    setField('full_address', listing.full_address);
-    setField('deposit_price', formatKoreanMoney(listing.deposit_price));
-    setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
-    setField('premium_price', formatKoreanMoney(listing.premium_price));
-    setField('area_py', listing.area_py);
-
-    setField('description', listing.contents);
-
-    const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
-    if (memoEl) memoEl.value = listing.memo || '';
-
-    // 색상 복원
-    const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
-    if (listing.color && tr) {
-      tr.dataset.userColor = "true";
-      tr.style.backgroundColor = listing.color;
-    }
-
-    // 취소선 복원
-    if (listing.row_properties?.strike === 1 && tr) {
-      tr.classList.add("line-through");
-    }
-  });
-
-  renderMemoPanel(listings);
-  syncRowHeights();
-  applyRowStriping();
-}
