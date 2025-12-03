@@ -974,55 +974,7 @@ async function loadCustomerDataByName(name) {
     }
 }
 
-async function loadCustomerByNameAndList(name, list_name) {
-    const { data: customer, error } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("customer_name", name)
-        .eq("list_name", list_name)
-        .maybeSingle();
-
-    if (error || !customer) {
-        showToast("고객 정보를 불러오지 못했습니다.");
-        return;
-    }
-
-    // 고객정보 입력창 채우기
-    document.getElementById("top-row-input").value = customer.customer_name || "";
-    document.getElementById("list-name-input").value = customer.list_name || "";
-    document.getElementById("customer-phone").value = customer.customer_phone_number || "";
-    document.getElementById("customer-grade").value = customer.grade || "F";
-    document.getElementById("memo-textarea").value = customer.memo || "";
-
-    // 필터들 채우기
-    document.getElementById("floor-min").value = customer.floor_min ?? "";
-    document.getElementById("floor-max").value = customer.floor_max ?? "";
-    document.getElementById("area-min").value = customer.area_min ?? "";
-    document.getElementById("area-max").value = customer.area_max ?? "";
-    document.getElementById("deposit-min").value = customer.deposit_min ?? "";
-    document.getElementById("deposit-max").value = customer.deposit_max ?? "";
-    document.getElementById("rent-min").value = customer.rent_min ?? "";
-    document.getElementById("rent-max").value = customer.rent_max ?? "";
-    document.getElementById("rent-per-py-min").value = customer.rent_per_py_min ?? "";
-    document.getElementById("rent-per-py-max").value = customer.rent_per_py_max ?? "";
-    document.getElementById("premium-min").value = customer.premium_min ?? "";
-    document.getElementById("premium-max").value = customer.premium_max ?? "";
-    document.getElementById("sale-min").value = customer.sale_min ?? "";
-    document.getElementById("sale-max").value = customer.sale_max ?? "";
-    document.getElementById("total-deposit-min").value = customer.total_deposit_min ?? "";
-    document.getElementById("total-deposit-max").value = customer.total_deposit_max ?? "";
-    document.getElementById("total-rent-min").value = customer.total_rent_min ?? "";
-    document.getElementById("total-rent-max").value = customer.total_rent_max ?? "";
-    document.getElementById("roi-min").value = customer.roi_min ?? "";
-    document.getElementById("roi-max").value = customer.roi_max ?? "";
-
-    currentCustomerId = customer.id;
-
-    // 매물 불러오기
-    await loadListingsForCustomer(customer.id);
-}
-
-// 왼쪽패널 고객 + 리스트이름 트리 구조 로딩 (대표/보조 표시 + 등급 그룹 유지)
+// 왼쪽패널에 손님이름 로딩함수 (대표/보조 전부, 등급 제한 없음)
 async function loadCustomersForCurrentStaff() {
   const myId = await getMyStaffId();
   if (!myId) {
@@ -1030,23 +982,18 @@ async function loadCustomersForCurrentStaff() {
     return;
   }
 
-  /* ============================================
-     1) 고객 목록 가져오기 (대표 고객)
-  ============================================ */
+  // 1) 내가 '대표'인 고객
   const { data: primaryList, error: pErr } = await supabase
     .from('customers')
-    .select('id, customer_name, list_name, grade')
+    .select('id, customer_name, grade')
     .eq('staff_profiles_id', myId);
 
-  /* ============================================
-     2) 배정자 목록 가져오기 (대표/보조)
-  ============================================ */
+  // 2) 내가 '배정자(대표/보조)'로 들어간 고객 (조인)
   const { data: assigneeList, error: aErr } = await supabase
     .from('customers')
     .select(`
       id,
       customer_name,
-      list_name,
       grade,
       customer_assignees!inner(staff_profiles_id, is_primary)
     `)
@@ -1057,9 +1004,7 @@ async function loadCustomersForCurrentStaff() {
     return;
   }
 
-  /* ============================================
-     3) 대표 + 배정자 병합 + 역할 표시
-  ============================================ */
+  // 3) 병합 + 중복 제거 + 역할 표시(대표/보조)
   const map = new Map();
 
   (primaryList || []).forEach(c => {
@@ -1068,35 +1013,36 @@ async function loadCustomersForCurrentStaff() {
 
   (assigneeList || []).forEach(c => {
     const prev = map.get(c.id);
-    const role = (c.customer_assignees?.[0]?.is_primary || prev?.role === '대표')  
-                 ? '대표'  
-                 : '보조';
-
-    map.set(c.id, { 
-      id: c.id, 
-      customer_name: c.customer_name, 
-      list_name: c.list_name, 
-      grade: c.grade,
-      role 
-    });
+    // 조인 결과에 is_primary가 있을 수도 있고 없을 수도 있음 → 대표 우선
+    const role = (c.customer_assignees?.[0]?.is_primary || prev?.role === '대표') ? '대표' : '보조';
+    map.set(c.id, { id: c.id, customer_name: c.customer_name, grade: c.grade, role });
   });
 
   let customers = Array.from(map.values());
 
-  /* ============================================
-     4) 담당자 2명일 때 내 이름 제외한 상대 이름 표시
-  ============================================ */
+  // 4) 정렬: A > B > C > F, 같은 등급은 이름 오름차순
+  const gradeOrder = { 계약: 0, A: 1, B: 2, C: 3, F: 4 };
+  customers.sort((a, b) => {
+    const ga = gradeOrder[a.grade] ?? 99;
+    const gb = gradeOrder[b.grade] ?? 99;
+    if (ga !== gb) return ga - gb;
+    return (a.customer_name || '').localeCompare(b.customer_name || '', 'ko');
+    // 필요시 localeCompare 두번째 인자 'ko'로 한국어 정렬
+  });
+
+  // 4.5) 고객별 다른 담당자 이름 수집 (담당자가 정확히 2명일 때만 표시)
   const custIds = customers.map(c => c.id);
 
-  const { data: assigneesAll } = await supabase
+  // 모든 배정자 조회 (내/남 구분 위해 staff_profiles.id, name 필요)
+  const { data: assigneesAll, error: assAllErr } = await supabase
     .from('customer_assignees')
     .select('customer_id, staff_profiles!inner(id, name)')
     .in('customer_id', custIds);
 
   const otherNameMap = new Map();
-  if (assigneesAll) {
+  if (!assAllErr && assigneesAll) {
+    // customer_id별로 담당자 id/name 모으기 (중복 제거)
     const byCustomer = new Map();
-
     assigneesAll.forEach(row => {
       const cid = row.customer_id;
       const sp = row.staff_profiles;
@@ -1105,21 +1051,18 @@ async function loadCustomersForCurrentStaff() {
       byCustomer.get(cid).set(sp.id, sp.name);
     });
 
+    // 정확히 2명일 때 내 id가 아닌 이름을 other로 저장
     byCustomer.forEach((idNameMap, cid) => {
       if (idNameMap.size === 2 && idNameMap.has(myId)) {
         for (const [sid, sname] of idNameMap.entries()) {
-          if (sid !== myId) {
-            otherNameMap.set(cid, sname);
-            break;
-          }
+          if (sid !== myId) { otherNameMap.set(cid, sname); break; }
         }
       }
     });
   }
 
-  /* ============================================
-     5) 등급 그룹별 고객 표시
-  ============================================ */
+
+  // 5) 렌더 (등급별 그룹 섹션 + 이름만)
   const container = document.getElementById('customer-list');
   if (!container) return;
   container.innerHTML = '';
@@ -1129,108 +1072,98 @@ async function loadCustomersForCurrentStaff() {
     return;
   }
 
-  const gradeOrder = { 계약: 0, A: 1, B: 2, C: 3, F: 4 };
+  // 계약/A/B/C/F만 표시 (F는 아래에서 접은 상태로 렌더)
   const filteredCustomers = customers.filter(c =>
     ['계약', 'A', 'B', 'C', 'F'].includes((c.grade || '').toUpperCase())
   );
 
+  // 등급 그룹핑
   const grouped = filteredCustomers.reduce((acc, c) => {
     const g = (c.grade || '미분류').toUpperCase();
     (acc[g] ||= []).push(c);
     return acc;
   }, {});
 
+  // 표시 순서 고정: A > B > C > F > 나머지
   const gradeOrderList = ['계약', 'A', 'B', 'C', 'F'];
   const sortedGrades = [
     ...gradeOrderList.filter(g => grouped[g]?.length),
     ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g))
   ];
 
-  /* ============================================
-     6) 렌더링: 고객이름 + 리스트이름 트리화
-  ============================================ */
+  // 섹션별 렌더 (F는 기본 접힘)
   sortedGrades.forEach(grade => {
     const list = grouped[grade] || [];
     if (!list.length) return;
 
+    // 래퍼(섹션) 생성
     const section = document.createElement('div');
     section.className = 'mb-1';
     container.appendChild(section);
 
+    // 헤더 (클릭으로 접기/펼치기)
     const header = document.createElement('div');
     header.className = 'grade-header flex items-center justify-between cursor-pointer select-none';
+    const countText = `${grade} (${list.length})`;
     header.innerHTML = `
-      <span>${grade} (${list.length})</span>
+      <span>${countText}</span>
       <span class="caret text-gray-600 transition-transform duration-200">▼</span>
     `;
     section.appendChild(header);
 
+    // 목록 컨테이너
     const listBox = document.createElement('div');
     listBox.className = 'mt-1';
     section.appendChild(listBox);
 
     // F는 기본 접힘
-    const isF = grade === 'F';
+    const isF = (grade || '').toUpperCase() === 'F';
     if (isF) {
       listBox.style.display = 'none';
-      header.querySelector('.caret').style.transform = 'rotate(-90deg)';
+      const caret = header.querySelector('.caret');
+      caret.style.transform = 'rotate(-90deg)';
     }
 
-    /* 📌 고객이름 아래에 리스트이름 출력 */
-    const customersByName = {};
+    // 이름들 렌더
+    list
+      .sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || '', 'ko'))
+      .forEach(cust => {
+        const nameBtn = document.createElement('div');
+        nameBtn.className = 'name-item';
+        const other = otherNameMap.get(cust.id);
 
-    list.forEach(c => {
-      if (!customersByName[c.customer_name]) {
-        customersByName[c.customer_name] = {
-          info: c,
-          lists: []
-        };
-      }
-      customersByName[c.customer_name].lists.push(c.list_name);
-    });
+        const label = document.createElement('span');
+        label.textContent = cust.customer_name || '-';
 
-    // 고객이름 렌더링
-    Object.values(customersByName).forEach(group => {
-      const cust = group.info;
+        const sub = document.createElement('span');
+        sub.className = 'mr-1 text-sm text-gray-500';
+        sub.textContent = other ? `(${other})` : '';
 
-      const custBlock = document.createElement("div");
-      custBlock.className = "customer-block mb-1";
+        nameBtn.append(sub, label);
 
-      // 고객이름 (대표/보조 / 다른 담당자 표시)
-      const nameRow = document.createElement("div");
-      nameRow.className = "customer-name font-bold cursor-default";
+        // 접근성: 키보드 선택 지원
+        nameBtn.setAttribute('role', 'button');
+        nameBtn.tabIndex = 0;
 
-      const other = otherNameMap.get(cust.id);
-      const otherText = other ? `(${other})` : "";
-
-      nameRow.textContent = `${cust.customer_name} ${otherText}`;
-      custBlock.appendChild(nameRow);
-
-      // 리스트 목록
-      group.lists.forEach(listName => {
-        const listItem = document.createElement("div");
-        listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
-        listItem.textContent = `- ${listName}`;
-
-        // 리스트 이름 클릭하면 고객+매물 전부 불러오기
-        listItem.addEventListener("click", () => {
-          loadCustomerByNameAndList(cust.customer_name, listName);
+        nameBtn.addEventListener('click', () => loadCustomerDataByName(cust.customer_name));
+        nameBtn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            loadCustomerDataByName(cust.customer_name);
+          }
         });
 
-        custBlock.appendChild(listItem);
+        listBox.appendChild(nameBtn);
       });
 
-      listBox.appendChild(custBlock);
-    });
-
-    /* 토글 */
+    // 토글 동작
     header.addEventListener('click', () => {
       const visible = listBox.style.display !== 'none';
       listBox.style.display = visible ? 'none' : '';
-      header.querySelector('.caret').style.transform =
-        visible ? 'rotate(-90deg)' : 'rotate(0deg)';
+      const caret = header.querySelector('.caret');
+      caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
     });
-  });
+  });      
 }
 
 let buildingMap = new Map();
