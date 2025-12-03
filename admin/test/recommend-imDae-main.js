@@ -1139,6 +1139,32 @@ async function loadCustomersForCurrentStaff() {
 
         nameBtn.append(sub, label);
 
+        // 🔽 list_name 목록 표시 ------------------------------------
+        const lists = Array.from(listNameMap.get(cust.id) || []);
+        if (lists.length > 0) {
+          const ul = document.createElement("ul");
+          ul.className = "ml-4 mt-1 text-sm text-gray-700";
+
+          lists.forEach(name => {
+            const li = document.createElement("li");
+            li.textContent = "• " + name;
+
+            // 클릭하면 해당 고객 + 해당 리스트 이름 로딩
+            li.addEventListener("click", (e) => {
+              e.stopPropagation(); // 고객 클릭 이벤트 중복 방지
+              loadCustomerDataByName(cust.customer_name);
+
+              // 오른쪽 상단 list_name 입력칸 반영
+              const listInput = document.getElementById("list-name-input");
+              if (listInput) listInput.value = name;
+            });
+
+            ul.appendChild(li);
+          });
+
+          nameBtn.appendChild(ul);
+        }
+
         // 접근성: 키보드 선택 지원
         nameBtn.setAttribute('role', 'button');
         nameBtn.tabIndex = 0;
@@ -1161,7 +1187,22 @@ async function loadCustomersForCurrentStaff() {
       const caret = header.querySelector('.caret');
       caret.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
     });
-  });      
+  });    
+  
+  // 🔽 고객별 추천리스트(list_name) 불러오기 -------------------
+  const { data: recList } = await supabase
+    .from("customers_recommendations")
+    .select("customers_id, list_name")
+    .in("customers_id", custIds);
+
+  const listNameMap = new Map();
+  (recList || []).forEach(r => {
+    if (!listNameMap.has(r.customers_id)) {
+      listNameMap.set(r.customers_id, new Set());
+    }
+    if (r.list_name) listNameMap.get(r.customers_id).add(r.list_name);
+  });
+
 }
 
 let buildingMap = new Map();
