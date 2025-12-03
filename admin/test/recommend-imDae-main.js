@@ -1037,6 +1037,20 @@ async function loadCustomersForCurrentStaff() {
     .select('customer_id, staff_profiles!inner(id, name)')
     .in('customer_id', custIds);
 
+  // == 고객별 추천 리스트 가져오기 (렌더링보다 먼저 준비해야 함!) ==
+  const { data: recList } = await supabase
+    .from("customers_recommendations")
+    .select("customers_id, list_name")
+    .in("customers_id", custIds);
+
+  const listNameMap = new Map();
+  (recList || []).forEach(r => {
+    if (!listNameMap.has(r.customers_id)) {
+      listNameMap.set(r.customers_id, new Set());
+    }
+    if (r.list_name) listNameMap.get(r.customers_id).add(r.list_name);
+  });
+
   const otherNameMap = new Map();
   if (!assAllErr && assigneesAll) {
     // customer_id별로 담당자 id/name 모으기 (중복 제거)
@@ -1189,20 +1203,6 @@ async function loadCustomersForCurrentStaff() {
     });
   });    
   
-  // 🔽 고객별 추천리스트(list_name) 불러오기 -------------------
-  const { data: recList } = await supabase
-    .from("customers_recommendations")
-    .select("customers_id, list_name")
-    .in("customers_id", custIds);
-
-  const listNameMap = new Map();
-  (recList || []).forEach(r => {
-    if (!listNameMap.has(r.customers_id)) {
-      listNameMap.set(r.customers_id, new Set());
-    }
-    if (r.list_name) listNameMap.get(r.customers_id).add(r.list_name);
-  });
-
 }
 
 let buildingMap = new Map();
