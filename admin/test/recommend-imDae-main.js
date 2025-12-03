@@ -10,9 +10,9 @@ let selectedStaffId = null;
   Supabase 테이블 customers_recommendations 에 저장
 ---------------------------------------------------- */
 async function saveListingsForCurrentCustomer() {
-  if (!currentCustomerId) {
-    showToast("먼저 고객을 선택해주세요.");
-    return false;
+  if (!customerId) {
+      showToast("고객 ID가 없습니다.");
+      return false;
   }
 
   // 권한 확인(대표/보조만 가능)
@@ -73,7 +73,7 @@ async function saveListingsForCurrentCustomer() {
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId));
+      .eq("customers_id", String(customerId))
 
     if (delErr) {
       console.error(delErr);
@@ -2062,22 +2062,163 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
     return;
     }
 
-    let isNewCustomer = !currentCustomerId; // 신규 모드 판단
+    // 🔥 새로운 저장 로직: 고객이름 + 리스트이름으로 판별
+    async function saveCustomerAndListings() {
+        const name = document.getElementById("top-row-input")?.value.trim();
+        const listName = document.getElementById("list-name-input")?.value.trim();
 
-    // ==================================================
-    // 1) 신규 고객인 경우 → INSERT
-    // ==================================================
-    if (isNewCustomer) {
-    // 같은 이름이 이미 있는지 확인
-    const { data: same, error: sameErr } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("customer_name", name)
-        .maybeSingle();
+        if (!name) {
+            showToast("고객 이름을 입력해주세요.");
+            return;
+        }
 
-    if (same) {
-        showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
-        return;
+        if (!listName) {
+            showToast("리스트 이름을 입력해주세요.");
+            return;
+        }
+
+        // 1) 고객이름 + 리스트이름 조합으로 기존 고객 존재 확인
+        const { data: existing, error: existingErr } = await supabase
+            .from("customers")
+            .select("*")
+            .eq("customer_name", name)
+            .eq("list_name", listName)
+            .maybeSingle();
+
+        if (existingErr) {
+            console.error(existingErr);
+            showToast("저장 중 오류가 발생했습니다.");
+            return;
+        }
+
+        let customerId = null;
+
+        // ---------------------------
+        // 2) 기존 고객 있음 → 덮어쓰기 여부 확인
+        // ---------------------------
+        if (existing) {
+            const confirmReplace = confirm(
+                `"${name}" 고객의 "${listName}" 리스트가 이미 존재합니다.\n모든 정보를 새 데이터로 덮어쓸까요?`
+            );
+            if (!confirmReplace) return;
+
+            customerId = existing.id;
+
+            // (1) 고객정보 UPDATE (전체 덮어쓰기)
+            const { error: updateErr } = await supabase
+                .from("customers")
+                .update({
+                    customer_name: name,
+                    list_name: listName,
+                    customer_phone_number: document.getElementById("customer-phone")?.value || "",
+                    grade: document.getElementById("customer-grade")?.value || "F",
+                    memo: document.getElementById("memo-textarea")?.value || "",
+
+                    floor_min: document.getElementById("floor-min")?.value || null,
+                    floor_max: document.getElementById("floor-max")?.value || null,
+                    area_min: document.getElementById("area-min")?.value || null,
+                    area_max: document.getElementById("area-max")?.value || null,
+
+                    deposit_min: document.getElementById("deposit-min")?.value || null,
+                    deposit_max: document.getElementById("deposit-max")?.value || null,
+                    rent_min: document.getElementById("rent-min")?.value || null,
+                    rent_max: document.getElementById("rent-max")?.value || null,
+
+                    rent_per_py_min: document.getElementById("rent-per-py-min")?.value || null,
+                    rent_per_py_max: document.getElementById("rent-per-py-max")?.value || null,
+
+                    premium_min: document.getElementById("premium-min")?.value || null,
+                    premium_max: document.getElementById("premium-max")?.value || null,
+
+                    sale_min: document.getElementById("sale-min")?.value || null,
+                    sale_max: document.getElementById("sale-max")?.value || null,
+
+                    total_deposit_min: document.getElementById("total-deposit-min")?.value || null,
+                    total_deposit_max: document.getElementById("total-deposit-max")?.value || null,
+
+                    total_rent_min: document.getElementById("total-rent-min")?.value || null,
+                    total_rent_max: document.getElementById("total-rent-max")?.value || null,
+
+                    roi_min: document.getElementById("roi-min")?.value || null,
+                    roi_max: document.getElementById("roi-max")?.value || null
+                })
+                .eq("id", customerId);
+
+            if (updateErr) {
+                console.error(updateErr);
+                showToast("고객 정보 업데이트 중 오류.");
+                return;
+            }
+
+            // (2) 기존 추천매물 삭제
+            await supabase
+                .from("customers_recommendations")
+                .delete()
+                .eq("customers_id", customerId);
+
+        } else {
+            // ---------------------------
+            // 3) 기존 고객 없음 → 신규 INSERT
+            // ---------------------------
+            const { data: inserted, error: insertErr } = await supabase
+                .from("customers")
+                .insert({
+                    customer_name: name,
+                    list_name: listName,
+                    customer_phone_number: document.getElementById("customer-phone")?.value || "",
+                    grade: document.getElementById("customer-grade")?.value || "F",
+                    memo: document.getElementById("memo-textarea")?.value || "",
+
+                    floor_min: document.getElementById("floor-min")?.value || null,
+                    floor_max: document.getElementById("floor-max")?.value || null,
+                    area_min: document.getElementById("area-min")?.value || null,
+                    area_max: document.getElementById("area-max")?.value || null,
+
+                    deposit_min: document.getElementById("deposit-min")?.value || null,
+                    deposit_max: document.getElementById("deposit-max")?.value || null,
+                    rent_min: document.getElementById("rent-min")?.value || null,
+                    rent_max: document.getElementById("rent-max")?.value || null,
+
+                    rent_per_py_min: document.getElementById("rent-per-py-min")?.value || null,
+                    rent_per_py_max: document.getElementById("rent-per-py-max")?.value || null,
+
+                    premium_min: document.getElementById("premium-min")?.value || null,
+                    premium_max: document.getElementById("premium-max")?.value || null,
+
+                    sale_min: document.getElementById("sale-min")?.value || null,
+                    sale_max: document.getElementById("sale-max")?.value || null,
+
+                    total_deposit_min: document.getElementById("total-deposit-min")?.value || null,
+                    total_deposit_max: document.getElementById("total-deposit-max")?.value || null,
+
+                    total_rent_min: document.getElementById("total-rent-min")?.value || null,
+                    total_rent_max: document.getElementById("total-rent-max")?.value || null,
+
+                    roi_min: document.getElementById("roi-min")?.value || null,
+                    roi_max: document.getElementById("roi-max")?.value || null
+                })
+                .select()
+                .single();
+
+            if (insertErr) {
+                console.error(insertErr);
+                showToast("고객 저장 중 오류.");
+                return;
+            }
+
+            customerId = inserted.id;
+        }
+
+        // ---------------------------
+        // 4) 추천매물 저장
+        // ---------------------------
+        const ok = await saveListingsForCurrentCustomer(customerId);
+        if (!ok) {
+            showToast("추천 매물 저장 중 오류.");
+            return;
+        }
+
+        showToast("저장 완료!");
     }
 
     // 신규 고객 INSERT
