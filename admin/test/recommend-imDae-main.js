@@ -1165,62 +1165,60 @@ async function loadCustomersForCurrentStaff() {
       nameRow.textContent = `${cust.customer_name} ${otherText}`;
       custBlock.appendChild(nameRow);
 
-      // 고객명 클릭 → 리스트가 1개면 바로 불러오기 / 여러 개면 토글
+      // ⭐ 고객명 클릭 시 → 첫 번째 리스트 자동 선택
       nameRow.addEventListener("click", () => {
+
         const sub = custBlock.querySelector(".customer-sublist");
 
-        // 리스트 개수 확인
-        const listCount = group.lists.length;
+        // 리스트가 존재하면 펼침
+        if (sub) sub.classList.remove("hidden");
 
-        if (listCount === 1) {
-          // ⭐ 리스트 하나뿐이면 sublist를 펼치지 않고 바로 데이터 로딩
-          const onlyListName = group.lists[0];
+        // 첫 번째 리스트 가져오기
+        const firstListItem = custBlock.querySelector(".customer-list-item");
 
-          // 기존 선택 스타일 제거
+        if (firstListItem) {
+          // 기존 선택 제거
           document.querySelectorAll(".customer-list-item.selected")
             .forEach(el => el.classList.remove("selected"));
 
-          // 해당 리스트만 강조
-          const onlyListEl = sub.querySelector(".customer-list-item");
-          if (onlyListEl) onlyListEl.classList.add("selected");
+          // 선택 표시
+          firstListItem.classList.add("selected");
 
-          // 데이터 불러오기
-          loadCustomerDataByName(cust.customer_name, onlyListName);
-        } else {
-          // 리스트 여러 개면 기존처럼 토글
-          if (sub) sub.classList.toggle("hidden");
+          // 리스트 이름 파싱 (“- 리스트명” → “리스트명”)
+          const firstListName = firstListItem.textContent.replace(/^- /, "").trim();
+
+          // 고객 데이터 자동 로드
+          loadCustomerDataByName(cust.customer_name, firstListName);
         }
       });
 
-      // ⭐ 리스트 DOM 생성은 리스트가 2개 이상일 때만
-      if (group.lists.length > 1) {
-        const sublist = document.createElement("div");
-        sublist.className = "customer-sublist hidden ml-3 mt-1";
-        custBlock.appendChild(sublist);
+      // 리스트 wrapper
+      const sublist = document.createElement("div");
+      sublist.className = "customer-sublist hidden ml-3 mt-1";
+      custBlock.appendChild(sublist);
 
-        // 리스트 렌더링
-        group.lists.forEach(listName => {
-          const listItem = document.createElement("div");
-          listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
-          listItem.textContent = `- ${listName}`;
+      // 리스트 렌더링
+      group.lists.forEach(listName => {
+        const listItem = document.createElement("div");
+        listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
+        listItem.textContent = `- ${listName}`;
 
-          listItem.addEventListener("click", (e) => {
-            e.stopPropagation();
+        listItem.addEventListener("click", (e) => {
+          e.stopPropagation();
 
-            // 기존 선택 제거
-            document.querySelectorAll(".customer-list-item.selected")
-              .forEach(el => el.classList.remove("selected"));
+          // ⭐ 기존 선택 제거
+          document.querySelectorAll(".customer-list-item.selected")
+            .forEach(el => el.classList.remove("selected"));
 
-            // 현재 선택 표시
-            listItem.classList.add("selected");
+          // ⭐ 현재 클릭된 리스트 강조
+          listItem.classList.add("selected");
 
-            // 고객 정보 로딩
-            loadCustomerDataByName(cust.customer_name, listName);
-          });
-
-          sublist.appendChild(listItem);
+          // 고객 정보 불러오기
+          loadCustomerDataByName(cust.customer_name, listName);
         });
-      }
+
+        sublist.appendChild(listItem);
+      });
 
       listBox.appendChild(custBlock);
     });
