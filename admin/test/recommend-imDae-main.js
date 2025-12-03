@@ -70,12 +70,14 @@ async function saveListingsForCurrentCustomer(listName) {
   });
 
   try {
-    // 기존 동일 리스트명(list_name)만 삭제
+    // 🔥 삭제 대상 리스트명: 기존에 열려 있던 리스트 이름
+    const deleteTargetName = window.currentOpenedListName || listName;
+
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
       .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", listName);    // ⭐⭐⭐ list_name 조건 추가!
+      .eq("list_name", deleteTargetName);  // ★ 기존 리스트명으로 삭제
 
     if (delErr) {
       console.error(delErr);
@@ -975,6 +977,8 @@ async function loadCustomerDataByName(name) {
 }
 
 async function loadListForCustomer(customerName, listName) {
+  // 🔥 현재 열려 있는 리스트 이름 저장 (리스트명 변경 시 삭제용)
+  window.currentOpenedListName = listName;
   const { data: customer } = await supabase
     .from("customers")
     .select("id")
