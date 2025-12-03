@@ -75,7 +75,7 @@ async function saveListingsForCurrentCustomer() {
       .from("customers_recommendations")
       .delete()
       .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", currentListName);
+      .eq("list_name", String(currentListName));
 
     if (delErr) {
       console.error(delErr);
@@ -871,7 +871,7 @@ async function loadCustomerDataByName(name) {
       .from('customers_recommendations')
       .select('*')
       .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-      .eq("list_name", String(currentListName))
+      .eq('list_name', String(currentListName))
       .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
       .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
