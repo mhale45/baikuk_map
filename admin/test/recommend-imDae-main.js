@@ -89,14 +89,26 @@ async function saveListingsForCurrentCustomer(listName) {
   });
 
   try {
-    // 🔥 삭제 대상 리스트명: 기존에 열려 있던 리스트 이름
-    const deleteTargetName = window.currentOpenedListName || listName;
+    // 🔥 리스트 이름이 바뀐 경우 → 기존 리스트 삭제 금지
+    // 🔥 바뀌지 않은 경우 → 기존 리스트만 덮어쓰기
 
-    const { error: delErr } = await supabase
-      .from("customers_recommendations")
-      .delete()
-      .eq("customers_id", customerId)
-      .eq("list_name", listNameInput)
+    const originalName = window.currentOpenedListName; // 클릭해서 연 리스트명
+    const newName = listNameInput.trim();
+
+    // 새 리스트인지 판단
+    const isNewList = !originalName || originalName !== newName;
+
+    if (!isNewList) {
+      // 🔥 리스트명이 동일 → 기존 리스트 덮어쓰므로 삭제 먼저
+      await supabase
+        .from("customers_recommendations")
+        .delete()
+        .eq("customers_id", customerId)
+        .eq("list_name", originalName);
+    }
+
+    // 🔥 리스트명이 변경된 경우에는 기존 리스트 삭제 ❌
+    // 그대로 두고 새로운 리스트로 insert만 수행됨
 
     if (delErr) {
       console.error(delErr);
