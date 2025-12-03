@@ -75,43 +75,21 @@ th.resizable {
 }
 .customer-item {
     position: relative;
-    padding: 0.4rem 0.6rem;
-    margin-bottom: 0.3rem;
-    border-radius: 0.35rem;
-    transition: background-color 0.15s ease;
+    padding: 0.5rem 0.5rem; /* 위아래/좌우 여백 증가 */
+    margin-bottom: 0.25rem;  /* 항목 사이 간격 */
+    border-radius: 0.25rem;  /* 모서리 살짝 둥글게 (선택) */
 }
-.customer-item:hover {
-    background-color: #f3f4f6; /* hover:bg-gray-100 느낌 */
+.customer-item:hover .customer-delete-btn {
+    display: block;
 }
 .customer-item:active { background-color: #fde68a; } /* 눌렀을 때 살짝 더 진하게 */
 .grade-header {
-    background-color: #f3f4f6;          /* 더 밝은 gray */
-    color: #111827;                     /* gray-900 */
-    font-weight: 600;
-    padding: 0.45rem 0.6rem;
-    border-radius: 0.3rem;
-    margin-top: 0.6rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-.grade-header:hover {
-    background-color: #e5e7eb;          /* hover 시 조금 진하게 */
-}
-.customer-name {
-    font-size: 0.95rem;
-    color: #1f2937; /* text-gray-800 */
-    padding: 0.25rem 0.35rem;
+    background-color: #e5e7eb; /* bg-yellow-100 같은 효과 */
+    color: #000000;           /* 진한 주황색 글씨 */
+    font-weight: bold;
+    padding: 0.5rem;
     border-radius: 0.25rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.customer-name:hover {
-    background-color: #fef9c3; /* hover:bg-yellow-100 */
+    margin-top: 0.5rem;
 }
 
 /* 테이블 전체 + 셀 테두리 */
@@ -169,21 +147,16 @@ tbody tr:nth-child(even) {
 .color-option {
     border: 1px solid #ccc;
 }
-.customer-sublist {
-    margin-left: 0.75rem;
-    padding-left: 0.25rem;
-    border-left: 2px solid #e5e7eb; /* 살짝 라인 */
-}
-
-.customer-list-item {
-    font-size: 0.85rem;
-    padding: 0.2rem 0.4rem;
-    color: #374151;                 /* text-gray-700 */
+.customer-name {
+    font-size: 0.95rem;
+    color: #1f2937; /* text-gray-800 */
+    padding: 0.25rem 0.35rem;
     border-radius: 0.25rem;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-.customer-list-item:hover {
-    background-color: #f3f4f6;      /* 더 은은한 hover */
-    text-decoration: underline;
+.customer-name:hover {
+    background-color: #fef9c3; /* hover:bg-yellow-100 */
 }
