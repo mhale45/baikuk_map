@@ -2013,9 +2013,10 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   }, 100);
 });
 
-// ⭐ 저장 버튼 (항상 신규 저장 전용)
+// ⭐ 저장 버튼 (항상 신규 저장 + (고객이름, 리스트이름) 조합 중복 방지)
 document.getElementById('save-new-customer').addEventListener('click', async () => {
     const name  = document.getElementById('top-row-input').value.trim();
+    const listName = document.getElementById("list-name-input").value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
     const grade = document.getElementById('customer-grade').value.trim();
     const memo  = document.getElementById('memo-textarea').value.trim();
@@ -2046,6 +2047,11 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         return;
     }
 
+    if (!listName) {
+        showToast("리스트 이름을 입력해주세요.");
+        return;
+    }
+
     let myStaffId = await getMyStaffId();
     if (!myStaffId) {
         showToast("로그인이 필요합니다.");
@@ -2060,16 +2066,17 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
     }
 
     // ==================================================
-    // 🔥 1) 고객명 중복 체크 (항상 신규 저장이므로 필수)
+    // 🔥 1) (고객명, 리스트명) 중복 여부 검사
     // ==================================================
     const { data: same, error: sameErr } = await supabase
         .from("customers")
         .select("id")
         .eq("customer_name", name)
+        .eq("list_name", listName)
         .maybeSingle();
 
     if (same) {
-        showToast("이미 존재하는 고객 이름입니다. 다른 이름을 입력해주세요.");
+        showToast("이미 같은 (고객이름, 리스트이름) 조합이 존재합니다.");
         return;
     }
 
@@ -2080,6 +2087,7 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         .from("customers")
         .insert({
             customer_name: name,
+            list_name: listName,
             customer_phone_number: phone,
             grade: grade,
             memo: memo,
@@ -2111,7 +2119,7 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
 
 
     // ==================================================
-    // 🔥 3) 추천 매물 저장 (항상 new customer 기준)
+    // 🔥 3) 추천 매물 저장
     // ==================================================
     const saved = await saveListingsForCurrentCustomer();
     if (!saved) {
