@@ -176,6 +176,6 @@ tbody tr:nth-child(even) {
 }
 
 .customer-list-item:hover {
-    background-color: #f0f0f0;      /* ⭐ hover 시 조금 진한 회색 */
+    background-color: #ffffff;      /* ⭐ hover 시 조금 진한 회색 */
     text-decoration: underline;
 }
