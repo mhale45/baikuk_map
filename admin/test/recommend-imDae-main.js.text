@@ -1184,6 +1184,15 @@ async function loadCustomersForCurrentStaff() {
 
         listItem.addEventListener("click", (e) => {
           e.stopPropagation();
+
+          // ⭐ 기존 선택 제거
+          document.querySelectorAll(".customer-list-item.selected")
+            .forEach(el => el.classList.remove("selected"));
+
+          // ⭐ 현재 클릭된 리스트 강조
+          listItem.classList.add("selected");
+
+          // 고객 정보 불러오기
           loadCustomerDataByName(cust.customer_name, listName);
         });
 

@@ -179,3 +179,7 @@ tbody tr:nth-child(even) {
     background-color: #ffffff;      /* ⭐ hover 시 조금 진한 회색 */
     text-decoration: underline;
 }
+.customer-list-item.selected {
+    background-color: #fff9c4 !important;  /* ⭐ 연한 노란색 */
+    font-weight: 600;
+}
