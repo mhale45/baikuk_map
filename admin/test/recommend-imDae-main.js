@@ -3,6 +3,7 @@ let listingsBody;          // tbody 캐시
 let rowObserver;           // ResizeObserver 인스턴스
 // 직원 선택 저장용 전역 변수
 let selectedStaffId = null;
+let currentListName = null; // 고객이름 하위 리스트이름
 
 /* ----------------------------------------------------
   [매물 저장 기능]
@@ -51,6 +52,7 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
+      list_name      : currentListName || null,
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
@@ -1163,14 +1165,18 @@ async function loadCustomersForCurrentStaff() {
             const li = document.createElement("li");
             li.textContent = "• " + name;
 
-            // 클릭하면 해당 고객 + 해당 리스트 이름 로딩
-            li.addEventListener("click", (e) => {
-              e.stopPropagation(); // 고객 클릭 이벤트 중복 방지
-              loadCustomerDataByName(cust.customer_name);
+            li.addEventListener("click", async (e) => {
+              e.stopPropagation();
 
-              // 오른쪽 상단 list_name 입력칸 반영
+              // 리스트 선택
+              currentListName = name;
+
+              // 오른쪽 입력창에 선택된 리스트 이름 표시
               const listInput = document.getElementById("list-name-input");
               if (listInput) listInput.value = name;
+
+              // 고객 + 리스트 조합으로 매물 로딩
+              await loadCustomerAndList(cust.id, name);
             });
 
             ul.appendChild(li);
@@ -2344,3 +2350,95 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
+
+async function loadCustomerAndList(customerId, listName) {
+  currentCustomerId = customerId;
+  currentListName = listName;
+
+  // 손님 기본 정보 불러오기
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .maybeSingle();
+
+  if (!customer) return;
+
+  // 우측 고객 정보 UI 채움
+  document.getElementById('top-row-input').value = customer.customer_name || '';
+  document.getElementById('customer-phone').value = customer.customer_phone_number || '';
+  document.getElementById('customer-grade').value = customer.grade || 'F';
+  document.getElementById('memo-textarea').value = customer.memo || '';
+
+  // 리스트 이름 입력칸 세팅
+  const listInput = document.getElementById("list-name-input");
+  if (listInput) listInput.value = listName || "";
+
+  // 매물 테이블 초기화
+  document.querySelectorAll('input[data-index]').forEach(inp => inp.value = '');
+  const listingsBody = document.getElementById('listings-body');
+  listingsBody.innerHTML = '';
+
+  // ⭐ 리스트별 매물 불러오기 (중요)
+  const { data: listings } = await supabase
+    .from("customers_recommendations")
+    .select("*")
+    .eq("customers_id", String(customerId))
+    .eq("list_name", listName)        // ← 리스트별 필터
+    .order("order", { ascending: true });
+
+  // 기존 loadCustomerDataByName에서 행 그리는 부분 그대로 복붙 가능
+  if (listings && listings.length) {
+    renderListRows(listings);  // 아래에서 제공
+  }
+
+  showToast(`"${customer.customer_name}" 고객 - [${listName}] 리스트 로딩됨`);
+}
+
+function renderListRows(listings) {
+  let nextIndex = 1;
+
+  listings.forEach(listing => {
+    const index = listing.order || nextIndex++;
+
+    const leftInput = document.querySelector(`input[data-index="${index}"]`);
+    if (leftInput) leftInput.value = listing.listing_id ?? '';
+
+    updateListingsTableByInputs();
+
+    const setField = (field, value) => {
+      const el = document.querySelector(`[data-field="${field}_${index}"]`);
+      if (!el) return;
+      if (el.tagName === 'SPAN') el.textContent = value ?? '';
+      else el.value = value ?? '';
+    };
+
+    setField('listing_title', listing.listing_title);
+    setField('full_address', listing.full_address);
+    setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+    setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+    setField('premium_price', formatKoreanMoney(listing.premium_price));
+    setField('area_py', listing.area_py);
+
+    setField('description', listing.contents);
+
+    const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+    if (memoEl) memoEl.value = listing.memo || '';
+
+    // 색상 복원
+    const tr = document.querySelector(`#listings-body tr:nth-child(${index})`);
+    if (listing.color && tr) {
+      tr.dataset.userColor = "true";
+      tr.style.backgroundColor = listing.color;
+    }
+
+    // 취소선 복원
+    if (listing.row_properties?.strike === 1 && tr) {
+      tr.classList.add("line-through");
+    }
+  });
+
+  renderMemoPanel(listings);
+  syncRowHeights();
+  applyRowStriping();
+}
