@@ -10,9 +10,28 @@ let selectedStaffId = null;
   Supabase 테이블 customers_recommendations 에 저장
 ---------------------------------------------------- */
 async function saveListingsForCurrentCustomer(listName) {
-  if (!currentCustomerId) {
-    showToast("먼저 고객을 선택해주세요.");
-    return false;
+  // 🔥 저장 시점에 고객이름/리스트이름을 다시 읽어와서 기준으로 삼는다
+  const customerName = document.getElementById("top-row-input").value.trim();
+  const listNameInput = document.getElementById("list-name-input").value.trim();
+  
+  // 🔥 고객이름으로 고객 다시 조회
+  let { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("customer_name", customerName)
+    .maybeSingle();
+
+  let customerId = customer?.id ?? null;
+
+  // 고객 없으면 생성
+  if (!customerId) {
+    const { data: inserted } = await supabase
+      .from("customers")
+      .insert({ customer_name: customerName })
+      .select()
+      .single();
+
+    customerId = inserted.id;
   }
 
   // 권한 확인(대표/보조만 가능)
@@ -76,8 +95,8 @@ async function saveListingsForCurrentCustomer(listName) {
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", deleteTargetName);  // ★ 기존 리스트명으로 삭제
+      .eq("customers_id", customerId)
+      .eq("list_name", listNameInput)
 
     if (delErr) {
       console.error(delErr);
