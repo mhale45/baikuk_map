@@ -1023,16 +1023,16 @@ async function loadCustomersForCurrentStaff() {
 
   (assigneeList || []).forEach(c => {
     const prev = map.get(c.id);
-    const role = (c.customer_assignees?.[0]?.is_primary || prev?.role === '대표')  
-                 ? '대표'  
-                 : '보조';
+    const role = (c.customer_assignees?.[0]?.is_primary || prev?.role === '대표')
+      ? '대표'
+      : '보조';
 
-    map.set(c.id, { 
-      id: c.id, 
-      customer_name: c.customer_name, 
-      list_name: c.list_name, 
+    map.set(c.id, {
+      id: c.id,
+      customer_name: c.customer_name,
+      list_name: c.list_name,
       grade: c.grade,
-      role 
+      role
     });
   });
 
@@ -1131,7 +1131,7 @@ async function loadCustomersForCurrentStaff() {
       header.querySelector('.caret').style.transform = 'rotate(-90deg)';
     }
 
-    /* ---- 고객이름 아래에 리스트이름 출력 ---- */
+    /* ---- 고객이름 그룹 구성 ---- */
     const customersByName = {};
 
     list.forEach(c => {
@@ -1144,14 +1144,18 @@ async function loadCustomersForCurrentStaff() {
       customersByName[c.customer_name].lists.push(c.list_name);
     });
 
-    // 고객이름 렌더링
-    Object.values(customersByName).forEach(group => {
+    /* ⭐ 고객이름 내림차순 정렬 */
+    const sortedCustomerGroups = Object.values(customersByName).sort(
+      (a, b) => b.info.customer_name.localeCompare(a.info.customer_name, "ko")
+    );
+
+    /* ---- 고객이름 렌더링 ---- */
+    sortedCustomerGroups.forEach(group => {
       const cust = group.info;
 
       const custBlock = document.createElement("div");
       custBlock.className = "customer-block mb-1";
 
-      // 고객이름 (대표/보조 / 다른 담당자 표시)
       const nameRow = document.createElement("div");
       nameRow.className = "customer-name font-bold cursor-pointer";
 
@@ -1161,26 +1165,25 @@ async function loadCustomersForCurrentStaff() {
       nameRow.textContent = `${cust.customer_name} ${otherText}`;
       custBlock.appendChild(nameRow);
 
-      // ⭐ 고객명 클릭 → 하위 리스트 토글
+      // 고객명 클릭 → 리스트 토글
       nameRow.addEventListener("click", () => {
         const sub = custBlock.querySelector(".customer-sublist");
         if (sub) sub.classList.toggle("hidden");
       });
 
-      // 하위 리스트 목록 wrapper
+      // 리스트 wrapper
       const sublist = document.createElement("div");
       sublist.className = "customer-sublist hidden ml-3 mt-1";
       custBlock.appendChild(sublist);
 
-      // 리스트 목록 렌더링
+      // 리스트 렌더링
       group.lists.forEach(listName => {
         const listItem = document.createElement("div");
         listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
         listItem.textContent = `- ${listName}`;
 
-        // 리스트 이름 클릭하면 고객+매물 전부 불러오기
         listItem.addEventListener("click", (e) => {
-          e.stopPropagation(); // 고객명 토글과 충돌 방지
+          e.stopPropagation();
           loadCustomerDataByName(cust.customer_name, listName);
         });
 
