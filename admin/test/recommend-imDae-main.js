@@ -9,7 +9,7 @@ let selectedStaffId = null;
   현재 선택된 고객(currentCustomerId)의 매물정보를
   Supabase 테이블 customers_recommendations 에 저장
 ---------------------------------------------------- */
-async function saveListingsForCurrentCustomer() {
+async function saveListingsForCurrentCustomer(listName) {
   if (!currentCustomerId) {
     showToast("먼저 고객을 선택해주세요.");
     return false;
@@ -51,6 +51,7 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
+      list_name      : listName, 
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
