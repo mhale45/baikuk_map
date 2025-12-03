@@ -975,6 +975,7 @@ async function loadCustomerDataByName(name) {
 }
 
 async function loadCustomerByNameAndList(name, list_name) {
+
     const { data: customer, error } = await supabase
         .from("customers")
         .select("*")
@@ -987,14 +988,13 @@ async function loadCustomerByNameAndList(name, list_name) {
         return;
     }
 
-    // 고객정보 입력창 채우기
+    // 고객 정보 채우기
     document.getElementById("top-row-input").value = customer.customer_name || "";
     document.getElementById("list-name-input").value = customer.list_name || "";
     document.getElementById("customer-phone").value = customer.customer_phone_number || "";
     document.getElementById("customer-grade").value = customer.grade || "F";
     document.getElementById("memo-textarea").value = customer.memo || "";
 
-    // 필터들 채우기
     document.getElementById("floor-min").value = customer.floor_min ?? "";
     document.getElementById("floor-max").value = customer.floor_max ?? "";
     document.getElementById("area-min").value = customer.area_min ?? "";
@@ -1016,10 +1016,12 @@ async function loadCustomerByNameAndList(name, list_name) {
     document.getElementById("roi-min").value = customer.roi_min ?? "";
     document.getElementById("roi-max").value = customer.roi_max ?? "";
 
+    // 현재 고객 ID 저장
     currentCustomerId = customer.id;
 
-    // 매물 불러오기
-    await loadListingsForCustomer(customer.id);
+    // ⭐⭐ 매물 로딩 — 정확한 함수명
+    await loadListingsForCurrentCustomer();
+
 }
 
 // 왼쪽패널 고객 + 리스트이름 트리 구조 로딩 (대표/보조 표시 + 등급 그룹 유지)
