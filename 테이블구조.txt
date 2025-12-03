@@ -204,6 +204,7 @@ total_rent_min : numeric
 total_rent_max : numeric
 roi_min : numeric
 roi_max : numeric
+list_name : text
 
 - customers_recommendations
 id : int8
@@ -221,7 +222,6 @@ order
 memo : text
 color
 row_properties
-list_name : text
 
 - only_lat_lng 테이블
 full_address : text
