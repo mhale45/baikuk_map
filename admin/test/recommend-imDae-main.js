@@ -811,7 +811,8 @@ async function loadCustomerDataByName(name) {
         sale_min, sale_max,
         total_deposit_min, total_deposit_max,
         total_rent_min, total_rent_max,
-        roi_min, roi_max
+        roi_min, roi_max,
+        list_name
         `)
     .eq('customer_name', name)
     .maybeSingle();
@@ -833,6 +834,7 @@ async function loadCustomerDataByName(name) {
 
     // 👉 우측 정보창 채우기
     document.getElementById('top-row-input').value = customer.customer_name || '';
+    document.getElementById('list-name-input').value = customer.list_name || '';
     document.getElementById('customer-phone').value = customer.customer_phone_number || '';
     document.getElementById('customer-grade').value = customer.grade || 'F';
     document.getElementById('memo-textarea').value = customer.memo || '';
