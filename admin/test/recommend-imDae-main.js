@@ -2018,6 +2018,7 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
 // ⭐ 저장 버튼 (신규 + 기존 통합 저장)
 document.getElementById('save-new-customer').addEventListener('click', async () => {
     const name  = document.getElementById('top-row-input').value.trim();
+    const list_name = document.getElementById('list-name-input').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
     const grade = document.getElementById('customer-grade').value.trim();
     const memo  = document.getElementById('memo-textarea').value.trim();
@@ -2084,6 +2085,7 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         .from("customers")
         .insert({
             customer_name: name,
+            list_name: list_name,  
             customer_phone_number: phone,
             grade: grade,
             memo: memo,
@@ -2119,6 +2121,7 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         .from("customers")
         .update({
         customer_name: name,
+        list_name: list_name,
         customer_phone_number: phone,
         grade: grade,
         memo: memo,
