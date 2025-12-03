@@ -830,8 +830,8 @@ async function loadCustomerDataByName(name) {
     return;
     }
 
-    currentCustomerId = null;   // 고객은 조회만 하고, 저장은 항상 신규 생성
-    
+    currentCustomerId = customer.id;
+
     // 👉 우측 정보창 채우기
     document.getElementById('top-row-input').value = customer.customer_name || '';
     document.getElementById('list-name-input').value = customer.list_name || '';
