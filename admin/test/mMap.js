@@ -1440,13 +1440,13 @@ function applyFiltersFromListing(listing, triggerReload = true) {
 setInterval(() => {
     // InfoWindow 레이어 (카카오가 생성)
     document.querySelectorAll(".overlay_info, .wrap, .info").forEach(el => {
-        el.style.zIndex = "999999 !important";
-        el.style.position = "relative";
-        el.style.pointerEvents = "auto";
+        el.style.setProperty("z-index", "999999", "important");
+        el.style.setProperty("position", "relative", "important");
+        el.style.setProperty("pointer-events", "auto", "important");
     });
 
-    // 마커 레이어를 아래로 내림
+    // 🔥 마커 레이어를 아래로 내림
     document.querySelectorAll("img[src*='marker'], .marker, .cluster").forEach(el => {
-        el.style.zIndex = "1000 !important";
+        el.style.setProperty("z-index", "1000", "important");
     });
 }, 150);
