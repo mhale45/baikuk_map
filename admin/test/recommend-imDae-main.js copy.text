@@ -2013,10 +2013,9 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   }, 100);
 });
 
-// ⭐ 저장 버튼 (신규 + 덮어쓰기 지원)
+// ⭐ 저장 버튼 (신규 + 기존 통합 저장)
 document.getElementById('save-new-customer').addEventListener('click', async () => {
     const name  = document.getElementById('top-row-input').value.trim();
-    const listName = document.getElementById("list-name-input").value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
     const grade = document.getElementById('customer-grade').value.trim();
     const memo  = document.getElementById('memo-textarea').value.trim();
@@ -2042,150 +2041,118 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
     const roi_min = Number(document.getElementById("roi-min").value) || null;
     const roi_max = Number(document.getElementById("roi-max").value) || null;
 
-    if (!name) return showToast("고객 이름을 입력해주세요.");
-    if (!listName) return showToast("리스트 이름을 입력해주세요.");
+    if (!name) {
+    showToast("고객 이름을 입력해주세요.");
+    return;
+    }
 
     let myStaffId = await getMyStaffId();
     if (!myStaffId) {
-        showToast("로그인이 필요합니다.");
-        return;
+    showToast("로그인이 필요합니다.");
+    return;
     }
 
-    // 🚨 매물번호 중복 체크
+    // 🔴 여기서 한 번 더 색칠 & 중복 여부 검사
     highlightDuplicateListingNumbers();
     if (hasDuplicateListingNumbers()) {
-        alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
-        return;
+    alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
+    return;
     }
 
+    let isNewCustomer = !currentCustomerId; // 신규 모드 판단
+
     // ==================================================
-    // 1) 고객명 존재 여부 확인
+    // 1) 신규 고객인 경우 → INSERT
     // ==================================================
-    const { data: existCustomer } = await supabase
+    if (isNewCustomer) {
+    // 같은 이름이 이미 있는지 확인
+    const { data: same, error: sameErr } = await supabase
         .from("customers")
         .select("id")
         .eq("customer_name", name)
         .maybeSingle();
 
-    let customerId = existCustomer?.id ?? null;
-
-    // ==================================================
-    // 2) 고객명이 이미 있을 경우 → 동일 리스트명 존재 여부 확인
-    // ==================================================
-    let existsSameList = false;
-
-    if (customerId) {
-        const { data: existList } = await supabase
-            .from("customers_recommendations")
-            .select("id")
-            .eq("customers_id", customerId)
-            .eq("list_name", listName)
-            .maybeSingle();
-
-        if (existList) existsSameList = true;
-    }
-
-    // ==================================================
-    // 3) 기존 (고객명, 리스트명) 조합 존재 → 덮어쓰기 물어보기
-    // ==================================================
-    let overwrite = false;
-
-    if (existsSameList) {
-        overwrite = confirm(
-            `"${name}" 고객의 "${listName}" 리스트가 이미 존재합니다.\n\n덮어쓰시겠습니까?`
-        );
-
-        if (!overwrite) {
-            showToast("저장 취소됨");
-            return;
-        }
-    }
-
-    // ==================================================
-    // 4) 신규 고객 생성 (customerId 없을 때)
-    // ==================================================
-    if (!customerId) {
-        const { data: inserted, error: insertErr } = await supabase
-            .from("customers")
-            .insert({
-                customer_name: name,
-                customer_phone_number: phone,
-                grade: grade,
-                memo: memo,
-                staff_profiles_id: myStaffId,
-                floor_min, floor_max,
-                area_min, area_max,
-                deposit_min, deposit_max,
-                rent_min, rent_max,
-                rent_per_py_min, rent_per_py_max,
-                premium_min, premium_max,
-                sale_min, sale_max,
-                total_deposit_min, total_deposit_max,
-                total_rent_min, total_rent_max,
-                roi_min, roi_max
-            })
-            .select()
-            .single();
-
-        if (!inserted || insertErr) {
-            console.error(insertErr);
-            showToast("고객 생성 실패");
-            return;
-        }
-
-        customerId = inserted.id;
-        currentCustomerId = inserted.id;
-    } 
-    else {
-        // ==================================================
-        // 5) 덮어쓰기일 경우 → 고객 정보 UPDATE
-        // ==================================================
-        if (overwrite) {
-            await supabase
-                .from("customers")
-                .update({
-                    customer_name: name,
-                    customer_phone_number: phone,
-                    grade: grade,
-                    memo: memo,
-                    floor_min, floor_max,
-                    area_min, area_max,
-                    deposit_min, deposit_max,
-                    rent_min, rent_max,
-                    rent_per_py_min, rent_per_py_max,
-                    premium_min, premium_max,
-                    sale_min, sale_max,
-                    total_deposit_min, total_deposit_max,
-                    total_rent_min, total_rent_max,
-                    roi_min, roi_max
-                })
-                .eq("id", customerId);
-        }
-
-        currentCustomerId = customerId;
-    }
-
-    // ==================================================
-    // 6) 덮어쓰기일 경우 → 기존 리스트명 추천 매물 삭제
-    // ==================================================
-    if (overwrite) {
-        await supabase
-            .from("customers_recommendations")
-            .delete()
-            .eq("customers_id", customerId)
-            .eq("list_name", listName);
-    }
-
-    // ==================================================
-    // 7) 추천 매물 저장(list_name 포함 저장)
-    // ==================================================
-    const saved = await saveListingsForCurrentCustomer(listName);
-    if (!saved) {
-        showToast("매물정보 저장 실패");
+    if (same) {
+        showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
         return;
     }
 
+    // 신규 고객 INSERT
+    const { data: inserted, error: insertErr } = await supabase
+        .from("customers")
+        .insert({
+            customer_name: name,
+            customer_phone_number: phone,
+            grade: grade,
+            memo: memo,
+            staff_profiles_id: selectedStaffId ?? myStaffId,
+            floor_min, floor_max,
+            area_min, area_max,
+            deposit_min, deposit_max,
+            rent_min, rent_max,
+            rent_per_py_min, rent_per_py_max,
+            premium_min, premium_max,
+            sale_min, sale_max,
+            total_deposit_min, total_deposit_max,
+            total_rent_min, total_rent_max,
+            roi_min, roi_max
+        })
+        .select()
+        .single();
+
+    if (insertErr || !inserted) {
+        console.error(insertErr);
+        showToast("신규 고객 저장에 실패했습니다.");
+        return;
+    }
+
+    currentCustomerId = inserted.id; // 신규 고객 ID 저장
+    showToast("신규 고객이 저장되었습니다!");
+    } 
+    // ==================================================
+    // 2) 기존 고객 수정 모드 → UPDATE
+    // ==================================================
+    else {
+    const { error: updateErr } = await supabase
+        .from("customers")
+        .update({
+        customer_name: name,
+        customer_phone_number: phone,
+        grade: grade,
+        memo: memo,
+        floor_min, floor_max,
+        area_min, area_max,
+        deposit_min, deposit_max,
+        rent_min, rent_max,
+        rent_per_py_min, rent_per_py_max,
+        premium_min, premium_max,
+        sale_min, sale_max,
+        total_deposit_min, total_deposit_max,
+        total_rent_min, total_rent_max,
+        roi_min, roi_max
+        })
+        .eq("id", currentCustomerId);
+
+    if (updateErr) {
+        console.error(updateErr);
+        showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+        return;
+    }
+    }
+
+    // ==================================================
+    // 3) 매물 정보 저장 (신규/기존 공통)
+    // ==================================================
+
+    const saved = await saveListingsForCurrentCustomer();
+    if (!saved) {
+    showToast("매물정보 저장 중 오류가 발생했습니다.");
+    return;
+    }
+
     showToast("저장 완료!");
+
+    // 저장 후 고객 리스트 갱신
     loadCustomersForCurrentStaff();
 });
 
