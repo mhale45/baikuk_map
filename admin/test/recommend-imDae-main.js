@@ -1170,12 +1170,17 @@ async function loadCustomersForCurrentStaff() {
 
         const sub = custBlock.querySelector(".customer-sublist");
 
-        // 리스트가 존재하면 펼침
-        if (sub) sub.classList.remove("hidden");
+        // 리스트 아이템 수 가져오기
+        const listItems = custBlock.querySelectorAll(".customer-list-item");
+        const listCount = listItems.length;
 
-        // 첫 번째 리스트 가져오기
-        const firstListItem = custBlock.querySelector(".customer-list-item");
+        // ⭐ 리스트가 2개 이상일 때만 펼치기 / 접기 토글
+        if (sub && listCount >= 2) {
+          sub.classList.toggle("hidden");
+        }
 
+        // ⭐ 리스트가 1개 이상 있으면 첫 번째 리스트 선택 자동 실행
+        const firstListItem = listItems[0];
         if (firstListItem) {
           // 기존 선택 제거
           document.querySelectorAll(".customer-list-item.selected")
