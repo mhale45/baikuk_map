@@ -2126,8 +2126,7 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
            🔥 2) 기존 조합이 있으면 → confirm 후 전체 덮어쓰기
         =========================================================== */
         const ok = confirm(
-            `"${name}" - "${list_name}"가\n이미 존재합니다.\n\n` +
-            "덮어쓸까요?"
+            `"${name}" - "${list_name}"가\n이미 존재합니다. 덮어쓸까요?`
         );
         if (!ok) return;
 
