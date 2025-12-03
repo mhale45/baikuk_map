@@ -51,7 +51,7 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
-      list_name      : currentListName || null, 
+      list_name      : currentListName || "리스트", 
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
@@ -75,7 +75,7 @@ async function saveListingsForCurrentCustomer() {
       .from("customers_recommendations")
       .delete()
       .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", String(currentListName));
+      .eq("list_name", currentListName.trim() || "리스트");
 
     if (delErr) {
       console.error(delErr);
@@ -871,7 +871,7 @@ async function loadCustomerDataByName(name) {
       .from('customers_recommendations')
       .select('*')
       .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-      .eq('list_name', String(currentListName))
+      .eq("list_name", currentListName.trim() || "리스트")
       .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
       .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
@@ -1155,6 +1155,30 @@ async function loadCustomersForCurrentStaff() {
         });
 
         listBox.appendChild(nameBtn);
+
+        // ⭐ 리스트명 목록 렌더링
+        const listContainer = document.createElement("div");
+        listContainer.className = "ml-6 mb-2 text-sm text-gray-700";
+
+        getCustomerListNames(cust.id).then(listNames => {
+          listNames.forEach(listName => {
+            const li = document.createElement("div");
+            li.className = "cursor-pointer hover:text-blue-600 pl-2";
+            li.textContent = `- ${listName}`;
+
+            li.addEventListener("click", (e) => {
+              e.stopPropagation();  // 고객 클릭 이벤트 차단
+              currentListName = listName; 
+              loadCustomerDataByName(cust.customer_name);
+            });
+
+            listContainer.appendChild(li);
+          });
+        });
+
+        // 이름 아래 리스트 목록 추가
+        listBox.appendChild(listContainer);
+
       });
 
     // 토글 동작
