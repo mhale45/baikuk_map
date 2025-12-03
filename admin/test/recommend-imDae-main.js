@@ -70,11 +70,12 @@ async function saveListingsForCurrentCustomer(listName) {
   });
 
   try {
-    // 기존 데이터 삭제
+    // 기존 동일 리스트명(list_name)만 삭제
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId));
+      .eq("customers_id", String(currentCustomerId))
+      .eq("list_name", listName);    // ⭐⭐⭐ list_name 조건 추가!
 
     if (delErr) {
       console.error(delErr);
