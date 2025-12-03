@@ -1165,10 +1165,36 @@ async function loadCustomersForCurrentStaff() {
       nameRow.textContent = `${cust.customer_name} ${otherText}`;
       custBlock.appendChild(nameRow);
 
-      // 고객명 클릭 → 리스트 토글
+      // ⭐ 고객명 클릭 시 → 첫 번째 리스트 자동 선택
       nameRow.addEventListener("click", () => {
+
         const sub = custBlock.querySelector(".customer-sublist");
-        if (sub) sub.classList.toggle("hidden");
+
+        // 리스트 아이템 수 가져오기
+        const listItems = custBlock.querySelectorAll(".customer-list-item");
+        const listCount = listItems.length;
+
+        // ⭐ 리스트가 2개 이상일 때만 펼치기 / 접기 토글
+        if (sub && listCount >= 2) {
+          sub.classList.toggle("hidden");
+        }
+
+        // ⭐ 리스트가 1개 이상 있으면 첫 번째 리스트 선택 자동 실행
+        const firstListItem = listItems[0];
+        if (firstListItem) {
+          // 기존 선택 제거
+          document.querySelectorAll(".customer-list-item.selected")
+            .forEach(el => el.classList.remove("selected"));
+
+          // 선택 표시
+          firstListItem.classList.add("selected");
+
+          // 리스트 이름 파싱 (“- 리스트명” → “리스트명”)
+          const firstListName = firstListItem.textContent.replace(/^- /, "").trim();
+
+          // 고객 데이터 자동 로드
+          loadCustomerDataByName(cust.customer_name, firstListName);
+        }
       });
 
       // 리스트 wrapper
