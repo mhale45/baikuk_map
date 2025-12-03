@@ -1834,7 +1834,7 @@ document.getElementById('delete-customer')?.addEventListener('click', async () =
     }
 
     const name = (document.getElementById('top-row-input')?.value || '').trim();
-    const ok = confirm(`정말로 "${name || '이 고객'}"을(를) 삭제할까요?\n추천 매물/담당 배정 등 관련 데이터도 함께 삭제됩니다.`);
+    const ok = confirm(`정말로 "${name || '이 리스트'}"을(를) 삭제할까요?\n추천 매물/담당 배정 등 관련 데이터도 함께 삭제됩니다.`);
     if (!ok) return;
 
     // 1) 연관 데이터부터 삭제 (FK 충돌 방지)
