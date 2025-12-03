@@ -979,6 +979,15 @@ async function loadListForCustomer(customerName, listName) {
     .eq("customer_name", customerName)
     .maybeSingle();
 
+  // 리스트 이름 input 박스에 값 채우기
+  const listInput = document.getElementById("list-name") 
+                  || document.getElementById("list_name") 
+                  || document.querySelector('[name="list_name"]');
+
+  if (listInput) {
+    listInput.value = listName; 
+  }
+
   if (!customer) return showToast("고객 정보를 찾을 수 없습니다.");
 
   currentCustomerId = customer.id;
