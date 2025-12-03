@@ -847,6 +847,8 @@ function renderCustomerList(customers) {
         if (!grouped[grade]) return;
 
         const list = grouped[grade];
+        // 🔥 등급 내부를 고객 이름 오름차순 정렬
+        list.sort((a, b) => b.customer_name.localeCompare(a.customer_name, "ko"));
 
         html += `
             <div class="grade-wrapper border-b pb-2">
