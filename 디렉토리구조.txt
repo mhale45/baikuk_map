@@ -26,6 +26,7 @@
         │   ├── index.html
         │   └── recommend-imDae.js
         │   └── recommend-imDae-main.js
+        │   └── style.css
         ├── recommend-maeMae/
         │   ├── index.html
         │   └── recommend-maeMae.js

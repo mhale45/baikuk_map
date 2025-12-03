@@ -51,6 +51,7 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
+      list_name      : currentListName || null, 
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
@@ -73,7 +74,8 @@ async function saveListingsForCurrentCustomer() {
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId));
+      .eq("customers_id", String(currentCustomerId))
+      .eq("list_name", currentListName);
 
     if (delErr) {
       console.error(delErr);
@@ -866,16 +868,17 @@ async function loadCustomerDataByName(name) {
 
     // ✅ 추천 매물 목록 불러오기 (text 컬럼 맞춰 문자열로 비교 + 정렬 정리)
     const { data: listings, error: listingsError } = await supabase
-    .from('customers_recommendations')
-    .select('*')
-    .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
-    .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
-    .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
+      .from('customers_recommendations')
+      .select('*')
+      .eq('customers_id', String(currentCustomerId)) // ← 타입 맞춤(중요)
+      .eq("list_name", String(currentListName))
+      .order('order', { ascending: true, nullsFirst: false }) // order 먼저, NULL은 뒤로
+      .order('id', { ascending: true });                      // NULL 묶음 내부는 id ASC
 
     if (listingsError) {
-    console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
-    showToast('추천 매물 정보를 불러오지 못했습니다.');
-    return;
+      console.warn('❌ 추천 매물 불러오기 실패:', listingsError);
+      showToast('추천 매물 정보를 불러오지 못했습니다.');
+      return;
     }
 
     // (교체) order 값 있으면 그 자리를 쓰고, NULL이면 nextIndex로 순서 유지
@@ -1751,6 +1754,14 @@ function syncMemoRowHeights() {
 const allInputs = document.querySelectorAll('input[data-index]');
 
 const inputTopRow = document.getElementById('top-row-input'); // 손님이름 입력창
+
+// ⭐ 리스트 이름 입력값 전역 보관
+let currentListName = "";
+
+// ⭐ 리스트 이름 입력 이벤트
+document.getElementById("list-name-input")?.addEventListener("input", (e) => {
+  currentListName = e.target.value.trim();
+});
 
 // 건물정보, 호수, 층 하나로 합치는 함수
 function combineUnitInfo(buildingName, floor, unitInfo) {
