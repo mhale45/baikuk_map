@@ -22,6 +22,43 @@ async function saveListingsForCurrentCustomer() {
     return false;
   }
 
+  // 🔥 (고객이름 + 리스트이름 조합 중복 체크)
+  const customerName = document.getElementById("top-row-input").value?.trim();
+  const listName = currentListName?.trim() || "";
+
+  if (!customerName) {
+    showToast("고객 이름이 없습니다.");
+    return false;
+  }
+
+  // list_name 은 비어도 저장 가능하도록 하고 싶다면 아래 조건 조정 가능
+  if (!listName) {
+    showToast("리스트 이름이 없습니다.");
+    return false;
+  }
+
+  // === Supabase 에서 중복 체크 ===
+  const { data: dupList, error: dupErr } = await supabase
+    .from("customers_recommendations")
+    .select("id, customers_id, list_name")
+    .eq("list_name", listName);
+
+  if (dupErr) {
+    showToast("중복 검사 중 오류가 발생했습니다.");
+    console.error(dupErr);
+    return false;
+  }
+
+  // 🔍 동일 고객 이름 + 동일 list_name 조합이 이미 DB 에 존재하는지 체크
+  const isDuplicate = dupList?.some(row => {
+    return row.customers_id === String(currentCustomerId);
+  });
+
+  if (isDuplicate) {
+    showToast(`이미 존재하는 리스트입니다: "${customerName}" 고객의 [${listName}]`);
+    return false;
+  }
+
   const rows = document.querySelectorAll("#listings-body tr");
   const result = [];
 
