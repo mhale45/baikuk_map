@@ -58,24 +58,6 @@ const supabase = createClient(
   });
 })();
 
-// ⭐ 특정 고객이 가진 리스트 이름 목록 가져오기
-async function getCustomerListNames(customerId) {
-  const { data, error } = await supabase
-    .from('customers_recommendations')
-    .select('list_name')
-    .eq('customers_id', String(customerId));
-
-  if (error || !data) return [];
-  
-  // null 제거 + 중복 제거
-  const names = [...new Set(data
-    .map(r => (r.list_name || "리스트"))
-    .map(s => s.trim())
-  )];
-
-  return names;
-}
-
 // ─────────────────────────────────────────
 // white-box 초기 사이즈 설정
 // ─────────────────────────────────────────
