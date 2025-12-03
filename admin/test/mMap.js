@@ -1435,3 +1435,11 @@ function applyFiltersFromListing(listing, triggerReload = true) {
     // 🔥 true일 때만 지도 reload
     if (triggerReload) onFilterChanged();
 }
+
+// 🔥 InfoWindow를 항상 마커보다 위로 올리기 위한 z-index 강제 적용
+setInterval(() => {
+    document.querySelectorAll(".wrap, .info, .overlay_info").forEach(el => {
+        el.style.zIndex = "999999";
+        el.style.position = "relative";
+    });
+}, 200);
