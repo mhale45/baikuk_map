@@ -1436,10 +1436,17 @@ function applyFiltersFromListing(listing, triggerReload = true) {
     if (triggerReload) onFilterChanged();
 }
 
-// 🔥 InfoWindow를 항상 마커보다 위로 올리기 위한 z-index 강제 적용
+// 🔥 InfoWindow가 항상 마커 위에 있도록 강제 z-index 적용
 setInterval(() => {
-    document.querySelectorAll(".wrap, .info, .overlay_info").forEach(el => {
-        el.style.zIndex = "999999";
+    // InfoWindow 레이어 (카카오가 생성)
+    document.querySelectorAll(".overlay_info, .wrap, .info").forEach(el => {
+        el.style.zIndex = "999999 !important";
         el.style.position = "relative";
+        el.style.pointerEvents = "auto";
     });
-}, 200);
+
+    // 마커 레이어를 아래로 내림
+    document.querySelectorAll("img[src*='marker'], .marker, .cluster").forEach(el => {
+        el.style.zIndex = "1000 !important";
+    });
+}, 150);
