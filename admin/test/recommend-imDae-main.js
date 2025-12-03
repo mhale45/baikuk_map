@@ -69,54 +69,19 @@ async function saveListingsForCurrentCustomer() {
   });
 
   try {
-    // ⭐ list_name 가져오기
-    const listNameInput = document.getElementById("list-name-input");
-    const listName = (listNameInput?.value || "").trim();
-
-    if (!listName) {
-      showToast("리스트 이름을 입력해주세요.");
-      return false;
-    }
-
-    // ⭐ (customers_id, list_name) 조합 중복 체크
-    const { data: existing, error: checkErr } = await supabase
-      .from("customers_recommendations")
-      .select("id")
-      .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", listName)
-      .limit(1);
-
-    if (checkErr) {
-      console.error(checkErr);
-      showToast("리스트 중복 체크 오류가 발생했습니다.");
-      return false;
-    }
-
-    // ⭐ 이미 같은 리스트가 있다면 → 저장 금지
-    if (existing?.length > 0) {
-      showToast(`이미 존재하는 리스트입니다: "${listName}"`);
-      return false;
-    }
-
-    // ⭐ 같은 고객의 같은 리스트가 없다면 → 해당 list_name 의 기존 데이터만 삭제
+    // 기존 데이터 삭제
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
-      .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", listName);  // ← 여기서 리스트 단위 삭제!
+      .eq("customers_id", String(currentCustomerId));
 
     if (delErr) {
       console.error(delErr);
-      showToast("기존 리스트 삭제 중 오류가 발생했습니다.");
+      showToast("기존 매물 삭제 중 오류.");
       return false;
     }
 
-    // ⭐ result 배열에 list_name 추가하기
-    result.forEach(r => {
-      r.list_name = listName;
-    });
-
-    // ⭐ 신규 데이터 삽입
+    // 신규 데이터 삽입
     const { error: insertErr } = await supabase
       .from("customers_recommendations")
       .insert(result);
@@ -2048,7 +2013,7 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   }, 100);
 });
 
-// ⭐ 저장 버튼 (신규 + 기존 통합 저장)
+// ⭐ 저장 버튼 (항상 신규 저장 전용)
 document.getElementById('save-new-customer').addEventListener('click', async () => {
     const name  = document.getElementById('top-row-input').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
@@ -2077,30 +2042,26 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
     const roi_max = Number(document.getElementById("roi-max").value) || null;
 
     if (!name) {
-    showToast("고객 이름을 입력해주세요.");
-    return;
+        showToast("고객 이름을 입력해주세요.");
+        return;
     }
 
     let myStaffId = await getMyStaffId();
     if (!myStaffId) {
-    showToast("로그인이 필요합니다.");
-    return;
+        showToast("로그인이 필요합니다.");
+        return;
     }
 
-    // 🔴 여기서 한 번 더 색칠 & 중복 여부 검사
+    // 🚨 매물번호 중복 체크
     highlightDuplicateListingNumbers();
     if (hasDuplicateListingNumbers()) {
-    alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
-    return;
+        alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
+        return;
     }
 
-    let isNewCustomer = !currentCustomerId; // 신규 모드 판단
-
     // ==================================================
-    // 1) 신규 고객인 경우 → INSERT
+    // 🔥 1) 고객명 중복 체크 (항상 신규 저장이므로 필수)
     // ==================================================
-    if (isNewCustomer) {
-    // 같은 이름이 이미 있는지 확인
     const { data: same, error: sameErr } = await supabase
         .from("customers")
         .select("id")
@@ -2108,11 +2069,13 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         .maybeSingle();
 
     if (same) {
-        showToast("동일한 이름의 고객이 이미 존재합니다. 이름을 변경해주세요.");
+        showToast("이미 존재하는 고객 이름입니다. 다른 이름을 입력해주세요.");
         return;
     }
 
-    // 신규 고객 INSERT
+    // ==================================================
+    // 🔥 2) 신규 고객 INSERT (UPDATE 없음)
+    // ==================================================
     const { data: inserted, error: insertErr } = await supabase
         .from("customers")
         .insert({
@@ -2141,53 +2104,24 @@ document.getElementById('save-new-customer').addEventListener('click', async () 
         return;
     }
 
-    currentCustomerId = inserted.id; // 신규 고객 ID 저장
+    // 새 고객 ID 저장
+    currentCustomerId = inserted.id; 
+
     showToast("신규 고객이 저장되었습니다!");
-    } 
-    // ==================================================
-    // 2) 기존 고객 수정 모드 → UPDATE
-    // ==================================================
-    else {
-    const { error: updateErr } = await supabase
-        .from("customers")
-        .update({
-        customer_name: name,
-        customer_phone_number: phone,
-        grade: grade,
-        memo: memo,
-        floor_min, floor_max,
-        area_min, area_max,
-        deposit_min, deposit_max,
-        rent_min, rent_max,
-        rent_per_py_min, rent_per_py_max,
-        premium_min, premium_max,
-        sale_min, sale_max,
-        total_deposit_min, total_deposit_max,
-        total_rent_min, total_rent_max,
-        roi_min, roi_max
-        })
-        .eq("id", currentCustomerId);
 
-    if (updateErr) {
-        console.error(updateErr);
-        showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
-        return;
-    }
-    }
 
     // ==================================================
-    // 3) 매물 정보 저장 (신규/기존 공통)
+    // 🔥 3) 추천 매물 저장 (항상 new customer 기준)
     // ==================================================
-
     const saved = await saveListingsForCurrentCustomer();
     if (!saved) {
-    showToast("매물정보 저장 중 오류가 발생했습니다.");
-    return;
+        showToast("매물정보 저장 중 오류가 발생했습니다.");
+        return;
     }
 
     showToast("저장 완료!");
 
-    // 저장 후 고객 리스트 갱신
+    // 저장 후 고객 목록 다시 로딩
     loadCustomersForCurrentStaff();
 });
 
