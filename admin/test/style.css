@@ -160,3 +160,21 @@ tbody tr:nth-child(even) {
 .customer-name:hover {
     background-color: #fef9c3; /* hover:bg-yellow-100 */
 }
+.customer-sublist {
+    margin-left: 0.75rem;
+    padding-left: 0.25rem;
+    border-left: 2px solid #e5e7eb; /* 살짝 라인 */
+}
+
+.customer-list-item {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+    color: #374151;                 /* text-gray-700 */
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.customer-list-item:hover {
+    background-color: #f3f4f6;      /* 더 은은한 hover */
+    text-decoration: underline;
+}
