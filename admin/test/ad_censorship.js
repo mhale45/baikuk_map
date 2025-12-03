@@ -688,11 +688,15 @@ async function renderStaffSidebar(me) {
               // 원본 상태값과 표시용(날짜 제거) 상태값 분리
               const statusRaw = info?.status ?? '-';
               const statusDisplay = _stripDateFromStatus(statusRaw);
-              const premiumPrice = info?.premium_price;
+                            const premiumPrice = info?.premium_price;
 
               // === [층수 파싱] ===
-              // 광고(ad_baikuk_listings) 측 총층값(뒤)
-              const adTotalRaw = row.ad_floor_info ?? '';
+              // 광고(ad_baikuk_listings) 측: ad_floor_info에서 앞(해당층)/뒤(총층) 분리
+              const adFloorRaw = row.ad_floor_info ?? '';
+              const adFloorFront = String(adFloorRaw).split('/')[0]?.replace(/\s+/g, '').trim();
+
+              // 총층(뒤) 파싱
+              const adTotalRaw = adFloorRaw;
               const adTotalBack = String(adTotalRaw).includes('/')
                 ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
                 : '';
