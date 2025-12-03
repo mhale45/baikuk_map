@@ -84,25 +84,88 @@ th.resizable {
 }
 .customer-item:active { background-color: #fde68a; } /* 눌렀을 때 살짝 더 진하게 */
 .grade-header {
-    background-color: #e5e7eb; /* bg-yellow-100 같은 효과 */
-    color: #000000;           /* 진한 주황색 글씨 */
-    font-weight: bold;
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    margin-top: 0.5rem;
-}
-.name-item {
-    font-size: 0.9rem;
-    color: #374151;           /* text-gray-700 */
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    background: #f3f4f6;               /* 부드러운 회색 */
+    color: #111827;                    /* 짙은 회색 텍스트 */
+    font-weight: 700;
+    padding: 0.55rem 0.75rem;
+    border-radius: 6px;
+    margin-top: 0.75rem;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    transition: background 0.2s ease;
     cursor: pointer;
-    margin-bottom: 0.4rem;
 }
-.name-item:hover {
-    background-color: #fef9c3; /* hover:bg-yellow-100 */
+.grade-header:hover {
+    background: #e5e7eb;              /* hover 시 약간 더 진하게 */
 }
 
+/* 등급별 목록 전체 박스 */
+.customer-block {
+    margin-top: 0.35rem;
+    padding: 0.35rem 0.25rem 0.15rem 0.5rem;
+    border-left: 3px solid #d1d5db;    /* 왼쪽 라인 추가 */
+    border-radius: 4px;
+}
+
+/* 고객 이름 (최대치 / 홍길동 등) */
+.customer-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;                    /* text-gray-800 */
+
+    padding: 0.35rem 0.4rem;
+    border-radius: 4px;
+    cursor: default;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    transition: background 0.2s;
+}
+.customer-name:hover {
+    background: #f9fafb;               /* hover 시 아주 은은 */
+}
+
+/* 리스트 이름 (- 리스트1 / - 리스트2) */
+.customer-list-item {
+    padding: 0.35rem 0.5rem;
+    margin: 2px 0 2px 0;
+
+    font-size: 0.85rem;
+    color: #374151;                    /* gray-700 */
+    border-radius: 4px;
+
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* 리스트 hover 스타일 */
+.customer-list-item:hover {
+    background: #f3f4f6;               /* gray-100 */
+    color: #111827;                    /* dark text */
+}
+
+/* 리스트 클릭 시 강조 효과 (선택한 리스트 표시 가능) */
+.customer-list-item.active {
+    background: #dbeafe;               /* blue-100 */
+    color: #1e3a8a;                    /* blue-900 */
+    font-weight: 600;
+}
+
+/* 기존 name-item 잔여 스타일 정리 (사용하는 곳 있을까봐 유지) */
+.name-item {
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    color: #374151;
+    font-size: 0.9rem;
+}
+.name-item:hover {
+    background: #f3f4f6;
+}
 /* 테이블 전체 + 셀 테두리 */
 table {
     border-collapse: collapse; /* 테두리 겹침 제거 */
