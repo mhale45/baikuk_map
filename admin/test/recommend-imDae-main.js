@@ -15,32 +15,6 @@ async function saveListingsForCurrentCustomer() {
     return false;
   }
 
-  // 🔽 리스트 이름 가져오기
-  const listName = (document.getElementById('list-name-input')?.value || '').trim();
-  if (!listName) {
-    showToast("리스트 이름을 입력해주세요.");
-    return false;
-  }
-
-  // 🔽 중복 체크
-  const { data: existingList, error: checkErr } = await supabase
-    .from("customers_recommendations")
-    .select("id")
-    .eq("customers_id", String(currentCustomerId))
-    .eq("list_name", listName)
-    .limit(1);
-
-  if (checkErr) {
-    console.error(checkErr);
-    showToast("중복 체크 중 오류가 발생했습니다.");
-    return false;
-  }
-
-  if (existingList?.length > 0) {
-    showToast(`이미 존재하는 리스트 이름입니다: "${listName}"`);
-    return false;
-  }
-
   // 권한 확인(대표/보조만 가능)
   if (!(await isMyAssignedCustomer(currentCustomerId))) {
     showToast("담당자가 아닌 고객의 매물은 저장할 수 없습니다.");
@@ -77,7 +51,6 @@ async function saveListingsForCurrentCustomer() {
 
     result.push({
       customers_id   : String(currentCustomerId), 
-      list_name      : listName,
       order          : index,
       listing_id     : listing_id || null,
       listing_title  : listing_title || null,
@@ -96,20 +69,54 @@ async function saveListingsForCurrentCustomer() {
   });
 
   try {
-    // 🔽 기존 같은 list_name 만 삭제
+    // ⭐ list_name 가져오기
+    const listNameInput = document.getElementById("list-name-input");
+    const listName = (listNameInput?.value || "").trim();
+
+    if (!listName) {
+      showToast("리스트 이름을 입력해주세요.");
+      return false;
+    }
+
+    // ⭐ (customers_id, list_name) 조합 중복 체크
+    const { data: existing, error: checkErr } = await supabase
+      .from("customers_recommendations")
+      .select("id")
+      .eq("customers_id", String(currentCustomerId))
+      .eq("list_name", listName)
+      .limit(1);
+
+    if (checkErr) {
+      console.error(checkErr);
+      showToast("리스트 중복 체크 오류가 발생했습니다.");
+      return false;
+    }
+
+    // ⭐ 이미 같은 리스트가 있다면 → 저장 금지
+    if (existing?.length > 0) {
+      showToast(`이미 존재하는 리스트입니다: "${listName}"`);
+      return false;
+    }
+
+    // ⭐ 같은 고객의 같은 리스트가 없다면 → 해당 list_name 의 기존 데이터만 삭제
     const { error: delErr } = await supabase
       .from("customers_recommendations")
       .delete()
       .eq("customers_id", String(currentCustomerId))
-      .eq("list_name", listName);
+      .eq("list_name", listName);  // ← 여기서 리스트 단위 삭제!
 
     if (delErr) {
       console.error(delErr);
-      showToast("기존 매물 삭제 중 오류.");
+      showToast("기존 리스트 삭제 중 오류가 발생했습니다.");
       return false;
     }
 
-    // 신규 데이터 삽입
+    // ⭐ result 배열에 list_name 추가하기
+    result.forEach(r => {
+      r.list_name = listName;
+    });
+
+    // ⭐ 신규 데이터 삽입
     const { error: insertErr } = await supabase
       .from("customers_recommendations")
       .insert(result);
