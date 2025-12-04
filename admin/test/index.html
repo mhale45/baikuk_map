@@ -451,10 +451,10 @@
         row.className = 'border-b border-gray-300 bg-white hover:bg-gray-50 cursor-pointer';
 
         row.innerHTML = `
-          <td class="p-2 text-base font-bold whitespace-normal w-[4rem] ">
+          <td class="p-1 text-base font-bold whitespace-normal w-[4rem] ">
             <span>${listing.listing_id}</span>
           </td>
-          <td class="flex flex-col p-2 text-base text-right whitespace-nowrap">
+          <td class="flex flex-col p-1 text-base text-right whitespace-nowrap">
             <div style="
               ${(listing.transaction_status || '').includes('진행중') 
                 ? 'background-color: #d9fae6; color: #00b74a; font-weight: bold;' 
@@ -492,23 +492,23 @@
               ${listing.is_public ? '공개' : '비공개'}
             </div>
           </td>
-          <td class="p-2 font-bold text-lg whitespace-normal break-words">
+          <td class="p-1 font-bold text-lg whitespace-normal break-words">
             <span>${listing.listing_title || '-'}</span>
           </td>
-          <td class="p-2 text-left text-base w-[10rem]">${listing.province} ${listing.city} ${listing.district} ${listing.detail_address}</td>
-          <td class="p-2 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
-          <td class="p-2 text-base"><div id="scroll-cell-${listing.listing_id}" class="max-w-[6rem] overflow-x-auto whitespace-nowrap">${listing.unit_info || '-'}</div></td>
-          <td class="p-2 text-right text-base">${formatNumber(listing.floor)}층</td>
-          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.deposit_price)}</td>
-          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.monthly_rent)}</td>
-          <td class="p-2 text-right text-lg whitespace-nowrap">${formatNumber(listing.premium_price)}</td>
-          <td class="p-2 text-right text-lg whitespace-nowrap">${listing.area_py != null ? Number(listing.area_py).toFixed(0) : '-'}평</td>
-          <td class="p-2 text-right text-base"><div>${listing.supply_area_m2 != null ? Number(listing.supply_area_m2).toFixed(2) : '-'}㎡</div><div>${listing.area_m2 != null ? Number(listing.area_m2).toFixed(2) : '-'}㎡</div></td>
-          <td class="p-2 text-right text-lg">${formatNumber(listing.sale_price)}</td>
-          <td class="p-2 text-right text-lg">${formatNumber(listing.total_deposit)}</td>
-          <td class="p-2 text-right text-lg">${formatNumber(listing.total_rent)}</td>
-          <td class="p-2 text-right text-lg">${listing.roi != null ? (Number(listing.roi) * 100).toFixed(1) + '%' : '-'}</td>
-          <td class="p-2">${listing.store_category || '-'}</td>`;
+          <td class="p-1 text-left text-base w-[10rem]">${listing.province} ${listing.city} ${listing.district} ${listing.detail_address}</td>
+          <td class="p-1 text-left text-[1.05rem] w-[12rem] overflow-x-auto whitespace-nowrap">${listing.building_name}</td>
+          <td class="p-1 text-base"><div id="scroll-cell-${listing.listing_id}" class="max-w-[6rem] overflow-x-auto whitespace-nowrap">${listing.unit_info || '-'}</div></td>
+          <td class="p-1 text-right text-base">${formatNumber(listing.floor)}층</td>
+          <td class="p-1 text-right text-lg whitespace-nowrap">${formatNumber(listing.deposit_price)}</td>
+          <td class="p-1 text-right text-lg whitespace-nowrap">${formatNumber(listing.monthly_rent)}</td>
+          <td class="p-1 text-right text-lg whitespace-nowrap">${formatNumber(listing.premium_price)}</td>
+          <td class="p-1 text-right text-lg whitespace-nowrap">${listing.area_py != null ? Number(listing.area_py).toFixed(0) : '-'}평</td>
+          <td class="p-1 text-right text-base"><div>${listing.supply_area_m2 != null ? Number(listing.supply_area_m2).toFixed(2) : '-'}㎡</div><div>${listing.area_m2 != null ? Number(listing.area_m2).toFixed(2) : '-'}㎡</div></td>
+          <td class="p-1 text-right text-lg">${formatNumber(listing.sale_price)}</td>
+          <td class="p-1 text-right text-lg">${formatNumber(listing.total_deposit)}</td>
+          <td class="p-1 text-right text-lg">${formatNumber(listing.total_rent)}</td>
+          <td class="p-1 text-right text-lg">${listing.roi != null ? (Number(listing.roi) * 100).toFixed(1) + '%' : '-'}</td>
+          <td class="p-1">${listing.store_category || '-'}</td>`;
         tbody.appendChild(row);
 
         requestAnimationFrame(() => {
