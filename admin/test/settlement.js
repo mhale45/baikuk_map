@@ -1169,7 +1169,7 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): 직원별 비용 전체 합계(division='사용비용')
+    // 3) 계좌잔고2(sub): 직원 '사용비용' 월별 누적합
     const subCMMap = {};
     try {
       const { data: expenseRows, error: expenseErr } = await supabase
@@ -1180,12 +1180,23 @@ async function loadBranchExpenseCache(affiliation) {
 
       if (expenseErr) throw expenseErr;
 
+      // ① 월별 합산 (월 단위 cost)
+      const monthly = {};
       for (const row of (expenseRows || [])) {
         const ym = ymKey(String(row.date));
         if (!ym) continue;
         const amt = Number(row.amount || 0);
-        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
+        monthly[ym] = (monthly[ym] || 0) + amt;
       }
+
+      // ② 월 순서대로 누적합 계산
+      const sortedYMs = Object.keys(monthly).sort(); // YYYY-MM 정렬 OK
+      let acc = 0;
+      for (const ym of sortedYMs) {
+        acc += monthly[ym];
+        subCMMap[ym] = acc;
+      }
+
     } catch (e) {
       console.warn('[settlement] sub_balance load failed:', e?.message || e);
     }
