@@ -251,6 +251,11 @@
     });
 
     let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
+    let currentSort = {
+      key: null,
+      ascending: true
+    };
+
     let filterConditions = {
       floor:         { min: null, max: null }, // ⬅️ 추가
       deposit_price: { min: null, max: null },
@@ -261,31 +266,28 @@
       roi:           { min: null, max: null } // ROI는 소수 단위
     };
 
-    // 정렬 관련 함수
-    function sortListingsDefault(list) {
+    function sortListings(list, key = null, ascending = true) {
       return list.slice().sort((a, b) => {
-        const addrA = (a.full_address || '').trim();
-        const addrB = (b.full_address || '').trim();
+        if (!key) return 0;
 
-        if (addrA < addrB) return -1;
-        if (addrA > addrB) return 1;
+        let valA = a[key];
+        let valB = b[key];
 
-        const floorA = Number(a.floor) || 0;
-        const floorB = Number(b.floor) || 0;
+        // 숫자 정렬
+        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+          valA = parseFloat(valA);
+          valB = parseFloat(valB);
+        } else {
+          valA = (valA || '').toString();
+          valB = (valB || '').toString();
+        }
 
-        if (floorA < floorB) return -1;
-        if (floorA > floorB) return 1;
-
-        const unitA = (a.unit_info || '').trim();
-        const unitB = (b.unit_info || '').trim();
-
-        if (unitA < unitB) return -1;
-        if (unitA > unitB) return 1;
-
+        if (valA < valB) return ascending ? -1 : 1;
+        if (valA > valB) return ascending ? 1 : -1;
         return 0;
       });
     }
-    
+
     async function fetchMoreListings() {
       if (isLoading || !hasMore) return;
       isLoading = true;
@@ -714,6 +716,39 @@
         location.replace('/admin/listings/');
       });
       // 로그인 계정정보 표시 및 로그아웃 버튼 
+
+      // 정렬 헤더 클릭 이벤트 추가
+      document.querySelectorAll('thead th').forEach(th => {
+        th.addEventListener('click', () => {
+          const keyMap = {
+            '매물번호': 'listing_id',
+            '매물명': 'listing_title',
+            '층': 'floor',
+            '보증금': 'deposit_price',
+            '월세': 'monthly_rent',
+            '권리금': 'premium_price',
+            '전용(평)': 'area_py',
+            '매매가': 'sale_price',
+            '수익률': 'roi'
+          };
+
+          const text = th.innerText.trim();
+          const key = keyMap[text];
+          if (!key) return;
+
+          if (currentSort.key === key) {
+            currentSort.ascending = !currentSort.ascending;
+          } else {
+            currentSort.key = key;
+            currentSort.ascending = true;
+          }
+
+          const sorted = sortListings(applyAllFilters(listings), currentSort.key, currentSort.ascending);
+          document.getElementById('listings-body').innerHTML = '';
+          renderListings(sorted);
+        });
+      });
+
     });
 
     document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
