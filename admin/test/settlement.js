@@ -750,7 +750,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
 
           <!-- 2줄: 이번달 비용 -->
           <div class="flex justify-between mt-1">
-            <span class="text-xs text-gray-500">이번달 비용</span>
+            <span class="text-xs text-gray-500">비용</span>
             <span class="text-xs text-red-600 font-semibold">${fmtKR(staffCost)}</span>
           </div>
 
@@ -759,7 +759,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     }).join('');
 
     listEl.innerHTML = `
-      <div class="text-xs text-gray-500 px-3 py-1">직원별 급여(관여매출의 50%) + 이번달 비용</div>
+      <div class="text-xs text-gray-500 px-3 py-1">급여 + 비용</div>
       ${rows || `<div class="px-3 py-2 text-sm text-gray-500">해당 월 직원 급여 데이터가 없습니다</div>`}
     `;
   }
