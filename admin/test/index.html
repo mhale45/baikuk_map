@@ -439,7 +439,7 @@
 
       listings = enrichedData;
       document.getElementById('listings-body').innerHTML = '';
-      renderListings(sortListingsDefault(enrichedData));
+      renderListings(sortListings(enrichedListings, currentSort.key, currentSort.ascending));
       return enrichedData;
     }
 
@@ -568,7 +568,7 @@
           const finalFiltered = applyAllFilters(baseFiltered);
 
           document.getElementById('listings-body').innerHTML = '';
-          renderListings(sortListingsDefault(finalFiltered));
+          renderListings(sortListings(enrichedListings, currentSort.key, currentSort.ascending));
         });
 
         // ✅ Enter 키 눌렀을 때 검색
