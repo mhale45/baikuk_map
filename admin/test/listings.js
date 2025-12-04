@@ -360,13 +360,11 @@ function renderListings(data) {
     row.dataset.listingId = listing.listing_id; // ✅ 클릭용 ID 저장
     row.className = 'border-b border-gray-300 hover:bg-yellow-50 cursor-pointer';
 
-    // 🔁 짝수/홀수 줄 교차 배경색 적용
+    // 🔁 교차 배경색 (Tailwind 배경색 클래스 적용 → hover 유지됨)
     if (tbody.children.length % 2 === 0) {
-      // 짝수 줄
-      row.style.backgroundColor = '#ffffff';   // 흰색
+      row.classList.add('bg-white');
     } else {
-      // 홀수 줄
-      row.style.backgroundColor = '#f9fafb';   // 연회색 (Tailwind gray-50)
+      row.classList.add('bg-gray-50'); // f9fafb
     }
 
     row.innerHTML = `
