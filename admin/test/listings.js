@@ -196,10 +196,7 @@ filterInputs.forEach(({ key, min, max }) => {
 });
 
 let listings = [], offset = 0, limit = 300, isLoading = false, hasMore = true;
-let currentSort = {
-  key: null,
-  ascending: true
-};
+let currentSort = [];  // 다중 정렬을 위한 배열
 
 let filterConditions = {
   floor:         { min: null, max: null }, // ⬅️ 추가
@@ -211,24 +208,28 @@ let filterConditions = {
   roi:           { min: null, max: null } // ROI는 소수 단위
 };
 
-function sortListings(list, key = null, ascending = true) {
+function sortListings(list) {
+  if (!Array.isArray(currentSort) || currentSort.length === 0) return list;
+
   return list.slice().sort((a, b) => {
-    if (!key) return 0;
+    for (const { key, ascending } of currentSort) {
+      let valA = a[key];
+      let valB = b[key];
 
-    let valA = a[key];
-    let valB = b[key];
+      // 숫자는 숫자로 비교
+      if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+        valA = parseFloat(valA);
+        valB = parseFloat(valB);
+      } else {
+        // 문자열은 대소문자 무시
+        valA = (valA ?? '').toString().toLowerCase();
+        valB = (valB ?? '').toString().toLowerCase();
+      }
 
-    // 숫자 정렬
-    if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
-      valA = parseFloat(valA);
-      valB = parseFloat(valB);
-    } else {
-      valA = (valA || '').toString();
-      valB = (valB || '').toString();
+      if (valA < valB) return ascending ? -1 : 1;
+      if (valA > valB) return ascending ? 1 : -1;
+      // 같으면 다음 key 정렬 기준으로 넘어감
     }
-
-    if (valA < valB) return ascending ? -1 : 1;
-    if (valA > valB) return ascending ? 1 : -1;
     return 0;
   });
 }
@@ -624,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
     location.replace('/admin/listings/');
   });
   
-  // 정렬 헤더 클릭 이벤트 추가
   document.querySelectorAll('thead th').forEach(th => {
     const keyMap = {
       '매물번호': 'listing_id',
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = th.innerText.trim();
     const key = keyMap[text];
 
-    // 🔥 정렬 가능한 열이면 cursor-pointer 추가
+    // 정렬 가능한 열만 표시
     if (key) {
       th.classList.add('cursor-pointer');
     }
@@ -651,18 +651,24 @@ document.addEventListener('DOMContentLoaded', () => {
     th.addEventListener('click', () => {
       if (!key) return;
 
-      if (currentSort.key === key) {
-        currentSort.ascending = !currentSort.ascending;
+      // 이미 있는 정렬 key인지 확인
+      const existing = currentSort.find(s => s.key === key);
+
+      if (existing) {
+        // 오름↔내림 반전
+        existing.ascending = !existing.ascending;
       } else {
-        currentSort.key = key;
-        currentSort.ascending = true;
+        // 새 정렬 기준 추가 (2차, 3차로 쌓임)
+        currentSort.push({ key, ascending: true });
       }
 
-      const sorted = sortListings(applyAllFilters(listings), currentSort.key, currentSort.ascending);
+      // 정렬 적용
+      const sorted = sortListings(applyAllFilters(listings));
       document.getElementById('listings-body').innerHTML = '';
       renderListings(sorted);
     });
   });
+
 });
 
 document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
