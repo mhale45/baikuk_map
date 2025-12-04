@@ -313,7 +313,7 @@
       listings.push(...enrichedListings);
       if (listingsData.length < limit) hasMore = false;
       offset += listingsData.length;
-      renderListings(sortListingsDefault(enrichedListings));
+      renderListings(sortListings(enrichedListings, currentSort.key, currentSort.ascending));
       isLoading = false;
     }
 
@@ -835,7 +835,7 @@
         <div id="fixed-filter-box2" class="bg-gray-100 px-4 pt-2 pb-4">
           <!-- 제목줄 -->
           <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
-            <div class="w-[4rem] text-center">층</div>
+            <div class="w-[4.5rem] text-center">층</div>
             <div class="w-[6rem] text-center">보증금</div>
             <div class="w-[5rem] text-center">월세</div>
             <div class="w-[6rem] text-center">권리금</div>
