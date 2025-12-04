@@ -1169,25 +1169,25 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): cost_management에서 division='통장 입출금' 월합
+    // 3) 계좌잔고2(sub): 직원별 비용 전체 합계(division='사용비용')
     const subCMMap = {};
     try {
-      const { data: bankRows, error: bankErr } = await supabase
+      const { data: expenseRows, error: expenseErr } = await supabase
         .from('cost_management')
         .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
         .eq('division', '사용비용');
 
-      if (bankErr) throw bankErr;
+      if (expenseErr) throw expenseErr;
 
-      for (const row of (bankRows || [])) {
+      for (const row of (expenseRows || [])) {
         const ym = ymKey(String(row.date));
         if (!ym) continue;
         const amt = Number(row.amount || 0);
         subCMMap[ym] = (subCMMap[ym] || 0) + amt;
       }
     } catch (e) {
-      console.warn('[settlement] sub_balance from cost_management load failed:', e?.message || e);
+      console.warn('[settlement] sub_balance load failed:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
