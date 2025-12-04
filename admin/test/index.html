@@ -2,19 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>임대추천</title>
+  <title>정산</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    let currentCustomerId = null; // 전역 변수로 추가
-    let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
-  </script>
-  <link rel="stylesheet" href="./style.css" />
+
 </head>
-<body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
+<body class="w-screen overflow-x-hidden">
   <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
     메시지 영역
   </div>
@@ -24,342 +20,258 @@
         class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
         onclick="location.reload()" />
   </div>
-  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
-    임대추천 <span id="selected-customer" class="text-blue-600"></span>
-  </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
       <a href="/admin/mmap/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
       <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
-      <a href="/admin/recommend_imDae/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
       <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
       <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
       <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
       <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
       <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
       <a href="/admin/cost_management/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">비용</div></a>
-      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      <a id="settlement-tab" href="/admin/settlement/">
+        <div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
-      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
-      <div class="flex justify-end px-2 mb-2">
-        <button id="new-customer-btn"
-          class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
-          새 고객
-        </button>
-      </div>
-      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
-        <!-- 여기에 고객 이름들이 표시됩니다 -->
+    
+    <!-- [ADD] 지점 패널 -->
+    <div id="branch-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
+      <div id="branch-list" class="overflow-y-auto">
+        <!-- JS로 렌더링 -->
       </div>
     </div>
-    <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
-      <div class="mt-[2rem] flex px-3 bg-gray-100">
-        <div class="text-left text-base rounded outline-none resize-none">
-          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
-          <div class="flex items-center gap-2 text-sm mb-2">
-            <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
-          </div>
-          <textarea
-            placeholder="고객이름"
-            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none"
-            id="top-row-input"
-            rows="2"
-          ></textarea>
-          <!-- 🔽 리스트 이름 입력 -->
-          <input
-            id="list-name-input"
-            placeholder="리스트 이름"
-            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base mt-2 h-[2rem]"
-          />
-          <div class="flex mt-[0.5rem]">
-            <button id="delete-customer" class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
-              삭제
-            </button>
-            <button id="save-new-customer" class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
-              저장
-            </button>
-          </div>
-          <div class="flex mt-[0.5rem]">
-            <div class="flex">
-              <div class="ml-1 mt-1">구분:</div>
-              <select id="customer-grade" class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
-                <option >A</option>
-                <option >B</option>
-                <option >C</option>
-                <option >F</option>
-                <option>계약</option>
-              </select>
-            </div>
-            <input id="customer-phone" placeholder="전화번호" class="w-[10rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
-          </div>
-          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[40rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
-          <!-- 🔽 여기에 새 필터 영역 추가 -->
-          <div class="ml-1 mt-4 p-3 bg-white border border-gray-300 rounded text-sm w-[17rem]">
-            <!-- 층 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">층</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="floor-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="floor-max">
-            </div>
-            </div>
 
-            <!-- 전용면적 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">면적(평)</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="area-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="area-max">
-            </div>
-            </div>
+    <!-- [ADD] 메인 컬럼: 지점 월별 잔금매출 합계 -->
+    <div id="main-col" class="w-[84.5%] bg-gray-50 pt-[5rem] px-6">
+      <div class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur border-b border-gray-200 px-2 py-3 mb-4">
+        <h2 id="branch-monthly-title" class="text-lg font-bold text-gray-800">지점을 선택하세요</h2>
+        <p class="text-sm text-gray-500">클릭한 지점의 직원 관여매출을 잔금월 기준으로 합산해 표시합니다.</p>
+      </div>
 
-            <!-- 보증금 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">보증금</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="deposit-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="deposit-max">
-            </div>
-            </div>
+      <section class="bg-white rounded-xl shadow p-4 border border-gray-200">
+        <table class="w-full table-fixed border-collapse text-sm">
+          <thead id="monthly-thead" class="bg-gray-100"></thead>
+          <tbody id="branch-monthly-tbody">
+            <tr>
+              <td class="border px-2 py-3 text-center text-gray-500" colspan="9">지점을 선택하세요</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
 
-            <!-- 월세 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">월세</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-max">
-            </div>
-            </div>
+    <!-- 어두운 오버레이 -->
+    <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
+    <!-- [ADD] 정산 상세 드로어 -->
+    <div id="settlement-drawer"
+        class="fixed inset-y-0 right-0 w-[32rem] bg-white shadow-2xl border-l border-gray-200 translate-x-full transition-transform duration-300 ease-out z-[1100] flex flex-col">
+      <!-- 헤더 -->
+      <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+        <h2 class="text-lg font-bold">월별 정산</h2>
+        <span id="d_branch" class="ml-2 text-sm text-gray-500"></span>
+        <!-- [ADD] 정산확정 버튼 -->
+        <button id="settlement-confirm-btn"
+                class="ml-auto px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          정산확정
+        </button>
+        <button id="close-settlement-drawer" class="ml-auto px-3 py-1 rounded hover:bg-gray-100">✕</button>
+      </div>
 
-            <!-- 평당 월세 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">평월세</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
-            </div>
-            </div>
+      <!-- 내용 -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">기간</span>
+            <input id="d_period" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-gray-600">
+          </label>
 
-            <!-- 권리금 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">권리금</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="premium-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="premium-max">
-            </div>
-            </div>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">매출합계</span>
+            <input id="d_sales" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+          </label>
 
-            <!-- 매매가 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">매매가</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="sale-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="sale-max">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-red-600">계좌 잔고1*</span>
+            <input id="input-main-balance" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right">
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">계좌 잔고2</span>
+            <input id="input-sub-balance" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right">
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">            
+            <!-- [ADD] 부가세 표시 (총 급여와 지점자율금 사이) -->
+            <span class="text-sm text-gray-600">부가세</span>
+            <input id="d_vat" type="text"
+              class="mt-1 border rounded px-3 py-2 text-right"
+              placeholder="부가세를 입력하세요">
+          </label>
+          <label class="flex flex-col gap-1">
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
             </div>
-            </div>
+          </label>
 
-            <!-- 총보증금 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">총보증금</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-deposit-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-deposit-max">
-            </div>
-            </div>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">유보금</span>
+            <input id="d_reserves" type="text"
+                  class="border rounded px-3 py-2 text-right font-semibold">
+          </label>
 
-            <!-- 총월세 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">총월세</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-rent-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-rent-max">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">순이익</span>
+            <input id="d_netincome" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
+            <!-- 계산식 표시 -->
+            <div id="d_netincome_formula" class="text-[11px] text-gray-400 mt-1">
+              계좌잔고1 + 계좌잔고2 − 총 급여 − 부가세 − 유보금
             </div>
-            </div>
+          </label>
 
-            <!-- 수익률 -->
-            <div class="flex flex-row items-center mb-3">
-            <div class="font-semibold w-[9rem]">수익률(%)</div>
-            <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="roi-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="roi-max">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총비용</span>
+            <input id="d_totalcost" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-blue-600">
+            <div id="d_totalcost_formula" class="text-[11px] text-gray-400 mt-1">
+              매출합계 − 부가세 − 총 급여 − 순이익
             </div>
-            </div>
+          </label>
 
-          </div>
-          <!-- 🔼 필터 영역 끝 -->
+          <!-- 지점자율금 -->          
+          <label class="flex flex-col gap-1">
+            <div class="flex items-center gap-1">
+              <span class="text-sm text-gray-600">지점자율금</span>
+              <span id="d_autonomous_rate" class="text-xs text-gray-500">(—%)</span>
+            </div>
+            <input id="d_autonomous_amount" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-purple-700">            
+            <!-- 계산식 표시 -->
+            <div id="d_autonomous_formula" class="text-[11px] text-gray-400 mt-1"></div>
+          </label>
+
+          <!-- [CHANGE] 배당금: 제목만 표시 + 아래에 계산식 표시 -->
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">배당금</span>
+            <input id="d_profit" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-amber-700">
+            <!-- 계산식 표시 -->
+            <div id="d_profit_formula" class="text-[11px] text-gray-400 mt-1">
+              순이익 − 지점자율금
+            </div>
+          </label>
 
         </div>
-        <div class="ml-3 mt-[1rem] flex flex-col">
-          <div class="mb-2 px-2 text-right flex gap-2">
-            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
-              🖨️
-            </button>
-            <button id="print-btn2" class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
-              🖨️
-            </button>
-          </div>
-          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
-            <div class="mb-2 justify-center flex gap-2">
-              <button id="clear-left-btn" class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
-                지우기
-              </button>
-              <button id="copy-link-btn" class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
-                링크
-              </button>
-            </div>
-            <div id="table-container" class="border rounded-md">
-              <table class="w-[7rem] text-sm text-left">
-                <thead class="bg-gray-100 sticky top-0 z-10">
-                  <tr id="header-row">
-                    <th class="p-1 font-bold text-base text-center">매물번호</th>
-                  </tr>
-                </thead>
-                <tbody id="left-tbody" class="bg-white">
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>        
-        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
-          <div id="table-container" class="custom-scroll bg-white rounded-md">
-            <div id="print-block">              
-              <div class="flex items-end mb-2 gap-3">
-                <img
-                  src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
-                  alt="백억로고"
-                  class="w-[25rem]"
-                />
-                <div class="justify-between items-end mb-2">
-                  <!-- 날짜 -->
-                  <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
-                  <!-- 담당자 -->
-                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold relative">
-                    <!-- 직원 정보 표시부 -->
-                    <div id="staff-info"
-                        class="cursor-pointer px-2 py-1 rounded hover:bg-gray-200 select-none">
-                    </div>
-                    <!-- 드롭다운 -->
-                    <div id="staff-dropdown"
-                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
-                  </div>
-                  </div>
-                </div>
+        <!-- 내용 끝에 메모 섹션 추가 (푸터 위) -->
+        <div class="px-5 pb-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">메모</span>
+            <textarea id="d_memo" rows="4" class="border rounded px-3 py-2 w-full resize-none overflow-hidden leading-6"></textarea>
+          </label>
+        </div>
+        
+        <!-- [ADD] Expense 파일 업로더 (메모 위) -->
+        <div class="px-5">
+          <div class="border border-gray-200 rounded-xl p-4 bg-white">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-semibold">지점관련 통장내역 파일 업로드</div>
+              <div class="flex items-center gap-2">
+                <input id="expFileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+                <button id="expFilePickBtn" class="px-3 py-1.5 rounded-lg border bg-gray-50 hover:bg-gray-100">불러오기</button>
               </div>
-              <table>
-                <thead>
-                  <tr id="header-row">
-                    <th class="resizable" style="width: 2.1rem;">
-                      <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 14rem;">
-                      매물명 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 11rem;">
-                      주소 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 5rem;">
-                      보증금 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 3.5rem;">
-                      월세 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 5rem;">
-                      권리금 <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 4.3rem;">
-                      전용(평) <div class="resize-handle"></div>
-                    </th>
-                    <th class="resizable" style="width: 13rem;">
-                      내용 <div class="resize-handle"></div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody id="listings-body"></tbody>
-              </table>
-            </div>  
-          </div>
-          <!-- 오른쪽 리사이즈 핸들 -->
-          <div id="whitebox-resize-handle"
-              style="
-                  position: absolute;
-                  top: 0;
-                  right: -4px;
-                  width: 8px;
-                  height: 100%;
-                  cursor: ew-resize;
-                  z-index: 50;
-              ">
-          </div>
-        </div>
-        <div class="ml-3 mt-[6.2rem] flex flex-col">
-          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
-            <!-- 오른쪽(스크린샷 제외) 메모 표 -->
-            <div id="memo-panel" class="print:hidden sticky top-2">
-              <table class="w-[20rem] border-collapse">
-                <thead>
-                  <tr>
-                    <td class="p-1 border-b border-gray-200 align-top">
-                      메모
-                    </th>
-                  </tr>
-                </thead>
-                <tbody id="memo-body"></tbody>
-              </table>
+            </div>
+
+            <div id="expDropZone"
+                class="mt-3 border-2 border-dashed border-slate-300 rounded-xl p-6 text-center text-slate-600 bg-slate-50">
+              여기로 파일을 드래그 앤 드롭하거나, <b>불러오기</b> 버튼을 클릭하세요<br/>
+              <small class="text-slate-400">허용: .xlsx .xls .csv · 최대 20MB</small>
+            </div>
+
+            <div id="expUploadProgress" class="mt-3 hidden">
+              <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div id="expUploadBar" class="h-2 w-0 bg-emerald-500"></div>
+              </div>
+              <div id="expUploadLabel" class="mt-1 text-xs text-slate-500">업로드 준비중…</div>
+            </div>
+
+            <div id="expUploadList" class="mt-3 hidden">
+              <div class="font-semibold mb-1">업로드 결과</div>
+              <ul id="expUploadItems" class="space-y-1"></ul>
             </div>
           </div>
-        </div>          
+        </div>
+        <!-- 이미 저장되어 있던 파일 목록 -->
+        <div id="expFilesSection" class="mt-4">
+          <div class="font-semibold mb-1">저장된 파일</div>
+          <ul id="expFileList" class="space-y-1 text-sm text-slate-700">
+            <!-- JS로 렌더링 -->
+          </ul>
+          <div id="expFileEmpty" class="text-sm text-slate-400 hidden">아직 업로드된 파일이 없습니다.</div>
+        </div>
       </div>
-    </div>
-  </div>  
-  <script type="module" src="./recommend-imDae.js"></script>
-  <script src="./recommend-imDae-main.js"></script>
-  <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
-  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
-    <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
-      <div class="px-5 py-3 border-b font-semibold text-lg">
-        같은 이름의 고객이 이미 있습니다
-      </div>
-      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
-        <p class="text-sm text-gray-700">
-          현재 입력한 내용으로 <b>기존 고객 정보를 덮어쓰시겠습니까?</b>
-        </p>
-        <!-- 선택 리스트는 사용 안함 -->
-      </div>
-      <div class="px-5 py-4 border-t flex items-center gap-2 justify-end bg-gray-50">
-        <button id="dup-overwrite" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
-          덮어쓰기
+
+      <!-- 푸터: 저장/닫기 -->
+      <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-end gap-2">
+        <button id="settlement-drawer-save" class="px-4 py-2 rounded bg-[#F2C130] text-white hover:brightness-110 active:brightness-90">
+          저장
         </button>
-        <button id="dup-cancel" class="px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-200 text-sm">
-          취소
-        </button>
+        <button id="settlement-drawer-close" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">닫기</button>
       </div>
     </div>
+
+    <!-- [ADD] 드로어 오버레이 -->
+    <div id="settlement-overlay" class="fixed inset-0 bg-black/30 z-[1090] hidden"></div>
+
   </div>
-  <div id="color-picker-popup" 
-      class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
-    <div class="flex gap-2">
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="none" style="background: repeating-linear-gradient(
-        45deg,
-        #fff,
-        #fff 5px,
-        #ccc 5px,
-        #ccc 10px
-      );"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e5e7eb"></div>
-      <div class="color-option w-6 h-6 rounded cursor-pointer flex items-center justify-center"
-          data-color="strike"
-          style="font-size: 18px; font-weight: bold; line-height: 1;">
-        -
-      </div>
-    </div>
-  </div>
+  <script type="module">
+    import { client as supabase } from '../../modules/core/supabase.js';
+    import { initSettlement } from './settlement.js';
+
+    (async () => {
+      const { data: sessionRes, error } = await supabase.auth.getSession();
+      if (error) {
+        console.warn("세션 조회 에러:", error);
+      }
+      if (!sessionRes?.session) {
+        console.warn("로그인 세션 없음 → /map으로 이동");
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
+        return;
+      }
+
+      const user = sessionRes.session.user;
+      if (!user?.id) {
+        location.replace("https://baikuk-map.netlify.app/admin/listings/");
+        return;
+      }
+
+      const { data: staff, error: staffError } = await supabase
+        .from("staff_profiles")
+        .select("authority")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (staffError) {
+        console.warn("권한 조회 실패:", staffError);
+        return;
+      }
+
+      if (staff?.authority?.trim() === "직원") {
+        console.warn("직원 권한 → /admin/performance 로 이동");
+        location.replace("/admin/performance/");
+      } else {
+        await initSettlement();  // ✅ 바로 실행
+      }
+    })();
+  </script>
+
 </body>
 </html>
