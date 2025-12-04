@@ -292,28 +292,26 @@
       if (isLoading || !hasMore) return;
       isLoading = true;
 
-      const { data: listingsData, error } = await client
+      const { data: listingsData } = await client
         .from('baikukdbtest').select('*')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
-      if (error) return console.error('❌ 오류:', error);
-
-      const { data: buildingsData, error: buildingsError } = await client
+      const { data: buildingsData } = await client
         .from('building_info').select('addr_compare, building_name');
 
-      if (buildingsError) return console.error('❌ building_info 오류:', buildingsError);
-
       const buildingMap = new Map(buildingsData.map(b => [b.addr_compare, b.building_name]));
-      const enrichedListings = listingsData.map(listing => ({
+      const enrichedData = listingsData.map(listing => ({
         ...listing,
         building_name: buildingMap.get(listing.addr_compare) || '-'
       }));
 
-      listings.push(...enrichedListings);
+      listings = listings.concat(enrichedData);
       if (listingsData.length < limit) hasMore = false;
       offset += listingsData.length;
-      renderListings(sortListings(enrichedListings, currentSort.key, currentSort.ascending));
+
+      document.getElementById('listings-body').innerHTML = '';
+      renderListings(sortListings(applyAllFilters(listings), currentSort.key, currentSort.ascending));
       isLoading = false;
     }
 
@@ -369,78 +367,45 @@
     const headerRow = document.getElementById('header-row');
 
     async function serverSearch(idTerm, titleTerm, addressTerm, buildingTerm) {
-      console.log("🔍 검색 실행됨:", { idTerm, titleTerm, addressTerm, buildingTerm });
-
-      listings = [];
-      offset = 0;
-      hasMore = false;
-
-      // Step 1: 건물명 → addr_compare 매핑
+      listings = []; offset = 0; hasMore = false;
       let matchedAddresses = [];
+
       if (buildingTerm) {
-        const { data: matchedBuildings, error: buildingError } = await client
+        const { data: matchedBuildings } = await client
           .from('building_info')
           .select('addr_compare')
           .ilike('building_name', `%${buildingTerm}%`);
-        if (buildingError) {
-          console.error('❌ building_name 검색 오류:', buildingError);
-          return;
-        }
         matchedAddresses = matchedBuildings.map(b => b.addr_compare);
       }
 
-      // Step 2: 매물 테이블 조건별 검색
       let query = client.from('baikukdbtest').select('*').limit(1000);
-
-      if (idTerm && !isNaN(parseInt(idTerm))) {
-        query = query.eq('listing_id', parseInt(idTerm));
-      }
+      if (idTerm && !isNaN(parseInt(idTerm))) query = query.eq('listing_id', parseInt(idTerm));
       if (titleTerm) query = query.ilike('listing_title', `%${titleTerm}%`);
-      if (addressTerm) {
-        const addrTerms = addressTerm
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean);
 
+      if (addressTerm) {
+        const addrTerms = addressTerm.split(',').map(s => s.trim()).filter(Boolean);
         if (addrTerms.length === 1) {
-          // 키워드 1개면 일반 ilike
           query = query.ilike('full_address', `%${addrTerms[0]}%`);
         } else if (addrTerms.length > 1) {
-          // 키워드 여러 개면 OR 조건 (PostgREST or 구문)
-          // full_address.ilike.%야당%,full_address.ilike.%목동%,full_address.ilike.%정발산%
           const orExp = addrTerms.map(t => `full_address.ilike.%${t}%`).join(',');
           query = query.or(orExp);
         }
       }
+
       if (buildingTerm && matchedAddresses.length > 0) {
         query = query.in('addr_compare', matchedAddresses);
       }
 
-      const { data: listingsData, error: listingsError } = await query;
-      if (listingsError) {
-        console.error('❌ 매물 검색 오류:', listingsError);
-        return;
-      }
-
-      // Step 3: building_name 병합
-      const { data: buildingsData, error: buildingsAllError } = await client
+      const { data: listingsData } = await query;
+      const { data: buildingsData } = await client
         .from('building_info')
         .select('addr_compare, building_name');
-      if (buildingsAllError) {
-        console.error('❌ 병합용 building_info 오류:', buildingsAllError);
-        return;
-      }
 
       const buildingMap = new Map(buildingsData.map(b => [b.addr_compare, b.building_name]));
-      const enrichedData = listingsData.map(listing => ({
+      return listingsData.map(listing => ({
         ...listing,
         building_name: buildingMap.get(listing.addr_compare) || '-'
       }));
-
-      listings = enrichedData;
-      document.getElementById('listings-body').innerHTML = '';
-      renderListings(sortListings(enrichedListings, currentSort.key, currentSort.ascending));
-      return enrichedData;
     }
 
     function renderListings(data) {
@@ -549,23 +514,14 @@
       // ✅ 요소가 모두 있는 경우에만 이벤트 리스너 등록
       if (searchButton && idInput && titleInput && addressInput && buildingInput) {
         searchButton.addEventListener('click', async () => {
-          // ✅ 숫자 조건 최신화
-          filterInputs.forEach(({ key, min, max }) => {
-            const minVal = parseFloat(document.getElementById(min).value);
-            const maxVal = parseFloat(document.getElementById(max).value);
-            filterConditions[key] = {
-              min: isNaN(minVal) ? null : minVal,
-              max: isNaN(maxVal) ? null : maxVal
-            };
-          });
-
           const idTerm = idInput.value.trim();
           const titleTerm = titleInput.value.trim();
           const addressTerm = addressInput.value.trim();
           const buildingTerm = buildingInput.value.trim();
 
-          const baseFiltered = await serverSearch(idTerm, titleTerm, addressTerm, buildingTerm);
-          const finalFiltered = applyAllFilters(baseFiltered);
+          const enriched = await serverSearch(idTerm, titleTerm, addressTerm, buildingTerm);
+          listings = enriched;
+          const finalFiltered = applyAllFilters(enriched);
 
           document.getElementById('listings-body').innerHTML = '';
           renderListings(sortListings(finalFiltered, currentSort.key, currentSort.ascending));
