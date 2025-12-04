@@ -623,27 +623,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 로그아웃 후 로그인 화면(또는 메인 지도)으로 이동
     location.replace('/admin/listings/');
   });
-  // 로그인 계정정보 표시 및 로그아웃 버튼 
-
+  
   // 정렬 헤더 클릭 이벤트 추가
   document.querySelectorAll('thead th').forEach(th => {
-    th.addEventListener('click', () => {
-      const keyMap = {
-        '매물번호': 'listing_id',
-        '매물명': 'listing_title',
-        '주소': 'full_address',
-        '건물정보': 'building_name',
-        '층': 'floor',
-        '보증금': 'deposit_price',
-        '월세': 'monthly_rent',
-        '권리금': 'premium_price',
-        '전용(평)': 'area_py',
-        '매매가': 'sale_price',
-        '수익률': 'roi',
-      };
+    const keyMap = {
+      '매물번호': 'listing_id',
+      '매물명': 'listing_title',
+      '주소': 'full_address',
+      '건물정보': 'building_name',
+      '층': 'floor',
+      '보증금': 'deposit_price',
+      '월세': 'monthly_rent',
+      '권리금': 'premium_price',
+      '전용(평)': 'area_py',
+      '매매가': 'sale_price',
+      '수익률': 'roi',
+    };
 
-      const text = th.innerText.trim();
-      const key = keyMap[text];
+    const text = th.innerText.trim();
+    const key = keyMap[text];
+
+    // 🔥 정렬 가능한 열이면 cursor-pointer 추가
+    if (key) {
+      th.classList.add('cursor-pointer');
+    }
+
+    th.addEventListener('click', () => {
       if (!key) return;
 
       if (currentSort.key === key) {
@@ -658,7 +663,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderListings(sorted);
     });
   });
-
 });
 
 document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
