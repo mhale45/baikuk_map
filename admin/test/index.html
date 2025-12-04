@@ -549,6 +549,7 @@
       // ✅ 요소가 모두 있는 경우에만 이벤트 리스너 등록
       if (searchButton && idInput && titleInput && addressInput && buildingInput) {
         searchButton.addEventListener('click', async () => {
+          // ✅ 숫자 조건 최신화
           filterInputs.forEach(({ key, min, max }) => {
             const minVal = parseFloat(document.getElementById(min).value);
             const maxVal = parseFloat(document.getElementById(max).value);
