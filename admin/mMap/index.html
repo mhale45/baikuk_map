@@ -1,363 +1,230 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <title>mMap</title>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- 카카오 지도 -->
-    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
-
-    <style>
-        :root {
-            --header-height: 4.3rem;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #map {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-        }
-
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--header-height);
-            background: #fff;
-            z-index: 10000;
-        }
-
-        @media (min-width: 769px) {
-            #side-panel {
-                position: absolute !important;
-                max-width: 320px;
-                max-height: 50vh;
-                left: 0;
-                top: 0;
-                transform: translate(-50%, -100%); /* 마커 위로 */
-                z-index: 999999;
-            }
-        }
-
-    </style>
-
-    <!-- 🔥 Supabase Client -->
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
-
-        window.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: { persistSession: true, autoRefreshToken: true }
-        });
-
-        // 🔥 로그인 여부 확인 후 접속 불가하면 listings 로 이동
-        async function enforceAuthForMMap() {
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) {
-                location.replace("/admin/listings/");
-            }
-        }
-
-        enforceAuthForMMap();
-    </script>
-
+  <meta charset="UTF-8" />
+  <title>매물장부</title>
+  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .custom-scroll::-webkit-scrollbar {
+      width: 20px;
+      height: 20px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1;
+      border-radius: 6px;
+      border: 2px solid #f1f1f1;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background-color: #999;
+    }
+    th.resizable {
+      position: relative;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+    }
+    th.resizing {
+      cursor: col-resize;
+    }
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #d1d5db; /* gray-300 */
+      border-radius: 0.375rem; /* rounded-md */
+      padding: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 50;
+    }    
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+  <script type="module" src="./listings.js"></script>
 </head>
-<body>
-    <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
-        <div class="flex flex-row gap-2 mt-1">  
-            <div class="flex flex-col gap-2">
-                <button id="filter-reset-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
-                        hover:bg-gray-200 transition duration-150">
-                    초기화
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">   
-                <!-- 🔥 통합 필터 버튼 -->
-                <button id="filter-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[55px]
-                        hover:bg-gray-200 transition duration-150">
-                    필터
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">
-                <button id="toggle-customer-panel"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm max-w-[260px]
-                        hover:bg-gray-200 transition duration-150">
-                    👤 고객 리스트
-                </button>
-            </div> 
-        </div>     
-    </header>
-
-    <!-- 오른쪽 하단 컨트롤 버튼 -->
-    <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
-        <button id="btn-current-location"
-                class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
-                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5"
-                title="현재 위치로 이동">
-            <span class="text-xl text-black font-bold">◉</span>
+<body class="h-screen w-screen">
+  <!-- 🔐 로그인 전체 화면 -->
+  <div id="auth-screen" class="fixed inset-0 z-[99999] hidden">
+    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+      <div class="bg-white w-[22rem] rounded-xl shadow-xl p-6">
+        <h2 class="text-xl font-bold text-center mb-4">직원 로그인</h2>
+        <input id="auth-email" type="email" placeholder="이메일"
+               class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
+        <input id="auth-password" type="password" placeholder="비밀번호"
+               class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+        <button id="auth-login"
+                class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+          로그인
         </button>
+        <button id="auth-close"
+                class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
+          닫기
+        </button>
+        <div id="auth-error" class="text-red-600 text-sm mt-3 hidden"></div>
+      </div>
     </div>
-    
-    <!-- 🔥 통합 필터 박스 -->
-    <div id="filter-box-merged"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-        style="display:none;">
-
-        <!-- ▼ 기존 '종류' 체크박스들 옮기기 -->
-        <div class="flex flex-row flex-wrap">
-            <div class="flex flex-col gap-1">
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="진행중" class="status-check" /> 진행중
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="보류" class="status-check" /> 보류
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
-                </label>
-
-                <label class="flex items-center gap-2 mt-2">
-                    <input type="checkbox" value="월세" class="dealtype-check" /> 월세
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="매매" class="dealtype-check" /> 매매
-                </label>
+  </div>
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+        alt="글씨로고"
+        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
+        onclick="location.reload()"/>
+  </div>
+  <div class="flex h-full">    
+    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+      <a href="https://baikuk.com/map"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
+      <a href="/admin/mmap/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
+      <a href="/admin/listings/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
+      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
+      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
+      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
+      <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
+      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
+      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
+      <a href="/admin/cost_management/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">비용</div></a>
+      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      </a>
+    </div>
+    <div class="w-[94%] flex flex-col bg-gray-50">
+      <div class="flex gap-4 items-start bg-gray-100"> <!-- 필터 영역 (상단 10%) -->
+        <div class="flex flex-col w-[37%] mt-2">
+          <div class="flex ml-[6.7rem] gap-3">
+            <!-- 계정정보 + 로그아웃 버튼 -->
+            <div id="account-info" class="flex items-center justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700 gap-4">
+              <div class="flex flex-row flex-wrap items-center gap-2 text-sm text-gray-700">
+                <span id="account-affiliation" class="text-xs text-gray-600"></span>
+                <span id="account-position" class="text-xs text-gray-600"></span>
+                <span id="account-name" class="font-semibold"></span>
+                <span id="account-extension" class="text-xs text-gray-600"></span>
+                <span id="account-email" class="text-xs text-gray-600"></span>
+              </div>
+              <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
             </div>
-            <div class="flex flex-col gap-1 ml-10">
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="상가" class="category-check" /> 상가
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="공장" class="category-check" /> 공장·창고
-                </label>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" value="주택" class="category-check" /> 주택
-                </label>
-            </div>
+            <button id="open-admin-listing-btn" class="hidden text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded ml-auto px-3 py-1 leading-none h-[1.7rem]">🏢 매물등록</button>  
+          </div>      
+          <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2 text-sm">
+            <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
+            <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
+            <input type="text" id="address-input" placeholder="주소(콤마로 복수 입력)" class="border px-1.5 py-1 rounded w-[26%]" />
+            <input type="text" id="building-input" placeholder="건물명" class="border px-1.5 py-1 rounded w-[22%]" />
+            <button id="search-button" class="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-600 w-[10%]">검색</button>
+          </div>
         </div>
-        <!-- ▼ 기존 '조건' 숫자 필터 전부 옮기기 -->
-        <div class="flex flex-col gap-1 mt-5">
+        <!-- 필터 입력창 영역 -->
+        <div id="fixed-filter-box2" class="bg-gray-100 px-4 pt-2 pb-4">
+          <!-- 제목줄 -->
+          <div class="flex gap-4 font-semibold text-sm text-gray-700 mb-1">
+            <div class="w-[4rem] text-center">층</div>
+            <div class="w-[6rem] text-center">보증금</div>
+            <div class="w-[5rem] text-center">월세</div>
+            <div class="w-[6rem] text-center">권리금</div>
+            <div class="w-[4rem] text-center">전용(평)</div>
+            <div class="w-[6rem] text-center">매매가</div>
+            <div class="w-[4rem] text-center">수익률</div>
+          </div>
 
-            <!-- 층 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">층</span>
-                <input id="floor-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="floor-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+          <!-- 이상 입력창 -->
+          <div class="flex gap-4 mb-1">
+            <input id="filter-floor-min"    type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-deposit-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-rent-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[5rem]" />
+            <input id="filter-premium-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-area-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-sale-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-roi-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+          </div>
+
+          <!-- 이하 입력창 -->
+          <div class="flex gap-4">
+            <input id="filter-floor-max"    type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-deposit-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-rent-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[5rem]" />
+            <input id="filter-premium-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-area-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-sale-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
+            <input id="filter-roi-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+          </div>
+        </div>
+          <!-- 필터 입력창 영역 -->
+          <div id="fixed-filter-box" class="h-[3.45rem] bg-gray-100 px-4 pt-2 pb-4 flex gap-7">
+            <!-- 거래유형 -->
+            <div>
+              <div class="font-semibold mb-1">거래유형</div>
+              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
+              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
             </div>
 
-            <!-- 전용면적 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">전용면적</span>
-                <input id="area-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="area-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            <!-- 거래완료 -->
+            <div>
+              <div class="font-semibold mb-1">거래상태</div>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="진행중" /> 진행중</label>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="보류" /> 보류</label>
+              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="계약완료" /> 계약완료</label>
             </div>
 
-            <!-- 보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">보증금</span>
-                <input id="deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            <!-- 대분류 -->
+            <div class="flex flex-col items-center">
+              <div class="font-semibold mb-1">대분류</div>
+              <div>
+                <div class="flex gap-2">
+                  <div>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="상가" /> 상가</label>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="빌딩" /> 빌딩</label>
+                  </div>
+                  <div>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="주택" /> 주택</label>
+                    <label class="block"><input type="checkbox" class="category-checkbox" value="토지" /> 토지</label>
+                  </div>
+                </div>
+                <label class="block"><input type="checkbox" class="category-checkbox" value="공장·창고" /> 공장·창고</label>
+              </div>
             </div>
-
-            <!-- 월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">월세</span>
-                <input id="rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 권리금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">권리금</span>
-                <input id="premium-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 평당월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">평월세</span>
-                <input id="rent_per_py-min" type="number" placeholder="이상"
-                    class="border p-1 rounded w-20" />
-                <input id="rent_per_py-max" type="number" placeholder="이하"
-                    class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 매매가 -->
-            <div class="flex items-center gap-2 mt-5">
-                <span class="w-20">매매가</span>
-                <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총보증금</span>
-                <input id="total-deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총월세</span>
-                <input id="total-rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 수익률 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">수익률</span>
-                <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-        </div>        
+          </div>
+      </div>
+      <div class="px-4 bg-gray-100">
+        <div class="px-4 py-4 bg-white border border-gray-300 rounded-md">
+          <div id="table-container" class="h-[83vh] overflow-y-auto custom-scroll bg-whiteborderrounded-md">
+            <table class="w-full table-fixed text-sm text-left bg-white">
+              <thead class="bg-gray-100 sticky top-0 z-10">
+                <tr id="header-row">
+                  <th class="p-1 border-r text-sm text-center w-[4.54rem]">매물번호</th>
+                  <th class="p-1 border-r text-sm text-center w-[5rem]">상태</th>
+                  <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div></th>
+                  <th class="p-1 border-r text-sm text-center w-[10.5rem]">주소</th>
+                  <th class="p-1 border-r text-sm text-center w-[9rem]">건물정보</th>
+                  <th class="p-1 border-r text-sm text-center">호수</th>
+                  <th class="p-1 border-r text-sm text-center w-[4rem]">층</th>
+                  <th class="p-1 border-r text-sm text-center">보증금</th>
+                  <th class="p-1 border-r text-sm text-center">월세</th>
+                  <th class="p-1 border-r text-sm text-center">권리금</th>
+                  <th class="p-1 border-r text-sm text-center min-w-[4.5rem]">전용(평)</th>
+                  <th class="p-1 border-r text-sm text-center w-[6.5rem]">공급/전용(㎡)</th>
+                  <th class="p-1 border-r text-sm text-center">매매가</th>
+                  <th class="p-1 border-r text-sm text-center min-w-[1rem]">총보증금</th>
+                  <th class="p-1 border-r text-sm text-center">총월세</th>
+                  <th class="p-1 border-r text-sm text-center">수익률</th>
+                  <th class="p-1 border-r text-sm text-center">상가타입</th>
+                </tr>
+              </thead>
+              <tbody id="listings-body" class="bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
-    <div id="customer-panel"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-        style="
-            display:none;
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            left: 10px;
-            z-index: 99999;
-            max-width: 380px;
-            max-height: 70vh;
-            overflow-y: auto;
-            background: white;
-            min-width: 220px;
-            max-width: 90vh;
-        ">
-    </div>
-
-    <div id="side-panel"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            left: 10px;
-            max-width: 95vw;
-            width: auto;
-            max-height: 70vh;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 15px;
-            overflow-y: auto;
-            overflow-x: auto;
-            white-space: nowrap;
-            z-index: 999999;
-            display: none;
-        ">
-    </div>
-        
-    <!-- 🔍 제목 검색창 (지도 오른쪽 상단 고정) -->
-    <div id="map-search-box"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 10px);
-            right: 20px;
-            z-index: 5000;
-            background: white;
-            padding: 6px 8px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
-        ">
-
-        <!-- 🔥 검색어 초기화 X 버튼 -->
-        <button
-            id="search-clear-btn"
-            type="button"
-            style="
-                display: none;          /* 기본은 숨김, 글자 입력되면 JS에서 보이게 */
-                padding: 0 8px;
-                height: 30px;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                background: #f3f3f3;
-                font-size: 14px;
-                cursor: pointer;
-            "
-        >
-            ✕
-        </button>
-
-        <input
-            id="search-title-input"
-            type="text"
-            placeholder="검색"
-            style="
-                width: 280px;
-                padding: 5px 8px;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                font-size: 14px;
-            "
-        />
-        
-        <!-- 🔄 재검색 버튼 -->
-        <button
-            id="search-refresh-btn"
-            type="button"
-            style="
-                padding: 0 10px;
-                height: 30px;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                background: #fef3c7;   /* 연한 노랑 */
-                font-size: 14px;
-                cursor: pointer;
-            "
-        >
-            재검색
-        </button>
-    </div>
-
-    <!-- 🔍 검색 결과 리스트 -->
-    <div id="search-result-box"
-        style="
-            position: fixed;
-            top: calc(var(--header-height) + 60px);
-            right: 20px;
-            z-index: 5000;
-            background: white;
-            padding: 6px 8px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
-            overflow-x: auto;
-            overflow-y: auto;
-            max-width: 380px;
-            max-height: 70vh;
-            display: none;
-            font-size: 14px;
-        ">
-    </div>
-
-    <!-- 지도 -->
-    <div id="map"></div>
-
-    <script type="module" src="./mMap.js"></script>
-
+  </div>
 </body>
 </html>

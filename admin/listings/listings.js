@@ -358,16 +358,7 @@ function renderListings(data) {
   data.forEach(listing => {
     const row = document.createElement('tr');
     row.dataset.listingId = listing.listing_id; // ✅ 클릭용 ID 저장
-    row.className = 'border-b border-gray-300 hover:bg-yellow-50 cursor-pointer';
-
-    // 🔁 짝수/홀수 줄 교차 배경색 적용
-    if (tbody.children.length % 2 === 0) {
-      // 짝수 줄
-      row.style.backgroundColor = '#ffffff';   // 흰색
-    } else {
-      // 홀수 줄
-      row.style.backgroundColor = '#f9fafb';   // 연회색 (Tailwind gray-50)
-    }
+    row.className = 'border-b border-gray-300 bg-white hover:bg-yellow-50 cursor-pointer';
 
     row.innerHTML = `
       <td class="p-1 text-base font-bold whitespace-normal w-[4rem] ">
