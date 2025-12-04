@@ -1093,21 +1093,22 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
-// =======================================
-// [ADD] 직원별 이번달 비용 계산 함수
-// =======================================
 async function buildCostByStaff(affiliation, ym) {
   const { yyyy, mm } = ymToParts(ym);
+
+  // 마지막 일자 계산
+  const lastDay = new Date(yyyy, Number(mm), 0).getDate();
+
   const start = `${yyyy}-${mm}-01`;
-  const end   = `${yyyy}-${mm}-31`;
+  const end   = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
 
   const { data, error } = await supabase
     .from('cost_management')
     .select('staff_id, amount, affiliation, date')
     .eq('affiliation', affiliation)
+    .eq('division', '사용비용')
     .gte('date', start)
-    .lte('date', end)
-    .eq('division', '사용비용');   // 직원별 비용은 '사용비용' 기준
+    .lte('date', end);
 
   if (error || !data) return {};
 
