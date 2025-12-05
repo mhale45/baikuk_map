@@ -23,7 +23,7 @@ async function doLogin() {
     if (error) throw error;
 
     // 로그인 성공 → 매물장부 페이지 이동
-    location.replace("/admin/listings/");
+    location.replace("https://baikuk-map.netlify.app/admin/listings/");
   } catch (e) {
     err.textContent = e.message || "로그인 실패";
     err.classList.remove("hidden");
