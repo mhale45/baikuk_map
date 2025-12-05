@@ -734,7 +734,7 @@ function initApp() {
     });
   });
 
-});
+};
 
 document.getElementById('open-admin-listing-btn')?.addEventListener('click', () => {
   const href = makeAdminUrl({ autoclick: 'open-listing' });
