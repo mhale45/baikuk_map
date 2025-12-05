@@ -496,6 +496,7 @@ function updateSortIndicators() {
 }
 
 function initApp() {
+  console.log('🚀 initApp 호출됨, __BLOCK_APP__ =', window.__BLOCK_APP__);
   if (window.__BLOCK_APP__) return; // 🔒 로그인 전에는 앱 로직 차단
   fetchMoreListings();
   setupScrollTrigger();
