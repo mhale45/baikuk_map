@@ -1,4 +1,17 @@
+// 🔹1) main에서 넘겨준 client를 외부에서 받을 수 있도록 준비
+let supa = null;
+
+// 🔹2) main.js에서 initListings(client)를 호출하면 client 저장
 export function initListings(client) {
+  supa = client;  // 👈 세션에서 넘긴 supabase client 연결
+
+  console.log("[listings.js] Supabase client 전달됨:", supa);
+
+  // 🔹3) 앱 시작
+  startListingsApp();
+}
+
+function startListingsApp() {
   const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
   const filterInputs = [
     { key: 'floor',         min: 'filter-floor-min',    max: 'filter-floor-max' },   // ⬅️ 추가
