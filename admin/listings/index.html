@@ -55,27 +55,6 @@
   <script type="module" src="./listings.js"></script>
 </head>
 <body class="h-screen w-screen">
-  <!-- 🔐 로그인 전체 화면 -->
-  <div id="auth-screen" class="fixed inset-0 z-[99999] hidden">
-    <div class="w-full h-full flex items-center justify-center bg-gray-100">
-      <div class="bg-white w-[22rem] rounded-xl shadow-xl p-6">
-        <h2 class="text-xl font-bold text-center mb-4">직원 로그인</h2>
-        <input id="auth-email" type="email" placeholder="이메일"
-               class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
-        <input id="auth-password" type="password" placeholder="비밀번호"
-               class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
-        <button id="auth-login"
-                class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
-          로그인
-        </button>
-        <button id="auth-close"
-                class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
-          닫기
-        </button>
-        <div id="auth-error" class="text-red-600 text-sm mt-3 hidden"></div>
-      </div>
-    </div>
-  </div>
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
         alt="글씨로고"

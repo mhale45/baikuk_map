@@ -6,107 +6,12 @@ const client = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
 );
 
-// ✅ 세션 체크: 없으면 로그인 폼을 '항상' 띄우고, 성공 시 이 페이지 로드
-(async () => {
-  try {
-    const { data: { session } } = await client.auth.getSession();
-
-    if (!session) {
-      // 앱 본체 로직 중단 플래그
-      window.__BLOCK_APP__ = true;
-
-      const $screen = document.getElementById('auth-screen');
-      const $email  = document.getElementById('auth-email');
-      const $pw     = document.getElementById('auth-password');
-      const $login  = document.getElementById('auth-login');
-      const $close  = document.getElementById('auth-close');
-      const $err    = document.getElementById('auth-error');
-
-      // 로그인 화면 보이기
-      $screen?.classList.remove('hidden');
-
-      const showError = (msg) => {
-        if ($err) {
-          $err.textContent = String(msg || '로그인 실패');
-          $err.classList.remove('hidden');
-        }
-      };
-
-      // 🔐 로그인 처리 함수
-      const doLogin = async () => {
-        try {
-          $login.disabled = true;
-          $login.textContent = '로그인 중...';
-          $err?.classList.add('hidden');
-
-          // 1) 이메일/비번 로그인
-          const { error } = await client.auth.signInWithPassword({
-            email: ($email?.value || '').trim(),
-            password: ($pw?.value || '').trim()
-          });
-          if (error) throw error;
-
-          // 2) (선택) 세션 등록 / 허용 검사  👉 체이닝 .catch 제거 & try/catch 사용
-          try {
-            await client.rpc('register_session', {
-              device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
-              user_agent: navigator.userAgent
-            });
-          } catch (_) { /* ignore */ }
-
-          let allowed = true;
-          try {
-            const { data } = await client.rpc('is_session_allowed');
-            if (data === false) allowed = false;
-          } catch (_) { /* 서버 함수 없으면 통과 */ }
-
-          if (!allowed) {
-            await client.auth.signOut();
-            throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
-          }
-
-          // 3) ✅ 리다이렉트만! (reload 제거)
-          location.replace('https://baikuk-map.netlify.app/admin/listings/');
-
-        } catch (e) {
-          $err.textContent = e?.message || '로그인 실패';
-          $err.classList.remove('hidden');
-          $login.disabled = false;
-          $login.textContent = '로그인';
-        }
-      };
-
-      // 이벤트 바인딩
-      $login && ($login.onclick = doLogin);
-      $close && ($close.onclick = () => location.replace('https://baikuk.com/map'));
-      [$email, $pw].forEach(inp => {
-        inp && inp.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') doLogin();
-        });
-      });
-
-      // 세션 없으면 여기서 종료 (앱 로직 실행 안 함)
-      return;
-    }
-
-    // 세션이 있으면 앱 로직 실행 허용
-    window.__BLOCK_APP__ = false;
-  } catch (e) {
-    console.warn('세션 확인 중 예외:', e);
-    // 예외 시에도 로그인 화면 띄워서 사용자 동작 허용
-    window.__BLOCK_APP__ = true;
-    document.getElementById('auth-screen')?.classList.remove('hidden');
-  }
-})();
-
-// ✅ 대체안: 'SIGNED_IN'에서만 1회 동작
-client.auth.onAuthStateChange((evt, session) => {
-  if (evt === 'SIGNED_IN' && session && !window.__did_redirect__) {
-    window.__did_redirect__ = true; // 중복 방지
-    // 필요 없으면 이 줄도 생략 가능 (우리는 B에서 명시 리다이렉트)
-    // location.replace('https://baikuk-map.netlify.app/admin/listings/');
-  }
-});
+// 🔐 세션 없으면 로그인 페이지로 이동
+const { data: { session } } = await client.auth.getSession();
+if (!session) {
+  location.replace("https://baikuk-map.netlify.app/admin/login/");
+  throw new Error("로그인 필요"); // 아래 코드 실행을 막기 위함
+}
 
 const formatNumber = val => val != null ? Number(val).toLocaleString('ko-KR') : '-';
 const filterInputs = [
