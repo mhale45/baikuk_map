@@ -142,12 +142,12 @@ function startListingsApp() {
     if (isLoading || !hasMore) return;
     isLoading = true;
 
-    const { data: listingsData } = await client
+    const { data: listingsData } = await supa
       .from('baikukdbtest').select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    const { data: buildingsData } = await client
+    const { data: buildingsData } = await supa
       .from('building_info').select('addr_compare, building_name');
 
     const buildingMap = new Map(buildingsData.map(b => [b.addr_compare, b.building_name]));
@@ -221,14 +221,14 @@ function startListingsApp() {
     let matchedAddresses = [];
 
     if (buildingTerm) {
-      const { data: matchedBuildings } = await client
+      const { data: matchedBuildings } = await supa
         .from('building_info')
         .select('addr_compare')
         .ilike('building_name', `%${buildingTerm}%`);
       matchedAddresses = matchedBuildings.map(b => b.addr_compare);
     }
 
-    let query = client.from('baikukdbtest').select('*').limit(1000);
+    let query = supa.from('baikukdbtest').select('*').limit(1000);
     if (idTerm && !isNaN(parseInt(idTerm))) query = query.eq('listing_id', parseInt(idTerm));
     if (titleTerm) query = query.ilike('listing_title', `%${titleTerm}%`);
 
@@ -247,7 +247,7 @@ function startListingsApp() {
     }
 
     const { data: listingsData } = await query;
-    const { data: buildingsData } = await client
+    const { data: buildingsData } = await supa
       .from('building_info')
       .select('addr_compare, building_name');
 
@@ -528,17 +528,17 @@ function startListingsApp() {
     // ✅ 계정정보 표시 + '정산' 탭 권한 제어(관리자/지점장만 노출)
     (async () => {
       try {
-        const { data: { user } } = await client.auth.getUser();
+        const { data: { user } } = await supa.auth.getUser();
         if (!user?.id) return;
 
         // 1) 계정정보(public_staff_view) & 권한(staff_profiles) 병렬 조회
         const email = user.email || '';
         const [staffRes, authRes] = await Promise.all([
-          client.from('public_staff_view')
+          supa.from('public_staff_view')
                 .select('name,email,affiliation,position,extension')
                 .eq('email', email)
                 .maybeSingle(),
-          client.from('staff_profiles')
+          supa.from('staff_profiles')
                 .select('authority')
                 .eq('user_id', user.id)
                 .maybeSingle()
@@ -590,7 +590,7 @@ function startListingsApp() {
     })();
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await client.auth.signOut();
+      await supa.auth.signOut();
       // 로그아웃 후 로그인 화면(또는 메인 지도)으로 이동
       location.replace('/admin/listings/');
     });
