@@ -53,46 +53,42 @@
     }
   </style>
   <script type="module">
-    /***************************************************************
-     * 🔍 SUPABASE 세션 디버그 콘솔 (전체 로직 확인용)
-     ***************************************************************/
-    console.log("%c[DEBUG] Supabase 세션 디버그 시작", "color: white; background: black; padding: 4px;");
-
-    // localStorage 출력
-    console.log("[DEBUG] localStorage keys:", Object.keys(localStorage));
-    console.log("[DEBUG] sb-auth-token:", localStorage.getItem("sb-sfinbtiqlfnaaarziixu-auth-token"));
 
     /***************************************************************
-     * 🔐 Supabase 클라이언트 생성
+     * 🔐 1) Supabase import (항상 코드 최상단에 있어야 함)
      ***************************************************************/
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    /***************************************************************
+     * 🔐 2) 클라이언트 생성
+     ***************************************************************/
     const client = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
 
-    console.log("[DEBUG] client initialized:", {
-      url: client.supabaseUrl,
-      keyExists: !!client.supabaseKey
-    });
+    /***************************************************************
+     * 🔍 3) 디버그 콘솔
+     ***************************************************************/
+    console.log("%c[DEBUG] Supabase Debug Start", "background:black; color:white; padding:4px;");
+    console.log("[DEBUG] client:", client);
+    console.log("[DEBUG] localStorage:", Object.keys(localStorage));
+    console.log("[DEBUG] token:", localStorage.getItem("sb-sfinbtiqlfnaaarziixu-auth-token"));
+
 
     /***************************************************************
-     * 🟡 1단계: getSession() → 즉시 확인
+     * 🔐 4) 세션 체크 → listings.js 동적 로딩 방식
      ***************************************************************/
     (async () => {
-      console.log("%c[DEBUG] 1) getSession() 호출", "background: yellow; padding: 4px;");
-      const r1 = await client.auth.getSession();
-      console.log("[DEBUG] 1차 getSession 결과:", r1);
 
-      /***************************************************************
-       * 🔐 세션 체크 로직 본체
-       ***************************************************************/
-      const { data: { session } } = r1;
+      console.log("%c[DEBUG] getSession 호출", "background:yellow; padding:4px;");
+      const { data:{ session } } = await client.auth.getSession();
 
       if (!session) {
-        console.warn("[DEBUG] 세션 없음 → 로그인 화면 표시");
-
+        /*************************************************************
+         * ❌ 세션 없음 → 로그인 화면 표시, listings.js 실행 X
+         *************************************************************/
+        console.warn("[DEBUG] 세션 없음 → 로그인 필요");
         window.__BLOCK_APP__ = true;
 
         const $screen = document.getElementById('auth-screen');
@@ -104,7 +100,6 @@
 
         $screen?.classList.remove('hidden');
 
-        // 로그인 함수
         const doLogin = async () => {
           try {
             $login.disabled = true;
@@ -117,7 +112,6 @@
             });
             if (error) throw error;
 
-            // 세션 등록 RPC
             try {
               await client.rpc('register_session', {
                 device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
@@ -125,7 +119,6 @@
               });
             } catch (_) {}
 
-            // 세션 허용 체크 RPC
             let allowed = true;
             try {
               const { data } = await client.rpc('is_session_allowed');
@@ -137,7 +130,6 @@
               throw new Error('허용된 기기 수를 초과했습니다.');
             }
 
-            // 로그인 성공 후 이동
             location.replace('https://baikuk-map.netlify.app/admin/listings/');
 
           } catch (e) {
@@ -148,8 +140,8 @@
           }
         };
 
-        $login && ($login.onclick = doLogin);
-        $close && ($close.onclick = () => location.replace('https://baikuk.com/map'));
+        $login.onclick = doLogin;
+        $close.onclick = () => location.replace('https://baikuk.com/map');
 
         [$email, $pw].forEach(inp => {
           inp?.addEventListener('keydown', (e) => {
@@ -157,44 +149,39 @@
           });
         });
 
-        // 세션 없음 → listings.js 실행 차단
-        return;
+        return; // ⛔ listings.js 는 로드하지 않음
       }
 
       /***************************************************************
-       * 🟢 세션 있음 → 정상 로그인 상태
+       * 🟢 세션 있음 → listings.js 실행!
        ***************************************************************/
-      console.log("%c[DEBUG] 로그인 세션 확인됨! → __BLOCK_APP__ = false", "background: green; color: white; padding: 4px;");
       window.__BLOCK_APP__ = false;
+      console.log("%c[DEBUG] 세션 OK → listings.js 로드", "background:green; color:white; padding:4px;");
+
+      // ⭐ 가장 핵심 부분: listings.js 를 세션 확인 후 불러옴
+      import('./listings.js')
+        .then(() => console.log("[DEBUG] listings.js 로딩 완료"))
+        .catch(err => console.error("[DEBUG] listings.js 로딩 실패", err));
 
     })().catch(err => {
-      console.warn("[DEBUG] getSession 검사 중 오류:", err);
-      window.__BLOCK_APP__ = true;
+      console.error("[DEBUG] getSession 오류:", err);
       document.getElementById('auth-screen')?.classList.remove('hidden');
     });
 
+
     /***************************************************************
-     * 🔵 2단계: Supabase 세션 이벤트 감지
+     * 🔵 5) auth 상태 변화 감지
      ***************************************************************/
     client.auth.onAuthStateChange((evt, session) => {
       console.log(
-        "%c[DEBUG] onAuthStateChange 이벤트 발생 → " + evt,
-        "background: cyan; padding: 4px;"
+        "%c[DEBUG] onAuthStateChange → " + evt,
+        "background:cyan; padding:4px;"
       );
-      console.log("[DEBUG] session 값:", session);
-
-      if (evt === 'SIGNED_IN') {
-        console.log("%c[DEBUG] SIGNED_IN 감지됨", "background: green; color: white; padding: 4px;");
-      }
-      if (evt === 'SIGNED_OUT') {
-        console.log("%c[DEBUG] SIGNED_OUT 감지됨", "background: red; color: white; padding: 4px;");
-      }
     });
 
   </script>
- 
 
-  <script type="module" src="./listings.js"></script>
+  
 </head>
 <body class="h-screen w-screen">
   <!-- 🔐 로그인 전체 화면 -->
