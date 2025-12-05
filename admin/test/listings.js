@@ -66,7 +66,7 @@ const client = createClient(
           }
 
           // 3) ✅ 리다이렉트만! (reload 제거)
-          location.replace('./admin/listings/');
+          location.replace('https://baikuk-map.netlify.app/admin/listings/');
 
         } catch (e) {
           $err.textContent = e?.message || '로그인 실패';

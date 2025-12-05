@@ -10,7 +10,7 @@ const client = createClient(
 (async () => {
   try {
     const { data: { session } } = await client.auth.getSession();
-    console.log('🔎 Supabase session:', session);  // ✅ 세션 내용 확인용
+
     if (!session) {
       // 앱 본체 로직 중단 플래그
       window.__BLOCK_APP__ = true;
@@ -66,7 +66,7 @@ const client = createClient(
           }
 
           // 3) ✅ 리다이렉트만! (reload 제거)
-          location.replace('/admin/listings/');
+          location.replace('https://baikuk-map.netlify.app/admin/listings/');
 
         } catch (e) {
           $err.textContent = e?.message || '로그인 실패';
@@ -493,7 +493,6 @@ function updateSortIndicators() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 initApp 호출됨, __BLOCK_APP__ =', window.__BLOCK_APP__);
   if (window.__BLOCK_APP__) return; // 🔒 로그인 전에는 앱 로직 차단
   fetchMoreListings();
   setupScrollTrigger();
