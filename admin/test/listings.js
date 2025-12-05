@@ -447,11 +447,57 @@ function setupScrollTrigger() {
   });
 }
 
+function updateSortIndicators() {
+  const keyMap = {
+    '매물번호': 'listing_id',
+    '상태': null,
+    '매물명': 'listing_title',
+    '주소': 'full_address',
+    '건물정보': 'building_name',
+    '호수': null,
+    '층': 'floor',
+    '보증금': 'deposit_price',
+    '월세': 'monthly_rent',
+    '권리금': 'premium_price',
+    '전용(평)': 'area_py',
+    '공급/전용(㎡)': null,
+    '매매가': 'sale_price',
+    '총보증금': null,
+    '총월세': null,
+    '수익률': 'roi',
+    '상가타입': null
+  };
+
+  document.querySelectorAll('thead th').forEach(th => {
+    const text = th.innerText.trim().replace(/\s*\(\d+\)\s*[▲▼]?/g, '');
+    const key = keyMap[text];
+
+    if (!key) {
+      th.innerHTML = text; // 정렬 불가 항목
+      return;
+    }
+
+    // 현재 key가 currentSort 안에 있는지 확인
+    const idx = currentSort.findIndex(s => s.key === key);
+    
+    if (idx === -1) {
+      // 정렬 미적용 — 기본표시
+      th.innerHTML = text;
+    } else {
+      const { ascending } = currentSort[idx];
+      const arrow = ascending ? '▲' : '▼';
+      const order = idx + 1;
+      th.innerHTML = `${text} <span style="color:#1f2937; font-size:0.75rem;">(${order}) ${arrow}</span>`;
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.__BLOCK_APP__) return; // 🔒 로그인 전에는 앱 로직 차단
   fetchMoreListings();
   setupScrollTrigger();
   bindNumericFilterInputs(); 
+  updateSortIndicators();
 
   // ✅ 필터 UI 초기값 설정
   document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
@@ -624,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 로그아웃 후 로그인 화면(또는 메인 지도)으로 이동
     location.replace('/admin/listings/');
   });
-  
+
   document.querySelectorAll('thead th').forEach(th => {
     const keyMap = {
       '매물번호': 'listing_id',
@@ -643,29 +689,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = th.innerText.trim();
     const key = keyMap[text];
 
-    // 정렬 가능한 열만 표시
-    if (key) {
-      th.classList.add('cursor-pointer');
-    }
+    if (key) th.classList.add('cursor-pointer');
 
     th.addEventListener('click', () => {
       if (!key) return;
 
-      // 이미 있는 정렬 key인지 확인
       const existing = currentSort.find(s => s.key === key);
 
       if (existing) {
-        // 오름↔내림 반전
         existing.ascending = !existing.ascending;
       } else {
-        // 새 정렬 기준 추가 (2차, 3차로 쌓임)
         currentSort.push({ key, ascending: true });
       }
 
-      // 정렬 적용
       const sorted = sortListings(applyAllFilters(listings));
       document.getElementById('listings-body').innerHTML = '';
       renderListings(sorted);
+
+      // 🔥 정렬 상태를 헤더에 표시
+      updateSortIndicators();
     });
   });
 
