@@ -10,7 +10,7 @@ const client = createClient(
 (async () => {
   try {
     const { data: { session } } = await client.auth.getSession();
-
+    console.log('🔎 Supabase session:', session);  // ✅ 세션 내용 확인용
     if (!session) {
       // 앱 본체 로직 중단 플래그
       window.__BLOCK_APP__ = true;
