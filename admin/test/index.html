@@ -52,6 +52,99 @@
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const client = createClient(
+      'https://sfinbtiqlfnaaarziixu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
+    );
+
+    // 🔐 세션 체크
+    (async () => {
+      try {
+        const { data: { session } } = await client.auth.getSession();
+
+        if (!session) {
+          window.__BLOCK_APP__ = true;
+
+          const $screen = document.getElementById('auth-screen');
+          const $email  = document.getElementById('auth-email');
+          const $pw     = document.getElementById('auth-password');
+          const $login  = document.getElementById('auth-login');
+          const $close  = document.getElementById('auth-close');
+          const $err    = document.getElementById('auth-error');
+
+          $screen?.classList.remove('hidden');
+
+          const doLogin = async () => {
+            try {
+              $login.disabled = true;
+              $login.textContent = '로그인 중...';
+              $err?.classList.add('hidden');
+
+              const { error } = await client.auth.signInWithPassword({
+                email: ($email?.value || '').trim(),
+                password: ($pw?.value || '').trim()
+              });
+              if (error) throw error;
+
+              try {
+                await client.rpc('register_session', {
+                  device_label: (navigator.platform + ' ' + (navigator.vendor || '')).trim(),
+                  user_agent: navigator.userAgent
+                });
+              } catch (_) {}
+
+              let allowed = true;
+              try {
+                const { data } = await client.rpc('is_session_allowed');
+                if (data === false) allowed = false;
+              } catch (_) {}
+
+              if (!allowed) {
+                await client.auth.signOut();
+                throw new Error('허용된 기기 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해 주세요.');
+              }
+
+              location.replace('https://baikuk-map.netlify.app/admin/listings/');
+
+            } catch (e) {
+              $err.textContent = e?.message || '로그인 실패';
+              $err.classList.remove('hidden');
+              $login.disabled = false;
+              $login.textContent = '로그인';
+            }
+          };
+
+          $login && ($login.onclick = doLogin);
+          $close && ($close.onclick = () => location.replace('https://baikuk.com/map'));
+
+          [$email, $pw].forEach(inp => {
+            inp?.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') doLogin();
+            });
+          });
+
+          return;
+        }
+
+        window.__BLOCK_APP__ = false;
+      } catch (e) {
+        console.warn('세션 확인 중 예외:', e);
+        window.__BLOCK_APP__ = true;
+        document.getElementById('auth-screen')?.classList.remove('hidden');
+      }
+    })();
+
+    // 로그인 상태 변화 감지
+    client.auth.onAuthStateChange((evt, session) => {
+      if (evt === 'SIGNED_IN' && session && !window.__did_redirect__) {
+        window.__did_redirect__ = true;
+      }
+    });
+  </script>
+
   <script type="module" src="./listings.js"></script>
 </head>
 <body class="h-screen w-screen">
