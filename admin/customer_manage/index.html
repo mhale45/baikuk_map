@@ -741,8 +741,9 @@
             customer_name: name,
             customer_phone_number: raw || null,
             phone_last4: digits ? digits.slice(-4) : null,
-            grade, memo,
-            staff_profiles_id: id1 || null, // 하위호환: 대표담당
+            grade,
+            memo,
+            staff_profiles_id: id1 ? String(id1).trim() : null,  // uuid 강제 문자열 정규화
           };
 
           // 1) 고객 저장/수정
