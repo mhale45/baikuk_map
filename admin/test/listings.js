@@ -91,6 +91,9 @@ const client = createClient(
 
     // 세션이 있으면 앱 로직 실행 허용
     window.__BLOCK_APP__ = false;
+
+    // 세션 체크 이후에만 initApp() 실행
+    document.addEventListener('DOMContentLoaded', initApp);
   } catch (e) {
     console.warn('세션 확인 중 예외:', e);
     // 예외 시에도 로그인 화면 띄워서 사용자 동작 허용
@@ -492,7 +495,7 @@ function updateSortIndicators() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   if (window.__BLOCK_APP__) return; // 🔒 로그인 전에는 앱 로직 차단
   fetchMoreListings();
   setupScrollTrigger();
