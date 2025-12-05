@@ -1,5 +1,10 @@
-
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+// 🔒 Supabase 모듈 초기화 보장
+if (!window.__supabase_init__) {
+  window.__supabase_init__ = true;
+  await new Promise(resolve => setTimeout(resolve, 0));
+}
 
 const client = createClient(
   'https://sfinbtiqlfnaaarziixu.supabase.co',
