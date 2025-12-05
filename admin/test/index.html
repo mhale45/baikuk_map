@@ -114,13 +114,14 @@
               <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
             </div>
             <button id="open-admin-listing-btn" class="hidden text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded ml-auto px-3 py-1 leading-none h-[1.7rem]">🏢 매물등록</button>  
+            
+            <div class="flex justify-end mb-2">
+              <button id="reset-filters-btn"
+                      class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
+                초기화
+              </button>
+            </div>
           </div>      
-          <div class="flex justify-end mb-2">
-            <button id="reset-filters-btn"
-                    class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
-              초기화
-            </button>
-          </div>
           <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2 text-sm">
             <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
             <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
