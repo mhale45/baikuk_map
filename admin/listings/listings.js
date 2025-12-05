@@ -1,10 +1,4 @@
-
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-const client = createClient(
-  'https://sfinbtiqlfnaaarziixu.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
-);
+const client = window.supabase;
 
 // ✅ 세션 체크: 없으면 로그인 폼을 '항상' 띄우고, 성공 시 이 페이지 로드
 (async () => {

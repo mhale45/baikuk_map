@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+    window.supabase = createClient(
+      "https://sfinbtiqlfnaaarziixu.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    );
+  </script>
   <meta charset="UTF-8" />
   <title>매물장부</title>
   <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
@@ -52,7 +59,6 @@
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
-  <script type="module" src="./listings.js"></script>
 </head>
 <body class="h-screen w-screen">
   <!-- 🔐 로그인 전체 화면 -->
@@ -234,4 +240,5 @@
     </div>
   </div>
 </body>
+<script type="module" src="./listings.js"></script>
 </html>
