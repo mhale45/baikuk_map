@@ -499,6 +499,26 @@ document.addEventListener('DOMContentLoaded', () => {
   bindNumericFilterInputs(); 
   updateSortIndicators();
 
+  /* 🔥 정렬만 초기화 (Reset Sort) */
+  document.getElementById("reset-filters-btn")?.addEventListener("click", () => {
+    console.log("정렬 초기화 실행됨");
+
+    // 1) 정렬 기준 리셋
+    currentSort = [];
+
+    // 2) 헤더 아이콘 업데이트
+    updateSortIndicators();
+
+    // 3) 필터는 그대로 유지한 채, 정렬만 제거하고 출력
+    const filtered = applyAllFilters(listings);
+    const sorted = sortListings(filtered);
+
+    document.getElementById("listings-body").innerHTML = "";
+    renderListings(sorted);
+
+    console.log("정렬만 초기화 완료");
+  });
+
   // ✅ 필터 UI 초기값 설정
   document.querySelector('input.deal-type-checkbox[value="월세"]').checked = true;
   document.querySelector('input.category-checkbox[value="상가"]').checked = true;
