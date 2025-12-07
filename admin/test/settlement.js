@@ -1122,7 +1122,7 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): 해당 지점장의 "사용비용"을 해당 월 말일까지 합산
+    // 3) 계좌잔고2(sub): 해당 지점장의 "사용비용"을 서비스 시작일부터 해당 월 말일까지 누적 합산
     const subCMMap = {};
     try {
       // 1) 지점장 staff_id 가져오기
@@ -1137,29 +1137,36 @@ async function loadBranchExpenseCache(affiliation) {
 
       const managerId = managerRows?.[0]?.id || null;
 
+      // 지점장 없으면 모든 값 0
       if (!managerId) {
         console.warn('지점장 ID를 찾을 수 없습니다.');
+        __LAST_SUB_BAL_MAP = {};
+        return;
       }
 
-      // 2) 지점장의 사용비용 가져오기
+      // 2) 지점장의 모든 사용비용 데이터(전체 기간)를 날짜순으로 가져오기
       const { data: expRows, error: expErr } = await supabase
         .from('cost_management')
-        .select('date, amount, division, staff_id')
+        .select('date, amount')
         .eq('affiliation', affiliation)
         .eq('division', '사용비용')
-        .eq('staff_id', managerId);
+        .eq('staff_id', managerId)
+        .order('date', { ascending: true }); // ★ 날짜순 정렬 필수
 
       if (expErr) throw expErr;
 
-      // 3) 월별 합산: 이번 달 1일 ~ 말일 포함
+      // 3) 누적합 계산: "최초 데이터부터 ~ 해당 월 마지막날까지"
+      let cumulative = 0;
       for (const row of (expRows || [])) {
         const ym = ymKey(String(row.date));
         if (!ym) continue;
-        const amt = Number(row.amount || 0);
-        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
+
+        cumulative += Number(row.amount || 0);
+        subCMMap[ym] = cumulative; // ★ 월별 누적합 저장
       }
+
     } catch (e) {
-      console.warn('[settlement] sub_balance compute failed:', e?.message || e);
+      console.warn('[settlement] sub_balance cumulative compute failed:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
