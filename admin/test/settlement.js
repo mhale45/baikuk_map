@@ -521,7 +521,13 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_VAT_MAP = {};
       // === [ADD] 월별 지점장 사용비용을 sub_balance로 적용 ===
       __LAST_SUB_BAL_MAP = {};
-      const yms = Object.keys(salesMap);
+      const ymSet = new Set([
+        ...Object.keys(__LAST_COST_MAP),
+        ...Object.keys(__LAST_MAIN_BAL_MAP),
+      ]);
+      const yms = Array.from(ymSet);
+
+      __LAST_SUB_BAL_MAP = {};
       for (const ym of yms) {
         __LAST_SUB_BAL_MAP[ym] = await computeSubBalanceForMonth(affiliation, ym);
       }
@@ -1165,7 +1171,15 @@ async function loadBranchExpenseCache(affiliation) {
 
     // 3) 계좌잔고2(sub): 지점장 사용비용 합계
     const subCMMap = {};
-    const yms = Object.keys(costMap); // ‘사용비용’이 있는 월 기준으로 계산
+    const ymSet = new Set([
+      ...Object.keys(costMap),
+      ...Object.keys(__LAST_SALES_MAP),
+      ...Object.keys(__LAST_PAYROLL_TOTAL_MAP),
+      ...Object.keys(__LAST_VAT_MAP),
+      ...Object.keys(__LAST_MAIN_BAL_MAP),
+    ]);
+
+    const yms = Array.from(ymSet);
 
     for (const ym of yms) {
       subCMMap[ym] = await computeSubBalanceForMonth(affiliation, ym);
