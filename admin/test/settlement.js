@@ -593,7 +593,6 @@ async function loadBranchMonthlySales(affiliation) {
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
         __LAST_VAT_MAP[ym]      = Number(row.surtax || 0);
-        __LAST_SUB_BAL_MAP[ym]  = Number(row.sub_balance || 0);  // ← 추가된 핵심 부분
       });
     }
 
@@ -1131,76 +1130,49 @@ async function loadBranchExpenseCache(affiliation) {
     // 3) 계좌잔고2(sub): 지점장의 사용비용 누적 합계
     let subBalMap = {};
     try {
-      // 지점장 ID 조회
-      const { data: mgrRow, error: mgrErr } = await supabase
+      const { data: mgrRow } = await supabase
         .from('branch_info')
         .select('branch_manager_id')
         .eq('affiliation', affiliation)
         .maybeSingle();
-
       const managerId = mgrRow?.branch_manager_id || null;
 
-      if (managerId) {
-        // costMap 월 리스트를 정렬(YYYY-MM 오름차순)
-        // ★ 모든 월 목록을 합쳐서 sub_balance를 계산할 기준 달력 생성
-        const monthSet = new Set([
-          ...Object.keys(costMap || {}),
-          ...Object.keys(mainBalMap || {}),
-          ...Object.keys(reserveMap || {}),
-          ...Object.keys(__LAST_SALES_MAP || {}),
-        ]);
+      // 매출 / 비용 / 메인잔고 / 유보금과 관계된 모든 월을 기준 달력으로 생성
+      const monthSet = new Set([
+        ...Object.keys(costMap || {}),
+        ...Object.keys(mainBalMap || {}),
+        ...Object.keys(reserveMap || {}),
+        ...Object.keys(__LAST_SALES_MAP || {}),
+      ]);
 
-        const sortedMonths = Array.from(monthSet).sort();  // 반드시 정렬
+      const sortedMonths = Array.from(monthSet).sort();
+      let cumulative = 0;
 
-        let subBalMap = {};
-        let cumulative = 0;
+      for (const ym of sortedMonths) {
+        let monthly = 0;
 
-        // 지점장 존재 여부 확인
-        let managerId = null;
-        try {
-          const { data: mgrRow } = await supabase
-            .from('branch_info')
-            .select('branch_manager_id')
-            .eq('affiliation', affiliation)
-            .maybeSingle();
-          managerId = mgrRow?.branch_manager_id || null;
-        } catch (_) {}
+        if (managerId) {
+          const [yyyy, mm] = ym.split('-');
+          const start = `${yyyy}-${mm}-01`;
+          const end   = `${yyyy}-${mm}-31`;
 
-        // ★ 각 월별로 무조건 sub_balance 생성하여 누락 방지
-        for (const ym of sortedMonths) {
-          let monthly = 0;
+          const { data: rows, error: cmErr } = await supabase
+            .from('cost_management')
+            .select('amount')
+            .eq('division', '사용비용')
+            .eq('staff_id', managerId)
+            .gte('date', start)
+            .lte('date', end);
 
-          if (managerId) {
-            const [yyyy, mm] = ym.split('-');
-            const startDate = `${yyyy}-${mm}-01`;
-            const endDate   = `${yyyy}-${mm}-31`;
-
-            const { data: rows, error: cmErr } = await supabase
-              .from('cost_management')
-              .select('amount')
-              .eq('division', '사용비용')
-              .eq('staff_id', managerId)
-              .gte('date', startDate)
-              .lte('date', endDate);
-
-            if (!cmErr && rows) {
-              monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-            }
+          if (!cmErr && rows) {
+            monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
           }
-
-          // 누적 합계 유지
-          cumulative += monthly;
-
-          // ★ 이 달에 cost가 없어도 sub_balance 생성
-          subBalMap[ym] = cumulative;
         }
 
-        // 최종 반영
-        __LAST_SUB_BAL_MAP = subBalMap;
-
-      } else {
-        console.warn('⚠ 지점장 ID를 찾을 수 없어 계좌 잔고2 누적 계산을 생략합니다.');
+        cumulative += monthly;
+        subBalMap[ym] = cumulative; // 월별 누적 값 생성
       }
+
     } catch (e) {
       console.warn('sub_balance 누적 계산 실패:', e?.message || e);
     }
