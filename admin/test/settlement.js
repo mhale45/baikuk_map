@@ -47,60 +47,44 @@ let __LAST_AUTONOMOUS_RATE = 0;
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
-// 특정 지점의 지점장(staff_id)을 조회
-async function getBranchManagerId(affiliation) {
-  await waitForSupabase();
-  const { data, error } = await supabase
-    .from('branch_info')
-    .select('branch_manager_id')
-    .eq('affiliation', affiliation)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[settlement] branch_manager 조회 실패:', error.message);
-    return null;
-  }
-  return data?.branch_manager_id || null;
-}
-
-/**
- * 지점장의 사용 비용 합계를 계산하여 반환
- * 기간: 모든 데이터의 시작 ~ 선택한 월의 말일
- */
-async function computeSubBalance(affiliation, ym) {
-  await waitForSupabase();
-
-  const managerId = await getBranchManagerId(affiliation);
-  if (!managerId) return 0;
-
-  // 해당 월의 마지막 날
-  const endDate = new Date(`${ym}-01`);
-  endDate.setMonth(endDate.getMonth() + 1);
-  endDate.setDate(0); // 해당 월 마지막 날짜
-
-  const { data, error } = await supabase
-    .from('cost_management')
-    .select('amount')
-    .eq('affiliation', affiliation)
-    .eq('staff_id', managerId)
-    .lte('date', endDate.toISOString().slice(0, 10));
-
-  if (error) {
-    console.warn('[settlement] sub_balance 계산 실패:', error.message);
-    return 0;
-  }
-
-  let sum = 0;
-  for (const row of (data || [])) {
-    sum += Number(row.amount || 0);
-  }
-  return sum;
-}
-
 // [ADD] ==== 타지점 이체금액 계산 유틸 ====
 
 // 직원ID -> 소속지점 맵
 const STAFF_AFF_BY_ID = new Map();
+
+// === [ADD] 지점장의 cost_management 사용비용 → sub_balance 계산 ===
+async function computeSubBalanceForMonth(affiliation, ym) {
+  if (!affiliation || !ym) return 0;
+
+  // 1) 지점장 staff_id 조회
+  const { data: managerRow, error: mgrErr } = await supabase
+    .from('staff_profiles')
+    .select('id')
+    .eq('affiliation', affiliation)
+    .eq('position', '지점장')
+    .maybeSingle();
+
+  if (mgrErr || !managerRow) return 0;
+  const managerId = managerRow.id;
+
+  // 2) 월의 시작일과 말일 계산
+  const [yyyy, mm] = ym.split('-');
+  const startDate = `${yyyy}-${mm}-01`;
+  const endDate = `${yyyy}-${mm}-31`; // Supabase date 비교는 안전함
+
+  // 3) cost_management 테이블에서 해당 지점장 비용 누적
+  const { data: costRows, error: costErr } = await supabase
+    .from('cost_management')
+    .select('amount')
+    .eq('affiliation', affiliation)
+    .eq('staff_id', managerId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  if (costErr || !costRows) return 0;
+
+  return costRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+}
 
 async function ensureStaffAffMap() {
   if (STAFF_AFF_BY_ID.size > 0) return;
@@ -535,6 +519,13 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
+      // === [ADD] 월별 지점장 사용비용을 sub_balance로 적용 ===
+      __LAST_SUB_BAL_MAP = {};
+      const yms = Object.keys(salesMap);
+      for (const ym of yms) {
+        __LAST_SUB_BAL_MAP[ym] = await computeSubBalanceForMonth(affiliation, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -910,7 +901,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+      subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
     }
     {
       const reserveEl = document.getElementById('d_reserves');
@@ -942,7 +933,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다."
+            title="계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -1124,6 +1115,9 @@ function firstDayOfMonth(ym) {
 }
 
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
+// 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
+// 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
+// 계좌잔고2(sub)는 cost_management에서 division='통장 입출금' 월합으로 대체합니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
@@ -1169,29 +1163,18 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // // 3) 계좌잔고2(sub_balance)은 DB에 저장된 값을 불러온다.
-    let subBalMap = {};
-    try {
-      const { data: subRows, error: subErr } = await supabase
-        .from('branch_settlement_expenses')
-        .select('period_month, sub_balance')
-        .eq('affiliation', affiliation);
+    // 3) 계좌잔고2(sub): 지점장 사용비용 합계
+    const subCMMap = {};
+    const yms = Object.keys(costMap); // ‘사용비용’이 있는 월 기준으로 계산
 
-      if (subErr) throw subErr;
-
-      for (const row of (subRows || [])) {
-        const ym = ymKey(String(row.period_month));
-        if (!ym) continue;
-        subBalMap[ym] = Number(row.sub_balance || 0);
-      }
-    } catch (e) {
-      console.warn('[settlement] sub_balance load from DB failed:', e?.message || e);
+    for (const ym of yms) {
+      subCMMap[ym] = await computeSubBalanceForMonth(affiliation, ym);
     }
 
     // 4) 전역 캐시 갱신
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subBalMap;
+    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
     __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
 
     return costMap;
@@ -1462,7 +1445,7 @@ function applyLockUI(locked) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+    subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
   }
 }
 
@@ -1494,20 +1477,8 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       const $main = document.getElementById('input-main-balance');
       const $sub  = document.getElementById('input-sub-balance');
       if ($main) $main.value = Number(row.main_balance || 0).toLocaleString('ko-KR');
-      // 지점장 비용 합계를 계산하여 sub_balance 설정
-      const subBal = await computeSubBalance(affiliation, ym);
-      __LAST_SUB_BAL_MAP[ym] = subBal;
-
-      if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
-
+      if ($sub)  $sub.value  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0).toLocaleString('ko-KR');
     } else {
-      // 저장 이력이 없는 달도 누적 사용비용을 계산해야 한다.
-      const subBal = await computeSubBalance(affiliation, ym);
-      __LAST_SUB_BAL_MAP[ym] = subBal;
-
-      const $sub = document.getElementById('input-sub-balance');
-      if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
-
       __LAST_CONFIRMED_MAP[ym] = false;
     }
 
