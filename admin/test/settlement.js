@@ -1504,6 +1504,7 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       __LAST_SUB_BAL_MAP[ym] = subBal;
 
       if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
+
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;
     }
