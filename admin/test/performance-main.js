@@ -674,7 +674,7 @@ async function loadPerformanceTable() {
 
     const selectBase = `
       id, listing_id, listing_title, province, city, district, detail_address,
-      floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
+      deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
       contract_date, balance_date,
       down_payment, balance,
       interim_payment1, interim_payment1_date,
@@ -1427,7 +1427,6 @@ const FIELD_MAP = {
   monthly_rent:    'f_monthly_rent',
   sale_price:      'f_sale_price',
   area_py:         'f_area_py',
-  floor:           'f_floor',
 };
 
 // 2) 값 채우기 헬퍼 - select에 넣을 때 trim
