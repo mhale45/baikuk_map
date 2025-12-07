@@ -1142,32 +1142,61 @@ async function loadBranchExpenseCache(affiliation) {
 
       if (managerId) {
         // costMap 월 리스트를 정렬(YYYY-MM 오름차순)
-        const sortedMonths = Object.keys(costMap).sort();
+        // ★ 모든 월 목록을 합쳐서 sub_balance를 계산할 기준 달력 생성
+        const monthSet = new Set([
+          ...Object.keys(costMap || {}),
+          ...Object.keys(mainBalMap || {}),
+          ...Object.keys(reserveMap || {}),
+          ...Object.keys(__LAST_SALES_MAP || {}),
+        ]);
 
-        let cumulative = 0; // 누적 합계 저장 변수
+        const sortedMonths = Array.from(monthSet).sort();  // 반드시 정렬
 
+        let subBalMap = {};
+        let cumulative = 0;
+
+        // 지점장 존재 여부 확인
+        let managerId = null;
+        try {
+          const { data: mgrRow } = await supabase
+            .from('branch_info')
+            .select('branch_manager_id')
+            .eq('affiliation', affiliation)
+            .maybeSingle();
+          managerId = mgrRow?.branch_manager_id || null;
+        } catch (_) {}
+
+        // ★ 각 월별로 무조건 sub_balance 생성하여 누락 방지
         for (const ym of sortedMonths) {
-          const [yyyy, mm] = ym.split('-');
-          const startDate = `${yyyy}-${mm}-01`;
-          const endDate = `${yyyy}-${mm}-31`;
-
-          // 해당 월 지점장의 사용비용
-          const { data: rows, error: cmErr } = await supabase
-            .from('cost_management')
-            .select('amount')
-            .eq('division', '사용비용')
-            .eq('staff_id', managerId)
-            .gte('date', startDate)
-            .lte('date', endDate);
-
           let monthly = 0;
-          if (!cmErr && rows) {
-            monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+          if (managerId) {
+            const [yyyy, mm] = ym.split('-');
+            const startDate = `${yyyy}-${mm}-01`;
+            const endDate   = `${yyyy}-${mm}-31`;
+
+            const { data: rows, error: cmErr } = await supabase
+              .from('cost_management')
+              .select('amount')
+              .eq('division', '사용비용')
+              .eq('staff_id', managerId)
+              .gte('date', startDate)
+              .lte('date', endDate);
+
+            if (!cmErr && rows) {
+              monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+            }
           }
 
-          cumulative += monthly;     // ← ★ 누적합 반영
-          subBalMap[ym] = cumulative; // ← ★ 해당 월의 누적값 저장
+          // 누적 합계 유지
+          cumulative += monthly;
+
+          // ★ 이 달에 cost가 없어도 sub_balance 생성
+          subBalMap[ym] = cumulative;
         }
+
+        // 최종 반영
+        __LAST_SUB_BAL_MAP = subBalMap;
 
       } else {
         console.warn('⚠ 지점장 ID를 찾을 수 없어 계좌 잔고2 누적 계산을 생략합니다.');
