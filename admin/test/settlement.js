@@ -1501,6 +1501,13 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
 
     } else {
+      // 저장 이력이 없는 달도 누적 사용비용을 계산해야 한다.
+      const subBal = await computeSubBalance(affiliation, ym);
+      __LAST_SUB_BAL_MAP[ym] = subBal;
+
+      const $sub = document.getElementById('input-sub-balance');
+      if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
+
       __LAST_CONFIRMED_MAP[ym] = false;
     }
 
