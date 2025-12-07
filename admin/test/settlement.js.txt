@@ -860,7 +860,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+      subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
     }
     {
       const reserveEl = document.getElementById('d_reserves');
@@ -892,7 +892,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다."
+            title="계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -1076,7 +1076,7 @@ function firstDayOfMonth(ym) {
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
 // 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
 // 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
-// 계좌잔고2(sub)는 cost_management에서 division='통장 입출금' 월합으로 대체합니다.
+// 계좌잔고2(sub)는 cost_management에서 division='사용비용' 월합으로 대체합니다.
 async function loadBranchExpenseCache(affiliation) {
   try {
     // 1) 계좌잔고1(main)은 기존 테이블에서 유지 로딩
@@ -1122,7 +1122,7 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): cost_management에서 division='통장 입출금' 월합
+    // 3) 계좌잔고2(sub): cost_management에서 division='사용비용' 월합
     const subCMMap = {};
     try {
       const { data: bankRows, error: bankErr } = await supabase
@@ -1146,7 +1146,7 @@ async function loadBranchExpenseCache(affiliation) {
     // 4) 전역 캐시 갱신
     __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
     __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('통장 입출금')
+    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('사용비용')
     __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
 
     return costMap;
@@ -1417,7 +1417,7 @@ function applyLockUI(locked) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
+    subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
   }
 }
 
