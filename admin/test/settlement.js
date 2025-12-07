@@ -860,7 +860,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+      subEl.title = '계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다.';
     }
     {
       const reserveEl = document.getElementById('d_reserves');
@@ -892,7 +892,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다."
+            title="계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -1244,12 +1244,11 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
 
   // [ADD] 드로어 input 값 읽기
   const $main = document.getElementById('input-main-balance');
-  const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
-  const subBalance  = toNumberKR($sub?.value);
 
   const $reserve = document.getElementById('d_reserves');
   const reserve = toNumberKR($reserve?.value);
+  const subBalance = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
 
   // [ADD] 부가세(surtax) Input 읽기
   const $vat = document.getElementById('d_vat');
@@ -1344,9 +1343,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // [ADD] 잔고 캐시도 반영
         const $main = document.getElementById('input-main-balance');
-        const $sub  = document.getElementById('input-sub-balance');
         __LAST_MAIN_BAL_MAP[ym] = toNumberKR($main?.value);
-        __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
+
+        // ❗ sub_balance는 input 값을 사용하지 않고 누적 캐시를 유지
+        __LAST_SUB_BAL_MAP[ym]  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
+
         const $reserve = document.getElementById('d_reserves');
         __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
         __LAST_VAT_MAP[ym] = surtax;
@@ -1444,7 +1445,7 @@ function applyLockUI(locked) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+    subEl.title = '계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다.';
   }
 }
 
@@ -1511,9 +1512,8 @@ async function confirmSettlement(affiliation, ym) {
   const period_month = firstDayOfMonth(ym);
   // [ADD] 계좌 잔고 값도 같이 저장
   const $main = document.getElementById('input-main-balance');
-  const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
-  const subBalance  = toNumberKR($sub?.value);
+  const subBalance  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
 
   // upsert 형태: 있으면 update, 없으면 insert(확정)
   const { data: existing, error: selErr } = await supabase

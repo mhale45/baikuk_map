@@ -1122,32 +1122,59 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): cost_management에서 division='사용비용' 월합
-    const subCMMap = {};
+    // 3) 계좌잔고2(sub): 지점장의 사용비용 누적 합계
+    let subBalMap = {};
     try {
-      const { data: bankRows, error: bankErr } = await supabase
-        .from('cost_management')
-        .select('date, amount, affiliation, division')
+      // 지점장 ID 조회
+      const { data: mgrRow, error: mgrErr } = await supabase
+        .from('branch_info')
+        .select('branch_manager_id')
         .eq('affiliation', affiliation)
-        .eq('division', '사용비용');
+        .maybeSingle();
 
-      if (bankErr) throw bankErr;
+      const managerId = mgrRow?.branch_manager_id || null;
 
-      for (const row of (bankRows || [])) {
-        const ym = ymKey(String(row.date));
-        if (!ym) continue;
-        const amt = Number(row.amount || 0);
-        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
+      if (managerId) {
+        // costMap 월 리스트를 정렬(YYYY-MM 오름차순)
+        const sortedMonths = Object.keys(costMap).sort();
+
+        let cumulative = 0; // 누적 합계 저장 변수
+
+        for (const ym of sortedMonths) {
+          const [yyyy, mm] = ym.split('-');
+          const startDate = `${yyyy}-${mm}-01`;
+          const endDate = `${yyyy}-${mm}-31`;
+
+          // 해당 월 지점장의 사용비용
+          const { data: rows, error: cmErr } = await supabase
+            .from('cost_management')
+            .select('amount')
+            .eq('division', '사용비용')
+            .eq('staff_id', managerId)
+            .gte('date', startDate)
+            .lte('date', endDate);
+
+          let monthly = 0;
+          if (!cmErr && rows) {
+            monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          }
+
+          cumulative += monthly;     // ← ★ 누적합 반영
+          subBalMap[ym] = cumulative; // ← ★ 해당 월의 누적값 저장
+        }
+
+      } else {
+        console.warn('⚠ 지점장 ID를 찾을 수 없어 계좌 잔고2 누적 계산을 생략합니다.');
       }
     } catch (e) {
-      console.warn('[settlement] sub_balance from cost_management load failed:', e?.message || e);
+      console.warn('sub_balance 누적 계산 실패:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
-    __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
-    __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('사용비용')
-    __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
+    __LAST_COST_MAP     = costMap;
+    __LAST_MAIN_BAL_MAP = mainBalMap;
+    __LAST_SUB_BAL_MAP  = subBalMap;   // ← ★ 정상 대입
+    __LAST_RESERVE_MAP  = reserveMap;
 
     return costMap;
 
@@ -1437,7 +1464,6 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     if (row) {
       // 비용은 DB total_expense로 덮어쓰지 않습니다. (표시는 cost_management 집계 기반)
       // 캐시/입력창은 현재 값 유지 + 강제 잠금
-      setDrawerCostByYM(ym);
 
       if (typeof row.memo === 'string' && memoEl) {
         __LAST_MEMO_MAP[ym] = row.memo;
