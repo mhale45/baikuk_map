@@ -1456,10 +1456,6 @@ function setInputValue(id, value) {
   } else {
     el.value = vRaw;
   }
-
-  if (id === 'f_unit_info' && el.hasAttribute('data-autowidth')) {
-    autosizeInputByCh(el);
-  }
 }
 
 const MONEY_FIELD_IDS = new Set([
@@ -1677,8 +1673,6 @@ function fillFormWithPerformance(row) {
     province: row.province, city: row.city, district: row.district
   });
   setField('f_detail_address', row.detail_address);
-  setField('f_floor', row.floor);
-  setField('f_unit_info', row.unit_info);
 
   // 금액/면적/거래유형
   setField('f_deal_type', row.deal_type);
