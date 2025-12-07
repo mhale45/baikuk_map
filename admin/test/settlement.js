@@ -1170,33 +1170,48 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): 직원 '사용비용' 월별 누적합
+    // 3) 계좌잔고2(sub): "해당 지점장의 사용비용" 이번달 말일까지의 합
     const subCMMap = {};
     try {
       const { data: expenseRows, error: expenseErr } = await supabase
         .from('cost_management')
-        .select('date, amount, affiliation, division')
+        .select('date, amount, affiliation, division, staff_id')
         .eq('affiliation', affiliation)
         .eq('division', '사용비용');
 
       if (expenseErr) throw expenseErr;
 
-      // ① 월별 합산 (월 단위 cost)
+      // ① 지점장 staff_id 찾기
+      const { data: managerRows } = await supabase
+        .from('staff_profiles')
+        .select('id')
+        .eq('affiliation', affiliation)
+        .eq('authority', '지점장')
+        .limit(1);
+
+      const managerId = managerRows?.[0]?.id || null;
+
+      // 지점장이 없는 경우(임시 방지)
+      if (!managerId) {
+        console.warn('지점장 ID를 찾지 못했습니다.');
+      }
+
+      // ② 월별 합산(지점장 사용비용만)
       const monthly = {};
       for (const row of (expenseRows || [])) {
+        if (String(row.staff_id) !== String(managerId)) continue; // 지점장 비용만
+
         const ym = ymKey(String(row.date));
         if (!ym) continue;
+
         const amt = Number(row.amount || 0);
         monthly[ym] = (monthly[ym] || 0) + amt;
       }
 
-      // ② 월 순서대로 누적합 계산
-      const sortedYMs = Object.keys(monthly).sort(); // YYYY-MM 정렬 OK
-      let acc = 0;
-      for (const ym of sortedYMs) {
-        acc += monthly[ym];
-        subCMMap[ym] = acc;
-      }
+      // ③ 월별 합계를 그대로 sub_balance로 사용 (누적 아님)
+      Object.keys(monthly).forEach(ym => {
+        subCMMap[ym] = monthly[ym];
+      });
 
     } catch (e) {
       console.warn('[settlement] sub_balance load failed:', e?.message || e);
