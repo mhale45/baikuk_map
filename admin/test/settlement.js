@@ -52,6 +52,46 @@ let __LAST_CONFIRMED_MAP = {};
 // 직원ID -> 소속지점 맵
 const STAFF_AFF_BY_ID = new Map();
 
+// === 지점장 ID 조회 ===
+async function fetchBranchManagerId(affiliation) {
+  const { data, error } = await supabase
+    .from('staff_profiles')
+    .select('id')
+    .eq('affiliation', affiliation)
+    .eq('authority', '지점장')
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.id;
+}
+
+// === 계좌 잔고2(지점장 월 비용 합산) 계산 ===
+async function computeSubBalance(affiliation, ym) {
+  const parts = ym.split('-'); 
+  const year = parts[0];
+  const month = parts[1];
+
+  const start = `${year}-${month}-01`;
+  const end = `${year}-${month}-31`;
+
+  // 지점장 ID 조회
+  const managerId = await fetchBranchManagerId(affiliation);
+  if (!managerId) return 0;
+
+  // 지점장의 해당 월 cost_management 금액 합산
+  const { data, error } = await supabase
+    .from('cost_management')
+    .select('amount')
+    .eq('affiliation', affiliation)
+    .eq('staff_id', managerId)
+    .gte('date', start)
+    .lte('date', end);
+
+  if (error || !data) return 0;
+
+  return data.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+}
+
 async function ensureStaffAffMap() {
   if (STAFF_AFF_BY_ID.size > 0) return;
   await waitForSupabase();
@@ -855,13 +895,13 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
 
     if (mainEl) mainEl.value = fmtKR(__LAST_MAIN_BAL_MAP?.[ym] || 0);
     if (subEl) {
-      subEl.value  = fmtKR(__LAST_SUB_BAL_MAP?.[ym]  || 0);
-      // 항상 수정 불가(비용과 동일) + 굵게
+      const val = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
+      subEl.value = fmtKR(val);
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '계좌 잔고2는 cost_management(통장 입출금) 집계값으로 자동 표시됩니다.';
     }
+
     {
       const reserveEl = document.getElementById('d_reserves');
       if (reserveEl) {
