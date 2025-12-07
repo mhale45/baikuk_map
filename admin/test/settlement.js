@@ -1122,50 +1122,53 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): cost_management에서 division='사용비용' 합
-    // 1) 지점장 ID 조회
-    const { data: managerRows, error: mgrErr } = await supabase
-      .from('branch_info')
-      .select('branch_manager_id')
-      .eq('affiliation', affiliation)
-      .maybeSingle();
+    // 3) 계좌잔고2(sub): 지점장의 사용비용 합계
+    let subBalMap = {};
+    try {
+      // 지점장 ID 조회
+      const { data: mgrRow, error: mgrErr } = await supabase
+        .from('branch_info')
+        .select('branch_manager_id')
+        .eq('affiliation', affiliation)
+        .maybeSingle();
 
-    let managerId = null;
-    if (!mgrErr && managerRows) {
-      managerId = managerRows.branch_manager_id;
-    }
+      const managerId = mgrRow?.branch_manager_id || null;
 
-    if (managerId) {
-      // 2) 해당 지점장의 사용비용을 월별 합산
-      for (const ym of Object.keys(__LAST_COST_MAP)) {
-        const [yyyy, mm] = ym.split('-');
-        const startDate = `${yyyy}-${mm}-01`;
-        const endDate = `${yyyy}-${mm}-31`; // Supabase가 날짜 비교에서는 자동 처리됨
+      if (managerId) {
+        // costMap 에 있는 월을 기준으로 월별 사용비용 합산
+        for (const ym of Object.keys(costMap)) {
+          const [yyyy, mm] = ym.split('-');
+          const startDate = `${yyyy}-${mm}-01`;
+          const endDate = `${yyyy}-${mm}-31`;
 
-        const { data: costSumRows, error: costSumErr } = await supabase
-          .from('cost_management')
-          .select('amount')
-          .eq('division', '사용비용')
-          .eq('staff_id', managerId)
-          .gte('date', startDate)
-          .lte('date', endDate);
+          const { data: rows, error: cmErr } = await supabase
+            .from('cost_management')
+            .select('amount')
+            .eq('division', '사용비용')
+            .eq('staff_id', managerId)
+            .gte('date', startDate)
+            .lte('date', endDate);
 
-        if (!costSumErr && costSumRows) {
-          const total = costSumRows.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-          __LAST_SUB_BAL_MAP[ym] = total;
-        } else {
-          __LAST_SUB_BAL_MAP[ym] = 0;
+          if (cmErr) {
+            subBalMap[ym] = 0;
+            continue;
+          }
+
+          const total = (rows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          subBalMap[ym] = total;
         }
+      } else {
+        console.warn('⚠ 지점장 ID를 찾을 수 없어서 계좌 잔고2 계산을 생략합니다.');
       }
-    } else {
-      console.warn('⚠ 지점장 ID를 찾을 수 없어서 계좌 잔고2 계산을 건너뜀');
+    } catch (e) {
+      console.warn('sub_balance 계산 실패:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
-    __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
-    __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('사용비용')
-    __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
+    __LAST_COST_MAP     = costMap;
+    __LAST_MAIN_BAL_MAP = mainBalMap;
+    __LAST_SUB_BAL_MAP  = subBalMap;   // ← ★ 정상 대입
+    __LAST_RESERVE_MAP  = reserveMap;
 
     return costMap;
 
