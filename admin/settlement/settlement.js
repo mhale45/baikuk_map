@@ -860,7 +860,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
       subEl.readOnly = true;
       subEl.disabled = true;
       subEl.classList.add('bg-gray-50', 'font-semibold');
-      subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+      subEl.title = '계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다.';
     }
     {
       const reserveEl = document.getElementById('d_reserves');
@@ -892,7 +892,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
             class="border rounded px-3 py-2 text-right bg-gray-50 font-semibold"
             readonly
             disabled
-            title="계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다."
+            title="계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다."
           />
         </div>
       `;
@@ -982,6 +982,9 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     // affiliation_en이 없으면 한글명으로 폴백(폴더도 한글로 만든 경우 대비)
     loadExpenseFileList(__LAST_AFFILIATION, ym);
   }
+
+  // 👉 계좌 잔고2 출력 (누적 계산값)
+  console.log("계좌 잔고2(누적):", __LAST_SUB_BAL_MAP?.[ym] || 0);
 }
 
 async function handleExpenseFiles(files) {
@@ -1122,32 +1125,59 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): cost_management에서 division='사용비용' 월합
-    const subCMMap = {};
+    // 3) 계좌잔고2(sub): 지점장의 사용비용 누적 합계
+    let subBalMap = {};
     try {
-      const { data: bankRows, error: bankErr } = await supabase
-        .from('cost_management')
-        .select('date, amount, affiliation, division')
+      // 지점장 ID 조회
+      const { data: mgrRow, error: mgrErr } = await supabase
+        .from('branch_info')
+        .select('branch_manager_id')
         .eq('affiliation', affiliation)
-        .eq('division', '사용비용');
+        .maybeSingle();
 
-      if (bankErr) throw bankErr;
+      const managerId = mgrRow?.branch_manager_id || null;
 
-      for (const row of (bankRows || [])) {
-        const ym = ymKey(String(row.date));
-        if (!ym) continue;
-        const amt = Number(row.amount || 0);
-        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
+      if (managerId) {
+        // costMap 월 리스트를 정렬(YYYY-MM 오름차순)
+        const sortedMonths = Object.keys(costMap).sort();
+
+        let cumulative = 0; // 누적 합계 저장 변수
+
+        for (const ym of sortedMonths) {
+          const [yyyy, mm] = ym.split('-');
+          const startDate = `${yyyy}-${mm}-01`;
+          const endDate = `${yyyy}-${mm}-31`;
+
+          // 해당 월 지점장의 사용비용
+          const { data: rows, error: cmErr } = await supabase
+            .from('cost_management')
+            .select('amount')
+            .eq('division', '사용비용')
+            .eq('staff_id', managerId)
+            .gte('date', startDate)
+            .lte('date', endDate);
+
+          let monthly = 0;
+          if (!cmErr && rows) {
+            monthly = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          }
+
+          cumulative += monthly;     // ← ★ 누적합 반영
+          subBalMap[ym] = cumulative; // ← ★ 해당 월의 누적값 저장
+        }
+
+      } else {
+        console.warn('⚠ 지점장 ID를 찾을 수 없어 계좌 잔고2 누적 계산을 생략합니다.');
       }
     } catch (e) {
-      console.warn('[settlement] sub_balance from cost_management load failed:', e?.message || e);
+      console.warn('sub_balance 누적 계산 실패:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
-    __LAST_COST_MAP     = costMap;     // 비용: cost_management('사용비용')
-    __LAST_MAIN_BAL_MAP = mainBalMap;  // 잔고1: branch_settlement_expenses.main_balance
-    __LAST_SUB_BAL_MAP  = subCMMap;    // ★ 잔고2: cost_management('사용비용')
-    __LAST_RESERVE_MAP  = reserveMap;  // [ADD] 유보금: branch_settlement_expenses.reserve
+    __LAST_COST_MAP     = costMap;
+    __LAST_MAIN_BAL_MAP = mainBalMap;
+    __LAST_SUB_BAL_MAP  = subBalMap;   // ← ★ 정상 대입
+    __LAST_RESERVE_MAP  = reserveMap;
 
     return costMap;
 
@@ -1217,12 +1247,11 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
 
   // [ADD] 드로어 input 값 읽기
   const $main = document.getElementById('input-main-balance');
-  const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
-  const subBalance  = toNumberKR($sub?.value);
 
   const $reserve = document.getElementById('d_reserves');
   const reserve = toNumberKR($reserve?.value);
+  const subBalance = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
 
   // [ADD] 부가세(surtax) Input 읽기
   const $vat = document.getElementById('d_vat');
@@ -1317,9 +1346,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // [ADD] 잔고 캐시도 반영
         const $main = document.getElementById('input-main-balance');
-        const $sub  = document.getElementById('input-sub-balance');
         __LAST_MAIN_BAL_MAP[ym] = toNumberKR($main?.value);
-        __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
+
+        // ❗ sub_balance는 input 값을 사용하지 않고 누적 캐시를 유지
+        __LAST_SUB_BAL_MAP[ym]  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
+
         const $reserve = document.getElementById('d_reserves');
         __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
         __LAST_VAT_MAP[ym] = surtax;
@@ -1417,7 +1448,7 @@ function applyLockUI(locked) {
     subEl.readOnly = true;
     subEl.disabled = true;
     subEl.classList.add('bg-gray-50', 'font-semibold');
-    subEl.title = '계좌 잔고2는 cost_management(사용비용) 집계값으로 자동 표시됩니다.';
+    subEl.title = '계좌 잔고2는 cost_management(사용비용) 누적값으로 자동 표시됩니다.';
   }
 }
 
@@ -1437,7 +1468,6 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     if (row) {
       // 비용은 DB total_expense로 덮어쓰지 않습니다. (표시는 cost_management 집계 기반)
       // 캐시/입력창은 현재 값 유지 + 강제 잠금
-      setDrawerCostByYM(ym);
 
       if (typeof row.memo === 'string' && memoEl) {
         __LAST_MEMO_MAP[ym] = row.memo;
@@ -1485,9 +1515,8 @@ async function confirmSettlement(affiliation, ym) {
   const period_month = firstDayOfMonth(ym);
   // [ADD] 계좌 잔고 값도 같이 저장
   const $main = document.getElementById('input-main-balance');
-  const $sub  = document.getElementById('input-sub-balance');
   const mainBalance = toNumberKR($main?.value);
-  const subBalance  = toNumberKR($sub?.value);
+  const subBalance  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0);
 
   // upsert 형태: 있으면 update, 없으면 insert(확정)
   const { data: existing, error: selErr } = await supabase
