@@ -1493,7 +1493,6 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     if (row) {
       // 비용은 DB total_expense로 덮어쓰지 않습니다. (표시는 cost_management 집계 기반)
       // 캐시/입력창은 현재 값 유지 + 강제 잠금
-      setDrawerCostByYM(ym);
 
       if (typeof row.memo === 'string' && memoEl) {
         __LAST_MEMO_MAP[ym] = row.memo;
