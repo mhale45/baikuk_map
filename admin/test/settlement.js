@@ -982,6 +982,9 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     // affiliation_en이 없으면 한글명으로 폴백(폴더도 한글로 만든 경우 대비)
     loadExpenseFileList(__LAST_AFFILIATION, ym);
   }
+
+  // 👉 계좌 잔고2 출력 (누적 계산값)
+  console.log("계좌 잔고2(누적):", __LAST_SUB_BAL_MAP?.[ym] || 0);
 }
 
 async function handleExpenseFiles(files) {
