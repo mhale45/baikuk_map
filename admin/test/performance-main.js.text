@@ -8,17 +8,6 @@ import { autosizeInputByCh } from '../../../modules/ui/autosize.js';
 window.supabase = client;
 document.dispatchEvent(new Event('supabase-ready'));
 
-function formatYYMMDD(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return '';
-
-  const yy = String(d.getFullYear()).slice(2);   // "25"
-  const mm = String(d.getMonth() + 1).padStart(2, '0'); // "12"
-  const dd = String(d.getDate()).padStart(2, '0');      // "03"
-  return yy + mm + dd; // "251203"
-}
-
 // === 정산 탭 제어(권한별 표시/차단) ===
 (async () => {
   try {
@@ -98,6 +87,24 @@ import {
   const { data } = await supabase.auth.getSession();
   if (!data?.session) location.replace("/");
 })();
+
+function groupStaffByAffiliation(data) {
+  const grouped = {};
+  data.forEach(({ name, affiliation, leave_date, id }) => {
+    if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
+    const entry = { name, id };
+    if (!leave_date) grouped[affiliation].active.push(entry);
+    else grouped[affiliation].inactive.push(entry);
+  });
+  return grouped;
+}
+
+function createOption(value, text) {
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = text;
+  return opt;
+}
 
 // 직원/지점 패널: 목록 렌더 + 권한별 클릭 허용 + 클릭 시 필터
 (async () => {
@@ -860,10 +867,10 @@ async function loadPerformanceTable() {
         tr.appendChild(tdHTML(buildDateBlock(row)));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-        tr.appendChild(tdHTML(formatYYMMDD(row.buyer_tax_date)));
+        tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-        tr.appendChild(tdHTML(formatYYMMDD(row.seller_tax_date)));
+        tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
         tr.appendChild(tdMulti(names.join('\n')));
         tr.appendChild(tdMulti(buyerP.join('\n')));
