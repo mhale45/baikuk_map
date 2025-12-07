@@ -303,8 +303,6 @@ export function collectPerformancePayload() {
     monthly_rent: numOrNull(document.getElementById('f_monthly_rent')?.value),
     sale_price: numOrNull(document.getElementById('f_sale_price')?.value),
     area_py: numOrNull(document.getElementById('f_area_py')?.value),
-    unit_info: (document.getElementById('f_unit_info')?.value ?? '').trim() || null,
-    floor: intOrNull(document.getElementById('f_floor')?.value),
 
     premium_price: numOrNull(document.getElementById('f_premium_price')?.value),
     expense: numOrNull(document.getElementById('f_expense')?.value),

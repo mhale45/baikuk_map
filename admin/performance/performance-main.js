@@ -8,6 +8,17 @@ import { autosizeInputByCh } from '../../../modules/ui/autosize.js';
 window.supabase = client;
 document.dispatchEvent(new Event('supabase-ready'));
 
+function formatYYMMDD(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+
+  const yy = String(d.getFullYear()).slice(2);   // "25"
+  const mm = String(d.getMonth() + 1).padStart(2, '0'); // "12"
+  const dd = String(d.getDate()).padStart(2, '0');      // "03"
+  return yy + mm + dd; // "251203"
+}
+
 // === 정산 탭 제어(권한별 표시/차단) ===
 (async () => {
   try {
@@ -87,24 +98,6 @@ import {
   const { data } = await supabase.auth.getSession();
   if (!data?.session) location.replace("/");
 })();
-
-function groupStaffByAffiliation(data) {
-  const grouped = {};
-  data.forEach(({ name, affiliation, leave_date, id }) => {
-    if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-    const entry = { name, id };
-    if (!leave_date) grouped[affiliation].active.push(entry);
-    else grouped[affiliation].inactive.push(entry);
-  });
-  return grouped;
-}
-
-function createOption(value, text) {
-  const opt = document.createElement('option');
-  opt.value = value;
-  opt.textContent = text;
-  return opt;
-}
 
 // 직원/지점 패널: 목록 렌더 + 권한별 클릭 허용 + 클릭 시 필터
 (async () => {
@@ -681,7 +674,7 @@ async function loadPerformanceTable() {
 
     const selectBase = `
       id, listing_id, listing_title, province, city, district, detail_address,
-      floor, unit_info, deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
+      deal_type, sale_price, deposit_price, monthly_rent, premium_price, area_py, affiliation,
       contract_date, balance_date,
       down_payment, balance,
       interim_payment1, interim_payment1_date,
@@ -867,10 +860,10 @@ async function loadPerformanceTable() {
         tr.appendChild(tdHTML(buildDateBlock(row)));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_fee) ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.buyer_tax) ?? ''));
-        tr.appendChild(tdHTML(row.buyer_tax_date ?? ''));
+        tr.appendChild(tdHTML(formatYYMMDD(row.buyer_tax_date)));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_fee) ?? ''));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.seller_tax) ?? ''));
-        tr.appendChild(tdHTML(row.seller_tax_date ?? ''));
+        tr.appendChild(tdHTML(formatYYMMDD(row.seller_tax_date)));
         tr.appendChild(tdHTML(formatNumberWithCommas(row.expense) ?? ''));
         tr.appendChild(tdMulti(names.join('\n')));
         tr.appendChild(tdMulti(buyerP.join('\n')));
@@ -1434,7 +1427,6 @@ const FIELD_MAP = {
   monthly_rent:    'f_monthly_rent',
   sale_price:      'f_sale_price',
   area_py:         'f_area_py',
-  floor:           'f_floor',
 };
 
 // 2) 값 채우기 헬퍼 - select에 넣을 때 trim
@@ -1462,10 +1454,6 @@ function setInputValue(id, value) {
     }
   } else {
     el.value = vRaw;
-  }
-
-  if (id === 'f_unit_info' && el.hasAttribute('data-autowidth')) {
-    autosizeInputByCh(el);
   }
 }
 
@@ -1684,8 +1672,6 @@ function fillFormWithPerformance(row) {
     province: row.province, city: row.city, district: row.district
   });
   setField('f_detail_address', row.detail_address);
-  setField('f_floor', row.floor);
-  setField('f_unit_info', row.unit_info);
 
   // 금액/면적/거래유형
   setField('f_deal_type', row.deal_type);

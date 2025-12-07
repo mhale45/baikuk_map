@@ -20,8 +20,6 @@ let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
 let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
 let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
 let __LAST_RESERVE_MAP = {};  // [ADD] 월별 유보금
-// [ADD] 직원별 비용 캐시: { 'YYYY-MM': { staffId: amount } }
-let __LAST_COST_BY_STAFF = {};
 
 
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
@@ -405,6 +403,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(dispFinalProfit)}</td>
     `;
 
+    // 행 클릭 → 드로어 오픈
     tr.addEventListener('click', () => {
       openSettlementDrawer({
         affiliation: __LAST_AFFILIATION,
@@ -412,8 +411,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
         sales,
         payrollTotal,
         pmap,
-        staffList: __LAST_STAFF_LIST,
-        costByStaff: __LAST_COST_BY_STAFF[ym] || {}
+        staffList: __LAST_STAFF_LIST
       });
     });
 
@@ -706,7 +704,7 @@ export async function initSettlement() {
   // 지점장일 경우 본인 지점이 자동 선택/로딩됨 (renderBranchList에서 처리)
 }
 
-function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staffList, costByStaff }) {
+function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staffList }) {
   __CURRENT_DRAWER_YM = ym; // [ADD] 현재 드로어의 YYYY-MM
 
   const drawer = document.getElementById('settlement-drawer');
@@ -726,40 +724,22 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   const vatEl = $id('d_vat');
   if (vatEl) vatEl.value = fmtKR(vatVal);
 
-  // 직원별 급여 목록 렌더 (+ 이번달 비용 표시)
+  // 직원별 급여 목록 렌더
   const listEl = $id('d_payroll_breakdown');
   if (listEl) {
     const rows = (staffList || []).map(s => {
       const val = Number(pmap?.[s.id] || 0); // 급여
       const deposit = Math.round(val * 0.967); // 입금액
-
-      // ▼ 직원별 이번달 비용 합계 불러오기 (없으면 0)
-      const staffCost = Number(costByStaff?.[s.id] || 0);
-
       return `
-        <div class="px-3 py-1 border-t first:border-t-0">
-
-          <!-- 1줄: 직원명 + 급여 -->
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">${s.name}</span>
-            <div class="flex items-center gap-1">
-              <span class="text-sm text-blue-700 font-semibold text-right">${fmtKR(deposit)}</span>
-              <span class="text-sm text-gray-500 ml-1">${fmtKR(val)}</span>
-            </div>
-          </div>
-
-          <!-- 2줄: 이번달 비용 -->
-          <div class="flex justify-between mt-1">
-            <span class="text-xs text-gray-500">비용</span>
-            <span class="text-xs text-red-600 font-semibold">${fmtKR(staffCost)}</span>
-          </div>
-
+        <div class="flex items-center justify-between px-3 py-1 border-t first:border-t-0">
+          <span class="text-sm text-gray-700">${s.name}</span>
+          <span class="text-sm text-blue-700 font-semibold text-right"> ${fmtKR(deposit)} </span>
+          <span class="text-sm ml-1">${fmtKR(val)}</span>
         </div>
       `;
     }).join('');
-
     listEl.innerHTML = `
-      <div class="text-xs text-gray-500 px-3 py-1">급여 + 비용</div>
+      <div class="text-xs text-gray-500 px-3 py-1">직원별 급여(관여매출의 50%)</div>
       ${rows || `<div class="px-3 py-2 text-sm text-gray-500">해당 월 직원 급여 데이터가 없습니다</div>`}
     `;
   }
@@ -1093,34 +1073,6 @@ function firstDayOfMonth(ym) {
   return `${m[1]}-${m[2]}-01`;
 }
 
-async function buildCostByStaff(affiliation, ym) {
-  const { yyyy, mm } = ymToParts(ym);
-
-  // 마지막 일자 계산
-  const lastDay = new Date(yyyy, Number(mm), 0).getDate();
-
-  const start = `${yyyy}-${mm}-01`;
-  const end   = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
-
-  const { data, error } = await supabase
-    .from('cost_management')
-    .select('staff_id, amount, affiliation, date')
-    .eq('affiliation', affiliation)
-    .eq('division', '사용비용')
-    .gte('date', start)
-    .lte('date', end);
-
-  if (error || !data) return {};
-
-  const map = {};
-  for (const row of data) {
-    const sid = String(row.staff_id || '');
-    if (!sid) continue;
-    map[sid] = (map[sid] || 0) + Number(row.amount || 0);
-  }
-  return map;
-}
-
 // === [CHANGE] 지점 월별 총비용 캐시 선로딩 ===
 // 비용은 cost_management에서 "사용비용"을 월별 합산하여 사용하고,
 // 계좌잔고(main)는 branch_settlement_expenses에서 불러오며,
@@ -1170,36 +1122,25 @@ async function loadBranchExpenseCache(affiliation) {
       console.warn('[settlement] cost_management(load 비용) failed:', e?.message || e);
     }
 
-    // 3) 계좌잔고2(sub): 직원 '사용비용' 월별 누적합
+    // 3) 계좌잔고2(sub): cost_management에서 division='통장 입출금' 월합
     const subCMMap = {};
     try {
-      const { data: expenseRows, error: expenseErr } = await supabase
+      const { data: bankRows, error: bankErr } = await supabase
         .from('cost_management')
         .select('date, amount, affiliation, division')
         .eq('affiliation', affiliation)
         .eq('division', '사용비용');
 
-      if (expenseErr) throw expenseErr;
+      if (bankErr) throw bankErr;
 
-      // ① 월별 합산 (월 단위 cost)
-      const monthly = {};
-      for (const row of (expenseRows || [])) {
+      for (const row of (bankRows || [])) {
         const ym = ymKey(String(row.date));
         if (!ym) continue;
         const amt = Number(row.amount || 0);
-        monthly[ym] = (monthly[ym] || 0) + amt;
+        subCMMap[ym] = (subCMMap[ym] || 0) + amt;
       }
-
-      // ② 월 순서대로 누적합 계산
-      const sortedYMs = Object.keys(monthly).sort(); // YYYY-MM 정렬 OK
-      let acc = 0;
-      for (const ym of sortedYMs) {
-        acc += monthly[ym];
-        subCMMap[ym] = acc;
-      }
-
     } catch (e) {
-      console.warn('[settlement] sub_balance load failed:', e?.message || e);
+      console.warn('[settlement] sub_balance from cost_management load failed:', e?.message || e);
     }
 
     // 4) 전역 캐시 갱신
@@ -1387,9 +1328,6 @@ document.addEventListener('DOMContentLoaded', () => {
         __LAST_COST_MAP[ym] = cost;
         __LAST_MEMO_MAP[ym] = memo;
         showToastGreenRed?.('저장되었습니다.', { ok: true });
-
-        // 직원별 비용 캐시 생성
-        __LAST_COST_BY_STAFF[ym] = await buildCostByStaff(affiliation, ym);
 
         // 저장 후 테이블 즉시 반영(이 달만 다시 계산해서 렌더 호출)
         // 간단하게 전체 렌더를 다시 호출
