@@ -575,22 +575,25 @@ async function loadBranchMonthlySales(affiliation) {
     __LAST_PAYROLL_TOTAL_MAP = payrollTotalMap;
 
     // ----------------------------
-    // 🔥 [CHANGE] surtax 불러오기
+    // [CHANGE] surtax + sub_balance 불러오기
     // ----------------------------
-    __LAST_VAT_MAP = {}; // 초기화
+    __LAST_VAT_MAP = {};
+    __LAST_SUB_BAL_MAP = {};   // ← 반드시 초기화
 
-    const { data: surtaxRows, error: surtaxErr } = await supabase
+    const { data: expRows, error: expErr } = await supabase
       .from('branch_settlement_expenses')
-      .select('period_month, affiliation, surtax')
+      .select('period_month, affiliation, surtax, sub_balance')
       .eq('affiliation', affiliation);
 
-    if (surtaxErr) {
-      console.warn('surtax 불러오기 실패:', surtaxErr.message);
-    } else if (surtaxRows) {
-      surtaxRows.forEach(row => {
+    if (expErr) {
+      console.warn('branch_settlement_expenses 조회 실패:', expErr.message);
+    } else if (expRows) {
+      expRows.forEach(row => {
         const d = new Date(row.period_month);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
+
+        __LAST_VAT_MAP[ym]      = Number(row.surtax || 0);
+        __LAST_SUB_BAL_MAP[ym]  = Number(row.sub_balance || 0);  // ← 추가된 핵심 부분
       });
     }
 
