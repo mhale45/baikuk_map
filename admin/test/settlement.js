@@ -47,6 +47,56 @@ let __LAST_AUTONOMOUS_RATE = 0;
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
+// 특정 지점의 지점장(staff_id)을 조회
+async function getBranchManagerId(affiliation) {
+  await waitForSupabase();
+  const { data, error } = await supabase
+    .from('branch_info')
+    .select('branch_manager_id')
+    .eq('affiliation', affiliation)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[settlement] branch_manager 조회 실패:', error.message);
+    return null;
+  }
+  return data?.branch_manager_id || null;
+}
+
+/**
+ * 지점장의 사용 비용 합계를 계산하여 반환
+ * 기간: 모든 데이터의 시작 ~ 선택한 월의 말일
+ */
+async function computeSubBalance(affiliation, ym) {
+  await waitForSupabase();
+
+  const managerId = await getBranchManagerId(affiliation);
+  if (!managerId) return 0;
+
+  // 해당 월의 마지막 날
+  const endDate = new Date(`${ym}-01`);
+  endDate.setMonth(endDate.getMonth() + 1);
+  endDate.setDate(0); // 해당 월 마지막 날짜
+
+  const { data, error } = await supabase
+    .from('cost_management')
+    .select('amount')
+    .eq('affiliation', affiliation)
+    .eq('staff_id', managerId)
+    .lte('date', endDate.toISOString().slice(0, 10));
+
+  if (error) {
+    console.warn('[settlement] sub_balance 계산 실패:', error.message);
+    return 0;
+  }
+
+  let sum = 0;
+  for (const row of (data || [])) {
+    sum += Number(row.amount || 0);
+  }
+  return sum;
+}
+
 // [ADD] ==== 타지점 이체금액 계산 유틸 ====
 
 // 직원ID -> 소속지점 맵
@@ -1449,7 +1499,11 @@ async function fetchAndApplySettlementState(affiliation, ym) {
       const $main = document.getElementById('input-main-balance');
       const $sub  = document.getElementById('input-sub-balance');
       if ($main) $main.value = Number(row.main_balance || 0).toLocaleString('ko-KR');
-      if ($sub)  $sub.value  = Number(__LAST_SUB_BAL_MAP?.[ym] || 0).toLocaleString('ko-KR');
+      // 지점장 비용 합계를 계산하여 sub_balance 설정
+      const subBal = await computeSubBalance(affiliation, ym);
+      __LAST_SUB_BAL_MAP[ym] = subBal;
+
+      if ($sub) $sub.value = Number(subBal).toLocaleString('ko-KR');
     } else {
       __LAST_CONFIRMED_MAP[ym] = false;
     }
