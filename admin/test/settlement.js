@@ -52,6 +52,13 @@ let __LAST_CONFIRMED_MAP = {};
 // 직원ID -> 소속지점 맵
 const STAFF_AFF_BY_ID = new Map();
 
+// 날짜 YYYY-MM → 해당 월 마지막 날짜 YYYY-MM-DD
+function getLastDayOfMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+}
+
 async function ensureStaffAffMap() {
   if (STAFF_AFF_BY_ID.size > 0) return;
   await waitForSupabase();
@@ -592,6 +599,55 @@ async function loadBranchMonthlySales(affiliation) {
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
       });
+    }
+
+    // ----------------------------
+    // 🔥 계좌 잔고2(sub_balance) 자동 계산
+    // ----------------------------
+    try {
+      // 1) 지점장의 staff_id 가져오기
+      const { data: mgrRow, error: mgrErr } = await supabase
+        .from('branch_info')
+        .select('branch_manager_id')
+        .eq('affiliation', affiliation)
+        .maybeSingle();
+
+      if (mgrErr) {
+        console.warn('지점장 조회 실패:', mgrErr.message);
+      }
+
+      const managerId = mgrRow?.branch_manager_id || null;
+
+      if (managerId) {
+        // 월 목록 yms 가져오기 (이미 앞에서 계산된 성과월 기준)
+        const ymKeys = Object.keys(__LAST_SALES_MAP || {});
+
+        // 지점장의 모든 사용비용을 한 번에 조회
+        const { data: costRows, error: costErr } = await supabase
+          .from('cost_management')
+          .select('amount, date')
+          .eq('staff_id', managerId)
+          .eq('affiliation', affiliation)
+          .eq('division', '사용비용') 
+          .order('date', { ascending: true });
+
+        if (costErr) {
+          console.warn('사용비용 조회 실패:', costErr.message);
+        } else if (costRows) {
+          ymKeys.forEach(ym => {
+            const lastDay = getLastDayOfMonth(ym);
+
+            // 해당 월 말일 이하의 모든 사용비용 합산
+            const sum = costRows
+              .filter(r => r.date <= lastDay)
+              .reduce((a, b) => a + Number(b.amount || 0), 0);
+
+            __LAST_SUB_BAL_MAP[ym] = sum;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('sub_balance 계산 실패:', e?.message || e);
     }
 
     // 비용 캐시는 기존대로 유지
