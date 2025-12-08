@@ -560,6 +560,11 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
+      
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(__LAST_AFFILIATION, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
@@ -1554,13 +1559,19 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     applyLockUI(__LAST_CONFIRMED_MAP[ym] === true);
     // [ADD] 표도 DB값 반영되도록 즉시 재렌더
     try {
+      // [ADD] 세금계산서 다시 계산
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(__LAST_AFFILIATION, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: __LAST_AFFILIATION,
         salesMap: __LAST_SALES_MAP,
         payrollByStaff: __LAST_PAYROLL_BY_STAFF,
-        costMap: __LAST_COST_MAP,  // ← 방금 갱신된 캐시 사용
+        costMap: __LAST_COST_MAP,
         staffList: __LAST_STAFF_LIST,
       });
+
     } catch (_) {}
 
   } catch (e) {
