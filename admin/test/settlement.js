@@ -14,7 +14,7 @@ let __LAST_AFFILIATION = null;
 let __LAST_SALES_MAP = {};
 let __LAST_PAYROLL_TOTAL_MAP = {};
 let __LAST_COST_MAP = {};
-// [ADD] 월별 부가세 합계 캐시
+// [ADD] 월별 중간예납 합계 캐시
 let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
 // [ADD] 월별 계좌 잔고 캐시
 let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
@@ -324,9 +324,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     ...Object.keys(__LAST_VAT_MAP || {}),
   ]);
   const yms = Array.from(ymSet).sort();
-
-  // === THEAD: 순이익 열 추가 (비용과 지점자율금 사이) ===
-  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
@@ -334,7 +331,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
-    <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
+    <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
@@ -363,7 +360,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const pmap = payrollByStaff?.[ym] || {};
     const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
-    // 부가세(월별 합계)
+    // 중간예납(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
     // 잔고 합계
@@ -588,7 +585,7 @@ async function loadBranchMonthlySales(affiliation) {
 
     const { data: surtaxRows, error: surtaxErr } = await supabase
       .from('branch_settlement_expenses')
-      .select('period_month, affiliation, surtax')
+      .select('period_month, affiliation, prepaid_vat')
       .eq('affiliation', affiliation);
 
     if (surtaxErr) {
@@ -597,7 +594,7 @@ async function loadBranchMonthlySales(affiliation) {
       surtaxRows.forEach(row => {
         const d = new Date(row.period_month);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
+        __LAST_VAT_MAP[ym] = Number(row.prepaid_vat || 0);
       });
     }
 
@@ -775,7 +772,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
 
-  // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
+  // [ADD] 중간예납 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
   if (vatEl) vatEl.value = fmtKR(vatVal);
@@ -855,7 +852,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     if (autoAmtEl) autoAmtEl.value = fmtKR(Math.max(0, aFee));
   };
 
-  // [ADD] 부가세 입력 변경 시 재계산
+  // [ADD] 중간예납 입력 변경 시 재계산
   const vatInput = document.getElementById('d_vat');
   if (vatInput) {
     vatInput.addEventListener('input', () => {
@@ -1280,11 +1277,11 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const $reserve = document.getElementById('d_reserves');
   const reserve = toNumberKR($reserve?.value);
 
-  // [ADD] 부가세(surtax) Input 읽기
+  // [ADD] 중간예납(prepaid_vat) Input 읽기
   const $vat = document.getElementById('d_vat');
-  const surtax = toNumberKR($vat?.value || 0);
+  const prepaidVat = toNumberKR($vat?.value || 0);
 
-  // [MODIFY] surtax 포함하여 payload 구성
+  // [MODIFY] prepaid_vat 포함하여 payload 구성
   const payload = {
     affiliation: aff,
     period_month,
@@ -1293,7 +1290,7 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     main_balance: mainBalance,
     sub_balance:  subBalance,
     reserve: reserve,
-    surtax: surtax,                // ← ★ 추가됨
+    prepaid_vat: prepaidVat,
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
@@ -1353,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
         const memo = document.getElementById('d_memo')?.value || '';
         const aff  = (__LAST_AFFILIATION || '').trim();
-        const surtax = toNumberKR(document.getElementById('d_vat')?.value || 0);
+        const prepaidVat = toNumberKR(document.getElementById('d_vat')?.value || 0);
 
         if (!ym || !aff) {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
@@ -1378,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
         const $reserve = document.getElementById('d_reserves');
         __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
-        __LAST_VAT_MAP[ym] = surtax;
+        __LAST_VAT_MAP[ym] = prepaidVat;
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
