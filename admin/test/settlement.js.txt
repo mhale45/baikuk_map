@@ -1348,7 +1348,11 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const $vat = document.getElementById('d_vat');
   const prepaidVat = toNumberKR($vat?.value || 0);
 
-  // [MODIFY] prepaid_vat 포함하여 payload 구성
+  // [ADD] 세금계산서(tax_invoice) Input 읽기
+  const $tax = document.getElementById('d_tax_invoice');
+  const taxInvoice = toNumberKR($tax?.value || 0);
+
+  // [MODIFY] prepaid_vat, tax_invoice 포함하여 payload 구성
   const payload = {
     affiliation: aff,
     period_month,
@@ -1358,6 +1362,7 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     sub_balance:  subBalance,
     reserve: reserve,
     prepaid_vat: prepaidVat,
+    tax_invoice: taxInvoice,
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
@@ -1623,6 +1628,10 @@ async function confirmSettlement(affiliation, ym) {
   const mainBalance = toNumberKR($main?.value);
   const subBalance  = toNumberKR($sub?.value);
 
+  // [ADD] 세금계산서(tax_invoice) 값도 같이 저장
+  const $tax = document.getElementById('d_tax_invoice');
+  const taxInvoice = toNumberKR($tax?.value || 0);
+
   // upsert 형태: 있으면 update, 없으면 insert(확정)
   const { data: existing, error: selErr } = await supabase
     .from('branch_settlement_expenses')
@@ -1642,6 +1651,7 @@ async function confirmSettlement(affiliation, ym) {
         main_balance: mainBalance,
         sub_balance:  subBalance,
         reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
+        tax_invoice: taxInvoice,                                            // [ADD]
       })
       .eq('id', existing.id);
     if (upErr) throw upErr;
@@ -1657,7 +1667,8 @@ async function confirmSettlement(affiliation, ym) {
         main_balance: mainBalance,
         sub_balance:  subBalance,
         reserve: toNumberKR(document.getElementById('d_reserves')?.value),   // [ADD]
-      })
+        tax_invoice: taxInvoice,                                            // [ADD]
+      });
     if (insErr) throw insErr;
   }
 
@@ -1669,6 +1680,7 @@ async function confirmSettlement(affiliation, ym) {
   __LAST_MAIN_BAL_MAP[ym] = mainBalance;
   __LAST_SUB_BAL_MAP[ym]  = subBalance;
   __LAST_RESERVE_MAP[ym] = toNumberKR(document.getElementById('d_reserves')?.value);
+  // (원하면 여기에서 __LAST_TAX_INVOICE_MAP[ym] = taxInvoice; 도 해줄 수 있음)
 
   applyLockUI(true);
   showToastGreenRed?.('정산이 확정되었습니다.', { ok: true });
