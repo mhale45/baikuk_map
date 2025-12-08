@@ -829,6 +829,16 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
 
+  // [ADD] 세금계산서 표시
+  const taxInvoiceVal = Number(__LAST_TAX_INVOICE_MAP?.[ym] || 0);
+  const taxEl = document.getElementById('d_tax_invoice');
+  if (taxEl) {
+    taxEl.value = fmtKR(taxInvoiceVal);
+    taxEl.readOnly = true;
+    taxEl.disabled = true;
+    taxEl.classList.add('bg-gray-50', 'font-semibold');
+  }
+
   // [ADD] 중간예납 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
