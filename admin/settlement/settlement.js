@@ -14,13 +14,12 @@ let __LAST_AFFILIATION = null;
 let __LAST_SALES_MAP = {};
 let __LAST_PAYROLL_TOTAL_MAP = {};
 let __LAST_COST_MAP = {};
-// [ADD] 월별 부가세 합계 캐시
+// [ADD] 월별 중간예납 합계 캐시
 let __LAST_VAT_MAP = {}; // { 'YYYY-MM': number }
 // [ADD] 월별 계좌 잔고 캐시
 let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
 let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
 let __LAST_RESERVE_MAP = {};  // [ADD] 월별 유보금
-
 
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
 let __LAST_STAFF_LIST = []; // [{id, name}]
@@ -28,6 +27,10 @@ let __LAST_PAYROLL_BY_STAFF = {}; // { 'YYYY-MM': { staffId: amount(급여, 50%�
 
 // [ADD] 월별 메모 캐시 (미리보기/저장 후 재표시용)
 let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
+
+// [ADD] 월별 세금계산서 합계 캐시
+let __LAST_TAX_INVOICE_MAP = {};  // { 'YYYY-MM': number }
+
 
 // [ADD] 로그인 사용자의 권한/소속 지점
 let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
@@ -46,6 +49,38 @@ let __LAST_AUTONOMOUS_RATE = 0;
 
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
+
+// [ADD] 특정 지점의 특정 월 세금계산서 합계 계산
+async function loadMonthlyTaxInvoice(affiliation, ym) {
+  const first = `${ym}-01`;
+  const last  = getLastDayOfMonth(ym);
+
+  // seller_tax 합계
+  const { data: sellerRows } = await supabase
+    .from('performance')
+    .select('seller_tax, seller_tax_date')
+    .eq('affiliation', affiliation)
+    .gte('seller_tax_date', first)
+    .lte('seller_tax_date', last);
+
+  const sellerSum = (sellerRows || []).reduce(
+    (a, r) => a + Number(r.seller_tax || 0), 0
+  );
+
+  // buyer_tax 합계
+  const { data: buyerRows } = await supabase
+    .from('performance')
+    .select('buyer_tax, buyer_tax_date')
+    .eq('affiliation', affiliation)
+    .gte('buyer_tax_date', first)
+    .lte('buyer_tax_date', last);
+
+  const buyerSum = (buyerRows || []).reduce(
+    (a, r) => a + Number(r.buyer_tax || 0), 0
+  );
+
+  return sellerSum + buyerSum;
+}
 
 // [ADD] ==== 타지점 이체금액 계산 유틸 ====
 
@@ -324,9 +359,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     ...Object.keys(__LAST_VAT_MAP || {}),
   ]);
   const yms = Array.from(ymSet).sort();
-
-  // === THEAD: 순이익 열 추가 (비용과 지점자율금 사이) ===
-  // 기간 / 잔금매출 합계 / 계좌 잔고1 / 계좌 잔고2 / 총 급여 / 부가세 / 비용 / 순이익 / 지점자율금 / 배당금
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
     <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
@@ -334,7 +366,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
-    <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
+    <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
+    <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
@@ -363,7 +396,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const pmap = payrollByStaff?.[ym] || {};
     const payrollTotal = Object.values(pmap).reduce((a, b) => a + Number(b || 0), 0);
 
-    // 부가세(월별 합계)
+    // 중간예납(월별 합계)
     const vat = Number(__LAST_VAT_MAP?.[ym] || 0);
 
     // 잔고 합계
@@ -402,6 +435,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
@@ -492,11 +526,18 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
+
+      // [ADD] 월별 세금계산서 초기화 + 재계산
+      __LAST_TAX_INVOICE_MAP = {};
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
-        salesMap: {},
-        payrollByStaff: {},
-        costMap: __LAST_COST_MAP || {},
+        salesMap,
+        payrollByStaff,
+        costMap: __LAST_COST_MAP,
         staffList: __LAST_STAFF_LIST
       });
       return;
@@ -518,11 +559,18 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
+      
+      // [ADD] 월별 세금계산서 초기화 + 재계산
+      __LAST_TAX_INVOICE_MAP = {};
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
-        salesMap: {},
-        payrollByStaff: {},
-        costMap: __LAST_COST_MAP || {},
+        salesMap,
+        payrollByStaff,
+        costMap: __LAST_COST_MAP,
         staffList: __LAST_STAFF_LIST
       });
       return;
@@ -588,7 +636,7 @@ async function loadBranchMonthlySales(affiliation) {
 
     const { data: surtaxRows, error: surtaxErr } = await supabase
       .from('branch_settlement_expenses')
-      .select('period_month, affiliation, surtax')
+      .select('period_month, affiliation, prepaid_vat')
       .eq('affiliation', affiliation);
 
     if (surtaxErr) {
@@ -597,7 +645,7 @@ async function loadBranchMonthlySales(affiliation) {
       surtaxRows.forEach(row => {
         const d = new Date(row.period_month);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        __LAST_VAT_MAP[ym] = Number(row.surtax || 0);
+        __LAST_VAT_MAP[ym] = Number(row.prepaid_vat || 0);
       });
     }
 
@@ -652,6 +700,12 @@ async function loadBranchMonthlySales(affiliation) {
 
     // 비용 캐시는 기존대로 유지
     __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) };
+
+    // [ADD] 월별 세금계산서 초기화 + 재계산
+    __LAST_TAX_INVOICE_MAP = {};
+    for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+      __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+    }
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
@@ -775,7 +829,17 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   $id('d_sales').value   = fmtKR(sales);
   $id('d_payroll').value = fmtKR(payrollTotal);
 
-  // [ADD] 부가세 표시: __LAST_VAT_MAP[ym] 사용
+  // [ADD] 세금계산서 표시
+  const taxInvoiceVal = Number(__LAST_TAX_INVOICE_MAP?.[ym] || 0);
+  const taxEl = document.getElementById('d_tax_invoice');
+  if (taxEl) {
+    taxEl.value = fmtKR(taxInvoiceVal);
+    taxEl.readOnly = true;
+    taxEl.disabled = true;
+    taxEl.classList.add('bg-gray-50', 'font-semibold');
+  }
+
+  // [ADD] 중간예납 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
   if (vatEl) vatEl.value = fmtKR(vatVal);
@@ -855,7 +919,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     if (autoAmtEl) autoAmtEl.value = fmtKR(Math.max(0, aFee));
   };
 
-  // [ADD] 부가세 입력 변경 시 재계산
+  // [ADD] 중간예납 입력 변경 시 재계산
   const vatInput = document.getElementById('d_vat');
   if (vatInput) {
     vatInput.addEventListener('input', () => {
@@ -1280,11 +1344,11 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
   const $reserve = document.getElementById('d_reserves');
   const reserve = toNumberKR($reserve?.value);
 
-  // [ADD] 부가세(surtax) Input 읽기
+  // [ADD] 중간예납(prepaid_vat) Input 읽기
   const $vat = document.getElementById('d_vat');
-  const surtax = toNumberKR($vat?.value || 0);
+  const prepaidVat = toNumberKR($vat?.value || 0);
 
-  // [MODIFY] surtax 포함하여 payload 구성
+  // [MODIFY] prepaid_vat 포함하여 payload 구성
   const payload = {
     affiliation: aff,
     period_month,
@@ -1293,7 +1357,7 @@ async function saveBranchMonthlyExpense({ affiliation, ym, totalExpense, memo })
     main_balance: mainBalance,
     sub_balance:  subBalance,
     reserve: reserve,
-    surtax: surtax,                // ← ★ 추가됨
+    prepaid_vat: prepaidVat,
   };
 
   // 존재여부 확인 (컬럼명만 사용, 테이블명 접두사 금지)
@@ -1353,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cost = Number((__LAST_COST_MAP || {})[ym] || 0);
         const memo = document.getElementById('d_memo')?.value || '';
         const aff  = (__LAST_AFFILIATION || '').trim();
-        const surtax = toNumberKR(document.getElementById('d_vat')?.value || 0);
+        const prepaidVat = toNumberKR(document.getElementById('d_vat')?.value || 0);
 
         if (!ym || !aff) {
           showToastGreenRed?.('기간/지점 정보를 확인해주세요.');
@@ -1378,21 +1442,25 @@ document.addEventListener('DOMContentLoaded', () => {
         __LAST_SUB_BAL_MAP[ym]  = toNumberKR($sub?.value);
         const $reserve = document.getElementById('d_reserves');
         __LAST_RESERVE_MAP[ym] = toNumberKR($reserve?.value);
-        __LAST_VAT_MAP[ym] = surtax;
+        __LAST_VAT_MAP[ym] = prepaidVat;
 
         // 캐시 반영 및 토스트
         __LAST_COST_MAP[ym] = cost;
         __LAST_MEMO_MAP[ym] = memo;
         showToastGreenRed?.('저장되었습니다.', { ok: true });
 
-        // 저장 후 테이블 즉시 반영(이 달만 다시 계산해서 렌더 호출)
-        // 간단하게 전체 렌더를 다시 호출
+        // [ADD] 월별 세금계산서 초기화 + 재계산
+        __LAST_TAX_INVOICE_MAP = {};
+        for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+          __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+        }
+
         renderMonthlyTable({
-          titleAffiliation: __LAST_AFFILIATION,
-          salesMap: __LAST_SALES_MAP,
-          payrollByStaff: __LAST_PAYROLL_BY_STAFF,
+          titleAffiliation: affiliation,
+          salesMap,
+          payrollByStaff,
           costMap: __LAST_COST_MAP,
-          staffList: __LAST_STAFF_LIST,
+          staffList: __LAST_STAFF_LIST
         });
       } catch (e) {
         console.error(e);
@@ -1512,12 +1580,23 @@ async function fetchAndApplySettlementState(affiliation, ym) {
     applyLockUI(__LAST_CONFIRMED_MAP[ym] === true);
     // [ADD] 표도 DB값 반영되도록 즉시 재렌더
     try {
+      // [ADD] 세금계산서 다시 계산
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(__LAST_AFFILIATION, ym);
+      }
+
+      // [ADD] 월별 세금계산서 초기화 + 재계산
+      __LAST_TAX_INVOICE_MAP = {};
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+      }
+
       renderMonthlyTable({
-        titleAffiliation: __LAST_AFFILIATION,
-        salesMap: __LAST_SALES_MAP,
-        payrollByStaff: __LAST_PAYROLL_BY_STAFF,
-        costMap: __LAST_COST_MAP,  // ← 방금 갱신된 캐시 사용
-        staffList: __LAST_STAFF_LIST,
+        titleAffiliation: affiliation,
+        salesMap,
+        payrollByStaff,
+        costMap: __LAST_COST_MAP,
+        staffList: __LAST_STAFF_LIST
       });
     } catch (_) {}
 
