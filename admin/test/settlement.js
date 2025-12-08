@@ -527,18 +527,17 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
 
-      // [ADD] 월별 세금계산서 합계 로드
+      // [ADD] 월별 세금계산서 초기화 + 재계산
       __LAST_TAX_INVOICE_MAP = {};
-
       for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
         __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
       }
 
       renderMonthlyTable({
         titleAffiliation: affiliation,
-        salesMap: {},
-        payrollByStaff: {},
-        costMap: __LAST_COST_MAP || {},
+        salesMap,
+        payrollByStaff,
+        costMap: __LAST_COST_MAP,
         staffList: __LAST_STAFF_LIST
       });
       return;
@@ -701,6 +700,12 @@ async function loadBranchMonthlySales(affiliation) {
 
     // 비용 캐시는 기존대로 유지
     __LAST_COST_MAP = { ...(__LAST_COST_MAP || {}) };
+
+    // [ADD] 월별 세금계산서 초기화 + 재계산
+    __LAST_TAX_INVOICE_MAP = {};
+    for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+      __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+    }
 
     renderMonthlyTable({
       titleAffiliation: affiliation,
@@ -1434,14 +1439,18 @@ document.addEventListener('DOMContentLoaded', () => {
         __LAST_MEMO_MAP[ym] = memo;
         showToastGreenRed?.('저장되었습니다.', { ok: true });
 
-        // 저장 후 테이블 즉시 반영(이 달만 다시 계산해서 렌더 호출)
-        // 간단하게 전체 렌더를 다시 호출
+        // [ADD] 월별 세금계산서 초기화 + 재계산
+        __LAST_TAX_INVOICE_MAP = {};
+        for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+          __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+        }
+
         renderMonthlyTable({
-          titleAffiliation: __LAST_AFFILIATION,
-          salesMap: __LAST_SALES_MAP,
-          payrollByStaff: __LAST_PAYROLL_BY_STAFF,
+          titleAffiliation: affiliation,
+          salesMap,
+          payrollByStaff,
           costMap: __LAST_COST_MAP,
-          staffList: __LAST_STAFF_LIST,
+          staffList: __LAST_STAFF_LIST
         });
       } catch (e) {
         console.error(e);
@@ -1566,14 +1575,19 @@ async function fetchAndApplySettlementState(affiliation, ym) {
         __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(__LAST_AFFILIATION, ym);
       }
 
-      renderMonthlyTable({
-        titleAffiliation: __LAST_AFFILIATION,
-        salesMap: __LAST_SALES_MAP,
-        payrollByStaff: __LAST_PAYROLL_BY_STAFF,
-        costMap: __LAST_COST_MAP,
-        staffList: __LAST_STAFF_LIST,
-      });
+      // [ADD] 월별 세금계산서 초기화 + 재계산
+      __LAST_TAX_INVOICE_MAP = {};
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+      }
 
+      renderMonthlyTable({
+        titleAffiliation: affiliation,
+        salesMap,
+        payrollByStaff,
+        costMap: __LAST_COST_MAP,
+        staffList: __LAST_STAFF_LIST
+      });
     } catch (_) {}
 
   } catch (e) {
