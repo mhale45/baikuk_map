@@ -41,6 +41,7 @@ sub_balance : int8
 reserve : int8
 surtax : int8
 prepaid_vat : int8
+tax_invoice : int8
 
 - ad_baikuk_listings
 ad_listing_id : int8

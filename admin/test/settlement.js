@@ -21,13 +21,16 @@ let __LAST_MAIN_BAL_MAP = {}; // { 'YYYY-MM': number }  // main_balance
 let __LAST_SUB_BAL_MAP  = {}; // { 'YYYY-MM': number }  // sub_balance
 let __LAST_RESERVE_MAP = {};  // [ADD] 월별 유보금
 
-
 // 직원 목록(이 지점의 재직자) 및 직원별 급여 맵
 let __LAST_STAFF_LIST = []; // [{id, name}]
 let __LAST_PAYROLL_BY_STAFF = {}; // { 'YYYY-MM': { staffId: amount(급여, 50%적용) } }
 
 // [ADD] 월별 메모 캐시 (미리보기/저장 후 재표시용)
 let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
+
+// [ADD] 월별 세금계산서 합계 캐시
+let __LAST_TAX_INVOICE_MAP = {};  // { 'YYYY-MM': number }
+
 
 // [ADD] 로그인 사용자의 권한/소속 지점
 let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
@@ -46,6 +49,38 @@ let __LAST_AUTONOMOUS_RATE = 0;
 
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
+
+// [ADD] 특정 지점의 특정 월 세금계산서 합계 계산
+async function loadMonthlyTaxInvoice(affiliation, ym) {
+  const first = `${ym}-01`;
+  const last  = getLastDayOfMonth(ym);
+
+  // seller_tax 합계
+  const { data: sellerRows } = await supabase
+    .from('performance')
+    .select('seller_tax, seller_tax_date')
+    .eq('affiliation', affiliation)
+    .gte('seller_tax_date', first)
+    .lte('seller_tax_date', last);
+
+  const sellerSum = (sellerRows || []).reduce(
+    (a, r) => a + Number(r.seller_tax || 0), 0
+  );
+
+  // buyer_tax 합계
+  const { data: buyerRows } = await supabase
+    .from('performance')
+    .select('buyer_tax, buyer_tax_date')
+    .eq('affiliation', affiliation)
+    .gte('buyer_tax_date', first)
+    .lte('buyer_tax_date', last);
+
+  const buyerSum = (buyerRows || []).reduce(
+    (a, r) => a + Number(r.buyer_tax || 0), 0
+  );
+
+  return sellerSum + buyerSum;
+}
 
 // [ADD] ==== 타지점 이체금액 계산 유틸 ====
 
@@ -331,6 +366,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
+    <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
     <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
@@ -399,6 +435,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
@@ -489,6 +526,14 @@ async function loadBranchMonthlySales(affiliation) {
       __LAST_PAYROLL_TOTAL_MAP = {};
       __LAST_PAYROLL_BY_STAFF = {};
       __LAST_VAT_MAP = {};
+
+      // [ADD] 월별 세금계산서 합계 로드
+      __LAST_TAX_INVOICE_MAP = {};
+
+      for (const ym of Object.keys(__LAST_SALES_MAP || {})) {
+        __LAST_TAX_INVOICE_MAP[ym] = await loadMonthlyTaxInvoice(affiliation, ym);
+      }
+
       renderMonthlyTable({
         titleAffiliation: affiliation,
         salesMap: {},
