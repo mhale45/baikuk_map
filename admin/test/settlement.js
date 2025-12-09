@@ -458,7 +458,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
-    const expectedVat = computeExpectedVat(ym);
+    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
     __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
 
     tr.innerHTML = `
