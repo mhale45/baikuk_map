@@ -1774,3 +1774,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+document.getElementById('last-month-filter')?.addEventListener('click', () => {
+  const fieldEl = document.getElementById('filter-date-field');
+  const startEl = document.getElementById('filter-start-date');
+  const endEl   = document.getElementById('filter-end-date');
+
+  // 지난달 계산
+  const now = new Date();
+  const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const month = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0); // 0일 = 전달 마지막날
+
+  // YYYY-MM-DD 형태로 변환
+  const toYMD = d => d.toISOString().slice(0, 10);
+
+  // 잔금일 기준 자동 선택
+  fieldEl.value = "balance_date";
+  startEl.value = toYMD(firstDay);
+  endEl.value   = toYMD(lastDay);
+
+  // 테이블 새로고침
+  Promise.resolve(loadPerformanceTable()).then(() => {
+    window.__updateSalesTotalFromIndex?.();
+    window.updateDepositVisibility?.();
+  });
+});
