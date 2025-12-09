@@ -439,14 +439,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    
-    // realVat 계산
-    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
-    const prepaidVat = Number(__LAST_VAT_MAP?.[ym] || 0);
-    const realVat = expectedVat - prepaidVat;
-
-    // 순이익 계산기반(중간예납이 아닌 realVat 사용)
-    const baseForAuto = balanceTotal - payrollTotal - realVat - RESERVE;
+    const baseForAuto = balanceTotal - payrollTotal - vat - RESERVE;
 
     // [NEW] 순이익(자율금 산정 전)
     const netIncome = Math.round(baseForAuto);
@@ -466,6 +459,10 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
+    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
+    __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
+    const prepaidVat = vat; // 기존 중간예납 값
+    const realVat = expectedVat - prepaidVat; // ← 새로 추가되는 ‘부가세’
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
@@ -942,14 +939,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     // 자율금 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
 
-    // realVat 계산 추가
-    const expectedVat = __LAST_EXPECTED_VAT_MAP?.[ym] || 0;
-    const prepaidVat  = Number(__LAST_VAT_MAP?.[ym] || 0);
-    const realVat = expectedVat - prepaidVat;
-
-    // 수정된 순이익 계산식 (vatVal → realVat)
-    const baseForAuto =
-      balanceTotalNow - Number(payrollTotal || 0) - realVat - RESERVE;
+    // 순이익 계산 기반
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
 
     // 순이익
     const netIncome = Math.round(baseForAuto);
