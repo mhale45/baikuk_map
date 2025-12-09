@@ -397,6 +397,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
     <th class="border px-2 py-2 whitespace-nowrap">반기 부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
+    <th class="border px-2 py-2 whitespace-nowrap">부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
     <th class="border px-2 py-2 whitespace-nowrap">총비용</th>
@@ -460,21 +461,24 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
     const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
     __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
+    const prepaidVat = vat; // 기존 중간예납 값
+    const realVat = expectedVat - prepaidVat; // ← 새로 추가되는 ‘부가세’
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
       <td class="border px-2 py-2 text-right ">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(realVat)}</td>
+      <td class="border px-2 py-2 text-right">${fmt(reserve)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(dispFinalProfit)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
