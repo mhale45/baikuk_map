@@ -463,7 +463,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-800">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(payrollTotal)}</td>
@@ -474,7 +474,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(dispFinalProfit)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-800">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
