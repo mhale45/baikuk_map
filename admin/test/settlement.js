@@ -439,10 +439,8 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotal - payrollTotal - vat - RESERVE;
-
-    // [NEW] 순이익(자율금 산정 전)
-    const netIncome = Math.round(baseForAuto);
+    const baseForAuto = balanceTotal - payrollTotal - realVat - RESERVE;
+    const netIncome   = Math.round(baseForAuto);
     
     // [NEW] 총비용 = 매출합계 - 총급여 - 순이익 (드로어와 동일한 정의)
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
