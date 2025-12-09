@@ -389,7 +389,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
   const yms = Array.from(ymSet).sort();
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
-    <th class="border px-2 py-2 whitespace-nowrap">기간(YYYY-MM)</th>
+    <th class="border px-2 py-2 whitespace-nowrap">기간</th>
     <th class="border px-2 py-2 whitespace-nowrap">잔금매출 합계</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고1</th>
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
@@ -463,10 +463,10 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
       <td class="border px-2 py-2 text-right ">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
@@ -474,7 +474,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-amber-700">${fmt(dispFinalProfit)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-700">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
