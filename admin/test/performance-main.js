@@ -1786,12 +1786,20 @@ document.getElementById('last-month-filter')?.addEventListener('click', () => {
   const month = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
 
   const firstDay = new Date(year, month, 1);
-  const lastDay  = new Date(year, month + 1, 0); // 0일 = 전달 마지막날
+  const lastDay  = new Date(year, month + 1, 0);
 
-  // YYYY-MM-DD 형태로 변환
-  const toYMD = d => d.toISOString().slice(0, 10);
+  const toYMD = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  };
 
-  // 잔금일 기준 자동 선택
+  // 기존 invalid 값 제거 (★ 핵심)
+  startEl.value = '';
+  endEl.value = '';
+
+  // 정상 값 입력
   fieldEl.value = "balance_date";
   startEl.value = toYMD(firstDay);
   endEl.value   = toYMD(lastDay);
