@@ -937,14 +937,23 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     // 자율금 비율
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
 
+    // 중간예납(prepaid VAT)
+    const prepaidVat = vatVal;
+
+    // 반기 부가세(expected VAT)
+    const expectedVat = __LAST_EXPECTED_VAT_MAP?.[ym] || 0;
+
+    // 실제 부가세(real VAT)
+    const realVat = expectedVat - prepaidVat;
+
     // 순이익 계산 기반
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - realVat - RESERVE;
 
     // 순이익
     const netIncome = Math.round(baseForAuto);
 
     // 자율금
-    const aFee = Math.round(baseForAuto * rate);
+    const aFee = Math.round(netIncome * rate);
 
     // 총비용 = 매출 - 급여 - 순이익
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
