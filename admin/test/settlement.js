@@ -31,7 +31,7 @@ let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
 // [ADD] 월별 세금계산서 합계 캐시
 let __LAST_TAX_INVOICE_MAP = {};  // { 'YYYY-MM': number }
 
-// [ADD] 월별 예정 부가세 캐시
+// [ADD] 분기 부가세 캐시
 let __LAST_EXPECTED_VAT_MAP = {};  // { 'YYYY-MM': number }
 
 
@@ -53,7 +53,7 @@ let __LAST_AUTONOMOUS_RATE = 0;
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
 
-// [ADD] 해당 월의 예정 부가세 계산
+// [ADD] 해당 월의 분기 부가세 계산
 function computeExpectedVat(ym) {
   if (!ym) return 0;
 
@@ -395,7 +395,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
-    <th class="border px-2 py-2 whitespace-nowrap">예정 부가세</th>
+    <th class="border px-2 py-2 whitespace-nowrap">분기 부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
