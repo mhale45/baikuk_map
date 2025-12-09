@@ -466,19 +466,19 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(sales)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(mainBal)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
       <td class="border px-2 py-2 text-right ">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(realVat)}</td>
-      <td class="border px-2 py-2 text-right">${fmt(reserve)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(dispFinalProfit)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(dispFinalProfit)}</td>
     `;
 
     // 행 클릭 → 드로어 오픈
@@ -886,6 +886,15 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
   if (vatEl) vatEl.value = fmtKR(vatVal);
+
+  // [ADD] 부가세(real VAT) 표시
+  const realVatEl = document.getElementById('d_real_vat');
+  if (realVatEl) {
+    const expectedVat = __LAST_EXPECTED_VAT_MAP?.[ym] || 0;
+    const prepaidVat = Number(__LAST_VAT_MAP?.[ym] || 0);
+    const realVat = expectedVat - prepaidVat;
+    realVatEl.value = fmtKR(realVat);
+  }
 
   // 직원별 급여 목록 렌더
   const listEl = $id('d_payroll_breakdown');

@@ -887,6 +887,15 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
   const vatEl = $id('d_vat');
   if (vatEl) vatEl.value = fmtKR(vatVal);
 
+  // [ADD] 부가세(real VAT) 표시
+  const realVatEl = document.getElementById('d_real_vat');
+  if (realVatEl) {
+    const expectedVat = __LAST_EXPECTED_VAT_MAP?.[ym] || 0;
+    const prepaidVat = Number(__LAST_VAT_MAP?.[ym] || 0);
+    const realVat = expectedVat - prepaidVat;
+    realVatEl.value = fmtKR(realVat);
+  }
+
   // 직원별 급여 목록 렌더
   const listEl = $id('d_payroll_breakdown');
   if (listEl) {
