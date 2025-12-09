@@ -465,6 +465,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
+    const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
