@@ -439,8 +439,10 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     // 자율금 계산을 위한 기반
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
-    const baseForAuto = balanceTotal - payrollTotal - realVat - RESERVE;
-    const netIncome   = Math.round(baseForAuto);
+    const baseForAuto = balanceTotal - payrollTotal - vat - RESERVE;
+
+    // [NEW] 순이익(자율금 산정 전)
+    const netIncome = Math.round(baseForAuto);
     
     // [NEW] 총비용 = 매출합계 - 총급여 - 순이익 (드로어와 동일한 정의)
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
@@ -921,9 +923,8 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
-    const expectedVat = Number(__LAST_EXPECTED_VAT_MAP?.[ym] || 0);
-    const prepaidVat  = Number(__LAST_VAT_MAP?.[ym] || 0);
-    const realVat     = expectedVat - prepaidVat;
+    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
+
     // 잔고 읽기
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
@@ -939,7 +940,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
 
     // 순이익 계산 기반
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - realVat - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
 
     // 순이익
     const netIncome = Math.round(baseForAuto);
