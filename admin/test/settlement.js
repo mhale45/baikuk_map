@@ -434,33 +434,36 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const subBal  = Number(__LAST_SUB_BAL_MAP?.[ym]  || 0);
     const balanceTotal = mainBal + subBal;
 
-    // 유보금(입력 저장된 값 사용)
+    // 유보금
     const RESERVE = Number(__LAST_RESERVE_MAP?.[ym] || 0);
 
-    // 자율금 계산을 위한 기반
-    const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
+    // expected VAT
+    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
+    __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
+
+    // 중간예납
+    const prepaidVat = vat;
+
+    // 실제 부가세
+    const realVat = expectedVat - prepaidVat;
+
+    // ✅ 순이익(실부가세 적용)
     const baseForAuto = balanceTotal - payrollTotal - realVat - RESERVE;
-    const netIncome   = Math.round(baseForAuto);
-    
-    // [NEW] 총비용 = 매출합계 - 총급여 - 순이익 (드로어와 동일한 정의)
+    const netIncome = Math.round(baseForAuto);
+
+    // 총비용
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
 
-    // 지점자율금 = 순이익 × 비율
+    // 자율금 & 배당금
     const autonomousFee = Math.round(netIncome * autonomousRate);
-
-    // 최종 배당금
     const finalProfit = Math.round(netIncome - autonomousFee);
-    // ▼▼▼ 추가: 음수는 표시만 0으로
+
     const dispAutonomousFee = Math.max(0, autonomousFee);
     const dispFinalProfit   = Math.max(0, finalProfit);
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
-    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
-    __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
-    const prepaidVat = vat; // 기존 중간예납 값
-    const realVat = expectedVat - prepaidVat; // ← 새로 추가되는 ‘부가세’
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
