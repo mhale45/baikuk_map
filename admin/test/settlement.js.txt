@@ -395,7 +395,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
-    <th class="border px-2 py-2 whitespace-nowrap">분기 부가세</th>
+    <th class="border px-2 py-2 whitespace-nowrap">반기 부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
@@ -872,6 +872,12 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     taxEl.classList.add('bg-gray-50', 'font-semibold');
   }
 
+  // [ADD] 반기 부가세 표시
+  const expVatEl = document.getElementById('d_expected_vat');
+  if (expVatEl) {
+    const expectedVat = __LAST_EXPECTED_VAT_MAP?.[ym] || 0;
+    expVatEl.value = fmtKR(expectedVat);
+  }
   // [ADD] 중간예납 표시: __LAST_VAT_MAP[ym] 사용
   const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
   const vatEl = $id('d_vat');
