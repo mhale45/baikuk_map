@@ -122,7 +122,7 @@
             <span class="text-sm text-gray-600">반기 부가세</span>
             <input id="d_expected_vat" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
-            <span class="text-sm text-gray-600">중간예납</span>
+            <span class="text-sm  text-red-600">중간예납*</span>
             <input id="d_vat" type="text"
               class="mt-1 border rounded px-3 py-2 text-right"
               placeholder="중간예납한 부가세를 입력하세요">
@@ -132,7 +132,7 @@
 
           </label> 
           <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">유보금</span>
+            <span class="text-sm text-red-600">유보금*</span>
             <input id="d_reserves" type="text"
                   class="border rounded px-3 py-2 text-right text-red-600">
           </label>
