@@ -185,6 +185,7 @@
           <div class="flex items-end gap-2">
             <button id="apply-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">적용</button>
             <button id="reset-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">이번달</button>
+            <button id="last-month-filter" class="border rounded px-3 py-2 text-white bg-neutral-500 hover:bg-neutral-600">지난달</button>
             <span id="salesTotal" class="font-semibold text-base">매출 합계: 0원</span>
             <span id="depositAmount" class="font-semibold text-base ml-4 hidden">입금액: 0원</span>
             <div id="branchBreakdowns" class="ml-6 text-sm text-gray-700 flex gap-6">
