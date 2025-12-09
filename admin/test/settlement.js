@@ -441,14 +441,6 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const autonomousRate = Number(__LAST_AUTONOMOUS_RATE || 0);
     const baseForAuto = balanceTotal - payrollTotal - vat - RESERVE;
 
-    // 지점자율금 = 순이익 × 비율
-    const autonomousFee = Math.round(netIncome * autonomousRate);
-
-    // 최종 배당금
-    const finalProfit = Math.round(netIncome - autonomousFee);
-    // ▼▼▼ 추가: 음수는 표시만 0으로
-    const dispAutonomousFee = Math.max(0, autonomousFee);
-    const dispFinalProfit   = Math.max(0, finalProfit);
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
@@ -459,6 +451,14 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const realVat = expectedVat - prepaidVat; // ← 새로 추가되는 ‘부가세’
     const netIncome = Math.round(balanceTotal - payrollTotal - realVat - RESERVE);
     const totalCost = Math.round(Number(sales || 0) - Number(payrollTotal || 0) - netIncome);
+    // 지점자율금 = 순이익 × 비율
+    const autonomousFee = Math.round(netIncome * autonomousRate);
+
+    // 최종 배당금
+    const finalProfit = Math.round(netIncome - autonomousFee);
+    // ▼▼▼ 추가: 음수는 표시만 0으로
+    const dispAutonomousFee = Math.max(0, autonomousFee);
+    const dispFinalProfit   = Math.max(0, finalProfit);
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
