@@ -474,7 +474,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right ">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(realVat)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(reserve)}</td>
+      <td class="border px-2 py-2 text-right text-red-600">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
