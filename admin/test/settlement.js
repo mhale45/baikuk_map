@@ -468,7 +468,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
-      <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(expectedVat)}</td>
+      <td class="border px-2 py-2 text-right ">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
