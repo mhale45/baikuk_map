@@ -923,8 +923,9 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
 
   const toNumber = (v) => Number(String(v || '0').replace(/[^\d.-]/g, '')) || 0;
   const recompute = () => {
-    const vatVal = Number(__LAST_VAT_MAP?.[ym] || 0);
-
+    const expectedVat = Number(__LAST_EXPECTED_VAT_MAP?.[ym] || 0);
+    const prepaidVat  = Number(__LAST_VAT_MAP?.[ym] || 0);
+    const realVat     = expectedVat - prepaidVat;
     // 잔고 읽기
     const mainEl = document.getElementById('input-main-balance');
     const subEl  = document.getElementById('input-sub-balance');
@@ -940,7 +941,7 @@ function openSettlementDrawer({ affiliation, ym, sales, payrollTotal, pmap, staf
     const rate = Number(__LAST_AUTONOMOUS_RATE || 0);
 
     // 순이익 계산 기반
-    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - vatVal - RESERVE;
+    const baseForAuto = balanceTotalNow - Number(payrollTotal || 0) - realVat - RESERVE;
 
     // 순이익
     const netIncome = Math.round(baseForAuto);
