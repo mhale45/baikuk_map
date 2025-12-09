@@ -466,7 +466,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
 
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(sales)}</td>
       <td class="border px-2 py-2 text-right">${fmt(mainBal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(payrollTotal)}</td>
@@ -475,7 +475,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(realVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(reserve)}</td>
-      <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
+      <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(netIncome)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-red-600">${fmt(totalCost)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-purple-700">${fmt(dispAutonomousFee)}</td>
       <td class="border px-2 py-2 text-right font-semibold text-green-600">${fmt(dispFinalProfit)}</td>
