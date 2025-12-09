@@ -31,6 +31,9 @@ let __LAST_MEMO_MAP = {}; // { 'YYYY-MM': '...' }
 // [ADD] 월별 세금계산서 합계 캐시
 let __LAST_TAX_INVOICE_MAP = {};  // { 'YYYY-MM': number }
 
+// [ADD] 월별 예정 부가세 캐시
+let __LAST_EXPECTED_VAT_MAP = {};  // { 'YYYY-MM': number }
+
 
 // [ADD] 로그인 사용자의 권한/소속 지점
 let __MY_ROLE = '직원';         // '직원' | '지점장' | '관리자'
@@ -49,6 +52,31 @@ let __LAST_AUTONOMOUS_RATE = 0;
 
 // 확정 상태 캐시: { 'YYYY-MM': true }
 let __LAST_CONFIRMED_MAP = {};
+
+// [ADD] 해당 월의 예정 부가세 계산
+function computeExpectedVat(ym) {
+  if (!ym) return 0;
+
+  const [year, month] = ym.split('-').map(Number);
+  let startMonth, endMonth = month;
+
+  if (month <= 6) {
+    // 1~6월 → 1월부터 해당 월까지
+    startMonth = 1;
+  } else {
+    // 7~12월 → 7월부터 해당 월까지
+    startMonth = 7;
+  }
+
+  let sum = 0;
+
+  for (let m = startMonth; m <= endMonth; m++) {
+    const key = `${year}-${String(m).padStart(2, '0')}`;
+    sum += Number(__LAST_TAX_INVOICE_MAP[key] || 0);
+  }
+
+  return sum;
+}
 
 // [ADD] 특정 지점의 특정 월 세금계산서 합계 계산
 async function loadMonthlyTaxInvoice(affiliation, ym) {
@@ -367,6 +395,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     <th class="border px-2 py-2 whitespace-nowrap">계좌 잔고2</th>
     <th class="border px-2 py-2 whitespace-nowrap">총 급여</th>
     <th class="border px-2 py-2 whitespace-nowrap">세금계산서</th>
+    <th class="border px-2 py-2 whitespace-nowrap">예정 부가세</th>
     <th class="border px-2 py-2 whitespace-nowrap">중간예납</th>
     <th class="border px-2 py-2 whitespace-nowrap">유보금</th>
     <th class="border px-2 py-2 whitespace-nowrap">순이익</th>
@@ -429,6 +458,9 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-yellow-50 cursor-pointer';
     const reserve = Number(__LAST_RESERVE_MAP?.[ym] || 0);
+    const expectedVat = Math.round((computeExpectedVat(ym) / 1.1) * 0.1);
+    __LAST_EXPECTED_VAT_MAP[ym] = expectedVat;
+
     tr.innerHTML = `
       <td class="border px-2 py-2 text-center">${ym}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(sales)}</td>
@@ -436,6 +468,7 @@ function renderMonthlyTable({ titleAffiliation, salesMap, payrollByStaff, costMa
       <td class="border px-2 py-2 text-right">${fmt(subBal)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(payrollTotal)}</td>
       <td class="border px-2 py-2 text-right">${fmt(__LAST_TAX_INVOICE_MAP[ym] || 0)}</td>
+      <td class="border px-2 py-2 text-right font-semibold">${fmt(expectedVat)}</td>
       <td class="border px-2 py-2 text-right">${fmt(vat)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(reserve)}</td>
       <td class="border px-2 py-2 text-right font-semibold">${fmt(netIncome)}</td>
