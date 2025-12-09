@@ -106,6 +106,16 @@
                   class="border rounded px-3 py-2 bg-gray-50 text-right text-green-600">
           </label>
           <label class="flex flex-col gap-1">
+            <span class="text-sm text-gray-600">총 급여(50%)</span>
+            <input id="d_payroll" type="text" readonly
+                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-red-600"> 
+            <!-- 직원별 급여 브레이크다운 -->
+            <div id="d_payroll_breakdown" class="mt-2 border rounded">
+              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
+            </div>
+          </label>
+
+          <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">세금계산서</span>
             <input id="d_tax_invoice" type="text" readonly
                   class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold">
@@ -121,16 +131,6 @@
               class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-red-600">
 
           </label> 
-          <label class="flex flex-col gap-1">
-            <span class="text-sm text-gray-600">총 급여(50%)</span>
-            <input id="d_payroll" type="text" readonly
-                  class="border rounded px-3 py-2 bg-gray-50 text-right font-semibold text-red-600"> 
-            <!-- 직원별 급여 브레이크다운 -->
-            <div id="d_payroll_breakdown" class="mt-2 border rounded">
-              <!-- JS로 직원별 급여 행이 렌더링됩니다 -->
-            </div>
-          </label>
-
           <label class="flex flex-col gap-1">
             <span class="text-sm text-gray-600">유보금</span>
             <input id="d_reserves" type="text"
