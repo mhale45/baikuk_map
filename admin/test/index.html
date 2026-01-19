@@ -220,7 +220,7 @@
                     <th class="resizable p-1 border-r text-base text-center" style="width: 4.5rem;">수익률<div
                         class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 5rem;">평당가(전용)<div
+                    <th class="resizable p-1 border-r text-base text-center" style="width: 6.5rem;">평당가(전용)<div
                         class="resize-handle"></div>
                     </th>
                     <th class="resizable p-1 border-r text-base text-center" style="width: 15rem;">내용<div
@@ -420,11 +420,16 @@
         if (!isNaN(val)) pricePerPyStr = val.toLocaleString();
       }
 
-      // 수익률 포맷 (xx.x%)
+      // 수익률 계산 (총월세*12) / (매매가-총보증금) * 100
       let roiStr = '-';
-      if (listing.roi !== null && listing.roi !== undefined) {
-        const r = Number(listing.roi);
-        if (!isNaN(r)) roiStr = r.toFixed(1) + '%';
+      const monthlyRent = Number(listing.total_rent) || 0;
+      const salePrice = Number(listing.sale_price) || 0;
+      const totalDeposit = Number(listing.total_deposit) || 0;
+      const investment = salePrice - totalDeposit;
+
+      if (investment > 0) {
+        const r = (monthlyRent * 12 / investment) * 100;
+        roiStr = r.toFixed(1) + '%';
       }
 
       const dataToDisplay = {
