@@ -217,6 +217,12 @@
                     <th class="resizable p-1 border-r text-base text-center" style="width: 4.7rem;">전용(평)<div
                         class="resize-handle"></div>
                     </th>
+                    <th class="resizable p-1 border-r text-base text-center" style="width: 4.5rem;">수익률<div
+                        class="resize-handle"></div>
+                    </th>
+                    <th class="resizable p-1 border-r text-base text-center" style="width: 5rem;">평당가(전용)<div
+                        class="resize-handle"></div>
+                    </th>
                     <th class="resizable p-1 border-r text-base text-center" style="width: 15rem;">내용<div
                         class="resize-handle"></div>
                     </th>
@@ -330,6 +336,8 @@
           <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="total_deposit_${i}" /></td>
           <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="total_rent_${i}" /></td>
           <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" /></td>
+          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="roi_${i}" /></td>
+          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="price_per_py_${i}" /></td>
           <td class="p-1 border text-center"><textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none" data-field="description_${i}"></textarea></td>`;
         listingsBody.appendChild(row); applyRowStriping();
       }
@@ -367,7 +375,7 @@
     }
 
     function clearListingRow(index) {
-      ['listing_title', 'full_address', 'combined_unit', 'total_deposit', 'total_rent', 'sale_price', 'area_py', 'description']
+      ['listing_title', 'full_address', 'combined_unit', 'total_deposit', 'total_rent', 'sale_price', 'area_py', 'roi', 'price_per_py', 'description']
         .forEach(field => {
           const el = document.querySelector(`[data-field="${field}_${index}"]`);
           if (!el) return;
@@ -395,13 +403,29 @@
 
       const { data: listing, error } = await supabase
         .from('baikukdbtest')
-        .select('listing_title, full_address, addr_compare, unit_info, floor, sale_price, total_deposit, total_rent, area_py')
+        .select('listing_title, full_address, addr_compare, unit_info, floor, sale_price, total_deposit, total_rent, area_py, roi')
         .eq('listing_id', numericId).single();
 
       if (error || !listing) { showToast(`매물번호 ${listingId} 를 찾을 수 없습니다.`); return; }
 
       const buildingName = (window.buildingMap || new Map()).get(listing.addr_compare) ?? '-';
       const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
+
+      // 평당가 계산 (매매가 / 전용면적)
+      let pricePerPyStr = '-';
+      if (listing.sale_price && listing.area_py) {
+        // sale_price(만원) / area_py(평) -> 만원/평
+        // 1의자리까지 반올림
+        const val = Math.round(Number(listing.sale_price) / Number(listing.area_py));
+        if (!isNaN(val)) pricePerPyStr = val.toLocaleString();
+      }
+
+      // 수익률 포맷 (xx.x%)
+      let roiStr = '-';
+      if (listing.roi !== null && listing.roi !== undefined) {
+        const r = Number(listing.roi);
+        if (!isNaN(r)) roiStr = r.toFixed(1) + '%';
+      }
 
       const dataToDisplay = {
         listing_title: listing.listing_title,
@@ -410,7 +434,9 @@
         total_deposit: listing.total_deposit,
         total_rent: listing.total_rent,
         sale_price: listing.sale_price,
-        area_py: listing.area_py
+        area_py: listing.area_py,
+        roi: roiStr,
+        price_per_py: pricePerPyStr
       };
 
       updateListingsTableByInputs();
@@ -428,11 +454,19 @@
       Object.entries(dataToDisplay).forEach(([field, value]) => {
         const el = document.querySelector(`[data-field="${field}_${rowIndex}"]`);
         if (!el) return;
-        const isMoney = ['sale_price', 'total_deposit', 'total_rent'].includes(field);
-        const formatted = isMoney ? formatKoreanMoney(value)
-          : field === 'area_py' ? (isNaN(Number(value)) ? '-' : Number(value).toFixed(1))
-            : field === 'full_address' ? (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-')
-              : (value ?? '-');
+
+        let formatted = value;
+        // 이미 위에서 포맷팅한 roi, price_per_py는 건너뛰고 나머지 money 포맷
+        if (['sale_price', 'total_deposit', 'total_rent'].includes(field)) {
+          formatted = formatKoreanMoney(value);
+        } else if (field === 'area_py') {
+          formatted = (isNaN(Number(value)) ? '-' : Number(value).toFixed(1));
+        } else if (field === 'full_address') {
+          formatted = (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-');
+        } else {
+          formatted = (value ?? '-');
+        }
+
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = formatted; else el.textContent = formatted;
       });
 
