@@ -121,6 +121,87 @@
       // TODO: staffId/affiliation에 맞춰 우측 리스트 쿼리/필터 갱신
       // console.log('[adc] filter changed:', { staffId, affiliation });
     });
+
+    // [ADD] 네이버 버튼 클릭 이벤트
+    document.getElementById('naver-link').addEventListener('click', async () => {
+      // 선택 상태 UI 업데이트
+      document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
+      document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
+      document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
+
+      const panel = document.getElementById('employee-listings-panel');
+      const meta = document.getElementById('employee-listings-meta');
+      const resultBox = document.getElementById('employee-listings');
+
+      panel.style.display = '';
+      meta.textContent = '네이버 매물 불러오는 중...';
+      resultBox.innerHTML = '';
+
+      try {
+        // window.supabase는 ad_censorship.js에서 설정됨
+        if (!window.supabase) {
+           throw new Error("Supabase is not initialized.");
+        }
+        
+        const { data, error } = await window.supabase
+          .from('naver_rent_listings')
+          .select('listing_id, feature, full_address, deposit_price, net_area, rent_price, floor_info, realtor');
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          resultBox.innerHTML = '<div style="padding:8px; color:#666;">조회된 매물이 없습니다.</div>';
+          meta.textContent = '최신 업데이트 기록이 없습니다 / 네이버 매물 0건';
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
+        table.innerHTML = `
+        <thead class="bg-gray-100 sticky top-0 z-10">
+            <tr>
+              <th class="border border-gray-300 px-3 py-2 text-left">listing_id</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">feature</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">full_address</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">deposit_price</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">net_area</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">rent_price</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">floor_info</th>
+              <th class="border border-gray-300 px-3 py-2 text-left">realtor</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+        data.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border border-gray-300 px-3 py-1"><a href="https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.listing_id || ''}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.listing_id || '-'}</a></td>
+            <td class="border border-gray-300 px-3 py-1">
+              <div class="w-[15rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.feature || ''}">
+                ${item.feature || '-'}
+              </div>
+            </td>
+            <td class="border border-gray-300 px-3 py-1">${item.full_address || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.deposit_price || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.net_area || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.rent_price || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.floor_info || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.realtor || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        resultBox.appendChild(table);
+        meta.textContent = \`조회 완료 (네이버 매물 \${data.length}건)\`;
+
+      } catch (err) {
+        console.error(err);
+        meta.textContent = '매물 조회 중 오류가 발생했습니다.';
+        resultBox.innerHTML = '';
+      }
+    });
   </script>
 </body>
 
