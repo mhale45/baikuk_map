@@ -92,7 +92,8 @@
 
     <!-- [ADD] 직원 패널 -->
     <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
-      <div id="naver-link" class="grade-header text-center" style="margin: 0.5rem; background-color: #03c75a; color: white; cursor: pointer;">
+      <div id="naver-link" class="grade-header text-center"
+        style="margin: 0.5rem; background-color: #03c75a; color: white; cursor: pointer;">
         네이버
       </div>
       <div id="staff-list" class="overflow-y-auto">
@@ -140,9 +141,9 @@
       try {
         // window.supabase는 ad_censorship.js에서 설정됨
         if (!window.supabase) {
-           throw new Error("Supabase is not initialized.");
+          throw new Error("Supabase is not initialized.");
         }
-        
+
         const { data, error } = await window.supabase
           .from('naver_rent_listings')
           .select('listing_id, feature, full_address, deposit_price, net_area, rent_price, floor_info, realtor');
@@ -194,7 +195,7 @@
         });
 
         resultBox.appendChild(table);
-        meta.textContent = \`조회 완료 (네이버 매물 \${data.length}건)\`;
+        meta.textContent = `조회 완료 (네이버 매물 ${data.length}건)`;
 
       } catch (err) {
         console.error(err);
