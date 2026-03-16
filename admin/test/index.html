@@ -3,115 +3,32 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>매매추천</title>
+  <title>임대추천</title>
   <link rel="icon" type="image/png"
     href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .shadow-right {
-      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
-    }
-
-    th.resizable {
-      position: relative;
-      min-width: 40px;
-      white-space: nowrap;
-    }
-
-    .resize-handle {
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: 0.4rem;
-      height: 100%;
-      cursor: col-resize;
-      z-index: 10;
-      background-color: transparent;
-    }
-  </style>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.3/+esm';
-
-    const supabase = createClient(
-      'https://sfinbtiqlfnaaarziixu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
-    );
-
-    window.supabase = supabase; // 전역으로 접근
-
-    (async () => {
-      try {
-        // 1) 로그인 세션 확인 (없으면 이동)
-        const { data, error } = await supabase.auth.getSession();
-        if (error) console.warn("세션 조회 에러:", error);
-        if (!data?.session) {
-          console.warn("로그인 세션 없음 → /map 으로 이동");
-          location.replace("https://baikuk-map.netlify.app/admin/listings/");
-          return;
-        }
-
-        // 2) 권한 기반으로 '정산' 탭 표시/숨김
-        const guardClick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          alert('직원 권한은 정산 메뉴에 접근할 수 없습니다.');
-        };
-
-        const showOrHideSettlementTab = async () => {
-          const tab = document.getElementById('settlement-tab');
-          if (!tab) return;
-
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user?.id) return;
-
-          const { data: me, error: authErr } = await supabase
-            .from('staff_profiles')
-            .select('authority')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (authErr) {
-            console.warn('authority 조회 실패:', authErr);
-            return; // 실패 시 기본 숨김 유지
-          }
-
-          const role = (me?.authority || '').trim();
-          if (role === '직원') {
-            // 직원: 숨김(기본값 유지) + 안전 가드
-            tab.style.display = 'none';
-            tab.addEventListener('click', guardClick, { once: true });
-          } else {
-            // 관리자/지점장: 표시
-            tab.style.removeProperty('display');
-          }
-        };
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', showOrHideSettlementTab, { once: true });
-        } else {
-          showOrHideSettlementTab();
-        }
-      } catch (e) {
-        console.warn('세션/정산 탭 처리 중 예외:', e);
-      }
-    })();
-
+  <script>
+    let currentCustomerId = null; // 전역 변수로 추가
+    let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
   </script>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 
-<body class="w-screen">
+<body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
   <div id="toast"
     class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
-    메시지 영역</div>
-
+    메시지 영역
+  </div>
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
       alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
   </div>
-
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
+    임대추천 <span id="selected-customer" class="text-blue-600"></span>
+  </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map">
@@ -124,12 +41,12 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div>
       </a>
       <a href="/admin/recommend_imDae/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div>
-      </a>
-      <a href="/admin/recommend_maeMae/">
         <div
           class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">
-          매매추천</div>
+          임대추천</div>
+      </a>
+      <a href="/admin/recommend_maeMae/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div>
       </a>
       <a href="/admin/customer_manage/">
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div>
@@ -150,30 +67,191 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    <div class="w-[91%] flex flex-col bg-gray-100">
-      <div class="mt-[3rem] flex px-3 bg-gray-100 gap-2">
-        <!-- 왼쪽: 매물번호 입력 -->
-        <div class="px-2 py-2 mt-[4rem] bg-white border border-gray-300 rounded-md self-start">
-          <div class="mb-2 text-right">
-            <button id="toggle-edit-btn"
-              class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded">저장</button>
+    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
+      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
+      <div class="flex justify-end px-2 mb-2">
+        <button id="new-customer-btn"
+          class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
+          새 고객
+        </button>
+      </div>
+      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
+        <!-- 여기에 고객 이름들이 표시됩니다 -->
+      </div>
+    </div>
+    <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
+      <div class="mt-[2rem] flex px-3 bg-gray-100">
+        <div class="text-left text-base rounded outline-none resize-none">
+          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
+          <div class="flex items-center gap-2 text-sm mb-2">
+            <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
-          <div id="table-container" class="border rounded-md">
-            <table class="w-[7rem] text-sm text-left">
-              <thead class="bg-gray-100 sticky top-0 z-10">
-                <tr id="header-row">
-                  <th class="p-1 font-bold text-base text-center">매물번호</th>
-                </tr>
-              </thead>
-              <tbody id="left-tbody" class="bg-white"></tbody>
-            </table>
+          <textarea placeholder="고객이름"
+            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none" id="top-row-input"
+            rows="2"></textarea>
+          <!-- 🔽 리스트 이름 입력 -->
+          <input id="list-name-input" placeholder="리스트 이름"
+            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base mt-2 h-[2rem]" />
+          <div class="flex mt-[0.5rem]">
+            <button id="delete-customer"
+              class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
+              삭제
+            </button>
+            <button id="save-new-customer"
+              class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
+              저장
+            </button>
+          </div>
+          <div class="flex mt-[0.5rem]">
+            <div class="flex">
+              <div class="ml-1 mt-1">구분:</div>
+              <select id="customer-grade"
+                class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                <option>A</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+                <option>계약</option>
+              </select>
+            </div>
+            <input id="customer-phone" placeholder="전화번호"
+              class="w-[10rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+          </div>
+          <textarea id="memo-textarea" placeholder="메모"
+            class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[40rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+          <!-- 🔽 여기에 새 필터 영역 추가 -->
+          <div class="ml-1 mt-4 p-3 bg-white border border-gray-300 rounded text-sm w-[17rem]">
+            <!-- 층 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">층</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="floor-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="floor-max">
+              </div>
+            </div>
+
+            <!-- 전용면적 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">면적(평)</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="area-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="area-max">
+              </div>
+            </div>
+
+            <!-- 보증금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">보증금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="deposit-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="deposit-max">
+              </div>
+            </div>
+
+            <!-- 월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-max">
+              </div>
+            </div>
+
+            <!-- 평당 월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">평월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
+              </div>
+            </div>
+
+            <!-- 권리금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">권리금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="premium-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="premium-max">
+              </div>
+            </div>
+
+            <!-- 매매가 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">매매가</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="sale-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="sale-max">
+              </div>
+            </div>
+
+            <!-- 총보증금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">총보증금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-deposit-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-deposit-max">
+              </div>
+            </div>
+
+            <!-- 총월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">총월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-rent-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-rent-max">
+              </div>
+            </div>
+
+            <!-- 수익률 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">수익률(%)</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="roi-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="roi-max">
+              </div>
+            </div>
+
+          </div>
+          <!-- 🔼 필터 영역 끝 -->
+
+        </div>
+        <div class="ml-3 mt-[1rem] flex flex-col">
+          <div class="mb-2 px-2 text-right flex gap-2">
+            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-1 rounded">
+              🖨️
+            </button>
+            <button id="print-btn2"
+              class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-4 py-1 rounded">
+              🖨️
+            </button>
+          </div>
+          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
+            <div class="mb-2 justify-center flex gap-2">
+              <button id="clear-left-btn"
+                class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
+                지우기
+              </button>
+              <button id="copy-link-btn"
+                class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
+                링크
+              </button>
+            </div>
+            <div id="table-container" class="border rounded-md">
+              <table class="w-[7rem] text-sm text-left">
+                <thead class="bg-gray-100 sticky top-0 z-10">
+                  <tr id="header-row">
+                    <th class="p-1 font-bold text-base text-center">매물번호</th>
+                  </tr>
+                </thead>
+                <tbody id="left-tbody" class="bg-white">
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-
-        <!-- 오른쪽: 추천표 -->
-        <div class="ml-[1rem] px-4 py-4 bg-white border border-gray-300 rounded-md self-start">
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
           <div id="table-container" class="custom-scroll bg-white rounded-md">
-            <div>
+            <div id="print-block">
               <div class="flex items-end mb-2 gap-3">
                 <img
                   src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
@@ -181,445 +259,129 @@
                 <div class="justify-between items-end mb-2">
                   <!-- 날짜 -->
                   <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
-                  <!-- 담당자: 읽기 텍스트 / 편집 셀렉트 -->
-                  <div class="text-gray-800 text-lg font-semibold">
-                    <div id="staff-info"></div>
-                    <select id="staff-select"
-                      class="hidden mt-1 border border-gray-300 rounded px-2 py-1 text-base"></select>
+                  <!-- 담당자 -->
+                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold relative">
+                    <!-- 직원 정보 표시부 -->
+                    <div id="staff-info" class="cursor-pointer px-2 py-1 rounded hover:bg-gray-200 select-none">
+                    </div>
+                    <!-- 드롭다운 -->
+                    <div id="staff-dropdown"
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <table class="w-[50rem] text-sm text-left bg-white" style="table-layout: fixed;">
-                <thead class="bg-gray-100 sticky top-0 z-10">
+              <table>
+                <thead>
                   <tr id="header-row">
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 1.5rem;">
+                    <th class="resizable" style="width: 2.1rem;">
                       <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 10rem;">매물명<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 14rem;">
+                      매물명 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 8rem;">주소<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 11rem;">
+                      주소 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 8rem;">건물정보<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 5rem;">
+                      보증금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 5.5rem;">매매가<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 3.5rem;">
+                      월세 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 5.5rem;">총보증금<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 5rem;">
+                      권리금 <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 4rem;">총월세<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 4.3rem;">
+                      전용(평) <div class="resize-handle"></div>
                     </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 4.7rem;">전용(평)<div
-                        class="resize-handle"></div>
-                    </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 4.5rem;">수익률<div
-                        class="resize-handle"></div>
-                    </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 6.5rem;">평당가(전용)<div
-                        class="resize-handle"></div>
-                    </th>
-                    <th class="resizable p-1 border-r text-base text-center" style="width: 15rem;">내용<div
-                        class="resize-handle"></div>
+                    <th class="resizable" style="width: 13rem;">
+                      내용 <div class="resize-handle"></div>
                     </th>
                   </tr>
                 </thead>
-                <tbody id="listings-body" class="odd:bg-white even:bg-gray-50"></tbody>
+                <tbody id="listings-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 오른쪽 리사이즈 핸들 -->
+          <div id="whitebox-resize-handle" style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
+          </div>
+        </div>
+        <div class="ml-3 mt-[6.2rem] flex flex-col">
+          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
+            <!-- 오른쪽(스크린샷 제외) 메모 표 -->
+            <div id="memo-panel" class="print:hidden sticky top-2">
+              <table class="w-[20rem] border-collapse">
+                <thead>
+                  <tr>
+                    <td class="p-1 border-b border-gray-200 align-top">
+                      메모
+                      </th>
+                  </tr>
+                </thead>
+                <tbody id="memo-body"></tbody>
               </table>
             </div>
           </div>
         </div>
-      </div> <!-- /row -->
+      </div>
     </div>
   </div>
-
-  <script>
-    let __selectedStaffId = null; // 선택된 담당자 ID 기억용
-
-    /* ==============================
-       공통 유틸 / 권한 컨텍스트
-    ===============================*/
-    function showToast(msg, duration = 3000) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.style.backgroundColor = '#F2C130'; t.style.color = 'black'; t.style.fontWeight = 'bold';
-      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), duration);
-    }
-
-    async function getAuthContext() {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return { me: null, myAuth: null, myAff: null };
-
-      const { data: me } = await supabase
-        .from('staff_profiles')
-        .select('id, authority, affiliation')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      return {
-        me,
-        myAuth: (me?.authority ?? '').trim(),   // '관리자' | '지점장' | '직원'
-        myAff: (me?.affiliation ?? '').trim()
-      };
-    }
-
-    // 권한별(직원=퇴사자 제외) 직원 리스트 로딩
-    async function loadStaffOptions(currentStaffId = null) {
-      const staffSelect = document.getElementById('staff-select');
-      if (!staffSelect) return;
-      staffSelect.innerHTML = '';
-
-      const { me, myAuth, myAff } = await getAuthContext();
-      if (!me) return;
-
-      let q = supabase
-        .from('staff_profiles')
-        .select('id, name, affiliation, leave_date')
-        .order('affiliation', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (myAuth === '직원') q = q.is('leave_date', null);
-
-      const { data: staffList, error } = await q;
-      if (error || !staffList) return;
-
-      const grouped = staffList.reduce((acc, s) => {
-        (acc[s.affiliation || '미지정'] ??= []).push(s); return acc;
-      }, {});
-
-      const appendGroup = (label, members) => {
-        if (!members?.length) return;
-        const og = document.createElement('optgroup'); og.label = label;
-        members.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          const retiredTag = (myAuth !== '직원' && s.leave_date) ? ' (퇴사)' : '';
-          opt.textContent = `${s.name}${retiredTag}`;
-          if (currentStaffId && s.id === currentStaffId) opt.selected = true;
-          og.appendChild(opt);
-        });
-        staffSelect.appendChild(og);
-      };
-
-      if (myAff && grouped[myAff]) { appendGroup(`📌 ${myAff} (같은 소속)`, grouped[myAff]); delete grouped[myAff]; }
-      Object.entries(grouped).forEach(([aff, members]) => appendGroup(aff, members));
-    }
-
-    /* ==============================
-       테이블/행 처리
-    ===============================*/
-    function applyRowStriping() {
-      const rows = document.querySelectorAll('#listings-body tr');
-      rows.forEach((row, i) => { row.classList.remove('bg-white', 'bg-gray-50'); row.classList.add(i % 2 === 0 ? 'bg-white' : 'bg-gray-50'); });
-    }
-
-    function updateListingsTableByInputs() {
-      const listingsBody = document.getElementById('listings-body');
-      const allInputs = document.querySelectorAll('input[data-index]');
-      let maxIndex = 0;
-      allInputs.forEach(input => {
-        const val = input.value.trim(); const idx = parseInt(input.dataset.index);
-        if (val !== '' && !isNaN(idx)) maxIndex = Math.max(maxIndex, idx);
-      });
-      const currentRows = listingsBody.children.length;
-      for (let i = currentRows + 1; i <= maxIndex; i++) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="p-1 border text-center">${i}</td>
-          <td class="p-1 border text-center"><textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="listing_title_${i}"></textarea></td>
-          <td class="p-1 border text-center"><textarea rows="2" class="w-full box-border text-center text-base border rounded bg-white outline-none resize-none" data-field="full_address_${i}"></textarea></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="combined_unit_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="sale_price_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="total_deposit_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="total_rent_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="area_py_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="roi_${i}" /></td>
-          <td class="p-1 border text-center"><input type="text" class="w-full box-border text-center text-base border rounded bg-white outline-none" data-field="price_per_py_${i}" /></td>
-          <td class="p-1 border text-center"><textarea rows="2" class="w-full box-border text-left text-base border rounded bg-white outline-none resize-none" data-field="description_${i}"></textarea></td>`;
-        listingsBody.appendChild(row); applyRowStriping();
-      }
-      while (listingsBody.children.length > maxIndex) { listingsBody.removeChild(listingsBody.lastChild); }
-    }
-
-    function switchSpansToInputs() {
-      document.querySelectorAll('#listings-body tr').forEach(row => {
-        row.querySelectorAll('span[data-field]').forEach(span => {
-          const field = span.dataset.field, value = span.textContent || '';
-          let inputEl;
-          if (field.startsWith('listing_title_') || field.startsWith('full_address_') || field.startsWith('description_')) {
-            inputEl = document.createElement('textarea'); inputEl.rows = 2; inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none resize-none';
-          } else {
-            inputEl = document.createElement('input'); inputEl.type = 'text'; inputEl.className = 'w-full text-center text-base border rounded bg-white outline-none';
-          }
-          inputEl.value = value; inputEl.dataset.field = field; span.parentElement.replaceChild(inputEl, span);
-        });
-      });
-    }
-    function switchInputsToSpans() {
-      document.querySelectorAll('#listings-body tr').forEach(row => {
-        row.querySelectorAll('input[data-field], textarea[data-field]').forEach(el => {
-          const value = el.value || '', field = el.dataset.field;
-          const span = document.createElement('span'); span.className = 'text-base block whitespace-pre-wrap'; span.dataset.field = field; span.textContent = value;
-          el.parentElement.replaceChild(span, el);
-        });
-      });
-    }
-
-    function syncRowHeights() {
-      const rightRows = document.querySelectorAll('#listings-body tr');
-      const leftRows = document.querySelectorAll('#left-tbody tr');
-      for (let i = 0; i < leftRows.length; i++) { const r = rightRows[i], l = leftRows[i]; if (r && l) { l.style.height = r.offsetHeight + 'px'; } }
-    }
-
-    function clearListingRow(index) {
-      ['listing_title', 'full_address', 'combined_unit', 'total_deposit', 'total_rent', 'sale_price', 'area_py', 'roi', 'price_per_py', 'description']
-        .forEach(field => {
-          const el = document.querySelector(`[data-field="${field}_${index}"]`);
-          if (!el) return;
-          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') { el.value = ''; } else { el.textContent = ''; }
-        });
-      syncRowHeights?.();
-    }
-
-    function formatKoreanMoney(v) { if (!v && v !== 0) return '-'; const n = Number(v); if (isNaN(n)) return '-'; if (n >= 10000) { const eok = Math.floor(n / 10000), man = n % 10000; return `${eok}억${man > 0 ? ' ' + man.toLocaleString() : ''}`; } return n.toLocaleString(); }
-
-    async function preloadBuildingInfo() {
-      const { data: buildings, error } = await supabase.from('building_info').select('addr_compare, building_name');
-      if (!error && buildings) { window.buildingMap = new Map(buildings.map(b => [b.addr_compare, b.building_name])); } else { console.warn('building_info 로딩 실패', error); }
-    }
-    function combineUnitInfo(buildingName, floor, unitInfo) {
-      const parts = []; if (buildingName && buildingName !== '-') parts.push(buildingName);
-      if (floor && floor !== '-') { const fs = String(floor); parts.push(fs.endsWith('층') ? fs : fs + '층'); }
-      if (unitInfo && unitInfo !== '-') { const u = String(unitInfo).trim(); const out = (u.endsWith('호') || u.endsWith('일부') || u.includes('전체')) ? u : (u + '호'); parts.push(out); }
-      return parts.join(' ');
-    }
-
-    async function fetchListingInfo(listingId, rowIndex) {
-      const cleanedId = listingId.replace(/[^\d]/g, ''); if (!cleanedId) return;
-      const numericId = Number(cleanedId.replaceAll(',', '')); if (isNaN(numericId)) { alert('유효한 숫자 매물번호를 입력해주세요.'); return; }
-
-      const { data: listing, error } = await supabase
-        .from('baikukdbtest')
-        .select('listing_title, full_address, addr_compare, unit_info, floor, sale_price, total_deposit, total_rent, area_py, roi')
-        .eq('listing_id', numericId).single();
-
-      if (error || !listing) { showToast(`매물번호 ${listingId} 를 찾을 수 없습니다.`); return; }
-
-      const buildingName = (window.buildingMap || new Map()).get(listing.addr_compare) ?? '-';
-      const combinedUnit = combineUnitInfo(buildingName, listing.floor, listing.unit_info);
-
-      // 평당가 계산 (매매가 / 전용면적)
-      let pricePerPyStr = '-';
-      if (listing.sale_price && listing.area_py) {
-        // sale_price(만원) / area_py(평) -> 만원/평
-        // 1의자리까지 반올림
-        const val = Math.round(Number(listing.sale_price) / Number(listing.area_py));
-        if (!isNaN(val)) pricePerPyStr = val.toLocaleString();
-      }
-
-      // 수익률 계산 (총월세*12) / (매매가-총보증금) * 100
-      let roiStr = '-';
-      const monthlyRent = Number(listing.total_rent) || 0;
-      const salePrice = Number(listing.sale_price) || 0;
-      const totalDeposit = Number(listing.total_deposit) || 0;
-      const investment = salePrice - totalDeposit;
-
-      if (investment > 0) {
-        const r = (monthlyRent * 12 / investment) * 100;
-        roiStr = r.toFixed(1) + '%';
-      }
-
-      const dataToDisplay = {
-        listing_title: listing.listing_title,
-        full_address: listing.full_address,
-        combined_unit: combinedUnit,
-        total_deposit: listing.total_deposit,
-        total_rent: listing.total_rent,
-        sale_price: listing.sale_price,
-        area_py: listing.area_py,
-        roi: roiStr,
-        price_per_py: pricePerPyStr
-      };
-
-      updateListingsTableByInputs();
-
-      if (!window.isEditMode) {
-        const row = document.querySelectorAll('#listings-body tr')[rowIndex - 1];
-        if (row) {
-          row.querySelectorAll('input[data-field], textarea[data-field]').forEach(el => {
-            const span = document.createElement('span'); span.className = 'text-base block whitespace-pre-wrap'; span.dataset.field = el.dataset.field; span.textContent = el.value || '';
-            el.parentElement.replaceChild(span, el);
-          });
-        }
-      }
-
-      Object.entries(dataToDisplay).forEach(([field, value]) => {
-        const el = document.querySelector(`[data-field="${field}_${rowIndex}"]`);
-        if (!el) return;
-
-        let formatted = value;
-        // 이미 위에서 포맷팅한 roi, price_per_py는 건너뛰고 나머지 money 포맷
-        if (['sale_price', 'total_deposit', 'total_rent'].includes(field)) {
-          formatted = formatKoreanMoney(value);
-        } else if (field === 'area_py') {
-          formatted = (isNaN(Number(value)) ? '-' : Number(value).toFixed(1));
-        } else if (field === 'full_address') {
-          formatted = (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-');
-        } else {
-          formatted = (value ?? '-');
-        }
-
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = formatted; else el.textContent = formatted;
-      });
-
-      syncRowHeights(); applyRowStriping();
-    }
-
-    function displayTodayDate() {
-      const d = new Date(), yyyy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
-      const el = document.getElementById('today-date'); if (el) el.textContent = `${yyyy}-${mm}-${dd}`;
-    }
-
-    // ✅ 로그인한 본인 정보 텍스트
-    async function displayStaffInfo() {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return;
-      const { data: staff, error: staffError } = await supabase
-        .from('staff_profiles')
-        .select('id, position, name, phone_num')
-        .eq('user_id', user.id)   /* ← user_id 기준으로 수정 */
-        .maybeSingle();
-
-      if (staffError || !staff) return;
-      __selectedStaffId = staff.id; // ← 현재 로그인한 담당자 ID 저장
-      const el = document.getElementById('staff-info');
-      if (el) el.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
-    }
-
-    /* ==============================
-       초기화 및 이벤트
-    ===============================*/
-    // 왼쪽 번호 입력칸 50개
-    const leftTbody = document.getElementById('left-tbody');
-    for (let i = 1; i <= 50; i++) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td class="border-b text-right pr-2">
-        <input type="text" placeholder="입력 ${i}" class="w-[5rem] border px-2 rounded text-base ml-auto block" data-index="${i}" />
-      </td>`;
-      leftTbody.appendChild(tr);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      displayTodayDate();
-      displayStaffInfo();
-      preloadBuildingInfo();
-
-      document.querySelectorAll('input[data-index]').forEach(input => {
-        const index = parseInt(input.dataset.index);
-        input.addEventListener('change', e => {
-          const v = e.target.value.trim();
-          if (v === '') clearListingRow(index); else fetchListingInfo(v, index);
-        });
-        input.addEventListener('keydown', e => {
-          if (e.key === 'Enter') {
-            const v = e.target.value.trim();
-            if (v === '') clearListingRow(index); else fetchListingInfo(v, index);
-            const next = document.querySelector(`input[data-index="${index + 1}"]`); if (next) next.focus();
-            e.preventDefault();
-          }
-        });
-        input.addEventListener('paste', e => {
-          e.preventDefault();
-          const paste = (e.clipboardData || window.clipboardData).getData('text');
-          paste.split(/[\s,\n]+/).map(s => s.trim()).filter(Boolean).forEach((val, off) => {
-            const t = document.querySelector(`input[data-index="${index + off}"]`);
-            if (t) { t.value = val; t.dispatchEvent(new Event('change')); }
-          });
-        });
-      });
-
-      // 컬럼 리사이즈
-      let startX, startWidth, resizableTh;
-      document.querySelectorAll('.resize-handle').forEach(h => {
-        h.addEventListener('mousedown', e => {
-          resizableTh = e.target.closest('th');
-          startX = e.clientX; startWidth = resizableTh.offsetWidth;
-          document.addEventListener('mousemove', resizeColumn);
-          document.addEventListener('mouseup', stopResize);
-        });
-      });
-      function resizeColumn(e) { if (!resizableTh) return; resizableTh.style.width = (startWidth + (e.clientX - startX)) + 'px'; }
-      function stopResize() { document.removeEventListener('mousemove', resizeColumn); document.removeEventListener('mouseup', stopResize); resizableTh = null; }
-
-      // 포커스시 전체 선택
-      document.addEventListener('focusin', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') e.target.select(); });
-
-      // 편집/읽기 토글 + 담당자 select 표시/숨김
-      window.isEditMode = false; // 시작은 읽기
-
-      // ✅ 첫 로드 시: 읽기모드 형태로 버튼/표 세팅
-      const toggleButton = document.getElementById('toggle-edit-btn');
-      toggleButton.textContent = '수정';
-      toggleButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-      toggleButton.classList.add('bg-neutral-500', 'hover:bg-neutral-600');
-      const staffInfoEl = document.getElementById('staff-info');
-      const staffSelectEl = document.getElementById('staff-select');
-
-      toggleButton.addEventListener('click', async () => {
-        window.isEditMode = !window.isEditMode;
-        toggleButton.textContent = window.isEditMode ? '저장' : '수정';
-
-        if (window.isEditMode) {
-          // 편집모드
-          switchSpansToInputs();
-          staffInfoEl.classList.add('hidden');
-          staffSelectEl.classList.remove('hidden');
-          await loadStaffOptions(__selectedStaffId);
-          showToast('편집 모드로 전환되었습니다.');
-          // 불필요한 빈 행 정리
-          const listingsBody = document.getElementById('listings-body');
-          const rows = listingsBody.querySelectorAll('tr');
-          let lastFilled = -1;
-          rows.forEach((row, i) => {
-            const idx = i + 1;
-            const keys = [`listing_title_${idx}`, `full_address_${idx}`, `total_deposit_${idx}`, `total_rent_${idx}`, `area_py_${idx}`];
-            const has = keys.some(f => { const el = row.querySelector(`[data-field="${f}"]`); if (!el) return false; const v = (el.tagName === 'SPAN' ? el.textContent : el.value) || ''; return v.trim() !== ''; });
-            if (has) lastFilled = i;
-          });
-          for (let i = rows.length - 1; i > lastFilled; i--) { listingsBody.removeChild(rows[i]); }
-          syncRowHeights?.();
-          return;
-        } else {
-          // 저장(읽기)모드
-          switchInputsToSpans();
-          // 셀렉트가 있다면 선택된 담당자 텍스트 표기만 (DB저장은 현재 페이지 스펙상 생략)
-          const selectedId = staffSelectEl.value;
-          if (selectedId) {
-            const { data: staff } = await supabase.from('staff_profiles').select('position, name, phone_num').eq('id', selectedId).maybeSingle();
-            if (staff) staffInfoEl.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
-          }
-          staffSelectEl.classList.add('hidden');
-          staffInfoEl.classList.remove('hidden');
-          showToast('읽기 모드로 전환되었습니다.');
-        }
-
-        // 여기서부터는 저장 로직이 필요하면 추가(현재 페이지 요구사항엔 담당자 셀렉트 필터가 핵심이라 DB 업데이트는 생략)
-      });
-
-      // 초기 span 모드로 전환하지 않고, 이 페이지는 기본 편집 시작 → 필요 시 아래 주석 해제
-      // switchInputsToSpans();
-
-      // ResizeObserver로 높이 동기화
-      const listingsBody = document.getElementById('listings-body');
-      new ResizeObserver(() => syncRowHeights()).observe(listingsBody);
-
-    });
-
-    window.addEventListener('resize', syncRowHeights);
-  </script>
+  <script type="module" src="./recommend-imDae.js"></script>
+  <script src="./recommend-imDae-main.js"></script>
+  <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
+  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
+    <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
+      <div class="px-5 py-3 border-b font-semibold text-lg">
+        같은 이름의 고객이 이미 있습니다
+      </div>
+      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
+        <p class="text-sm text-gray-700">
+          현재 입력한 내용으로 <b>기존 고객 정보를 덮어쓰시겠습니까?</b>
+        </p>
+        <!-- 선택 리스트는 사용 안함 -->
+      </div>
+      <div class="px-5 py-4 border-t flex items-center gap-2 justify-end bg-gray-50">
+        <button id="dup-overwrite"
+          class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+          덮어쓰기
+        </button>
+        <button id="dup-cancel" class="px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-200 text-sm">
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="color-picker-popup" class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
+    <div class="flex gap-2">
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="none" style="background: repeating-linear-gradient(
+        45deg,
+        #fff,
+        #fff 5px,
+        #ccc 5px,
+        #ccc 10px
+      );"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e5e7eb"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer flex items-center justify-center" data-color="strike"
+        style="font-size: 18px; font-weight: bold; line-height: 1;">
+        -
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
