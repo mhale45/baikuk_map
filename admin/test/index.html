@@ -123,58 +123,84 @@
       // console.log('[adc] filter changed:', { staffId, affiliation });
     });
 
-    // [ADD] 네이버 버튼 클릭 이벤트
-    document.getElementById('naver-link').addEventListener('click', async () => {
-      // 선택 상태 UI 업데이트
-      document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
-      document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
-      document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
+    // [ADD] 네이버 관련 페이징 상태
+    let naverOffset = 0;
+    const NAVER_LIMIT = 500;
+    let isNaverLoading = false;
+    let hasMoreNaver = true;
+    let totalNaverCount = 0;
 
-      const panel = document.getElementById('employee-listings-panel');
+    async function loadMoreNaverListings(isFirstLoad = false) {
+      if (isNaverLoading || (!hasMoreNaver && !isFirstLoad)) return;
+
       const meta = document.getElementById('employee-listings-meta');
       const resultBox = document.getElementById('employee-listings');
 
-      panel.style.display = '';
-      meta.textContent = '네이버 매물 불러오는 중...';
-      resultBox.innerHTML = '';
+      if (isFirstLoad) {
+        naverOffset = 0;
+        hasMoreNaver = true;
+        totalNaverCount = 0;
+        resultBox.innerHTML = '';
+        meta.textContent = '네이버 매물 불러오는 중...';
+      } else {
+        meta.textContent = `불러오는 중... (현재 ${totalNaverCount}건 표시 중)`;
+      }
+
+      isNaverLoading = true;
 
       try {
-        // window.supabase는 ad_censorship.js에서 설정됨
         if (!window.supabase) {
           throw new Error("Supabase is not initialized.");
         }
 
         const { data, error } = await window.supabase
           .from('naver_rent_listings')
-          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, realtor');
+          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, realtor')
+          .range(naverOffset, naverOffset + NAVER_LIMIT - 1);
 
         if (error) throw error;
 
-        if (!data || data.length === 0) {
+        if (isFirstLoad && (!data || data.length === 0)) {
           resultBox.innerHTML = '<div style="padding:8px; color:#666;">조회된 매물이 없습니다.</div>';
           meta.textContent = '최신 업데이트 기록이 없습니다 / 네이버 매물 0건';
+          isNaverLoading = false;
+          hasMoreNaver = false;
           return;
         }
 
-        const table = document.createElement('table');
-        table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
-        table.innerHTML = `
-        <thead class="bg-gray-100 sticky top-0 z-10">
-            <tr>
-              <th class="border border-gray-300 px-3 py-2 text-left">광고매물번호</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">주소</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">전용면적(㎡)</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">층</th>
-              <th class="border border-gray-300 px-3 py-2 text-left">부동산</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-        `;
+        if (!data || data.length === 0) {
+          hasMoreNaver = false;
+          isNaverLoading = false;
+          meta.textContent = `조회 완료 (네이버 매물 총 ${totalNaverCount}건)`;
+          return;
+        }
 
-        const tbody = table.querySelector('tbody');
+        let tbody;
+        if (isFirstLoad) {
+          const table = document.createElement('table');
+          table.id = 'naver-listings-table';
+          table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
+          table.innerHTML = `
+          <thead class="bg-gray-100 sticky top-0 z-10">
+              <tr>
+                <th class="border border-gray-300 px-3 py-2 text-left">광고매물번호</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">매물특징</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">주소</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">보증금</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">전용면적(㎡)</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">층</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">부동산</th>
+              </tr>
+          </thead>
+          <tbody></tbody>
+          `;
+          resultBox.appendChild(table);
+          tbody = table.querySelector('tbody');
+        } else {
+          tbody = document.querySelector('#naver-listings-table tbody');
+        }
+
         data.forEach(item => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -194,13 +220,59 @@
           tbody.appendChild(tr);
         });
 
-        resultBox.appendChild(table);
-        meta.textContent = `조회 완료 (네이버 매물 ${data.length}건)`;
+        totalNaverCount += data.length;
+        naverOffset += NAVER_LIMIT;
+
+        if (data.length < NAVER_LIMIT) {
+          hasMoreNaver = false;
+        }
+
+        if (!hasMoreNaver) {
+          meta.textContent = `조회 완료 (네이버 매물 총 ${totalNaverCount}건)`;
+        } else {
+          meta.textContent = `조회 중 (현재 ${totalNaverCount}건 표시)`;
+        }
 
       } catch (err) {
         console.error(err);
         meta.textContent = '매물 조회 중 오류가 발생했습니다.';
-        resultBox.innerHTML = '';
+      } finally {
+        isNaverLoading = false;
+      }
+    }
+
+    // [ADD] 네이버 버튼 클릭 이벤트
+    document.getElementById('naver-link').addEventListener('click', () => {
+      // 선택 상태 UI 업데이트
+      document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
+      document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
+      document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
+
+      const panel = document.getElementById('employee-listings-panel');
+      panel.style.display = '';
+
+      const resultBox = document.getElementById('employee-listings');
+
+      // 스크롤 이벤트 (무한 스크롤)
+      resultBox.onscroll = () => {
+        const isNaverTab = document.getElementById('naver-link').classList.contains('ring-yellow-400');
+        if (!isNaverTab) return;
+
+        // 하단에서 100px 이내로 스크롤 시 추가 로드
+        if (resultBox.scrollTop + resultBox.clientHeight >= resultBox.scrollHeight - 100) {
+          loadMoreNaverListings(false);
+        }
+      };
+
+      loadMoreNaverListings(true);
+    });
+
+    // 직원 탭 클릭 시 네이버 탭 활성화 해제 (스크롤 이벤트 방지 차원)
+    document.getElementById('staff-col').addEventListener('click', (e) => {
+      if (e.target.id === 'naver-link') return; // 네이버 버튼 자체는 무시
+      const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
+      if (el) {
+        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
       }
     });
   </script>
