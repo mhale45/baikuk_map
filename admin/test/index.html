@@ -178,7 +178,11 @@
           .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key');
 
         if (naverAddressFilterWord) {
-          query = query.ilike('full_address', `%${naverAddressFilterWord}%`);
+          const keywords = naverAddressFilterWord.split(',').map(k => k.trim()).filter(Boolean);
+          if (keywords.length > 0) {
+            const orQuery = keywords.map(kw => `full_address.ilike.%${kw}%`).join(',');
+            query = query.or(orQuery);
+          }
         }
 
         const { data, error } = await query.range(naverOffset, naverOffset + NAVER_LIMIT - 1);
