@@ -414,7 +414,7 @@
           if (bgClass) tr.className = bgClass; // 배경색 적용
 
           tr.innerHTML = `
-            <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id ? `<a href="https://baikuk.com/item/view/${bInfo.listing_id}" target="_blank" class="text-blue-600 hover:underline">${bInfo.listing_id}</a>` : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">
               <div class="w-[13rem] overflow-hidden text-ellipsis whitespace-nowrap" title="${bInfo?.listing_title || ''}">
