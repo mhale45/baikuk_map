@@ -110,11 +110,22 @@
             class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
             중복제거
           </button>
-          <input type="text" id="input-naver-address" placeholder="주소 검색..."
-            class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
         </div>
         <!-- 두 번째 줄: 숫자형 조건 필터 -->
         <div style="display:flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" class="text-sm">
+
+          <!-- 주소 -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-gray-700">주소(포함)</span>
+            <input type="text" id="input-naver-address" placeholder="포함 단어 (, 구분)"
+              class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-gray-700">주소(제외)</span>
+            <input type="text" id="input-naver-address-exclude" placeholder="제외 단어 (, 구분)"
+              class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-red-500 w-[180px]" />
+          </div>
 
           <!-- 보증금 -->
           <div class="flex flex-col gap-1">
@@ -183,6 +194,7 @@
     let isNaverDistinctActive = false;
     let seenCompositeKeys = new Set();
     let naverAddressFilterWord = "";
+    let naverAddressExcludeWord = "";
 
     // [ADD] 숫자 범위 필터 상태
     let naverFilter = {
@@ -229,6 +241,13 @@
             const orQuery = keywords.map(kw => `full_address.ilike.%${kw}%`).join(',');
             query = query.or(orQuery);
           }
+        }
+
+        if (naverAddressExcludeWord) {
+          const excludeKeywords = naverAddressExcludeWord.split(',').map(k => k.trim()).filter(Boolean);
+          excludeKeywords.forEach(kw => {
+            query = query.not('full_address', 'ilike', `%${kw}%`);
+          });
         }
 
         if (naverFilter.depositMin !== null) query = query.gte('deposit_price', naverFilter.depositMin);
@@ -397,6 +416,7 @@
     // [ADD] 통합 필터 검색 이벤트 (버튼 클릭 및 엔터 키 지원)
     const doNaverSearch = () => {
       naverAddressFilterWord = document.getElementById('input-naver-address').value.trim();
+      naverAddressExcludeWord = document.getElementById('input-naver-address-exclude').value.trim();
 
       const getNum = (id) => {
         const val = document.getElementById(id).value;
@@ -417,7 +437,7 @@
 
     // 입력창에서 Enter 키 누르면 검색 실행
     const filterInputs = [
-      'input-naver-address', 'input-naver-deposit-min', 'input-naver-deposit-max',
+      'input-naver-address', 'input-naver-address-exclude', 'input-naver-deposit-min', 'input-naver-deposit-max',
       'input-naver-rent-min', 'input-naver-rent-max', 'input-naver-area-min', 'input-naver-area-max'
     ];
     filterInputs.forEach(id => {
