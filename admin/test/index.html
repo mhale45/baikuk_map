@@ -304,7 +304,7 @@
         let baikukDataMap = {};
         if (processedData.length > 0) {
           const keys = Array.from(new Set(processedData.map(item => item.composite_key ? item.composite_key.trim() : null).filter(Boolean)));
-          
+
           if (keys.length > 0) {
             try {
               // 한 번에 많은 키를 in 쿼리로 넘기면 URL 길이 초과 에러가 발생할 수 있어 50개 단위로 나눕니다.
@@ -329,7 +329,7 @@
                   });
                 }
               }
-            } catch(e) { console.warn('baikukdbtest 조인 전체 에러:', e); }
+            } catch (e) { console.warn('baikukdbtest 조인 전체 에러:', e); }
           }
         }
 
@@ -342,7 +342,7 @@
           <thead class="bg-gray-100 sticky top-0 z-10 select-none cursor-pointer">
               <tr>
                 <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="listing_id">광고매물번호 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물번호(내부)</th>
+                <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물번호</th>
                 <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">거래상태</th>
                 <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물명</th>
                 <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="feature">매물특징 <span></span></th>
@@ -407,7 +407,7 @@
             <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id || '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">
-              <div class="w-[10rem] overflow-hidden text-ellipsis whitespace-nowrap" title="${bInfo?.listing_title || ''}">
+              <div class="w-[20rem] overflow-hidden text-ellipsis whitespace-nowrap" title="${bInfo?.listing_title || ''}">
                 ${bInfo?.listing_title || '-'}
               </div>
             </td>
