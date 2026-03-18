@@ -212,8 +212,8 @@
               </div>
             </td>
             <td class="border border-gray-300 px-3 py-1">${item.full_address || '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.deposit_price || '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.rent_price || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.deposit_price ? Number(item.deposit_price).toLocaleString() : '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">${item.rent_price ? Number(item.rent_price).toLocaleString() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${item.net_area || '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${item.floor_info || '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${item.realtor || '-'}</td>
