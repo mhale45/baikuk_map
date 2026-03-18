@@ -341,10 +341,10 @@
           table.innerHTML = `
           <thead class="bg-gray-100 sticky top-0 z-10 select-none cursor-pointer">
               <tr>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="listing_id">광고매물번호 <span></span></th>
                 <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물번호</th>
                 <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">거래상태</th>
                 <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물명</th>
+                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="listing_id">광고매물번호 <span></span></th>
                 <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="feature">매물특징 <span></span></th>
                 <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="full_address">주소 <span></span></th>
                 <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="deposit_price">보증금 <span></span></th>
@@ -403,7 +403,6 @@
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="border border-gray-300 px-3 py-1"><a href="https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.listing_id || ''}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.listing_id || '-'}</a></td>
             <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id || '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">
@@ -411,6 +410,7 @@
                 ${bInfo?.listing_title || '-'}
               </div>
             </td>
+            <td class="border border-gray-300 px-3 py-1"><a href="https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.listing_id || ''}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.listing_id || '-'}</a></td>
             <td class="border border-gray-300 px-3 py-1">
               <div class="w-[15rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.feature || ''}">
                 ${item.feature || '-'}
