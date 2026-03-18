@@ -303,23 +303,33 @@
         // [ADD] baikukdbtest 내부 매물 정보 매핑
         let baikukDataMap = {};
         if (processedData.length > 0) {
-          const keys = Array.from(new Set(processedData.map(item => item.composite_key).filter(Boolean)));
+          const keys = Array.from(new Set(processedData.map(item => item.composite_key ? item.composite_key.trim() : null).filter(Boolean)));
           
           if (keys.length > 0) {
             try {
-              const { data: bData, error: bErr } = await window.supabase
-                .from('baikukdbtest')
-                .select('composite_key, listing_id, transaction_status, listing_title')
-                .in('composite_key', keys);
-                
-              if (!bErr && bData) {
-                bData.forEach(row => {
-                  if (!baikukDataMap[row.composite_key]) {
-                    baikukDataMap[row.composite_key] = row;
-                  }
-                });
+              // 한 번에 많은 키를 in 쿼리로 넘기면 URL 길이 초과 에러가 발생할 수 있어 50개 단위로 나눕니다.
+              const chunkSize = 50;
+              for (let i = 0; i < keys.length; i += chunkSize) {
+                const chunk = keys.slice(i, i + chunkSize);
+                const { data: bData, error: bErr } = await window.supabase
+                  .from('baikukdbtest')
+                  .select('composite_key, listing_id, transaction_status, listing_title')
+                  .in('composite_key', chunk);
+
+                if (bErr) {
+                  console.warn('baikukdbtest 조인 청크 에러:', bErr);
+                  continue;
+                }
+                if (bData) {
+                  bData.forEach(row => {
+                    const rKey = row.composite_key ? row.composite_key.trim() : null;
+                    if (rKey && !baikukDataMap[rKey]) {
+                      baikukDataMap[rKey] = row;
+                    }
+                  });
+                }
               }
-            } catch(e) { console.warn('baikukdbtest 조인 에러:', e); }
+            } catch(e) { console.warn('baikukdbtest 조인 전체 에러:', e); }
           }
         }
 
@@ -388,7 +398,8 @@
         });
 
         processedData.forEach(item => {
-          const bInfo = item.composite_key ? baikukDataMap[item.composite_key] : null;
+          const cKey = item.composite_key ? item.composite_key.trim() : null;
+          const bInfo = cKey ? baikukDataMap[cKey] : null;
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
