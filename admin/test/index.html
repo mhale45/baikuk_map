@@ -114,36 +114,41 @@
             class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
         </div>
         <!-- 두 번째 줄: 숫자형 조건 필터 -->
-        <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;" class="text-sm">
-          <div class="flex items-col gap-1">
+        <div style="display:flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" class="text-sm">
+
+          <!-- 보증금 -->
+          <div class="flex flex-col gap-1">
             <span class="font-semibold text-gray-700">보증금</span>
             <input type="number" id="input-naver-deposit-min" placeholder="이상"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <span>~</span>
             <input type="number" id="input-naver-deposit-max" placeholder="이하"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
           </div>
-          <div class="flex items-col gap-1">
+
+          <!-- 월세 -->
+          <div class="flex flex-col gap-1">
             <span class="font-semibold text-gray-700">월세</span>
             <input type="number" id="input-naver-rent-min" placeholder="이상"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <span>~</span>
             <input type="number" id="input-naver-rent-max" placeholder="이하"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
           </div>
-          <div class="flex items-col gap-1">
+
+          <!-- 전용면적 -->
+          <div class="flex flex-col gap-1">
             <span class="font-semibold text-gray-700">전용(㎡)</span>
             <input type="number" id="input-naver-area-min" placeholder="이상"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <span>~</span>
             <input type="number" id="input-naver-area-max" placeholder="이하"
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
           </div>
 
+          <!-- 버튼 -->
           <button id="btn-naver-address-search"
             class="px-4 py-1.5 ml-2 bg-green-500 text-white rounded hover:bg-green-600 font-semibold transition-colors shadow-sm">
             조회
           </button>
+
         </div>
       </div>
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
