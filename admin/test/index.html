@@ -143,6 +143,15 @@
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
           </div>
 
+          <!-- 층 -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-gray-700">층</span>
+            <input type="number" id="input-naver-floor-min" placeholder="이상"
+              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+            <input type="number" id="input-naver-floor-max" placeholder="이하"
+              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+          </div>
+
           <!-- 선택형 -->
           <div class="flex flex-col gap-1">
             <button id="btn-naver-distinct"
@@ -195,7 +204,8 @@
     let naverFilter = {
       depositMin: null, depositMax: null,
       rentMin: null, rentMax: null,
-      areaMin: null, areaMax: null
+      areaMin: null, areaMax: null,
+      floorMin: null, floorMax: null
     };
 
     // [ADD] 네이버 정렬 상태
@@ -251,6 +261,8 @@
         if (naverFilter.rentMax !== null) query = query.lte('rent_price', naverFilter.rentMax);
         if (naverFilter.areaMin !== null) query = query.gte('net_area', naverFilter.areaMin);
         if (naverFilter.areaMax !== null) query = query.lte('net_area', naverFilter.areaMax);
+        if (naverFilter.floorMin !== null) query = query.gte('current_floor', naverFilter.floorMin);
+        if (naverFilter.floorMax !== null) query = query.lte('current_floor', naverFilter.floorMax);
 
         if (naverSortColumn) {
           query = query.order(naverSortColumn, { ascending: naverSortAscending });
@@ -424,6 +436,8 @@
       naverFilter.rentMax = getNum('input-naver-rent-max');
       naverFilter.areaMin = getNum('input-naver-area-min');
       naverFilter.areaMax = getNum('input-naver-area-max');
+      naverFilter.floorMin = getNum('input-naver-floor-min');
+      naverFilter.floorMax = getNum('input-naver-floor-max');
 
       loadMoreNaverListings(true);
     };
@@ -433,7 +447,8 @@
     // 입력창에서 Enter 키 누르면 검색 실행
     const filterInputs = [
       'input-naver-address', 'input-naver-address-exclude', 'input-naver-deposit-min', 'input-naver-deposit-max',
-      'input-naver-rent-min', 'input-naver-rent-max', 'input-naver-area-min', 'input-naver-area-max'
+      'input-naver-rent-min', 'input-naver-rent-max', 'input-naver-area-min', 'input-naver-area-max',
+      'input-naver-floor-min', 'input-naver-floor-max'
     ];
     filterInputs.forEach(id => {
       const el = document.getElementById(id);
