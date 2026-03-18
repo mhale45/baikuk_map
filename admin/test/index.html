@@ -155,7 +155,7 @@
 
         const { data, error } = await window.supabase
           .from('naver_rent_listings')
-          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, realtor')
+          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor')
           .range(naverOffset, naverOffset + NAVER_LIMIT - 1);
 
         if (error) throw error;
@@ -190,6 +190,7 @@
                 <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">전용(㎡)</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">층</th>
+                <th class="border border-gray-300 px-3 py-2 text-left">방향</th>
                 <th class="border border-gray-300 px-3 py-2 text-left">부동산</th>
               </tr>
           </thead>
