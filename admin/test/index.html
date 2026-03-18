@@ -102,6 +102,13 @@
     </div>
     <section id="employee-listings-panel" class="employee-listings-panel"
       style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
+      <!-- [ADD] 네이버 필터 영역 -->
+      <div id="naver-filter-container" style="display:none; margin-bottom: 8px; gap: 8px; align-items: center;">
+        <button id="btn-naver-distinct"
+          class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
+          중복제거
+        </button>
+      </div>
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
       <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:50.0rem;">
         <!-- 매물 카드가 여기에 렌더링됩니다 -->
@@ -130,6 +137,10 @@
     let hasMoreNaver = true;
     let totalNaverCount = 0;
 
+    // [ADD] 네이버 필터 상태
+    let isNaverDistinctActive = false;
+    let seenCompositeKeys = new Set();
+
     async function loadMoreNaverListings(isFirstLoad = false) {
       if (isNaverLoading || (!hasMoreNaver && !isFirstLoad)) return;
 
@@ -140,6 +151,7 @@
         naverOffset = 0;
         hasMoreNaver = true;
         totalNaverCount = 0;
+        seenCompositeKeys.clear();
         resultBox.innerHTML = '';
         meta.textContent = '네이버 매물 불러오는 중...';
       } else {
@@ -155,7 +167,7 @@
 
         const { data, error } = await window.supabase
           .from('naver_rent_listings')
-          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor')
+          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key')
           .range(naverOffset, naverOffset + NAVER_LIMIT - 1);
 
         if (error) throw error;
@@ -173,6 +185,19 @@
           isNaverLoading = false;
           meta.textContent = `조회 완료 (네이버 매물 총 ${totalNaverCount}건)`;
           return;
+        }
+
+        let processedData = data;
+        if (isNaverDistinctActive) {
+          processedData = data.filter(item => {
+            if (!item.composite_key) return true;
+            if (seenCompositeKeys.has(item.composite_key)) {
+              return false;
+            } else {
+              seenCompositeKeys.add(item.composite_key);
+              return true;
+            }
+          });
         }
 
         let tbody;
@@ -202,7 +227,7 @@
           tbody = document.querySelector('#naver-listings-table tbody');
         }
 
-        data.forEach(item => {
+        processedData.forEach(item => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="border border-gray-300 px-3 py-1"><a href="https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.listing_id || ''}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.listing_id || '-'}</a></td>
@@ -222,11 +247,15 @@
           tbody.appendChild(tr);
         });
 
-        totalNaverCount += data.length;
+        totalNaverCount += processedData.length;
         naverOffset += NAVER_LIMIT;
 
         if (data.length < NAVER_LIMIT) {
           hasMoreNaver = false;
+        }
+
+        if (processedData.length === 0 && data.length === NAVER_LIMIT) {
+          setTimeout(() => loadMoreNaverListings(false), 50);
         }
 
         if (!hasMoreNaver) {
@@ -243,6 +272,20 @@
       }
     }
 
+    // [ADD] 중복제거 버튼 이벤트
+    document.getElementById('btn-naver-distinct').addEventListener('click', (e) => {
+      isNaverDistinctActive = !isNaverDistinctActive;
+      const btn = e.target;
+      if (isNaverDistinctActive) {
+        btn.classList.add('bg-yellow-200', 'border-yellow-400');
+        btn.classList.remove('bg-white', 'border-gray-300');
+      } else {
+        btn.classList.remove('bg-yellow-200', 'border-yellow-400');
+        btn.classList.add('bg-white', 'border-gray-300');
+      }
+      loadMoreNaverListings(true);
+    });
+
     // [ADD] 네이버 버튼 클릭 이벤트
     document.getElementById('naver-link').addEventListener('click', () => {
       // 선택 상태 UI 업데이트
@@ -252,6 +295,9 @@
 
       const panel = document.getElementById('employee-listings-panel');
       panel.style.display = '';
+
+      const filterContainer = document.getElementById('naver-filter-container');
+      if (filterContainer) filterContainer.style.display = 'flex';
 
       const resultBox = document.getElementById('employee-listings');
 
@@ -275,6 +321,8 @@
       const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
       if (el) {
         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
+        const filterContainer = document.getElementById('naver-filter-container');
+        if (filterContainer) filterContainer.style.display = 'none';
       }
     });
   </script>
