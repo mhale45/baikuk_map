@@ -108,6 +108,13 @@
           class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
           중복제거
         </button>
+        <!-- [ADD] 주소 검색 필터 -->
+        <input type="text" id="input-naver-address" placeholder="주소 검색..."
+          class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
+        <button id="btn-naver-address-search"
+          class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold transition-colors">
+          검색
+        </button>
       </div>
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
       <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:50.0rem;">
@@ -140,6 +147,7 @@
     // [ADD] 네이버 필터 상태
     let isNaverDistinctActive = false;
     let seenCompositeKeys = new Set();
+    let naverAddressFilterWord = "";
 
     async function loadMoreNaverListings(isFirstLoad = false) {
       if (isNaverLoading || (!hasMoreNaver && !isFirstLoad)) return;
@@ -165,10 +173,15 @@
           throw new Error("Supabase is not initialized.");
         }
 
-        const { data, error } = await window.supabase
+        let query = window.supabase
           .from('naver_rent_listings')
-          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key')
-          .range(naverOffset, naverOffset + NAVER_LIMIT - 1);
+          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key');
+
+        if (naverAddressFilterWord) {
+          query = query.ilike('full_address', `%${naverAddressFilterWord}%`);
+        }
+
+        const { data, error } = await query.range(naverOffset, naverOffset + NAVER_LIMIT - 1);
 
         if (error) throw error;
 
@@ -284,6 +297,17 @@
         btn.classList.add('bg-white', 'border-gray-300');
       }
       loadMoreNaverListings(true);
+    });
+
+    // [ADD] 주소 검색 이벤트 (버튼 클릭 및 엔터 키 지원)
+    const doNaverAddressSearch = () => {
+      naverAddressFilterWord = document.getElementById('input-naver-address').value.trim();
+      loadMoreNaverListings(true);
+    };
+
+    document.getElementById('btn-naver-address-search').addEventListener('click', doNaverAddressSearch);
+    document.getElementById('input-naver-address').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doNaverAddressSearch();
     });
 
     // [ADD] 네이버 버튼 클릭 이벤트
