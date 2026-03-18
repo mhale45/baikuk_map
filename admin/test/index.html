@@ -427,7 +427,16 @@
                 ${item.feature || '-'}
               </div>
             </td>
-            <td class="border border-gray-300 px-3 py-1">${item.full_address || '-'}</td>
+            <td class="border border-gray-300 px-3 py-1">
+              <div class="flex items-center gap-1">
+                ${item.full_address ? `
+                  <a href="https://map.naver.com/v5/search/${encodeURIComponent(item.full_address)}" target="_blank" title="네이버 지도로 보기" class="flex-shrink-0">
+                    <img src="https://map.naver.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="map" />
+                  </a>
+                ` : ''}
+                <span>${item.full_address || '-'}</span>
+              </div>
+            </td>
             <td class="border border-gray-300 px-3 py-1">${item.deposit_price ? Number(item.deposit_price).toLocaleString() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${item.rent_price ? Number(item.rent_price).toLocaleString() : '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${item.net_area || '-'}</td>
