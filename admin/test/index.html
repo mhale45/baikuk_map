@@ -104,13 +104,6 @@
       style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
       <!-- [ADD] 네이버 필터 영역 -->
       <div id="naver-filter-container" style="display:none; flex-direction: column; margin-bottom: 12px; gap: 8px;">
-        <!-- 첫 번째 줄: 액션 및 주소 필터 -->
-        <div style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button id="btn-naver-distinct"
-            class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
-            중복제거
-          </button>
-        </div>
         <!-- 두 번째 줄: 숫자형 조건 필터 -->
         <div style="display:flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" class="text-sm">
 
@@ -150,11 +143,17 @@
               class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
           </div>
 
-          <!-- 버튼 -->
-          <button id="btn-naver-address-search"
-            class="px-4 py-1.5 ml-2 bg-green-500 text-white rounded hover:bg-green-600 font-semibold transition-colors shadow-sm">
-            조회
-          </button>
+          <!-- 선택형 -->
+          <div class="flex flex-col gap-1">
+            <button id="btn-naver-distinct"
+              class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
+              중복제거
+            </button>
+            <button id="btn-naver-address-search"
+              class="px-4 py-1.5 ml-2 bg-green-500 text-white rounded hover:bg-green-600 font-semibold transition-colors shadow-sm">
+              조회
+            </button>
+          </div>
 
         </div>
       </div>
