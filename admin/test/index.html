@@ -401,7 +401,18 @@
           const cKey = item.composite_key ? item.composite_key.trim() : null;
           const bInfo = cKey ? baikukDataMap[cKey] : null;
 
+          // [ADD] 거래상태에 따른 행 색상 결정
+          let bgClass = '';
+          if (bInfo?.transaction_status) {
+            const status = bInfo.transaction_status;
+            if (status.includes('진행중')) bgClass = 'bg-green-50';
+            else if (status.includes('보류')) bgClass = 'bg-red-50';
+            else if (status.includes('계약완료')) bgClass = 'bg-red-100';
+          }
+
           const tr = document.createElement('tr');
+          if (bgClass) tr.className = bgClass; // 배경색 적용
+
           tr.innerHTML = `
             <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id || '-'}</td>
             <td class="border border-gray-300 px-3 py-1">${bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-'}</td>
