@@ -103,18 +103,42 @@
     <section id="employee-listings-panel" class="employee-listings-panel"
       style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
       <!-- [ADD] 네이버 필터 영역 -->
-      <div id="naver-filter-container" style="display:none; margin-bottom: 8px; gap: 8px; align-items: center;">
-        <button id="btn-naver-distinct"
-          class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
-          중복제거
-        </button>
-        <!-- [ADD] 주소 검색 필터 -->
-        <input type="text" id="input-naver-address" placeholder="주소 검색..."
-          class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
-        <button id="btn-naver-address-search"
-          class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold transition-colors">
-          검색
-        </button>
+      <div id="naver-filter-container" style="display:none; flex-direction: column; margin-bottom: 12px; gap: 8px;">
+        <!-- 첫 번째 줄: 액션 및 주소 필터 -->
+        <div style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button id="btn-naver-distinct"
+            class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
+            중복제거
+          </button>
+          <input type="text" id="input-naver-address" placeholder="주소 검색..."
+            class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
+        </div>
+        <!-- 두 번째 줄: 숫자형 조건 필터 -->
+        <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;" class="text-sm">
+          <div class="flex items-center gap-1">
+            <span class="font-semibold text-gray-700">보증금</span>
+            <input type="number" id="input-naver-deposit-min" placeholder="이상" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+            <span>~</span>
+            <input type="number" id="input-naver-deposit-max" placeholder="이하" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="font-semibold text-gray-700">월세</span>
+            <input type="number" id="input-naver-rent-min" placeholder="이상" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+            <span>~</span>
+            <input type="number" id="input-naver-rent-max" placeholder="이하" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="font-semibold text-gray-700">전용(㎡)</span>
+            <input type="number" id="input-naver-area-min" placeholder="이상" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+            <span>~</span>
+            <input type="number" id="input-naver-area-max" placeholder="이하" class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
+          </div>
+          
+          <button id="btn-naver-address-search"
+            class="px-4 py-1.5 ml-2 bg-green-500 text-white rounded hover:bg-green-600 font-semibold transition-colors shadow-sm">
+            조회
+          </button>
+        </div>
       </div>
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
       <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:50.0rem;">
@@ -148,6 +172,13 @@
     let isNaverDistinctActive = false;
     let seenCompositeKeys = new Set();
     let naverAddressFilterWord = "";
+
+    // [ADD] 숫자 범위 필터 상태
+    let naverFilter = {
+      depositMin: null, depositMax: null,
+      rentMin: null, rentMax: null,
+      areaMin: null, areaMax: null
+    };
 
     // [ADD] 네이버 정렬 상태
     let naverSortColumn = null;
@@ -188,6 +219,13 @@
             query = query.or(orQuery);
           }
         }
+
+        if (naverFilter.depositMin !== null) query = query.gte('deposit_price', naverFilter.depositMin);
+        if (naverFilter.depositMax !== null) query = query.lte('deposit_price', naverFilter.depositMax);
+        if (naverFilter.rentMin !== null) query = query.gte('rent_price', naverFilter.rentMin);
+        if (naverFilter.rentMax !== null) query = query.lte('rent_price', naverFilter.rentMax);
+        if (naverFilter.areaMin !== null) query = query.gte('net_area', naverFilter.areaMin);
+        if (naverFilter.areaMax !== null) query = query.lte('net_area', naverFilter.areaMax);
 
         if (naverSortColumn) {
           query = query.order(naverSortColumn, { ascending: naverSortAscending });
@@ -345,15 +383,39 @@
       loadMoreNaverListings(true);
     });
 
-    // [ADD] 주소 검색 이벤트 (버튼 클릭 및 엔터 키 지원)
-    const doNaverAddressSearch = () => {
+    // [ADD] 통합 필터 검색 이벤트 (버튼 클릭 및 엔터 키 지원)
+    const doNaverSearch = () => {
       naverAddressFilterWord = document.getElementById('input-naver-address').value.trim();
+      
+      const getNum = (id) => {
+        const val = document.getElementById(id).value;
+        return val === '' ? null : Number(val);
+      };
+      
+      naverFilter.depositMin = getNum('input-naver-deposit-min');
+      naverFilter.depositMax = getNum('input-naver-deposit-max');
+      naverFilter.rentMin = getNum('input-naver-rent-min');
+      naverFilter.rentMax = getNum('input-naver-rent-max');
+      naverFilter.areaMin = getNum('input-naver-area-min');
+      naverFilter.areaMax = getNum('input-naver-area-max');
+      
       loadMoreNaverListings(true);
     };
 
-    document.getElementById('btn-naver-address-search').addEventListener('click', doNaverAddressSearch);
-    document.getElementById('input-naver-address').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') doNaverAddressSearch();
+    document.getElementById('btn-naver-address-search').addEventListener('click', doNaverSearch);
+    
+    // 입력창에서 Enter 키 누르면 검색 실행
+    const filterInputs = [
+      'input-naver-address', 'input-naver-deposit-min', 'input-naver-deposit-max',
+      'input-naver-rent-min', 'input-naver-rent-max', 'input-naver-area-min', 'input-naver-area-max'
+    ];
+    filterInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') doNaverSearch();
+        });
+      }
     });
 
     // [ADD] 네이버 버튼 클릭 이벤트
