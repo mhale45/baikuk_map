@@ -106,6 +106,20 @@
       <div id="naver-filter-container" style="display:none; flex-direction: column; margin-bottom: 12px; gap: 8px;">
         <!-- 두 번째 줄: 숫자형 조건 필터 -->
         <div style="display:flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" class="text-sm">
+          <!-- 거래상태 -->
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-gray-700">거래상태</span>
+            <div class="flex gap-2 items-center bg-white border border-gray-300 rounded px-2 py-1 h-[30px]">
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
+                  value="진행중" class="w-4 h-4" /> 진행중</label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
+                  value="계약완료" class="w-4 h-4" /> 계약완료</label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
+                  value="보류" class="w-4 h-4" /> 보류</label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status" value="-"
+                  class="w-4 h-4" checked /> -</label>
+            </div>
+          </div>
 
           <!-- 주소 -->
           <div class="flex flex-col gap-1">
@@ -205,7 +219,8 @@
       depositMin: null, depositMax: null,
       rentMin: null, rentMax: null,
       areaMin: null, areaMax: null,
-      floorMin: null, floorMax: null
+      floorMin: null, floorMax: null,
+      statuses: ['-'] // 초기값 '-'
     };
 
     // [ADD] 네이버 정렬 상태
@@ -236,9 +251,67 @@
           throw new Error("Supabase is not initialized.");
         }
 
+        // [ADD] 거래상태 필터링을 위한 composite_key 추출 로직
+        let targetKeys = null;
+        let isExcludeMode = false;
+
+        const allPossibleStatuses = ['진행중', '계약완료', '보류'];
+        const selected = naverFilter.statuses || [];
+        const hasDash = selected.includes('-');
+        const activeSelected = selected.filter(s => s !== '-');
+
+        // 필터가 활성화된 경우 (전체 선택이 아닌 경우)
+        if (selected.length > 0 && selected.length < 4) {
+          if (!hasDash) {
+            // '-'가 포함되지 않은 경우: 선택된 상태를 가진 키들만 포함 (IN)
+            try {
+              let statusQueries = activeSelected.map(s => `transaction_status.ilike.%${s}%`);
+              const { data: keysData } = await window.supabase
+                .from('baikukdbtest')
+                .select('composite_key')
+                .or(statusQueries.join(','));
+
+              targetKeys = Array.from(new Set((keysData || []).map(d => d.composite_key).filter(Boolean)));
+              if (targetKeys.length === 0) {
+                // 부합하는 키가 없으면 결과가 없어야 함
+                resultBox.innerHTML = '<div style="padding:8px; color:#666;">해당 거래상태의 매물이 없습니다.</div>';
+                meta.textContent = '조회 완료 (건수 0)';
+                isNaverLoading = false;
+                hasMoreNaver = false;
+                return;
+              }
+            } catch (e) { console.error('상태 필터(IN) 에러:', e); }
+          } else {
+            // '-'가 포함된 경우: 선택되지 않은 상태를 가진 키들을 제외 (NOT IN)
+            isExcludeMode = true;
+            const notSelected = allPossibleStatuses.filter(s => !activeSelected.includes(s));
+            if (notSelected.length > 0) {
+              try {
+                let statusQueries = notSelected.map(s => `transaction_status.ilike.%${s}%`);
+                const { data: keysData } = await window.supabase
+                  .from('baikukdbtest')
+                  .select('composite_key')
+                  .or(statusQueries.join(','));
+
+                targetKeys = Array.from(new Set((keysData || []).map(d => d.composite_key).filter(Boolean)));
+              } catch (e) { console.error('상태 필터(NOT IN) 에러:', e); }
+            }
+          }
+        }
+
         let query = window.supabase
           .from('naver_rent_listings')
           .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key');
+
+        if (targetKeys && targetKeys.length > 0) {
+          if (isExcludeMode) {
+            query = query.not('composite_key', 'in', `(${targetKeys.map(k => `"${k}"`).join(',')})`);
+          } else {
+            query = query.in('composite_key', targetKeys);
+          }
+        } else if (targetKeys && targetKeys.length === 0 && !isExcludeMode) {
+          // 이미 위에서 처리함
+        }
 
         if (naverAddressFilterWord) {
           const keywords = naverAddressFilterWord.split(',').map(k => k.trim()).filter(Boolean);
@@ -504,6 +577,10 @@
       naverFilter.areaMax = getNum('input-naver-area-max');
       naverFilter.floorMin = getNum('input-naver-floor-min');
       naverFilter.floorMax = getNum('input-naver-floor-max');
+
+      // 거래상태 체크박스 값 읽기
+      const statusCheckboxes = document.querySelectorAll('input[name="naver-status"]:checked');
+      naverFilter.statuses = Array.from(statusCheckboxes).map(cb => cb.value);
 
       loadMoreNaverListings(true);
     };
