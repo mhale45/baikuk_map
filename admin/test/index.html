@@ -251,67 +251,9 @@
           throw new Error("Supabase is not initialized.");
         }
 
-        // [ADD] 거래상태 필터링을 위한 composite_key 추출 로직
-        let targetKeys = null;
-        let isExcludeMode = false;
-
-        const allPossibleStatuses = ['진행중', '계약완료', '보류'];
-        const selected = naverFilter.statuses || [];
-        const hasDash = selected.includes('-');
-        const activeSelected = selected.filter(s => s !== '-');
-
-        // 필터가 활성화된 경우 (전체 선택이 아닌 경우)
-        if (selected.length > 0 && selected.length < 4) {
-          if (!hasDash) {
-            // '-'가 포함되지 않은 경우: 선택된 상태를 가진 키들만 포함 (IN)
-            try {
-              let statusQueries = activeSelected.map(s => `transaction_status.ilike.%${s}%`);
-              const { data: keysData } = await window.supabase
-                .from('baikukdbtest')
-                .select('composite_key')
-                .or(statusQueries.join(','));
-
-              targetKeys = Array.from(new Set((keysData || []).map(d => d.composite_key).filter(Boolean)));
-              if (targetKeys.length === 0) {
-                // 부합하는 키가 없으면 결과가 없어야 함
-                resultBox.innerHTML = '<div style="padding:8px; color:#666;">해당 거래상태의 매물이 없습니다.</div>';
-                meta.textContent = '조회 완료 (건수 0)';
-                isNaverLoading = false;
-                hasMoreNaver = false;
-                return;
-              }
-            } catch (e) { console.error('상태 필터(IN) 에러:', e); }
-          } else {
-            // '-'가 포함된 경우: 선택되지 않은 상태를 가진 키들을 제외 (NOT IN)
-            isExcludeMode = true;
-            const notSelected = allPossibleStatuses.filter(s => !activeSelected.includes(s));
-            if (notSelected.length > 0) {
-              try {
-                let statusQueries = notSelected.map(s => `transaction_status.ilike.%${s}%`);
-                const { data: keysData } = await window.supabase
-                  .from('baikukdbtest')
-                  .select('composite_key')
-                  .or(statusQueries.join(','));
-
-                targetKeys = Array.from(new Set((keysData || []).map(d => d.composite_key).filter(Boolean)));
-              } catch (e) { console.error('상태 필터(NOT IN) 에러:', e); }
-            }
-          }
-        }
-
         let query = window.supabase
           .from('naver_rent_listings')
           .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key');
-
-        if (targetKeys && targetKeys.length > 0) {
-          if (isExcludeMode) {
-            query = query.not('composite_key', 'in', `(${targetKeys.map(k => `"${k}"`).join(',')})`);
-          } else {
-            query = query.in('composite_key', targetKeys);
-          }
-        } else if (targetKeys && targetKeys.length === 0 && !isExcludeMode) {
-          // 이미 위에서 처리함
-        }
 
         if (naverAddressFilterWord) {
           const keywords = naverAddressFilterWord.split(',').map(k => k.trim()).filter(Boolean);
@@ -406,6 +348,25 @@
           }
         }
 
+        // [ADD] 클라이언트 사이드 거래상태 필터링
+        const selected = naverFilter.statuses || [];
+        let finalData = processedData;
+
+        if (selected.length > 0 && selected.length < 4) {
+          finalData = processedData.filter(item => {
+            const cKey = item.composite_key ? item.composite_key.trim() : null;
+            const bInfo = cKey ? baikukDataMap[cKey] : null;
+            const statusRaw = bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-';
+
+            // 체크된 상태 중 하나라도 포함되어 있는지 확인
+            const isMatch = selected.some(s => {
+              if (s === '-') return statusRaw === '-';
+              return statusRaw.includes(s);
+            });
+            return isMatch;
+          });
+        }
+
         let tbody;
         if (isFirstLoad) {
           const table = document.createElement('table');
@@ -470,7 +431,7 @@
           }
         });
 
-        processedData.forEach(item => {
+        finalData.forEach(item => {
           const cKey = item.composite_key ? item.composite_key.trim() : null;
           const bInfo = cKey ? baikukDataMap[cKey] : null;
 
@@ -520,14 +481,17 @@
           tbody.appendChild(tr);
         });
 
-        totalNaverCount += processedData.length;
+        totalNaverCount += finalData.length;
         naverOffset += NAVER_LIMIT;
 
         if (data.length < NAVER_LIMIT) {
           hasMoreNaver = false;
         }
 
-        if (processedData.length === 0 && data.length === NAVER_LIMIT) {
+        // 필터링 결과가 너무 적을 경우 자동으로 추가 로드 (최대 100건 표시될 때까지 시도)
+        if (hasMoreNaver && totalNaverCount < 100 && finalData.length < 10) {
+          setTimeout(() => loadMoreNaverListings(false), 50);
+        } else if (finalData.length === 0 && data.length === NAVER_LIMIT) {
           setTimeout(() => loadMoreNaverListings(false), 50);
         }
 
