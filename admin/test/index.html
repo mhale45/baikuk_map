@@ -249,8 +249,11 @@
             <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
-              <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
-                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
+              <div class="flex items-center gap-4">
+                <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
+                  class="w-1/4 p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
+                <span id="phrase-listing-title-display" class="font-bold text-gray-800 truncate flex-1"></span>
+              </div>
             </div>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">생성 정보 내용</label>
@@ -811,9 +814,13 @@
       const listingIdInput = document.getElementById('phrase-input-listing-id');
       const listingId = listingIdInput.value.trim();
       const extraTextarea = document.getElementById('phrase-input-extra-content');
+      const titleDisplay = document.getElementById('phrase-listing-title-display');
       const template = document.getElementById('phrase-input-content').value;
 
-      if (!listingId) return;
+      if (!listingId) {
+        if (titleDisplay) titleDisplay.textContent = '';
+        return;
+      }
 
       // 로딩 중 표시 (커서 등)
       listingIdInput.disabled = true;
@@ -829,9 +836,13 @@
         if (error) throw error;
 
         if (!data) {
+          if (titleDisplay) titleDisplay.textContent = '';
           alert('해당 매물번호(' + listingId + ')의 정보를 찾을 수 없습니다.');
           return;
         }
+
+        // 제목 표시
+        if (titleDisplay) titleDisplay.textContent = data.title || '(제목 없음)';
 
         // 권리금 기반 텍스트 결정
         const premiumPrice = data.premium_price ?? 0;
