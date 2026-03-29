@@ -204,42 +204,48 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
-          <button id="phrase-save-btn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+          <button id="phrase-save-btn"
+            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
             저장하기
           </button>
         </div>
-        
+
         <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
           <!-- 좌측 컬럼: 기존 광고 정보 -->
           <div class="flex-1 flex flex-col gap-4">
             <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">기존 광고 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">제목</label>
-              <input type="text" id="phrase-input-title" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
+              <input type="text" id="phrase-input-title"
+                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
             </div>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">내선번호 (Extension)</label>
-              <input type="text" id="phrase-input-extension" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
+              <input type="text" id="phrase-input-extension"
+                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
             </div>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">내용 (Ad Copy)</label>
-              <textarea id="phrase-input-content" class="w-full p-2 border rounded-md font-mono text-sm h-[430px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
+              <textarea id="phrase-input-content"
+                class="w-full p-2 border rounded-md font-mono text-sm h-[430px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
             </div>
             <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
           </div>
 
           <!-- 우측 컬럼: 신규 입력 정보 -->
           <div class="flex-1 flex flex-col gap-4">
-            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">추가 정보 (작업용)</h3>
+            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
-              <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
+              <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
+                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
             </div>
             <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">추가 정보 내용</label>
-              <textarea id="phrase-input-extra-content" placeholder="이곳에 추가 정보를 작성하거나 복붙하세요" class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-green-200 outline-none"></textarea>
+              <label class="font-semibold text-gray-600">생성 정보 내용</label>
+              <textarea id="phrase-input-extra-content" placeholder="이곳에 생성 정보를 작성하거나 복붙하세요"
+                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-green-200 outline-none"></textarea>
             </div>
-             <p class="text-xs text-gray-400">이 영역은 현재 데이터베이스에 저장되지 않습니다.</p>
+            <p class="text-xs text-gray-400">이 영역은 현재 데이터베이스에 저장되지 않습니다.</p>
           </div>
         </div>
       </div>
@@ -785,19 +791,75 @@
     });
 
     // 직원 클릭 시 정리 + 기존 로직
-    document.getElementById('staff-col').addEventListener('click', (e) => {
-      if (e.target.id === 'naver-link' || e.target.id === 'add-phrase') return;
-      const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
-      if (el) {
-        // 광고문구 정리
-        document.getElementById('phrase-col').classList.add('hidden');
-        document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
-        document.getElementById('phrase-panel').style.display = 'none';
+    // [ADD] 매물번호 연동 자동 문구 생성 기능
+    const formatNumber = (v) => {
+      if (v === null || v === undefined || isNaN(v)) return '-';
+      return Number(v).toLocaleString();
+    };
 
-        // 기존 직원 로직
-        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
-        const filterContainer = document.getElementById('naver-filter-container');
-        if (filterContainer) filterContainer.style.display = 'none';
+    async function generateExtraContent() {
+      const listingIdInput = document.getElementById('phrase-input-listing-id');
+      const listingId = listingIdInput.value.trim();
+      const extraTextarea = document.getElementById('phrase-input-extra-content');
+      const template = document.getElementById('phrase-input-content').value;
+      const extension = document.getElementById('phrase-input-extension').value;
+
+      if (!listingId) return;
+
+      // 로딩 중 표시 (커서 등)
+      listingIdInput.disabled = true;
+      extraTextarea.placeholder = '데이터 불러오는 중...';
+
+      try {
+        const { data, error } = await window.supabase
+          .from('baikukdbtest')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title')
+          .eq('listing_id', listingId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          alert('해당 매물번호(' + listingId + ')의 정보를 찾을 수 없습니다.');
+          return;
+        }
+
+        // 예약어 치환 매핑
+        const mapping = {
+          '@보증금@': formatNumber(data.deposit_price),
+          '@월세@': formatNumber(data.monthly_rent),
+          '@전용면적@': data.area_py || '-',
+          '@용도@': data.building_usage || '-',
+          '@화장실@': data.restroom || '-',
+          '@추천업종@': data.store_type_detail || '-',
+          '@특징@': data.title || '-',
+          '@내선번호@': extension || '-'
+        };
+
+        // 템플릿 치환 로직 (일괄 정규식)
+        let result = template;
+        Object.entries(mapping).forEach(([key, value]) => {
+          const regex = new RegExp(key, 'g');
+          result = result.replace(regex, value);
+        });
+
+        extraTextarea.value = result;
+
+      } catch (err) {
+        console.error('문구 생성 실패:', err);
+        alert('데이터를 가져오는 중 오류가 발생했습니다: ' + err.message);
+      } finally {
+        listingIdInput.disabled = false;
+        extraTextarea.placeholder = '이곳에 추가 정보를 작성하거나 복붙하세요';
+      }
+    }
+
+    // 이벤트 연결
+    document.getElementById('phrase-input-listing-id').addEventListener('blur', generateExtraContent);
+    document.getElementById('phrase-input-listing-id').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        generateExtraContent();
       }
     });
   </script>
