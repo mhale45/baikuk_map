@@ -8,7 +8,7 @@
     href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
-  <meta name="viewport" content="width=700, initial-scale=0.1, minimum-scale=0.1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 
-<body class="overflow-y-hidden min-h-screen">
+<body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
   <div id="toast"
     class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
     메시지 영역
@@ -27,11 +27,38 @@
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
       alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
   </div>
-  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold desktop-only">
     임대추천 <span id="selected-customer" class="text-blue-600"></span>
   </div>
-  <div class="flex min-h-screen">
-    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
+
+  <!-- === 모바일 헤더 === -->
+  <div class="mobile-only fixed top-0 left-0 w-full h-[60px] bg-white border-b flex items-center px-4 z-[9999]">
+    <button id="hamburger-btn" class="p-2 text-2xl">☰</button>
+    <div class="ml-4 text-xl font-bold">임대추천</div>
+  </div>
+
+  <!-- === 모바일 전용 드로어 === -->
+  <div id="drawer-overlay" class="drawer-overlay"></div>
+  <div id="mobile-drawer" class="mobile-drawer flex flex-col pt-[60px]">
+    <div id="drawer-content" class="overflow-y-auto h-full p-4">
+      <!-- 사이드바 내용 복제 예정 -->
+      <div id="mobile-nav" class="mb-8">
+        <a href="https://baikuk.com/map" class="block py-2 text-lg font-bold">백억지도</a>
+        <a href="/admin/listings/" class="block py-2 text-lg font-bold">매물장부</a>
+        <a href="/admin/recommend_imDae/" class="block py-2 text-lg font-bold text-blue-600">임대추천</a>
+        <a href="/admin/recommend_maeMae/" class="block py-2 text-lg font-bold">매매추천</a>
+        <a href="/admin/customer_manage/" class="block py-2 text-lg font-bold">고객관리</a>
+      </div>
+      <div id="mobile-customer-list-container">
+        <h3 class="font-bold border-b pb-2 mb-2">고객 목록</h3>
+        <div id="mobile-customer-list">
+          <!-- JS에서 동적으로 채움 -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex min-h-screen flex-col md:flex-row pt-[60px] md:pt-0">
+    <div class="hidden md:flex md:w-[6%] pt-[5rem] shadow-right text-center bg-white">
       <a href="https://baikuk.com/map">
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div>
       </a>
@@ -68,7 +95,8 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-    <div id="customer-col" class="bg-gray-100 w-[12%] pt-[2rem] shadow-right relative z-[10] text-left">
+    <div id="customer-col"
+      class="hidden md:block bg-gray-100 md:w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
       <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
       <div class="flex justify-end px-2 mb-2">
         <button id="new-customer-btn"
@@ -80,7 +108,7 @@
         <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
     </div>
-    <div class="w-[82%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
+    <div class="w-full md:w-[80%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
       <div class="mt-[2rem] flex px-3 bg-gray-100">
         <div class="text-left text-base rounded outline-none resize-none">
           <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->

@@ -1104,137 +1104,112 @@ async function loadCustomersForCurrentStaff() {
   /* ============================================
      6) 렌더링: 고객이름 + 리스트이름 트리화
   ============================================ */
+  const mobileContainer = document.getElementById('mobile-customer-list');
+  if (mobileContainer) mobileContainer.innerHTML = '';
+
   sortedGrades.forEach(grade => {
     const list = grouped[grade] || [];
     if (!list.length) return;
 
-    const section = document.createElement('div');
-    section.className = 'mb-1';
-    container.appendChild(section);
+    const createSection = (targetContainer) => {
+      const section = document.createElement('div');
+      section.className = 'mb-1';
+      targetContainer.appendChild(section);
 
-    const header = document.createElement('div');
-    header.className = 'grade-header flex items-center justify-between cursor-pointer select-none';
-    header.innerHTML = `
-      <span>${grade} (${list.length})</span>
-      <span class="caret text-gray-600 transition-transform duration-200">▼</span>
-    `;
-    section.appendChild(header);
+      const header = document.createElement('div');
+      header.className = 'grade-header flex items-center justify-between cursor-pointer select-none';
+      header.innerHTML = `
+        <span>${grade} (${list.length})</span>
+        <span class="caret text-gray-600 transition-transform duration-200">▼</span>
+      `;
+      section.appendChild(header);
 
-    const listBox = document.createElement('div');
-    listBox.className = 'mt-1';
-    section.appendChild(listBox);
+      const listBox = document.createElement('div');
+      listBox.className = 'mt-1';
+      section.appendChild(listBox);
 
-    // F는 기본 접힘
-    const isF = grade === 'F';
-    if (isF) {
-      listBox.style.display = 'none';
-      header.querySelector('.caret').style.transform = 'rotate(-90deg)';
-    }
-
-    /* ---- 고객이름 그룹 구성 ---- */
-    const customersByName = {};
-
-    list.forEach(c => {
-      if (!customersByName[c.customer_name]) {
-        customersByName[c.customer_name] = {
-          info: c,
-          lists: []
-        };
+      // F는 기본 접힘
+      const isF = grade === 'F';
+      if (isF) {
+        listBox.style.display = 'none';
+        header.querySelector('.caret').style.transform = 'rotate(-90deg)';
       }
-      customersByName[c.customer_name].lists.push(c.list_name);
-    });
 
-    /* ⭐ 고객이름 내림차순 정렬 */
-    const sortedCustomerGroups = Object.values(customersByName).sort(
-      (a, b) => b.info.customer_name.localeCompare(a.info.customer_name, "ko")
-    );
-
-    /* ---- 고객이름 렌더링 ---- */
-    sortedCustomerGroups.forEach(group => {
-      const cust = group.info;
-
-      const custBlock = document.createElement("div");
-      custBlock.className = "customer-block mb-1";
-
-      const nameRow = document.createElement("div");
-      nameRow.className = "customer-name font-bold cursor-pointer";
-
-      const other = otherNameMap.get(cust.id);
-      const otherText = other ? `(${other})` : "";
-
-      nameRow.textContent = `${cust.customer_name} ${otherText}`;
-      custBlock.appendChild(nameRow);
-
-      // ⭐ 고객명 클릭 시 → 첫 번째 리스트 자동 선택
-      nameRow.addEventListener("click", () => {
-
-        const sub = custBlock.querySelector(".customer-sublist");
-
-        // 리스트 아이템 수 가져오기
-        const listItems = custBlock.querySelectorAll(".customer-list-item");
-        const listCount = listItems.length;
-
-        // ⭐ 리스트가 2개 이상일 때만 펼치기 / 접기 토글
-        if (sub && listCount >= 2) {
-          sub.classList.toggle("hidden");
+      /* ---- 고객이름 그룹 구성 ---- */
+      const customersByName = {};
+      list.forEach(c => {
+        if (!customersByName[c.customer_name]) {
+          customersByName[c.customer_name] = { info: c, lists: [] };
         }
-
-        // ⭐ 리스트가 1개 이상 있으면 첫 번째 리스트 선택 자동 실행
-        const firstListItem = listItems[0];
-        if (firstListItem) {
-          // 기존 선택 제거
-          document.querySelectorAll(".customer-list-item.selected")
-            .forEach(el => el.classList.remove("selected"));
-
-          // 선택 표시
-          firstListItem.classList.add("selected");
-
-          // 리스트 이름 파싱 (“- 리스트명” → “리스트명”)
-          const firstListName = firstListItem.textContent.replace(/^- /, "").trim();
-
-          // 고객 데이터 자동 로드
-          loadCustomerDataByName(cust.customer_name, firstListName);
-        }
+        customersByName[c.customer_name].lists.push(c.list_name);
       });
 
-      // 리스트 wrapper
-      const sublist = document.createElement("div");
-      sublist.className = "customer-sublist hidden ml-3 mt-1";
-      custBlock.appendChild(sublist);
+      /* ⭐ 고객이름 내림차순 정렬 */
+      const sortedCustomerGroups = Object.values(customersByName).sort(
+        (a, b) => b.info.customer_name.localeCompare(a.info.customer_name, "ko")
+      );
 
-      // 리스트 렌더링
-      group.lists.forEach(listName => {
-        const listItem = document.createElement("div");
-        listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
-        listItem.textContent = `- ${listName}`;
+      /* ---- 고객이름 렌더링 ---- */
+      sortedCustomerGroups.forEach(group => {
+        const cust = group.info;
+        const custBlock = document.createElement("div");
+        custBlock.className = "customer-block mb-1";
 
-        listItem.addEventListener("click", (e) => {
-          e.stopPropagation();
+        const nameRow = document.createElement("div");
+        nameRow.className = "customer-name font-bold cursor-pointer";
 
-          // ⭐ 기존 선택 제거
-          document.querySelectorAll(".customer-list-item.selected")
-            .forEach(el => el.classList.remove("selected"));
+        const other = otherNameMap.get(cust.id);
+        const otherText = other ? `(${other})` : "";
 
-          // ⭐ 현재 클릭된 리스트 강조
-          listItem.classList.add("selected");
+        nameRow.textContent = `${cust.customer_name} ${otherText}`;
+        custBlock.appendChild(nameRow);
 
-          // 고객 정보 불러오기
-          loadCustomerDataByName(cust.customer_name, listName);
+        nameRow.addEventListener("click", () => {
+          const sub = custBlock.querySelector(".customer-sublist");
+          const listItems = custBlock.querySelectorAll(".customer-list-item");
+          if (sub && listItems.length >= 2) sub.classList.toggle("hidden");
+
+          const firstListItem = listItems[0];
+          if (firstListItem) {
+            document.querySelectorAll(".customer-list-item.selected").forEach(el => el.classList.remove("selected"));
+            firstListItem.classList.add("selected");
+            const firstListName = firstListItem.textContent.replace(/^- /, "").trim();
+            loadCustomerDataByName(cust.customer_name, firstListName);
+            // 모바일이면 드로어 닫기
+            if (targetContainer.id === 'mobile-customer-list') toggleMobileDrawer(false);
+          }
         });
 
-        sublist.appendChild(listItem);
+        const sublist = document.createElement("div");
+        sublist.className = "customer-sublist hidden ml-3 mt-1";
+        custBlock.appendChild(sublist);
+
+        group.lists.forEach(listName => {
+          const listItem = document.createElement("div");
+          listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
+          listItem.textContent = `- ${listName}`;
+          listItem.addEventListener("click", (e) => {
+            e.stopPropagation();
+            document.querySelectorAll(".customer-list-item.selected").forEach(el => el.classList.remove("selected"));
+            listItem.classList.add("selected");
+            loadCustomerDataByName(cust.customer_name, listName);
+            // 모바일이면 드로어 닫기
+            if (targetContainer.id === 'mobile-customer-list') toggleMobileDrawer(false);
+          });
+          sublist.appendChild(listItem);
+        });
+        listBox.appendChild(custBlock);
       });
 
-      listBox.appendChild(custBlock);
-    });
+      header.addEventListener('click', () => {
+        const visible = listBox.style.display !== 'none';
+        listBox.style.display = visible ? 'none' : '';
+        header.querySelector('.caret').style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
+      });
+    };
 
-    /* 등급 그룹 접기/펼치기 */
-    header.addEventListener('click', () => {
-      const visible = listBox.style.display !== 'none';
-      listBox.style.display = visible ? 'none' : '';
-      header.querySelector('.caret').style.transform =
-        visible ? 'rotate(-90deg)' : 'rotate(0deg)';
-    });
+    createSection(container);
+    if (mobileContainer) createSection(mobileContainer);
   });
 }
 
@@ -1606,6 +1581,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (dropdown && dropdown.parentElement !== document.body) {
     document.body.appendChild(dropdown);
   }
+
+  // === 모바일 햄버거 메뉴 초기화 ===
+  setupHamburgerMenu();
 
   // === 행 높이 동기화를 위한 행 단위 관찰 초기화 ===
   listingsBody = document.getElementById('listings-body');
