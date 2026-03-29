@@ -1,4 +1,12 @@
 ▶ 테이블 컬럼명시
+- add_phrase
+    id                  UUID PRIMARY KEY,         -- 고유값 (기본값: gen_random_uuid())
+    created_at          TIMESTAMPTZ,              -- 생성일시 (기본값: now())
+    title               TEXT,                     -- 제목
+    ad_copy             TEXT,                     -- 광고문구
+    user_id             UUID,                     -- user_id
+    extension           TEXT                      -- 내선전화번호
+
 - naver_rent_listings
 listing_id        BIGINT PRIMARY KEY,       -- 매물번호
     verify_type       TEXT,                     -- OWNER / NDOC1 / DOC ...
@@ -16,7 +24,8 @@ listing_id        BIGINT PRIMARY KEY,       -- 매물번호
     feature           TEXT,                     -- 특징 (여러 단어)
     ad_channel        TEXT,                     -- 광고채널 (부동산명)
     realtor           TEXT,                     -- 공인중개사/중개사무소명
-    full_address      TEXT                      -- 전체주소
+    full_address      TEXT,                      -- 전체주소
+real_estate_type TEXT                     -- 매물종류
 
 - cost_management
 id : int8
@@ -304,6 +313,7 @@ private_note : text
 건물주 주소 owner_address  : text 
 상가타입 store_category : text 
 addr_compare : text
+illegal_building : text
 
 - building_info 테이블
 full_address : text
