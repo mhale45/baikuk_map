@@ -203,18 +203,25 @@
     <section id="phrase-panel" class="p-4" style="display:none; flex: 1; margin-top: 0.5rem;">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">광고 정보 상세</h2>
-        <div id="phrase-detail-content" class="text-gray-700 space-y-4">
+        <div id="phrase-detail-content" class="text-gray-700 space-y-4 h-full flex flex-col">
           <!-- 상세 내용 렌더링 -->
           <div class="flex flex-col gap-2">
             <label class="font-semibold text-gray-600">제목</label>
-            <input type="text" id="phrase-input-title" class="w-full p-2 border rounded-md bg-gray-50" readonly />
+            <input type="text" id="phrase-input-title" class="w-full p-2 border rounded-md" />
           </div>
           <div class="flex flex-col gap-2">
-            <label class="font-semibold text-gray-600">내용</label>
-            <textarea id="phrase-input-content" rows="15" class="w-full p-2 border rounded-md bg-gray-50 font-mono text-sm" readonly></textarea>
+            <label class="font-semibold text-gray-600">내선번호 (Extension)</label>
+            <input type="text" id="phrase-input-extension" class="w-full p-2 border rounded-md" />
           </div>
-          <div class="flex justify-end gap-2 mt-4">
-             <p class="text-xs text-gray-400 mt-2">이 패널은 네이버 광고 업로드 정보용 데모입니다.</p>
+          <div class="flex flex-col gap-2 flex-grow">
+            <label class="font-semibold text-gray-600">내용 (Ad Copy)</label>
+            <textarea id="phrase-input-content" class="w-full p-2 border rounded-md font-mono text-sm flex-grow min-h-[500px]"></textarea>
+          </div>
+          <div class="flex justify-between items-center mt-4">
+             <p class="text-xs text-gray-400">수정 후 저장 버튼을 클릭해 주세요.</p>
+             <button id="phrase-save-btn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+               저장하기
+             </button>
           </div>
         </div>
       </div>
@@ -601,6 +608,8 @@
     });
 
     // [ADD] 광고문구 관련 로직
+    let currentPhraseId = null;
+
     async function loadAddPhrases() {
       const listContainer = document.getElementById('phrase-list');
       if (!listContainer) return;
@@ -610,7 +619,7 @@
       try {
         const { data, error } = await window.supabase
           .from('add_phrase')
-          .select('id, title, ad_copy')
+          .select('id, title, ad_copy, extension')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -629,6 +638,7 @@
           el.dataset.id = item.id;
           
           el.onclick = () => {
+             currentPhraseId = item.id;
             // 모든 강조 제거
             document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
             el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
@@ -637,6 +647,7 @@
             document.getElementById('phrase-panel').style.display = 'block';
             document.getElementById('employee-listings-panel').style.display = 'none';
             document.getElementById('phrase-input-title').value = item.title || '';
+            document.getElementById('phrase-input-extension').value = item.extension || '';
             document.getElementById('phrase-input-content').value = item.ad_copy || '';
           };
 
@@ -647,6 +658,61 @@
         listContainer.innerHTML = '<div class="p-2 text-sm text-red-500">로드 실패</div>';
       }
     }
+
+    // [ADD] 광고문구 저장 기능
+    async function saveAddPhrase() {
+      if (!currentPhraseId) {
+        alert('저장할 항목이 선택되지 않았습니다.');
+        return;
+      }
+
+      const title = document.getElementById('phrase-input-title').value.trim();
+      const extension = document.getElementById('phrase-input-extension').value.trim();
+      const ad_copy = document.getElementById('phrase-input-content').value.trim();
+      const btn = document.getElementById('phrase-save-btn');
+
+      if (!title) {
+        alert('제목을 입력해 주세요.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const { error } = await window.supabase
+          .from('add_phrase')
+          .update({ title, extension, ad_copy })
+          .eq('id', currentPhraseId);
+
+        if (error) throw error;
+
+        // 성공 토스트 (기존 showToastGreenRed 사용 시)
+        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
+            showToastGreenRed?.('성공적으로 저장되었습니다.', 'green');
+        }).catch(() => alert('성공적으로 저장되었습니다.'));
+
+        // 목록 새로고침
+        await loadAddPhrases();
+        
+        // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
+        const items = document.querySelectorAll('#phrase-list .name-item');
+        items.forEach(el => {
+            if (el.dataset.id === currentPhraseId) {
+                el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
+            }
+        });
+
+      } catch (err) {
+        console.error('저장 실패:', err);
+        alert('저장에 실패했습니다: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '저장하기';
+      }
+    }
+
+    document.getElementById('phrase-save-btn').addEventListener('click', saveAddPhrase);
 
     // [ADD] 광고문구 버튼 클릭 이벤트
     document.getElementById('add-phrase').addEventListener('click', () => {
