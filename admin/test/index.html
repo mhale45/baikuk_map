@@ -90,13 +90,26 @@
       </a>
     </div>
 
-    <!-- [ADD] 직원 패널 -->
     <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
       <div id="naver-link" class="grade-header text-center"
         style="margin: 0.5rem; background-color: #03c75a; color: white; cursor: pointer;">
-        네이버
+        네이버 부동산
+      </div>
+      <div id="add-phrase" class="grade-header text-center"
+        style="margin: 0.5rem; background-color: #4f46e5; color: white; cursor: pointer;">
+        광고문구
       </div>
       <div id="staff-list" class="overflow-y-auto">
+        <!-- JS로 렌더링 -->
+      </div>
+    </div>
+
+    <!-- [ADD] 광고문구 목록 패널 -->
+    <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
+      <div class="grade-header text-center" style="margin: 0.5rem; background-color: #6366f1; color: white;">
+        문구 목록
+      </div>
+      <div id="phrase-list" class="overflow-y-auto">
         <!-- JS로 렌더링 -->
       </div>
     </div>
@@ -183,6 +196,27 @@
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
       <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:47.0rem;">
         <!-- 매물 카드가 여기에 렌더링됩니다 -->
+      </div>
+    </section>
+
+    <!-- [ADD] 광고문구 상세 패널 -->
+    <section id="phrase-panel" class="p-4" style="display:none; flex: 1; margin-top: 0.5rem;">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+        <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">광고 정보 상세</h2>
+        <div id="phrase-detail-content" class="text-gray-700 space-y-4">
+          <!-- 상세 내용 렌더링 -->
+          <div class="flex flex-col gap-2">
+            <label class="font-semibold text-gray-600">제목</label>
+            <input type="text" id="phrase-input-title" class="w-full p-2 border rounded-md bg-gray-50" readonly />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="font-semibold text-gray-600">내용</label>
+            <textarea id="phrase-input-content" rows="15" class="w-full p-2 border rounded-md bg-gray-50 font-mono text-sm" readonly></textarea>
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+             <p class="text-xs text-gray-400 mt-2">이 패널은 네이버 광고 업로드 정보용 데모입니다.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -566,9 +600,85 @@
       }
     });
 
-    // [ADD] 네이버 버튼 클릭 이벤트
+    // [ADD] 광고문구 관련 로직
+    async function loadAddPhrases() {
+      const listContainer = document.getElementById('phrase-list');
+      if (!listContainer) return;
+
+      listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">불러오는 중...</div>';
+
+      try {
+        const { data, error } = await window.supabase
+          .from('add_phrase')
+          .select('id, title, content')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        listContainer.innerHTML = '';
+        if (!data || data.length === 0) {
+          listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">데이터가 없습니다.</div>';
+          return;
+        }
+
+        data.forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'name-item';
+          el.style.fontSize = '0.85rem';
+          el.textContent = item.title || '(제목 없음)';
+          el.dataset.id = item.id;
+          
+          el.onclick = () => {
+            // 모든 강조 제거
+            document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
+            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
+
+            // 상세 패널 업데이트
+            document.getElementById('phrase-panel').style.display = 'block';
+            document.getElementById('employee-listings-panel').style.display = 'none';
+            document.getElementById('phrase-input-title').value = item.title || '';
+            document.getElementById('phrase-input-content').value = item.content || '';
+          };
+
+          listContainer.appendChild(el);
+        });
+      } catch (err) {
+        console.error('광고문구 로드 실패:', err);
+        listContainer.innerHTML = '<div class="p-2 text-sm text-red-500">로드 실패</div>';
+      }
+    }
+
+    // [ADD] 광고문구 버튼 클릭 이벤트
+    document.getElementById('add-phrase').addEventListener('click', () => {
+       const phraseCol = document.getElementById('phrase-col');
+       const isHidden = phraseCol.classList.contains('hidden');
+
+       if (isHidden) {
+         // 보이게 함
+         phraseCol.classList.remove('hidden');
+         document.getElementById('add-phrase').classList.add('ring-2', 'ring-yellow-400');
+         
+         // 네이버/직원 선택 해제
+         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
+         document.getElementById('employee-listings-panel').style.display = 'none';
+         
+         loadAddPhrases();
+       } else {
+         // 숨김
+         phraseCol.classList.add('hidden');
+         document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+         document.getElementById('phrase-panel').style.display = 'none';
+       }
+    });
+
+    // 네이버 버튼 클릭 시 광고문구 패널 정리 + 기존 로직
     document.getElementById('naver-link').addEventListener('click', () => {
-      // 선택 상태 UI 업데이트
+      // 광고문구 정리
+      document.getElementById('phrase-col').classList.add('hidden');
+      document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+      document.getElementById('phrase-panel').style.display = 'none';
+
+      // 기존 네이버 로직
       document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
       document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
       document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
@@ -580,26 +690,27 @@
       if (filterContainer) filterContainer.style.display = 'flex';
 
       const resultBox = document.getElementById('employee-listings');
-
-      // 스크롤 이벤트 (무한 스크롤)
       resultBox.onscroll = () => {
         const isNaverTab = document.getElementById('naver-link').classList.contains('ring-yellow-400');
         if (!isNaverTab) return;
-
-        // 하단에서 100px 이내로 스크롤 시 추가 로드
         if (resultBox.scrollTop + resultBox.clientHeight >= resultBox.scrollHeight - 100) {
           loadMoreNaverListings(false);
         }
       };
-
       loadMoreNaverListings(true);
     });
 
-    // 직원 탭 클릭 시 네이버 탭 활성화 해제 (스크롤 이벤트 방지 차원)
+    // 직원 클릭 시 정리 + 기존 로직
     document.getElementById('staff-col').addEventListener('click', (e) => {
-      if (e.target.id === 'naver-link') return; // 네이버 버튼 자체는 무시
+      if (e.target.id === 'naver-link' || e.target.id === 'add-phrase') return; 
       const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
       if (el) {
+        // 광고문구 정리
+        document.getElementById('phrase-col').classList.add('hidden');
+        document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+        document.getElementById('phrase-panel').style.display = 'none';
+
+        // 기존 직원 로직
         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
         const filterContainer = document.getElementById('naver-filter-container');
         if (filterContainer) filterContainer.style.display = 'none';
