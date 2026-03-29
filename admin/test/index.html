@@ -829,7 +829,7 @@
       try {
         const { data, error } = await window.supabase
           .from('baikukdbtest')
-          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price, floor, illegal_building')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, listing_title, premium_price, floor, illegal_building')
           .eq('listing_id', listingId)
           .maybeSingle();
 
@@ -842,7 +842,7 @@
         }
 
         // 제목 표시
-        if (titleDisplay) titleDisplay.textContent = data.title || '(제목 없음)';
+        if (titleDisplay) titleDisplay.textContent = data.listing_title || data.title || '(제목 없음)';
 
         // 권리금 기반 텍스트 결정
         const premiumPrice = data.premium_price ?? 0;
