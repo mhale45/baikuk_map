@@ -222,7 +222,7 @@
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">내용 (Ad Copy)</label>
               <textarea id="phrase-input-content"
-                class="w-full p-2 border rounded-md font-mono text-sm h-[430px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
+                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
             </div>
             <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
           </div>
@@ -805,7 +805,7 @@
       try {
         const { data, error } = await window.supabase
           .from('baikukdbtest')
-          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price, floor')
           .eq('listing_id', listingId)
           .maybeSingle();
 
@@ -826,6 +826,7 @@
           '@월세@': formatNumber(data.monthly_rent),
           '@권리금@': premiumText,
           '@전용면적@': data.area_py ? Number(data.area_py).toFixed(0) : '-',
+          '@해당층@': data.floor || '-',
           '@용도@': data.building_usage || '-',
           '@화장실@': data.restroom || '-',
           '@추천업종@': data.store_type_detail || '-',
