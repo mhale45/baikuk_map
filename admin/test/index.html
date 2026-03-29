@@ -610,7 +610,7 @@
       try {
         const { data, error } = await window.supabase
           .from('add_phrase')
-          .select('id, title, content')
+          .select('id, title, ad_copy')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -637,7 +637,7 @@
             document.getElementById('phrase-panel').style.display = 'block';
             document.getElementById('employee-listings-panel').style.display = 'none';
             document.getElementById('phrase-input-title').value = item.title || '';
-            document.getElementById('phrase-input-content').value = item.content || '';
+            document.getElementById('phrase-input-content').value = item.ad_copy || '';
           };
 
           listContainer.appendChild(el);
