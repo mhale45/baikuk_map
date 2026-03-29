@@ -90,14 +90,44 @@
       </a>
     </div>
 
-    <!-- [ADD] 직원 패널 -->
     <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
       <div id="naver-link" class="grade-header text-center"
         style="margin: 0.5rem; background-color: #03c75a; color: white; cursor: pointer;">
-        네이버
+        네이버 부동산
+      </div>
+      <div id="add-phrase" class="grade-header text-center"
+        style="margin: 0.5rem; background-color: #4f46e5; color: white; cursor: pointer;">
+        광고문구
       </div>
       <div id="staff-list" class="overflow-y-auto">
         <!-- JS로 렌더링 -->
+      </div>
+    </div>
+
+    <!-- [ADD] 광고문구 목록 패널 -->
+    <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
+      <div class="grade-header text-center" style="margin: 0.5rem; background-color: #6366f1; color: white;">
+        문구 목록
+      </div>
+      <div id="phrase-list" class="overflow-y-auto" style="max-height: 60vh;">
+        <!-- JS로 렌더링 -->
+      </div>
+      <!-- [ADD] 대체 키워드 안내 -->
+      <div class="mt-4 p-3 mx-2 bg-indigo-50 rounded-lg border border-indigo-100">
+        <p class="text-[12px] font-bold text-indigo-600 mb-2">※ 대체 가능 키워드</p>
+        <ul class="text-[14px] text-gray-500 space-y-1 font-mono">
+          <li>@매물번호@</li>
+          <li>@보증금@</li>
+          <li>@월세@</li>
+          <li>@권리금@</li>
+          <li>@전용면적@</li>
+          <li>@용도@</li>
+          <li>@위반건축물@</li>
+          <li>@화장실@</li>
+          <li>@추천업종@</li>
+          <li>@특징@</li>
+          <li>@해당층@</li>
+        </ul>
       </div>
     </div>
     <section id="employee-listings-panel" class="employee-listings-panel"
@@ -183,6 +213,56 @@
       <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
       <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:47.0rem;">
         <!-- 매물 카드가 여기에 렌더링됩니다 -->
+      </div>
+    </section>
+
+    <!-- [ADD] 광고문구 상세 패널 -->
+    <section id="phrase-panel" class="p-4" style="display:none; width: 1400px; flex-shrink: 0; margin-top: 0.5rem;">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+          <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
+          <button id="phrase-save-btn"
+            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+            저장하기
+          </button>
+        </div>
+
+        <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
+          <!-- 좌측 컬럼: 기존 광고 정보 -->
+          <div class="flex-1 flex flex-col gap-4">
+            <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">기존 광고 정보</h3>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">제목</label>
+              <input type="text" id="phrase-input-title"
+                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">내용 (Ad Copy)</label>
+              <textarea id="phrase-input-content"
+                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
+            </div>
+            <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
+          </div>
+
+          <!-- 우측 컬럼: 신규 입력 정보 -->
+          <div class="flex-1 flex flex-col gap-4">
+            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">매물번호</label>
+              <div class="flex items-center gap-4">
+                <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
+                  class="w-1/4 p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
+                <span id="phrase-listing-title-display" class="font-bold text-gray-800 truncate flex-1"></span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">생성 정보 내용</label>
+              <textarea id="phrase-input-extra-content" placeholder="이곳에 생성 정보를 작성하거나 복붙하세요"
+                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-green-200 outline-none"></textarea>
+            </div>
+            <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -566,9 +646,142 @@
       }
     });
 
-    // [ADD] 네이버 버튼 클릭 이벤트
+    // [ADD] 광고문구 관련 로직
+    let currentPhraseId = null;
+
+    async function loadAddPhrases() {
+      const listContainer = document.getElementById('phrase-list');
+      if (!listContainer) return;
+
+      listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">불러오는 중...</div>';
+
+      try {
+        const { data, error } = await window.supabase
+          .from('add_phrase')
+          .select('id, title, ad_copy')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        listContainer.innerHTML = '';
+        if (!data || data.length === 0) {
+          listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">데이터가 없습니다.</div>';
+          return;
+        }
+
+        data.forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'name-item';
+          el.style.fontSize = '0.85rem';
+          el.textContent = item.title || '(제목 없음)';
+          el.dataset.id = item.id;
+
+          el.onclick = () => {
+            currentPhraseId = item.id;
+            // 모든 강조 제거
+            document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
+            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
+
+            // 상세 패널 업데이트
+            document.getElementById('phrase-panel').style.display = 'block';
+            document.getElementById('employee-listings-panel').style.display = 'none';
+            document.getElementById('phrase-input-title').value = item.title || '';
+            document.getElementById('phrase-input-content').value = item.ad_copy || '';
+          };
+
+          listContainer.appendChild(el);
+        });
+      } catch (err) {
+        console.error('광고문구 로드 실패:', err);
+        listContainer.innerHTML = '<div class="p-2 text-sm text-red-500">로드 실패</div>';
+      }
+    }
+
+    // [ADD] 광고문구 저장 기능
+    async function saveAddPhrase() {
+      if (!currentPhraseId) {
+        alert('저장할 항목이 선택되지 않았습니다.');
+        return;
+      }
+
+      const title = document.getElementById('phrase-input-title').value.trim();
+      const ad_copy = document.getElementById('phrase-input-content').value.trim();
+      const btn = document.getElementById('phrase-save-btn');
+
+      if (!title) {
+        alert('제목을 입력해 주세요.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const { error } = await window.supabase
+          .from('add_phrase')
+          .update({ title, ad_copy })
+          .eq('id', currentPhraseId);
+
+        if (error) throw error;
+
+        // 성공 토스트 (기존 showToastGreenRed 사용 시)
+        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
+          showToastGreenRed?.('성공적으로 저장되었습니다.', 'green');
+        }).catch(() => alert('성공적으로 저장되었습니다.'));
+
+        // 목록 새로고침
+        await loadAddPhrases();
+
+        // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
+        const items = document.querySelectorAll('#phrase-list .name-item');
+        items.forEach(el => {
+          if (el.dataset.id === currentPhraseId) {
+            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
+          }
+        });
+
+      } catch (err) {
+        console.error('저장 실패:', err);
+        alert('저장에 실패했습니다: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '저장하기';
+      }
+    }
+
+    document.getElementById('phrase-save-btn').addEventListener('click', saveAddPhrase);
+
+    // [ADD] 광고문구 버튼 클릭 이벤트
+    document.getElementById('add-phrase').addEventListener('click', () => {
+      const phraseCol = document.getElementById('phrase-col');
+      const isHidden = phraseCol.classList.contains('hidden');
+
+      if (isHidden) {
+        // 보이게 함
+        phraseCol.classList.remove('hidden');
+        document.getElementById('add-phrase').classList.add('ring-2', 'ring-yellow-400');
+
+        // 네이버/직원 선택 해제
+        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
+        document.getElementById('employee-listings-panel').style.display = 'none';
+
+        loadAddPhrases();
+      } else {
+        // 숨김
+        phraseCol.classList.add('hidden');
+        document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+        document.getElementById('phrase-panel').style.display = 'none';
+      }
+    });
+
+    // 네이버 버튼 클릭 시 광고문구 패널 정리 + 기존 로직
     document.getElementById('naver-link').addEventListener('click', () => {
-      // 선택 상태 UI 업데이트
+      // 광고문구 정리
+      document.getElementById('phrase-col').classList.add('hidden');
+      document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+      document.getElementById('phrase-panel').style.display = 'none';
+
+      // 기존 네이버 로직
       document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
       document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
       document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
@@ -580,29 +793,100 @@
       if (filterContainer) filterContainer.style.display = 'flex';
 
       const resultBox = document.getElementById('employee-listings');
-
-      // 스크롤 이벤트 (무한 스크롤)
       resultBox.onscroll = () => {
         const isNaverTab = document.getElementById('naver-link').classList.contains('ring-yellow-400');
         if (!isNaverTab) return;
-
-        // 하단에서 100px 이내로 스크롤 시 추가 로드
         if (resultBox.scrollTop + resultBox.clientHeight >= resultBox.scrollHeight - 100) {
           loadMoreNaverListings(false);
         }
       };
-
       loadMoreNaverListings(true);
     });
 
-    // 직원 탭 클릭 시 네이버 탭 활성화 해제 (스크롤 이벤트 방지 차원)
-    document.getElementById('staff-col').addEventListener('click', (e) => {
-      if (e.target.id === 'naver-link') return; // 네이버 버튼 자체는 무시
-      const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
-      if (el) {
-        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
-        const filterContainer = document.getElementById('naver-filter-container');
-        if (filterContainer) filterContainer.style.display = 'none';
+    // 직원 클릭 시 정리 + 기존 로직
+    // [ADD] 매물번호 연동 자동 문구 생성 기능
+    const formatNumber = (v) => {
+      if (v === null || v === undefined || isNaN(v)) return '-';
+      return Number(v).toLocaleString();
+    };
+
+    async function generateExtraContent() {
+      const listingIdInput = document.getElementById('phrase-input-listing-id');
+      const listingId = listingIdInput.value.trim();
+      const extraTextarea = document.getElementById('phrase-input-extra-content');
+      const titleDisplay = document.getElementById('phrase-listing-title-display');
+      const template = document.getElementById('phrase-input-content').value;
+
+      if (!listingId) {
+        if (titleDisplay) titleDisplay.textContent = '';
+        return;
+      }
+
+      // 로딩 중 표시 (커서 등)
+      listingIdInput.disabled = true;
+      extraTextarea.placeholder = '데이터 불러오는 중...';
+
+      try {
+        const { data, error } = await window.supabase
+          .from('baikukdbtest')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, listing_title, premium_price, floor, illegal_building')
+          .eq('listing_id', listingId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          if (titleDisplay) titleDisplay.textContent = '';
+          alert('해당 매물번호(' + listingId + ')의 정보를 찾을 수 없습니다.');
+          return;
+        }
+
+        // 제목 표시
+        if (titleDisplay) titleDisplay.textContent = data.listing_title || data.title || '(제목 없음)';
+
+        // 권리금 기반 텍스트 결정
+        const premiumPrice = data.premium_price ?? 0;
+        const premiumText = premiumPrice <= 10 ? '무권리' : '권리(전화문의)';
+
+        // 예약어 치환 매핑
+        const mapping = {
+          '@보증금@': formatNumber(data.deposit_price),
+          '@월세@': formatNumber(data.monthly_rent),
+          '@권리금@': premiumText,
+          '@전용면적@': data.area_py ? Number(data.area_py).toFixed(0) : '-',
+          '@해당층@': data.floor || '-',
+          '@용도@': data.building_usage || '-',
+          '@화장실@': data.restroom || '-',
+          '@추천업종@': data.store_type_detail || '-',
+          '@특징@': data.title || '-',
+          '@위반건축물@': data.illegal_building === '있음' ? '있음' : '',
+          '@매물번호@': listingId
+        };
+
+        // 템플릿 치환 로직 (일괄 정규식)
+        let result = template;
+        Object.entries(mapping).forEach(([key, value]) => {
+          const regex = new RegExp(key, 'g');
+          result = result.replace(regex, value);
+        });
+
+        extraTextarea.value = result;
+
+      } catch (err) {
+        console.error('문구 생성 실패:', err);
+        alert('데이터를 가져오는 중 오류가 발생했습니다: ' + err.message);
+      } finally {
+        listingIdInput.disabled = false;
+        extraTextarea.placeholder = '이곳에 추가 정보를 작성하거나 복붙하세요';
+      }
+    }
+
+    // 이벤트 연결
+    document.getElementById('phrase-input-listing-id').addEventListener('blur', generateExtraContent);
+    document.getElementById('phrase-input-listing-id').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        generateExtraContent();
       }
     });
   </script>
