@@ -204,7 +204,8 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-800">광고 정보 상세</h2>
-          <button id="phrase-save-btn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+          <button id="phrase-save-btn"
+            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
             저장하기
           </button>
         </div>
@@ -220,7 +221,8 @@
           </div>
           <div class="flex flex-col gap-2 flex-grow">
             <label class="font-semibold text-gray-600">내용 (Ad Copy)</label>
-            <textarea id="phrase-input-content" class="w-full p-2 border rounded-md font-mono text-sm flex-grow min-h-[500px]"></textarea>
+            <textarea id="phrase-input-content"
+              class="w-full p-2 border rounded-md font-mono text-sm flex-grow min-h-[300px]"></textarea>
           </div>
           <p class="text-xs text-gray-400 mt-2">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
         </div>
@@ -636,9 +638,9 @@
           el.style.fontSize = '0.85rem';
           el.textContent = item.title || '(제목 없음)';
           el.dataset.id = item.id;
-          
+
           el.onclick = () => {
-             currentPhraseId = item.id;
+            currentPhraseId = item.id;
             // 모든 강조 제거
             document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
             el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
@@ -689,18 +691,18 @@
 
         // 성공 토스트 (기존 showToastGreenRed 사용 시)
         import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
-            showToastGreenRed?.('성공적으로 저장되었습니다.', 'green');
+          showToastGreenRed?.('성공적으로 저장되었습니다.', 'green');
         }).catch(() => alert('성공적으로 저장되었습니다.'));
 
         // 목록 새로고침
         await loadAddPhrases();
-        
+
         // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
         const items = document.querySelectorAll('#phrase-list .name-item');
         items.forEach(el => {
-            if (el.dataset.id === currentPhraseId) {
-                el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
-            }
+          if (el.dataset.id === currentPhraseId) {
+            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
+          }
         });
 
       } catch (err) {
@@ -716,25 +718,25 @@
 
     // [ADD] 광고문구 버튼 클릭 이벤트
     document.getElementById('add-phrase').addEventListener('click', () => {
-       const phraseCol = document.getElementById('phrase-col');
-       const isHidden = phraseCol.classList.contains('hidden');
+      const phraseCol = document.getElementById('phrase-col');
+      const isHidden = phraseCol.classList.contains('hidden');
 
-       if (isHidden) {
-         // 보이게 함
-         phraseCol.classList.remove('hidden');
-         document.getElementById('add-phrase').classList.add('ring-2', 'ring-yellow-400');
-         
-         // 네이버/직원 선택 해제
-         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
-         document.getElementById('employee-listings-panel').style.display = 'none';
-         
-         loadAddPhrases();
-       } else {
-         // 숨김
-         phraseCol.classList.add('hidden');
-         document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
-         document.getElementById('phrase-panel').style.display = 'none';
-       }
+      if (isHidden) {
+        // 보이게 함
+        phraseCol.classList.remove('hidden');
+        document.getElementById('add-phrase').classList.add('ring-2', 'ring-yellow-400');
+
+        // 네이버/직원 선택 해제
+        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
+        document.getElementById('employee-listings-panel').style.display = 'none';
+
+        loadAddPhrases();
+      } else {
+        // 숨김
+        phraseCol.classList.add('hidden');
+        document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+        document.getElementById('phrase-panel').style.display = 'none';
+      }
     });
 
     // 네이버 버튼 클릭 시 광고문구 패널 정리 + 기존 로직
@@ -768,7 +770,7 @@
 
     // 직원 클릭 시 정리 + 기존 로직
     document.getElementById('staff-col').addEventListener('click', (e) => {
-      if (e.target.id === 'naver-link' || e.target.id === 'add-phrase') return; 
+      if (e.target.id === 'naver-link' || e.target.id === 'add-phrase') return;
       const el = e.target.closest('.name-item') || e.target.closest('.grade-header');
       if (el) {
         // 광고문구 정리
