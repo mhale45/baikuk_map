@@ -56,14 +56,14 @@ async function saveListingsForCurrentCustomer() {
   rows.forEach((tr, i) => {
     const index = i + 1;
 
-    const listing_title  = getFieldValue("listing_title", index);
-    const full_address   = getFieldValue("full_address", index);
-    const deposit_price  = getFieldValue("deposit_price", index);
-    const monthly_rent   = getFieldValue("monthly_rent", index);
-    const premium_price  = getFieldValue("premium_price", index);
-    const area_py        = getFieldValue("area_py", index);
-    const contents       = getFieldValue("description", index);
-    const listing_id     = getListingNumber(index);
+    const listing_title = getFieldValue("listing_title", index);
+    const full_address = getFieldValue("full_address", index);
+    const deposit_price = getFieldValue("deposit_price", index);
+    const monthly_rent = getFieldValue("monthly_rent", index);
+    const premium_price = getFieldValue("premium_price", index);
+    const area_py = getFieldValue("area_py", index);
+    const contents = getFieldValue("description", index);
+    const listing_id = getListingNumber(index);
     const color = getFieldValue("color", index);
 
     // 완전히 비어 있으면 스킵
@@ -79,18 +79,18 @@ async function saveListingsForCurrentCustomer() {
     ) return;
 
     result.push({
-      customers_id   : String(currentCustomerId), 
-      order          : index,
-      listing_id     : listing_id || null,
-      listing_title  : listing_title || null,
-      full_address   : full_address || null,
-      deposit_price  : Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
-      monthly_rent   : Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
-      premium_price  : Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
-      area_py        : Number(area_py) || null,
-      contents       : contents || null,
-      memo          : getMemoValue(index) || null,
-      color          : color || null,
+      customers_id: String(currentCustomerId),
+      order: index,
+      listing_id: listing_id || null,
+      listing_title: listing_title || null,
+      full_address: full_address || null,
+      deposit_price: Number(String(deposit_price).replace(/[^\d]/g, "")) || 0,
+      monthly_rent: Number(String(monthly_rent).replace(/[^\d]/g, "")) || 0,
+      premium_price: Number(String(premium_price).replace(/[^\d]/g, "")) || 0,
+      area_py: Number(area_py) || null,
+      contents: contents || null,
+      memo: getMemoValue(index) || null,
+      color: color || null,
       row_properties: {
         strike: getFieldValue("strike", index) === "1" ? 1 : null
       }
@@ -123,7 +123,7 @@ async function saveListingsForCurrentCustomer() {
 
     // ⭐ 고객이름 전체에 구분/전화/메모 동기화
     await updateAllSameNameCustomers();
-    
+
     return true;
   } catch (e) {
     console.error(e);
@@ -147,8 +147,8 @@ function formatDate(input) {
     hour12: false,
   }).formatToParts(d);
   const get = (type) => parts.find(p => p.type === type)?.value || '';
-  const y  = get('year');
-  const m  = Number(get('month'));
+  const y = get('year');
+  const m = Number(get('month'));
   const day = Number(get('day'));
   const hh = get('hour').padStart(2, '0');
   const mm = get('minute').padStart(2, '0');
@@ -168,7 +168,7 @@ function _timetzToTodayISO(tzStr) {
     const ss = ampm[4] || '00';
     if (isPM && hh < 12) hh += 12;
     if (!isPM && hh === 12) hh = 0;
-    raw = `${String(hh).padStart(2,'0')}:${mm}:${ss}`;
+    raw = `${String(hh).padStart(2, '0')}:${mm}:${ss}`;
   }
 
   const datePart = new Intl.DateTimeFormat('en-CA', {
@@ -184,7 +184,7 @@ function _timetzToTodayISO(tzStr) {
 
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
-  const offset = `${sign}${String(offH).padStart(2,'0')}:${String(offM).padStart(2,'0')}`;
+  const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
 
   const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
   const iso = `${datePart}T${hhmmss}${offset}`;
@@ -440,7 +440,7 @@ function joinMoney(deposit, monthly) {
   const a = (deposit || '').trim(); // 예: "1억 5,000"
   const b = (monthly || '').trim(); // 예: "800"
   const aL = a ? `${a}` : '';
-  const bL = b ? `${b}`   : '';
+  const bL = b ? `${b}` : '';
   if (a && b) return `${aL}/${bL}`;
   return aL || bL || '';
 }
@@ -456,15 +456,15 @@ function hasMeaningfulData(index) {
 
 // ✅ 한 행을 메시지 4줄로 변환 (주소 뒤 "-" 문제 수정 버전)
 function buildMessageForRow(index) {
-  const no     = getListingNumber(index) || '';
-  const title  = getFieldValue('listing_title', index) || '-';
-  const addr   = getFieldValue('full_address', index) || '';
-  const unit   = getFieldValue('combined_unit', index) || '';   // 상세 주소/호수 정보
-  const dep    = getFieldValue('deposit_price', index);
-  const mon    = getFieldValue('monthly_rent', index);
-  const prem   = getFieldValue('premium_price', index);
-  const area   = getFieldValue('area_py', index);
-  const desc   = getFieldValue('description', index);
+  const no = getListingNumber(index) || '';
+  const title = getFieldValue('listing_title', index) || '-';
+  const addr = getFieldValue('full_address', index) || '';
+  const unit = getFieldValue('combined_unit', index) || '';   // 상세 주소/호수 정보
+  const dep = getFieldValue('deposit_price', index);
+  const mon = getFieldValue('monthly_rent', index);
+  const prem = getFieldValue('premium_price', index);
+  const area = getFieldValue('area_py', index);
+  const desc = getFieldValue('description', index);
 
   // 🔥 주소 + 상세주소(호수) 조합 개선
   // unit(호수/상세주소)이 있을 때만 "-" 를 붙인다
@@ -478,8 +478,8 @@ function buildMessageForRow(index) {
   const line1 = `${title}`.trim();
 
   // 3행: "면적 보증금/월세 권리금"
-  const areaPart   = area ? `${area}평` : '';
-  const moneyPair  = joinMoney(dep, mon); // 보증금/월세
+  const areaPart = area ? `${area}평` : '';
+  const moneyPair = joinMoney(dep, mon); // 보증금/월세
   const premiumTag = prem ? `권${prem}` : '';
   const parts = [areaPart, moneyPair, premiumTag].filter(Boolean);
   const line3 = parts.join(' ');
@@ -746,7 +746,7 @@ function setupStaffDropdown() {
 
         // 직원 정보 가로 배치
         const row = document.createElement('div');
-        row.className = 'flex items-center gap-3 pl-4'; 
+        row.className = 'flex items-center gap-3 pl-4';
 
         const namePart = document.createElement('span');
         namePart.className = 'font-medium text-gray-800';
@@ -826,154 +826,154 @@ async function isMyAssignedCustomer(customerId) {
 
 async function loadCustomerDataByName(name, list_name = null) {
 
-    // 1) 고객을 정확히 조회 (이름 + 리스트 조합)
-    let query = supabase
-        .from("customers")
-        .select("*")
-        .eq("customer_name", name);
+  // 1) 고객을 정확히 조회 (이름 + 리스트 조합)
+  let query = supabase
+    .from("customers")
+    .select("*")
+    .eq("customer_name", name);
 
-    if (list_name) {
-        query = query.eq("list_name", list_name);
-    }
+  if (list_name) {
+    query = query.eq("list_name", list_name);
+  }
 
-    const { data: customer, error } = await query.maybeSingle();
+  const { data: customer, error } = await query.maybeSingle();
 
-    if (error || !customer) {
-        showToast("고객 정보를 불러올 수 없습니다.");
-        return;
-    }
+  if (error || !customer) {
+    showToast("고객 정보를 불러올 수 없습니다.");
+    return;
+  }
 
-    // 2) 고객 기본 정보 채우기
-    document.getElementById("top-row-input").value = customer.customer_name || "";
-    document.getElementById("list-name-input").value = customer.list_name || "";
-    document.getElementById("customer-phone").value = customer.customer_phone_number || "";
-    document.getElementById("customer-grade").value = customer.grade || "F";
-    document.getElementById("memo-textarea").value = customer.memo || "";
+  // 2) 고객 기본 정보 채우기
+  document.getElementById("top-row-input").value = customer.customer_name || "";
+  document.getElementById("list-name-input").value = customer.list_name || "";
+  document.getElementById("customer-phone").value = customer.customer_phone_number || "";
+  document.getElementById("customer-grade").value = customer.grade || "F";
+  document.getElementById("memo-textarea").value = customer.memo || "";
 
-    // 숫자 필드들
-    const fill = (id, v) => document.getElementById(id).value = v ?? "";
-    fill("floor-min", customer.floor_min);
-    fill("floor-max", customer.floor_max);
-    fill("area-min", customer.area_min);
-    fill("area-max", customer.area_max);
-    fill("deposit-min", customer.deposit_min);
-    fill("deposit-max", customer.deposit_max);
-    fill("rent-min", customer.rent_min);
-    fill("rent-max", customer.rent_max);
-    fill("rent-per-py-min", customer.rent_per_py_min);
-    fill("rent-per-py-max", customer.rent_per_py_max);
-    fill("premium-min", customer.premium_min);
-    fill("premium-max", customer.premium_max);
-    fill("sale-min", customer.sale_min);
-    fill("sale-max", customer.sale_max);
-    fill("total-deposit-min", customer.total_deposit_min);
-    fill("total-deposit-max", customer.total_deposit_max);
-    fill("total-rent-min", customer.total_rent_min);
-    fill("total-rent-max", customer.total_rent_max);
-    fill("roi-min", customer.roi_min);
-    fill("roi-max", customer.roi_max);
+  // 숫자 필드들
+  const fill = (id, v) => document.getElementById(id).value = v ?? "";
+  fill("floor-min", customer.floor_min);
+  fill("floor-max", customer.floor_max);
+  fill("area-min", customer.area_min);
+  fill("area-max", customer.area_max);
+  fill("deposit-min", customer.deposit_min);
+  fill("deposit-max", customer.deposit_max);
+  fill("rent-min", customer.rent_min);
+  fill("rent-max", customer.rent_max);
+  fill("rent-per-py-min", customer.rent_per_py_min);
+  fill("rent-per-py-max", customer.rent_per_py_max);
+  fill("premium-min", customer.premium_min);
+  fill("premium-max", customer.premium_max);
+  fill("sale-min", customer.sale_min);
+  fill("sale-max", customer.sale_max);
+  fill("total-deposit-min", customer.total_deposit_min);
+  fill("total-deposit-max", customer.total_deposit_max);
+  fill("total-rent-min", customer.total_rent_min);
+  fill("total-rent-max", customer.total_rent_max);
+  fill("roi-min", customer.roi_min);
+  fill("roi-max", customer.roi_max);
 
-    // 3) 현재 고객 ID 저장
-    currentCustomerId = customer.id;
+  // 3) 현재 고객 ID 저장
+  currentCustomerId = customer.id;
 
-    // 4) 매물 정보 로딩
-    await loadListingsForCustomerId(customer.id);
+  // 4) 매물 정보 로딩
+  await loadListingsForCustomerId(customer.id);
 }
 
 async function loadListingsForCustomerId(customerId) {
 
-    // 입력 UI 초기화
-    document.querySelectorAll('input[data-index]').forEach(i => i.value = '');
-    document.getElementById("listings-body").innerHTML = '';
+  // 입력 UI 초기화
+  document.querySelectorAll('input[data-index]').forEach(i => i.value = '');
+  document.getElementById("listings-body").innerHTML = '';
 
-    const { data: listings, error } = await supabase
-        .from("customers_recommendations")
-        .select("*")
-        .eq("customers_id", customerId)
-        .order("order", { ascending: true });
+  const { data: listings, error } = await supabase
+    .from("customers_recommendations")
+    .select("*")
+    .eq("customers_id", customerId)
+    .order("order", { ascending: true });
 
-    if (error) {
-        showToast("매물 정보를 불러오지 못했습니다.");
-        return;
-    }
+  if (error) {
+    showToast("매물 정보를 불러오지 못했습니다.");
+    return;
+  }
 
-    let nextIndex = 1;
+  let nextIndex = 1;
 
-    listings.forEach(listing => {
-        const index = listing.order ?? nextIndex++;
+  listings.forEach(listing => {
+    const index = listing.order ?? nextIndex++;
 
-        const leftInput = document.querySelector(`input[data-index="${index}"]`);
-        if (leftInput) leftInput.value = listing.listing_id ?? "";
+    const leftInput = document.querySelector(`input[data-index="${index}"]`);
+    if (leftInput) leftInput.value = listing.listing_id ?? "";
 
-        updateListingsTableByInputs();
+    updateListingsTableByInputs();
 
-        const setField = (field, value) => {
-            const el = document.querySelector(`[data-field="${field}_${index}"]`);
-            if (!el) return;
-            if (el.tagName === "SPAN") el.textContent = value ?? "";
-            else el.value = value ?? "";
-        };
+    const setField = (field, value) => {
+      const el = document.querySelector(`[data-field="${field}_${index}"]`);
+      if (!el) return;
+      if (el.tagName === "SPAN") el.textContent = value ?? "";
+      else el.value = value ?? "";
+    };
 
-        setField('listing_title', listing.listing_title);
-        setField('full_address', listing.full_address);
-        setField('deposit_price', formatKoreanMoney(listing.deposit_price));
-        setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
-        setField('premium_price', formatKoreanMoney(listing.premium_price));
-        setField('area_py', listing.area_py);
-        setField('description', listing.contents);
+    setField('listing_title', listing.listing_title);
+    setField('full_address', listing.full_address);
+    setField('deposit_price', formatKoreanMoney(listing.deposit_price));
+    setField('monthly_rent', formatKoreanMoney(listing.monthly_rent));
+    setField('premium_price', formatKoreanMoney(listing.premium_price));
+    setField('area_py', listing.area_py);
+    setField('description', listing.contents);
 
-        const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
-        if (memoEl) memoEl.value = listing.memo ?? "";
-    });
+    const memoEl = document.querySelector(`textarea[data-memo-index="${index}"]`);
+    if (memoEl) memoEl.value = listing.memo ?? "";
+  });
 }
 
 async function loadCustomerByNameAndList(name, list_name) {
 
-    const { data: customer, error } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("customer_name", name)
-        .eq("list_name", list_name)
-        .maybeSingle();
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("customer_name", name)
+    .eq("list_name", list_name)
+    .maybeSingle();
 
-    if (error || !customer) {
-        showToast("고객 정보를 불러오지 못했습니다.");
-        return;
-    }
+  if (error || !customer) {
+    showToast("고객 정보를 불러오지 못했습니다.");
+    return;
+  }
 
-    // 고객 정보 채우기
-    document.getElementById("top-row-input").value = customer.customer_name || "";
-    document.getElementById("list-name-input").value = customer.list_name || "";
-    document.getElementById("customer-phone").value = customer.customer_phone_number || "";
-    document.getElementById("customer-grade").value = customer.grade || "F";
-    document.getElementById("memo-textarea").value = customer.memo || "";
+  // 고객 정보 채우기
+  document.getElementById("top-row-input").value = customer.customer_name || "";
+  document.getElementById("list-name-input").value = customer.list_name || "";
+  document.getElementById("customer-phone").value = customer.customer_phone_number || "";
+  document.getElementById("customer-grade").value = customer.grade || "F";
+  document.getElementById("memo-textarea").value = customer.memo || "";
 
-    document.getElementById("floor-min").value = customer.floor_min ?? "";
-    document.getElementById("floor-max").value = customer.floor_max ?? "";
-    document.getElementById("area-min").value = customer.area_min ?? "";
-    document.getElementById("area-max").value = customer.area_max ?? "";
-    document.getElementById("deposit-min").value = customer.deposit_min ?? "";
-    document.getElementById("deposit-max").value = customer.deposit_max ?? "";
-    document.getElementById("rent-min").value = customer.rent_min ?? "";
-    document.getElementById("rent-max").value = customer.rent_max ?? "";
-    document.getElementById("rent-per-py-min").value = customer.rent_per_py_min ?? "";
-    document.getElementById("rent-per-py-max").value = customer.rent_per_py_max ?? "";
-    document.getElementById("premium-min").value = customer.premium_min ?? "";
-    document.getElementById("premium-max").value = customer.premium_max ?? "";
-    document.getElementById("sale-min").value = customer.sale_min ?? "";
-    document.getElementById("sale-max").value = customer.sale_max ?? "";
-    document.getElementById("total-deposit-min").value = customer.total_deposit_min ?? "";
-    document.getElementById("total-deposit-max").value = customer.total_deposit_max ?? "";
-    document.getElementById("total-rent-min").value = customer.total_rent_min ?? "";
-    document.getElementById("total-rent-max").value = customer.total_rent_max ?? "";
-    document.getElementById("roi-min").value = customer.roi_min ?? "";
-    document.getElementById("roi-max").value = customer.roi_max ?? "";
+  document.getElementById("floor-min").value = customer.floor_min ?? "";
+  document.getElementById("floor-max").value = customer.floor_max ?? "";
+  document.getElementById("area-min").value = customer.area_min ?? "";
+  document.getElementById("area-max").value = customer.area_max ?? "";
+  document.getElementById("deposit-min").value = customer.deposit_min ?? "";
+  document.getElementById("deposit-max").value = customer.deposit_max ?? "";
+  document.getElementById("rent-min").value = customer.rent_min ?? "";
+  document.getElementById("rent-max").value = customer.rent_max ?? "";
+  document.getElementById("rent-per-py-min").value = customer.rent_per_py_min ?? "";
+  document.getElementById("rent-per-py-max").value = customer.rent_per_py_max ?? "";
+  document.getElementById("premium-min").value = customer.premium_min ?? "";
+  document.getElementById("premium-max").value = customer.premium_max ?? "";
+  document.getElementById("sale-min").value = customer.sale_min ?? "";
+  document.getElementById("sale-max").value = customer.sale_max ?? "";
+  document.getElementById("total-deposit-min").value = customer.total_deposit_min ?? "";
+  document.getElementById("total-deposit-max").value = customer.total_deposit_max ?? "";
+  document.getElementById("total-rent-min").value = customer.total_rent_min ?? "";
+  document.getElementById("total-rent-max").value = customer.total_rent_max ?? "";
+  document.getElementById("roi-min").value = customer.roi_min ?? "";
+  document.getElementById("roi-max").value = customer.roi_max ?? "";
 
-    // 현재 고객 ID 저장
-    currentCustomerId = customer.id;
+  // 현재 고객 ID 저장
+  currentCustomerId = customer.id;
 
-    // ⭐⭐ 매물 로딩 — 정확한 함수명
-    await loadListingsForCurrentCustomer();
+  // ⭐⭐ 매물 로딩 — 정확한 함수명
+  await loadListingsForCurrentCustomer();
 
 }
 
@@ -1561,7 +1561,7 @@ async function fetchListingInfo(listingId, rowIndex) {
   };
 
   updateListingsTableByInputs();
-  
+
   // 4. DOM에 출력
   Object.entries(dataToDisplay).forEach(([field, value]) => {
     const selector = `[data-field="${field}_${rowIndex}"]`;
@@ -1573,9 +1573,9 @@ async function fetchListingInfo(listingId, rowIndex) {
           ? formatKoreanMoney(value)
           : field === 'area_py'
             ? (isNaN(Number(value)) ? '-' : Number(value).toFixed(1))
-          : field === 'full_address'
-            ? (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-')
-          : (value ?? '-');
+            : field === 'full_address'
+              ? (typeof value === 'string' ? value.split(' ').slice(1).join(' ') : '-')
+              : (value ?? '-');
 
       if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
         el.value = formattedValue;
@@ -1616,7 +1616,7 @@ window.addEventListener('DOMContentLoaded', () => {
   observeRows();   // 현재 있는 모든 행 관찰 시작
 
   const memoTextarea = document.getElementById('memo-textarea');
-  
+
   document.querySelectorAll('input[data-index]').forEach(input => {
     const index = parseInt(input.dataset.index, 10);
 
@@ -1649,13 +1649,13 @@ window.addEventListener('DOMContentLoaded', () => {
       if (dupeIndex) {
         const dupes = {
           listing_title: getFieldValue('listing_title', dupeIndex),
-          full_address:  getFieldValue('full_address',  dupeIndex),
-          description:   getFieldValue('description',   dupeIndex),
+          full_address: getFieldValue('full_address', dupeIndex),
+          description: getFieldValue('description', dupeIndex),
         };
         setFieldValue('listing_title', rowIndex, dupes.listing_title ?? '');
-        setFieldValue('full_address',  rowIndex, dupes.full_address  ?? '');
+        setFieldValue('full_address', rowIndex, dupes.full_address ?? '');
         setFieldValue('combined_unit', rowIndex, dupes.combined_unit ?? '');
-        setFieldValue('description',   rowIndex, dupes.description   ?? '');
+        setFieldValue('description', rowIndex, dupes.description ?? '');
 
         // 메모도 같이 복사
         const srcMemo = getMemoValue(dupeIndex);
@@ -1743,7 +1743,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (t.matches('input[data-index]')) {
       // iOS/Safari 일부 이슈 방지용
       setTimeout(() => {
-        try { t.select(); } catch (_) {}
+        try { t.select(); } catch (_) { }
       }, 0);
     }
   });
@@ -1774,7 +1774,7 @@ window.addEventListener('resize', syncRowHeights);
 
 function syncRowHeights() {
   const rightRows = document.querySelectorAll('#listings-body tr');
-  const leftRows  = document.querySelectorAll('#left-tbody tr');
+  const leftRows = document.querySelectorAll('#left-tbody tr');
 
   const len = Math.min(rightRows.length, leftRows.length);
   for (let i = 0; i < len; i++) {
@@ -1802,11 +1802,11 @@ function syncRowHeights() {
 
 function syncMemoRowHeights() {
   const listingRows = document.querySelectorAll('#listings-body tr');
-  const memoRows    = document.querySelectorAll('#memo-body tr');
+  const memoRows = document.querySelectorAll('#memo-body tr');
 
   const count = Math.min(listingRows.length, memoRows.length);
   for (let i = 0; i < count; i++) {
-    const h  = listingRows[i].offsetHeight; // 매물 행의 "최종 총높이"(패딩/보더 반영, 정수 px)
+    const h = listingRows[i].offsetHeight; // 매물 행의 "최종 총높이"(패딩/보더 반영, 정수 px)
     const td = memoRows[i].querySelector('td');
     if (!td) continue;
 
@@ -1816,7 +1816,7 @@ function syncMemoRowHeights() {
     // 내부 textarea가 TD를 꽉 채우게
     const ta = td.querySelector('textarea');
     if (ta) {
-      ta.style.height   = '100%';
+      ta.style.height = '100%';
       ta.style.maxHeight = 'none';
     }
   }
@@ -1838,7 +1838,7 @@ function combineUnitInfo(buildingName, floor, unitInfo) {
     const floorStr = String(floor);
     parts.push(floorStr.endsWith('층') ? floorStr : floorStr + '층');
   }
-    
+
   if (unitInfo && unitInfo !== '-') {
     const unitStr = String(unitInfo).trim();
     const endsWithHo = unitStr.endsWith('호');
@@ -1968,7 +1968,7 @@ document.getElementById('delete-customer')?.addEventListener('click', async () =
     if (listingsBodyEl) listingsBodyEl.innerHTML = '';
 
     // (추가) 메모 패널 비우기
-    const memoBody = document.getElementById('memo-body'); 
+    const memoBody = document.getElementById('memo-body');
     if (memoBody) memoBody.innerHTML = '';
 
     // 직원 표시/선택 UI 정리
@@ -1983,11 +1983,11 @@ document.getElementById('delete-customer')?.addEventListener('click', async () =
     console.error('삭제 처리 중 예외:', e);
     showToast('삭제 처리 중 오류가 발생했습니다.');
   }
-  
+
   loadCustomersForCurrentStaff();
 });
 
-  // ✅ 버튼 이벤트
+// ✅ 버튼 이벤트
 document.getElementById('copy-link-btn')?.addEventListener('click', () => {
   const text = buildAllMessages();
   if (!text) {
@@ -2089,156 +2089,215 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   }, 100);
 });
 
+// 이미지 저장 (단일 이미지로 저장)
+document.getElementById('print-btn3')?.addEventListener('click', async () => {
+  const whiteBox = document.getElementById('white-box');
+  if (!whiteBox) {
+    showToast('저장할 내용을 찾을 수 없습니다.');
+    return;
+  }
+
+  // 리사이즈 핸들 일시적으로 숨김
+  const resizeHandle = whiteBox.querySelector('#whitebox-resize-handle');
+  if (resizeHandle) resizeHandle.style.visibility = 'hidden';
+
+  // 로딩 표시 (필요 시)
+  showToast('이미지를 생성 중입니다...');
+
+  try {
+    // html2canvas 실행
+    const canvas = await html2canvas(whiteBox, {
+      useCORS: true,
+      scale: 2, // 고해상도
+      backgroundColor: '#ffffff', // 배경색 명시
+      logging: false,
+      onclone: (clonedDoc) => {
+        // 이미지 저장 시에만 하단 여백을 살짝 추가 (기본 p-1/4px 에서 2px 더 추가)
+        const cells = clonedDoc.querySelectorAll('#white-box td, #white-box th');
+        cells.forEach(cell => {
+          cell.style.paddingBottom = '20px';
+        });
+      }
+    });
+
+    // 파일명 생성: 임대추천_YYYYMMDD_HHMMSS
+    const now = new Date();
+    const Y = now.getFullYear();
+    const M = String(now.getMonth() + 1).padStart(2, '0');
+    const D = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const filename = `임대추천_${Y}${M}${D}_${h}${m}${s}.png`;
+
+    // 다운로드 링크 생성 및 클릭
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('이미지 저장이 완료되었습니다.');
+  } catch (err) {
+    console.error('이미지 저장 오류:', err);
+    showToast('이미지 저장 중 오류가 발생했습니다.');
+  } finally {
+    // 리사이즈 핸들 다시 표시
+    if (resizeHandle) resizeHandle.style.visibility = 'visible';
+  }
+});
+
 document.getElementById("save-new-customer").addEventListener("click", async () => {
-    const name = document.getElementById("top-row-input").value.trim();
-    const list_name = document.getElementById("list-name-input").value.trim();
-    const phone = document.getElementById("customer-phone").value.trim();
-    const grade = document.getElementById("customer-grade").value.trim();
-    const memo = document.getElementById("memo-textarea").value.trim();
+  const name = document.getElementById("top-row-input").value.trim();
+  const list_name = document.getElementById("list-name-input").value.trim();
+  const phone = document.getElementById("customer-phone").value.trim();
+  const grade = document.getElementById("customer-grade").value.trim();
+  const memo = document.getElementById("memo-textarea").value.trim();
 
-    const floor_min = Number(document.getElementById("floor-min").value) || null;
-    const floor_max = Number(document.getElementById("floor-max").value) || null;
-    const area_min = Number(document.getElementById("area-min").value) || null;
-    const area_max = Number(document.getElementById("area-max").value) || null;
-    const deposit_min = Number(document.getElementById("deposit-min").value) || null;
-    const deposit_max = Number(document.getElementById("deposit-max").value) || null;
-    const rent_min = Number(document.getElementById("rent-min").value) || null;
-    const rent_max = Number(document.getElementById("rent-max").value) || null;
-    const rent_per_py_min = Number(document.getElementById("rent-per-py-min").value) || null;
-    const rent_per_py_max = Number(document.getElementById("rent-per-py-max").value) || null;
-    const premium_min = Number(document.getElementById("premium-min").value) || null;
-    const premium_max = Number(document.getElementById("premium-max").value) || null;
-    const sale_min = Number(document.getElementById("sale-min").value) || null;
-    const sale_max = Number(document.getElementById("sale-max").value) || null;
-    const total_deposit_min = Number(document.getElementById("total-deposit-min").value) || null;
-    const total_deposit_max = Number(document.getElementById("total-deposit-max").value) || null;
-    const total_rent_min = Number(document.getElementById("total-rent-min").value) || null;
-    const total_rent_max = Number(document.getElementById("total-rent-max").value) || null;
-    const roi_min = Number(document.getElementById("roi-min").value) || null;
-    const roi_max = Number(document.getElementById("roi-max").value) || null;
+  const floor_min = Number(document.getElementById("floor-min").value) || null;
+  const floor_max = Number(document.getElementById("floor-max").value) || null;
+  const area_min = Number(document.getElementById("area-min").value) || null;
+  const area_max = Number(document.getElementById("area-max").value) || null;
+  const deposit_min = Number(document.getElementById("deposit-min").value) || null;
+  const deposit_max = Number(document.getElementById("deposit-max").value) || null;
+  const rent_min = Number(document.getElementById("rent-min").value) || null;
+  const rent_max = Number(document.getElementById("rent-max").value) || null;
+  const rent_per_py_min = Number(document.getElementById("rent-per-py-min").value) || null;
+  const rent_per_py_max = Number(document.getElementById("rent-per-py-max").value) || null;
+  const premium_min = Number(document.getElementById("premium-min").value) || null;
+  const premium_max = Number(document.getElementById("premium-max").value) || null;
+  const sale_min = Number(document.getElementById("sale-min").value) || null;
+  const sale_max = Number(document.getElementById("sale-max").value) || null;
+  const total_deposit_min = Number(document.getElementById("total-deposit-min").value) || null;
+  const total_deposit_max = Number(document.getElementById("total-deposit-max").value) || null;
+  const total_rent_min = Number(document.getElementById("total-rent-min").value) || null;
+  const total_rent_max = Number(document.getElementById("total-rent-max").value) || null;
+  const roi_min = Number(document.getElementById("roi-min").value) || null;
+  const roi_max = Number(document.getElementById("roi-max").value) || null;
 
-    if (!name) {
-        showToast("고객 이름을 입력해주세요.");
-        return;
-    }
+  if (!name) {
+    showToast("고객 이름을 입력해주세요.");
+    return;
+  }
 
-    let myStaffId = await getMyStaffId();
-    if (!myStaffId) {
-        showToast("로그인이 필요합니다.");
-        return;
-    }
+  let myStaffId = await getMyStaffId();
+  if (!myStaffId) {
+    showToast("로그인이 필요합니다.");
+    return;
+  }
 
-    // 매물번호 중복 체크
-    highlightDuplicateListingNumbers();
-    if (hasDuplicateListingNumbers()) {
-        alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
-        return;
-    }
+  // 매물번호 중복 체크
+  highlightDuplicateListingNumbers();
+  if (hasDuplicateListingNumbers()) {
+    alert("같은 매물번호가 2개 이상 있습니다.\n중복을 먼저 정리한 뒤 다시 저장해주세요.");
+    return;
+  }
 
+  /* ===========================================================
+     🔍 1) 고객이름 + 리스트이름 조합으로 기존 고객 여부 확인
+  =========================================================== */
+  const { data: existing, error: existErr } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("customer_name", name)
+    .eq("list_name", list_name)
+    .maybeSingle();
+
+  let customerId = null;
+
+  if (existing) {
     /* ===========================================================
-       🔍 1) 고객이름 + 리스트이름 조합으로 기존 고객 여부 확인
+       🔥 2) 기존 조합이 있으면 → confirm 후 전체 덮어쓰기
     =========================================================== */
-    const { data: existing, error: existErr } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("customer_name", name)
-        .eq("list_name", list_name)
-        .maybeSingle();
+    const ok = confirm(
+      `"${name}" - "${list_name}"가\n이미 존재합니다. 덮어쓸까요?`
+    );
+    if (!ok) return;
 
-    let customerId = null;
+    customerId = existing.id;
 
-    if (existing) {
-        /* ===========================================================
-           🔥 2) 기존 조합이 있으면 → confirm 후 전체 덮어쓰기
-        =========================================================== */
-        const ok = confirm(
-            `"${name}" - "${list_name}"가\n이미 존재합니다. 덮어쓸까요?`
-        );
-        if (!ok) return;
+    // 고객정보 업데이트
+    const { error: updateErr } = await supabase
+      .from("customers")
+      .update({
+        customer_name: name,
+        list_name: list_name,
+        customer_phone_number: phone,
+        grade: grade,
+        memo: memo,
+        staff_profiles_id: selectedStaffId ?? myStaffId,
+        floor_min, floor_max,
+        area_min, area_max,
+        deposit_min, deposit_max,
+        rent_min, rent_max,
+        rent_per_py_min, rent_per_py_max,
+        premium_min, premium_max,
+        sale_min, sale_max,
+        total_deposit_min, total_deposit_max,
+        total_rent_min, total_rent_max,
+        roi_min, roi_max
+      })
+      .eq("id", customerId);
 
-        customerId = existing.id;
-
-        // 고객정보 업데이트
-        const { error: updateErr } = await supabase
-            .from("customers")
-            .update({
-                customer_name: name,
-                list_name: list_name,
-                customer_phone_number: phone,
-                grade: grade,
-                memo: memo,
-                staff_profiles_id: selectedStaffId ?? myStaffId,
-                floor_min, floor_max,
-                area_min, area_max,
-                deposit_min, deposit_max,
-                rent_min, rent_max,
-                rent_per_py_min, rent_per_py_max,
-                premium_min, premium_max,
-                sale_min, sale_max,
-                total_deposit_min, total_deposit_max,
-                total_rent_min, total_rent_max,
-                roi_min, roi_max
-            })
-            .eq("id", customerId);
-
-        if (updateErr) {
-            console.error(updateErr);
-            showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
-            return;
-        }
-
-    } else {
-        /* ===========================================================
-           🆕 3) 기존 조합이 없으면 신규 고객 INSERT
-        =========================================================== */
-        const { data: inserted, error: insertErr } = await supabase
-            .from("customers")
-            .insert({
-                customer_name: name,
-                list_name: list_name,
-                customer_phone_number: phone,
-                grade: grade,
-                memo: memo,
-                staff_profiles_id: selectedStaffId ?? myStaffId,
-                floor_min, floor_max,
-                area_min, area_max,
-                deposit_min, deposit_max,
-                rent_min, rent_max,
-                rent_per_py_min, rent_per_py_max,
-                premium_min, premium_max,
-                sale_min, sale_max,
-                total_deposit_min, total_deposit_max,
-                total_rent_min, total_rent_max,
-                roi_min, roi_max
-            })
-            .select()
-            .single();
-
-        if (insertErr || !inserted) {
-            console.error(insertErr);
-            showToast("신규 고객 저장 실패");
-            return;
-        }
-
-        customerId = inserted.id;
+    if (updateErr) {
+      console.error(updateErr);
+      showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+      return;
     }
 
+  } else {
     /* ===========================================================
-       🏠 4) 추천매물 전체 덮어쓰기
-          (기존 데이터 삭제 → 신규매물 insert)
+       🆕 3) 기존 조합이 없으면 신규 고객 INSERT
     =========================================================== */
-    currentCustomerId = customerId;
+    const { data: inserted, error: insertErr } = await supabase
+      .from("customers")
+      .insert({
+        customer_name: name,
+        list_name: list_name,
+        customer_phone_number: phone,
+        grade: grade,
+        memo: memo,
+        staff_profiles_id: selectedStaffId ?? myStaffId,
+        floor_min, floor_max,
+        area_min, area_max,
+        deposit_min, deposit_max,
+        rent_min, rent_max,
+        rent_per_py_min, rent_per_py_max,
+        premium_min, premium_max,
+        sale_min, sale_max,
+        total_deposit_min, total_deposit_max,
+        total_rent_min, total_rent_max,
+        roi_min, roi_max
+      })
+      .select()
+      .single();
 
-    const saved = await saveListingsForCurrentCustomer();
-    if (!saved) {
-        showToast("매물 정보 저장 실패");
-        return;
+    if (insertErr || !inserted) {
+      console.error(insertErr);
+      showToast("신규 고객 저장 실패");
+      return;
     }
 
-    showToast("저장 완료!");
+    customerId = inserted.id;
+  }
 
-    // 고객 목록 갱신
-    loadCustomersForCurrentStaff();
+  /* ===========================================================
+     🏠 4) 추천매물 전체 덮어쓰기
+        (기존 데이터 삭제 → 신규매물 insert)
+  =========================================================== */
+  currentCustomerId = customerId;
+
+  const saved = await saveListingsForCurrentCustomer();
+  if (!saved) {
+    showToast("매물 정보 저장 실패");
+    return;
+  }
+
+  showToast("저장 완료!");
+
+  // 고객 목록 갱신
+  loadCustomersForCurrentStaff();
 });
 
 // ⭐ 신규 고객 버튼 기능
