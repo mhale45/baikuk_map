@@ -2115,7 +2115,7 @@ document.getElementById('print-btn3')?.addEventListener('click', async () => {
         // 이미지 저장 시에만 하단 여백을 살짝 추가 (기본 p-1/4px 에서 2px 더 추가)
         const cells = clonedDoc.querySelectorAll('#white-box td');
         cells.forEach(td => {
-          td.style.paddingBottom = '10px';
+          td.style.paddingBottom = '20px';
         });
       }
     });
