@@ -813,7 +813,7 @@
       try {
         const { data, error } = await window.supabase
           .from('baikukdbtest')
-          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price')
           .eq('listing_id', listingId)
           .maybeSingle();
 
@@ -824,10 +824,15 @@
           return;
         }
 
+        // 권리금 기반 텍스트 결정
+        const premiumPrice = data.premium_price ?? 0;
+        const premiumText = premiumPrice <= 10 ? '무권리' : '권리(전화문의)';
+
         // 예약어 치환 매핑
         const mapping = {
           '@보증금@': formatNumber(data.deposit_price),
           '@월세@': formatNumber(data.monthly_rent),
+          '@권리금@': premiumText,
           '@전용면적@': data.area_py || '-',
           '@용도@': data.building_usage || '-',
           '@화장실@': data.restroom || '-',
