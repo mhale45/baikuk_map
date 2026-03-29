@@ -833,7 +833,7 @@
           '@보증금@': formatNumber(data.deposit_price),
           '@월세@': formatNumber(data.monthly_rent),
           '@권리금@': premiumText,
-          '@전용면적@': data.area_py ? Number(data.area_py).toFixed(1) : '-',
+          '@전용면적@': data.area_py ? Number(data.area_py).toFixed(0) : '-',
           '@용도@': data.building_usage || '-',
           '@화장실@': data.restroom || '-',
           '@추천업종@': data.store_type_detail || '-',
