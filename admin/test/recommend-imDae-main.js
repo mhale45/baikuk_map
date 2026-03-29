@@ -2111,6 +2111,13 @@ document.getElementById('print-btn3')?.addEventListener('click', async () => {
       scale: 2, // 고해상도
       backgroundColor: '#ffffff', // 배경색 명시
       logging: false,
+      onclone: (clonedDoc) => {
+        // 이미지 저장 시에만 하단 여백을 살짝 추가 (기본 p-1/4px 에서 2px 더 추가)
+        const cells = clonedDoc.querySelectorAll('#white-box td');
+        cells.forEach(td => {
+          td.style.paddingBottom = '6px';
+        });
+      }
     });
 
     // 파일명 생성: 임대추천_YYYYMMDD_HHMMSS

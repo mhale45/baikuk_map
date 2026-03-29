@@ -70,20 +70,6 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
-
-    #white-box {
-        display: flex;
-        flex-direction: column;
-        /* 요소를 세로로 배치 */
-        justify-content: center;
-        /* 세로 방향(주축)에서 중앙 정렬 */
-        align-items: center;
-        /* 가로 방향(교차축)에서 중앙 정렬 */
-        text-align: center;
-        /* 텍스트 자체를 중앙으로 */
-        height: 400px;
-        /* 높이가 있어야 위아래 정렬 확인 가능 */
-    }
 }
 
 .shadow-right {
