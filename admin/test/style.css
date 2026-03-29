@@ -27,6 +27,7 @@
     padding: 4px; 
     font-size: 12px; 
     text-align: center; 
+    vertical-align: middle !important;
     }
 
     /* 헤더 음영 진하게 */
@@ -106,6 +107,7 @@ table, th, td {
 th, td {
     padding: 0.25rem; /* p-1 정도 */
     text-align: center;
+    vertical-align: middle !important;
     font-size: 0.875rem; /* text-sm */
 }
 
