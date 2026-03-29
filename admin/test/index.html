@@ -116,16 +116,17 @@
       <div class="mt-4 p-3 mx-2 bg-indigo-50 rounded-lg border border-indigo-100">
         <p class="text-[12px] font-bold text-indigo-600 mb-2">※ 대체 가능 키워드</p>
         <ul class="text-[14px] text-gray-500 space-y-1 font-mono">
+          <li>@매물번호@</li>
           <li>@보증금@</li>
           <li>@월세@</li>
+          <li>@권리금@</li>
           <li>@전용면적@</li>
           <li>@용도@</li>
+          <li>@위반건축물@</li>
           <li>@화장실@</li>
           <li>@추천업종@</li>
           <li>@특징@</li>
           <li>@해당층@</li>
-          <li>@매물번호@</li>
-          <li>@권리금@</li>
         </ul>
       </div>
     </div>
@@ -821,7 +822,7 @@
       try {
         const { data, error } = await window.supabase
           .from('baikukdbtest')
-          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price, floor')
+          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, premium_price, floor, illegal_building')
           .eq('listing_id', listingId)
           .maybeSingle();
 
@@ -847,6 +848,7 @@
           '@화장실@': data.restroom || '-',
           '@추천업종@': data.store_type_detail || '-',
           '@특징@': data.title || '-',
+          '@위반건축물@': data.illegal_building === '있음' ? '있음' : '',
           '@매물번호@': listingId
         };
 
