@@ -562,7 +562,7 @@ async function renderStaffSidebar(me) {
             const staffExtCmp = staffExtRaw.replace(/\s+/g, ''); 
             const { data, error } = await supabase
               .from('ad_baikuk_listings')
-              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price')
+              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price, illegal_building')
               .eq('branch_name', branchName)
               .ilike('agent_name', likeValue);
 
@@ -621,6 +621,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">위반</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
@@ -650,7 +651,7 @@ async function renderStaffSidebar(me) {
               try {
                 const { data: infoRows, error: infoErr } = await supabase
                   .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2')
+                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2, illegal_building')
                   .in('listing_id', idList);
                 if (infoErr) throw infoErr;
 
@@ -666,7 +667,8 @@ async function renderStaffSidebar(me) {
                       floor: r.floor ?? '',
                       total_floors: r.total_floors ?? '',
                       sale_price: r.sale_price ?? '',
-                      area_m2: r.area_m2 ?? ''   // ✅ 추가
+                      area_m2: r.area_m2 ?? '',
+                      illegal_building: r.illegal_building ?? ''
                     }
                   ])
                 );
@@ -843,6 +845,15 @@ async function renderStaffSidebar(me) {
                 restroomLabel = '<span class="text-red-600 font-semibold">화장실 확인</span>';
               }
 
+              // === [위반] 표시 ===
+              // 규칙: ad_baikuk_listings.illegal_building 과 baikukdbtest.illegal_building 비교
+              //      다르면 '위반확인'(빨강), 같으면 '-'
+              const adViolation = (row.illegal_building || '').trim();
+              const baseViolation = (info?.illegal_building || '').trim();
+              const illegalLabel = (adViolation !== baseViolation)
+                ? '<span class="text-red-600 font-semibold">위반확인</span>'
+                : '-';
+
               // 표시값 계산
               const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
 
@@ -956,10 +967,13 @@ async function renderStaffSidebar(me) {
               if (String(areaCell).includes('면적 확인')) areaPriority = 0;
               else if (String(areaCell).includes('상세설명')) areaPriority = 1;
 
-              // 9) 융자금: '융자금 없음' 우선
+              // 9) 위반: '위반확인' 포함 우선
+              const illegalPriority = (String(illegalLabel).includes('위반확인')) ? 0 : 1;
+
+              // 10) 융자금: '융자금 없음' 우선
               const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
 
-              // 10) 관리비: '관리비 체크' 포함 우선
+              // 11) 관리비: '관리비 체크' 포함 우선
               const manageFeePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
 
               // 11) 화장실: '화장실 확인' 포함 우선
@@ -989,6 +1003,7 @@ async function renderStaffSidebar(me) {
                 monthlyPriority,
                 premiumPriority,
                 areaPriority,
+                illegalPriority,
                 loanPriority,
                 manageFeePriority,
                 restroomPriority,
@@ -1011,6 +1026,7 @@ async function renderStaffSidebar(me) {
                 depositLabel: depositOut,
                 monthlyLabel: monthlyOut,
                 premiumLabel,
+                illegalLabel,
                 loanLabel,
                 maintenanceLabel,
                 restroomLabel,
@@ -1079,6 +1095,7 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.monthlyLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${premiumCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.areaCell}</td>
+                <td class="border border-gray-300 px-3 py-1">${item.illegalLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${loanCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.maintenanceLabel}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.restroomLabel}</td>
