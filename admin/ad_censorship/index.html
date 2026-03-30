@@ -106,7 +106,8 @@
 
     <!-- [ADD] 광고문구 목록 패널 -->
     <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
-      <div class="grade-header text-center" style="margin: 0.5rem; background-color: #6366f1; color: white;">
+      <div id="phrase-list-header" class="grade-header text-center cursor-pointer hover:bg-indigo-500 transition-colors"
+        style="margin: 0.5rem; background-color: #6366f1; color: white;">
         문구 목록
       </div>
       <div id="phrase-list" class="overflow-y-auto" style="max-height: 60vh;">
@@ -221,18 +222,25 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
-          <button id="phrase-save-btn"
-            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
-            저장하기
-          </button>
+          <div class="flex gap-3">
+            <button id="phrase-delete-btn"
+              class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold shadow-md transition-all active:scale-95"
+              style="display:none;">
+              삭제하기
+            </button>
+            <button id="phrase-save-btn"
+              class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+              저장하기
+            </button>
+          </div>
         </div>
 
         <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
           <!-- 좌측 컬럼: 기존 광고 정보 -->
           <div class="flex-1 flex flex-col gap-4">
-            <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">기존 광고 정보</h3>
+            <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">고정 광고 문구</h3>
             <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">제목</label>
+              <label class="font-semibold text-gray-600">문구 제목</label>
               <input type="text" id="phrase-input-title"
                 class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
             </div>
@@ -246,11 +254,11 @@
 
           <!-- 우측 컬럼: 신규 입력 정보 -->
           <div class="flex-1 flex flex-col gap-4">
-            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
+            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 광고 문구</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
               <div class="flex items-center gap-4">
-                <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
+                <input type="text" id="phrase-input-listing-id" placeholder="매물번호 입력"
                   class="w-1/4 p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
                 <span id="phrase-listing-title-display" class="font-bold text-gray-800 truncate flex-1"></span>
               </div>
@@ -272,7 +280,10 @@
 
   <script type="module">
     import { initAdCensorship } from './ad_censorship.js';
-    initAdCensorship();
+    let currentUser = null; // [ADD] 전역 사용자 정보 저장용
+    initAdCensorship().then(me => {
+      currentUser = me;
+    });
 
     // 광고 검열용 예시: 필터 이벤트 수신
     document.addEventListener('adc:filter-change', (e) => {
@@ -652,6 +663,30 @@
     // [ADD] 광고문구 관련 로직
     let currentPhraseId = null;
 
+    // [ADD] 신규 문구 등록 모드 진입
+    function enterNewPhraseMode() {
+      currentPhraseId = null;
+      document.getElementById('phrase-detail-title').textContent = '신규 문구 등록';
+      document.getElementById('phrase-input-title').value = '';
+      document.getElementById('phrase-input-content').value = '';
+
+      // 목록 하이라이트 제거
+      document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
+
+      // 삭제 버튼 숨김
+      document.getElementById('phrase-delete-btn').style.display = 'none';
+
+      // 상세 패널 표시
+      document.getElementById('phrase-panel').style.display = 'block';
+      document.getElementById('employee-listings-panel').style.display = 'none';
+
+      // 입력창 포커스
+      document.getElementById('phrase-input-title').focus();
+    }
+
+    // "문구 목록" 헤더 클릭 시 신규 등록 모드
+    document.getElementById('phrase-list-header').addEventListener('click', enterNewPhraseMode);
+
     async function loadAddPhrases() {
       const listContainer = document.getElementById('phrase-list');
       if (!listContainer) return;
@@ -662,6 +697,7 @@
         const { data, error } = await window.supabase
           .from('add_phrase')
           .select('id, title, ad_copy')
+          .eq('user_id', currentUser?.userId) // [ADD] 본인 작성 문구만 필터링
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -687,6 +723,8 @@
 
             // 상세 패널 업데이트
             document.getElementById('phrase-panel').style.display = 'block';
+            document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
+            document.getElementById('phrase-delete-btn').style.display = 'inline-block';
             document.getElementById('employee-listings-panel').style.display = 'none';
             document.getElementById('phrase-input-title').value = item.title || '';
             document.getElementById('phrase-input-content').value = item.ad_copy || '';
@@ -702,11 +740,6 @@
 
     // [ADD] 광고문구 저장 기능
     async function saveAddPhrase() {
-      if (!currentPhraseId) {
-        alert('저장할 항목이 선택되지 않았습니다.');
-        return;
-      }
-
       const title = document.getElementById('phrase-input-title').value.trim();
       const ad_copy = document.getElementById('phrase-input-content').value.trim();
       const btn = document.getElementById('phrase-save-btn');
@@ -720,12 +753,32 @@
       btn.textContent = '저장 중...';
 
       try {
-        const { error } = await window.supabase
-          .from('add_phrase')
-          .update({ title, ad_copy })
-          .eq('id', currentPhraseId);
+        let result;
+        if (currentPhraseId) {
+          // 기존 수정
+          result = await window.supabase
+            .from('add_phrase')
+            .update({ title, ad_copy })
+            .eq('id', currentPhraseId);
+        } else {
+          // 신규 등록
+          result = await window.supabase
+            .from('add_phrase')
+            .insert({
+              title,
+              ad_copy,
+              user_id: currentUser?.userId // [ADD] 작성자 auth user_id 저장
+            })
+            .select();
+        }
 
-        if (error) throw error;
+        if (result.error) throw result.error;
+
+        const isNew = !currentPhraseId;
+        if (isNew && result.data && result.data.length > 0) {
+          currentPhraseId = result.data[0].id;
+          document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
+        }
 
         // 성공 토스트 (기존 showToastGreenRed 사용 시)
         import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
@@ -738,7 +791,7 @@
         // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
         const items = document.querySelectorAll('#phrase-list .name-item');
         items.forEach(el => {
-          if (el.dataset.id === currentPhraseId) {
+          if (String(el.dataset.id) === String(currentPhraseId)) {
             el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
           }
         });
@@ -754,6 +807,44 @@
 
     document.getElementById('phrase-save-btn').addEventListener('click', saveAddPhrase);
 
+    // [ADD] 광고문구 삭제 기능
+    async function deleteAddPhrase() {
+      if (!currentPhraseId) return;
+
+      if (!confirm('정말로 이 광고 문구를 삭제하시겠습니까?')) return;
+
+      const btn = document.getElementById('phrase-delete-btn');
+      btn.disabled = true;
+      btn.textContent = '삭제 중...';
+
+      try {
+        const { error } = await window.supabase
+          .from('add_phrase')
+          .delete()
+          .eq('id', currentPhraseId);
+
+        if (error) throw error;
+
+        // 성공 토스트
+        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
+          showToastGreenRed?.('문구가 삭제되었습니다.', 'green');
+        }).catch(() => alert('삭제되었습니다.'));
+
+        // 목록 새로고침 및 신규 모드 진입
+        await loadAddPhrases();
+        enterNewPhraseMode();
+
+      } catch (err) {
+        console.error('삭제 실패:', err);
+        alert('삭제에 실패했습니다: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '삭제하기';
+      }
+    }
+
+    document.getElementById('phrase-delete-btn').addEventListener('click', deleteAddPhrase);
+
     // [ADD] 광고문구 버튼 클릭 이벤트
     document.getElementById('add-phrase').addEventListener('click', () => {
       const phraseCol = document.getElementById('phrase-col');
@@ -768,7 +859,12 @@
         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
         document.getElementById('employee-listings-panel').style.display = 'none';
 
-        loadAddPhrases();
+        loadAddPhrases().then(() => {
+          // 선택된 문구가 없으면 신규 모드로
+          if (!currentPhraseId) {
+            enterNewPhraseMode();
+          }
+        });
       } else {
         // 숨김
         phraseCol.classList.add('hidden');
