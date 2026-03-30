@@ -221,10 +221,17 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
-          <button id="phrase-save-btn"
-            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
-            저장하기
-          </button>
+          <div class="flex gap-3">
+            <button id="phrase-delete-btn"
+              class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold shadow-md transition-all active:scale-95"
+              style="display:none;">
+              삭제하기
+            </button>
+            <button id="phrase-save-btn"
+              class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
+              저장하기
+            </button>
+          </div>
         </div>
 
         <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
@@ -665,6 +672,9 @@
       // 목록 하이라이트 제거
       document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
       
+      // 삭제 버튼 숨김
+      document.getElementById('phrase-delete-btn').style.display = 'none';
+      
       // 상세 패널 표시
       document.getElementById('phrase-panel').style.display = 'block';
       document.getElementById('employee-listings-panel').style.display = 'none';
@@ -712,6 +722,7 @@
             // 상세 패널 업데이트
             document.getElementById('phrase-panel').style.display = 'block';
             document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
+            document.getElementById('phrase-delete-btn').style.display = 'inline-block';
             document.getElementById('employee-listings-panel').style.display = 'none';
             document.getElementById('phrase-input-title').value = item.title || '';
             document.getElementById('phrase-input-content').value = item.ad_copy || '';
@@ -793,6 +804,44 @@
     }
 
     document.getElementById('phrase-save-btn').addEventListener('click', saveAddPhrase);
+
+    // [ADD] 광고문구 삭제 기능
+    async function deleteAddPhrase() {
+      if (!currentPhraseId) return;
+
+      if (!confirm('정말로 이 광고 문구를 삭제하시겠습니까?')) return;
+
+      const btn = document.getElementById('phrase-delete-btn');
+      btn.disabled = true;
+      btn.textContent = '삭제 중...';
+
+      try {
+        const { error } = await window.supabase
+          .from('add_phrase')
+          .delete()
+          .eq('id', currentPhraseId);
+
+        if (error) throw error;
+
+        // 성공 토스트
+        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
+          showToastGreenRed?.('문구가 삭제되었습니다.', 'green');
+        }).catch(() => alert('삭제되었습니다.'));
+
+        // 목록 새로고침 및 신규 모드 진입
+        await loadAddPhrases();
+        enterNewPhraseMode();
+
+      } catch (err) {
+        console.error('삭제 실패:', err);
+        alert('삭제에 실패했습니다: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '삭제하기';
+      }
+    }
+
+    document.getElementById('phrase-delete-btn').addEventListener('click', deleteAddPhrase);
 
     // [ADD] 광고문구 버튼 클릭 이벤트
     document.getElementById('add-phrase').addEventListener('click', () => {
