@@ -53,8 +53,8 @@ function formatDate(input) {
   }).formatToParts(d);
 
   const get = (type) => parts.find(p => p.type === type)?.value || '';
-  const y  = get('year');
-  const m  = Number(get('month'));
+  const y = get('year');
+  const m = Number(get('month'));
   const day = Number(get('day'));
   const hh = get('hour').padStart(2, '0');
   const mm = get('minute').padStart(2, '0');
@@ -216,7 +216,7 @@ async function getMyAuthorityAndStaffId() {
 
   // 페이지 전역 상태와도 동기화 (타 모듈 호환)
   window.__userRole = authority;
-  window.__isStaff  = isStaff;
+  window.__isStaff = isStaff;
 
   return { authority, isStaff, staffId: staff.id, affiliation: staff.affiliation, userId: user.id };
 }
@@ -228,13 +228,13 @@ function setActiveStaff(container, staffId, channel) {
   __selectedAffiliation = null;
 
   // 지점 헤더 강조 해제
-  container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+  container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
 
   // 직원/채널이 모두 일치하는 줄만 노란 강조
   container.querySelectorAll('.name-item').forEach(el => {
     if (el.dataset.disabled === '1') return;
-    const sameStaff   = String(el.dataset.staffId) === String(staffId);
-    const elChannel   = (el.dataset.channel || '').trim();
+    const sameStaff = String(el.dataset.staffId) === String(staffId);
+    const elChannel = (el.dataset.channel || '').trim();
     const sameChannel = elChannel === __selectedChannel;
     if (sameStaff && sameChannel) el.classList.add('bg-yellow-200');
     else el.classList.remove('bg-yellow-200');
@@ -277,7 +277,7 @@ function _timetzToTodayISO(tzStr) {
     const ss = ampm[4] || '00';
     if (isPM && hh < 12) hh += 12;
     if (!isPM && hh === 12) hh = 0;
-    raw = `${String(hh).padStart(2,'0')}:${mm}:${ss}`;
+    raw = `${String(hh).padStart(2, '0')}:${mm}:${ss}`;
   }
 
   // 1) 오늘 날짜를 KST 기준으로 YYYY-MM-DD 생성
@@ -298,7 +298,7 @@ function _timetzToTodayISO(tzStr) {
 
   const sign = offH >= 0 ? '+' : '-';
   offH = Math.abs(offH);
-  const offset = `${sign}${String(offH).padStart(2,'0')}:${String(offM).padStart(2,'0')}`;
+  const offset = `${sign}${String(offH).padStart(2, '0')}:${String(offM).padStart(2, '0')}`;
 
   const hhmmss = timePart.length === 5 ? `${timePart}:00` : timePart;
   const iso = `${datePart}T${hhmmss}${offset}`;
@@ -342,7 +342,7 @@ async function _getLatestUpdateISO(movement) {
       .maybeSingle();
 
     if (error) throw error;
-    
+
     const t = data?.imDae_sheet_timetz ?? null;
     return t ? _parseUpdateLogTime(t) : null;
 
@@ -373,16 +373,16 @@ async function renderStaffSidebar(me) {
   }
 
   // 2) 소속별 그룹핑 + 캐시
-    const grouped = {};
-    (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel, extension  }) => {
-        if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-        const entry = { id, name, affiliation, leave_date, ad_channel, extension  };
-        if (!leave_date) grouped[affiliation].active.push(entry);
-        else grouped[affiliation].inactive.push(entry);
+  const grouped = {};
+  (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel, extension }) => {
+    if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
+    const entry = { id, name, affiliation, leave_date, ad_channel, extension };
+    if (!leave_date) grouped[affiliation].active.push(entry);
+    else grouped[affiliation].inactive.push(entry);
 
-        if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
-        __AFFIL_STAFF_IDS[affiliation].add(String(id));
-    });
+    if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
+    __AFFIL_STAFF_IDS[affiliation].add(String(id));
+  });
 
 
   const container = $('#staff-list');
@@ -393,7 +393,7 @@ async function renderStaffSidebar(me) {
   const canClickStaff = (emp) => {
     if (me.authority === '관리자') return true;
     if (me.authority === '지점장') return emp.affiliation === me.affiliation;
-    if (me.authority === '직원')   return String(emp.id) === String(me.staffId);
+    if (me.authority === '직원') return String(emp.id) === String(me.staffId);
     return false;
   };
   const canClickAff = (aff) => {
@@ -424,7 +424,7 @@ async function renderStaffSidebar(me) {
           __selectedAffiliation = aff;
           __selectedStaffId = null;
           __selectedChannel = null;
-          container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2','ring-yellow-400'));
+          container.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
           header.classList.add('ring-2', 'ring-yellow-400');
           container.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
         }
@@ -526,89 +526,89 @@ async function renderStaffSidebar(me) {
   await fillStaffAdCounts(container);
 
   // 5) 직원 클릭 핸들러(단일 직원 필터 + 매물 조회/렌더)
-    container.addEventListener('click', async (e) => {
-        const el = e.target.closest('.name-item');
-        if (!el || el.dataset.disabled === '1') return;
+  container.addEventListener('click', async (e) => {
+    const el = e.target.closest('.name-item');
+    if (!el || el.dataset.disabled === '1') return;
 
-        // 선택 강조(직원 + 채널 단일 줄만 강조)
-        setActiveStaff(container, el.dataset.staffId, el.dataset.channel);
+    // 선택 강조(직원 + 채널 단일 줄만 강조)
+    setActiveStaff(container, el.dataset.staffId, el.dataset.channel);
 
-        // ✅ 클릭한 직원의 소속/채널로 supabase 조회
-        const branchName = el.dataset.branch || '';
-        const channel = (el.dataset.channel || '').trim();
+    // ✅ 클릭한 직원의 소속/채널로 supabase 조회
+    const branchName = el.dataset.branch || '';
+    const channel = (el.dataset.channel || '').trim();
 
-        // 패널/메타 영역
-        const panel = document.getElementById('employee-listings-panel');
-        const meta = document.getElementById('employee-listings-meta');
-        const resultBox = document.getElementById('employee-listings');
-        if (!panel || !meta || !resultBox) return;
+    // 패널/메타 영역
+    const panel = document.getElementById('employee-listings-panel');
+    const meta = document.getElementById('employee-listings-meta');
+    const resultBox = document.getElementById('employee-listings');
+    if (!panel || !meta || !resultBox) return;
 
-        // 가드: 소속/채널 없으면 안내
-        if (!branchName || !channel) {
-            panel.style.display = '';
-            meta.textContent = '이 직원의 소속 또는 채널 정보가 없어 조회할 수 없습니다.';
-            resultBox.innerHTML = '';
-            return;
+    // 가드: 소속/채널 없으면 안내
+    if (!branchName || !channel) {
+      panel.style.display = '';
+      meta.textContent = '이 직원의 소속 또는 채널 정보가 없어 조회할 수 없습니다.';
+      resultBox.innerHTML = '';
+      return;
+    }
+
+    // 로딩 표시
+    panel.style.display = '';
+    meta.textContent = '불러오는 중...';
+    resultBox.innerHTML = '';
+
+    try {
+      const likeValue = `%${channel}%`;
+      const staffExtRaw = (el.dataset.extension || '');      // ✅ 선택 직원 extension(원문)
+      const staffExtCmp = staffExtRaw.replace(/\s+/g, '');
+      const { data, error } = await supabase
+        .from('ad_baikuk_listings')
+        .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price, illegal_building')
+        .eq('branch_name', branchName)
+        .ilike('agent_name', likeValue);
+
+      if (error) throw error;
+
+      const rows = data || [];
+
+      {
+        const [maemulAt, adAt] = await Promise.all([
+          _getLatestUpdateISO('매물장'),
+          _getLatestUpdateISO('백억광고'),
+        ]);
+
+        const parts = [];
+        // now = 현재 KST 기준 시간
+        const now = new Date();
+
+        // 매물장: 1시간 이상 차이 나면 빨간색
+        if (maemulAt) {
+          const diff = diffHours(now, maemulAt);
+          const txt = `${formatDate(maemulAt)} (매물장)`;
+          parts.push(wrapRedIf(diff >= 1, txt));
         }
 
-        // 로딩 표시
-        panel.style.display = '';
-        meta.textContent = '불러오는 중...';
-        resultBox.innerHTML = '';
+        // 백억광고: 24시간 이상 차이 나면 빨간색
+        if (adAt) {
+          const diff = diffHours(now, adAt);
+          const txt = `${formatDate(adAt)} (백억광고)`;
+          parts.push(wrapRedIf(diff >= 24, txt));
+        }
 
-        try {
-            const likeValue = `%${channel}%`;
-            const staffExtRaw = (el.dataset.extension || '');      // ✅ 선택 직원 extension(원문)
-            const staffExtCmp = staffExtRaw.replace(/\s+/g, ''); 
-            const { data, error } = await supabase
-              .from('ad_baikuk_listings')
-              .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price, illegal_building')
-              .eq('branch_name', branchName)
-              .ilike('agent_name', likeValue);
+        // 🔴 여기만 변경: textContent → innerHTML
+        meta.innerHTML = parts.length
+          ? `최신 업데이트: ${parts.join(' / ')}`
+          : '최신 업데이트 기록이 없습니다';
+      }
 
-            if (error) throw error;
+      if (!rows.length) {
+        resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
+        return;
+      }
 
-            const rows = data || [];
-
-            {
-              const [maemulAt, adAt] = await Promise.all([
-                _getLatestUpdateISO('매물장'),
-                _getLatestUpdateISO('백억광고'),
-              ]);
-
-              const parts = [];
-              // now = 현재 KST 기준 시간
-              const now = new Date();
-
-              // 매물장: 1시간 이상 차이 나면 빨간색
-              if (maemulAt) {
-                const diff = diffHours(now, maemulAt);
-                const txt = `${formatDate(maemulAt)} (매물장)`;
-                parts.push(wrapRedIf(diff >= 1, txt));
-              }
-
-              // 백억광고: 24시간 이상 차이 나면 빨간색
-              if (adAt) {
-                const diff = diffHours(now, adAt);
-                const txt = `${formatDate(adAt)} (백억광고)`;
-                parts.push(wrapRedIf(diff >= 24, txt));
-              }
-
-              // 🔴 여기만 변경: textContent → innerHTML
-              meta.innerHTML = parts.length
-                ? `최신 업데이트: ${parts.join(' / ')}`
-                : '최신 업데이트 기록이 없습니다';
-            }
-
-            if (!rows.length) {
-              resultBox.innerHTML = `<div style="padding:8px; color:#666;">조건에 맞는 매물이 없습니다.</div>`;
-              return;
-            }
-
-            // ✅ 표 생성
-            const table = document.createElement('table');
-            table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
-            table.innerHTML = `
+      // ✅ 표 생성
+      const table = document.createElement('table');
+      table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
+      table.innerHTML = `
             <thead class="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th class="border border-gray-300 px-3 py-2 text-left">네이버</th>
@@ -621,7 +621,7 @@ async function renderStaffSidebar(me) {
                   <th class="border border-gray-300 px-3 py-2 text-left">월세</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">권리금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">면적</th>
-                  <th class="border border-gray-300 px-3 py-2 text-left">위반</th>
+                  <th class="border border-gray-300 px-3 py-2 text-left">위반건축물</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">융자금</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">관리비</th>
                   <th class="border border-gray-300 px-3 py-2 text-left">화장실</th>
@@ -634,453 +634,453 @@ async function renderStaffSidebar(me) {
             <tbody></tbody>
             `;
 
-            const tbody = table.querySelector('tbody');
+      const tbody = table.querySelector('tbody');
 
-            // 1) 필요한 description_listing_id만 수집
-            const idList = Array.from(
-              new Set(
-                (rows || [])
-                  .map(r => r?.description_listing_id)
-                  .filter(v => v !== null && v !== undefined && v !== '')
-              )
-            );
+      // 1) 필요한 description_listing_id만 수집
+      const idList = Array.from(
+        new Set(
+          (rows || [])
+            .map(r => r?.description_listing_id)
+            .filter(v => v !== null && v !== undefined && v !== '')
+        )
+      );
 
-            // 2) baikukdbtest에서 title + transaction_status 한 번에 조회
-            let infoMap = {};
-            if (idList.length > 0) {
-              try {
-                const { data: infoRows, error: infoErr } = await supabase
-                  .from('baikukdbtest')
-                  .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2, illegal_building')
-                  .in('listing_id', idList);
-                if (infoErr) throw infoErr;
+      // 2) baikukdbtest에서 title + transaction_status 한 번에 조회
+      let infoMap = {};
+      if (idList.length > 0) {
+        try {
+          const { data: infoRows, error: infoErr } = await supabase
+            .from('baikukdbtest')
+            .select('listing_id, listing_title, transaction_status, premium_price, deposit_price, monthly_rent, floor, total_floors, sale_price, area_m2, illegal_building')
+            .in('listing_id', idList);
+          if (infoErr) throw infoErr;
 
-                infoMap = Object.fromEntries(
-                  (infoRows || []).map(r => [
-                    String(r.listing_id),
-                    {
-                      title: r.listing_title || '-',
-                      status: r.transaction_status || '-',
-                      premium_price: r.premium_price,
-                      deposit_price: r.deposit_price,
-                      monthly_rent: r.monthly_rent,
-                      floor: r.floor ?? '',
-                      total_floors: r.total_floors ?? '',
-                      sale_price: r.sale_price ?? '',
-                      area_m2: r.area_m2 ?? '',
-                      illegal_building: r.illegal_building ?? ''
-                    }
-                  ])
-                );
-              } catch (e) {
-                console.warn('매물 정보 배치 조회 실패:', e);
+          infoMap = Object.fromEntries(
+            (infoRows || []).map(r => [
+              String(r.listing_id),
+              {
+                title: r.listing_title || '-',
+                status: r.transaction_status || '-',
+                premium_price: r.premium_price,
+                deposit_price: r.deposit_price,
+                monthly_rent: r.monthly_rent,
+                floor: r.floor ?? '',
+                total_floors: r.total_floors ?? '',
+                sale_price: r.sale_price ?? '',
+                area_m2: r.area_m2 ?? '',
+                illegal_building: r.illegal_building ?? ''
               }
+            ])
+          );
+        } catch (e) {
+          console.warn('매물 정보 배치 조회 실패:', e);
+        }
+      }
+
+      // 3) 정렬 키 계산 → 정렬 → 행 렌더링
+      const enriched = (rows || []).map((row, idx) => {
+        const adId = row.ad_listing_id ?? '-';
+        const descId = row.description_listing_id ?? '-';
+
+        const info = row.description_listing_id
+          ? infoMap[String(row.description_listing_id)]
+          : null;
+
+        const title = info?.title ?? '-';
+        // 원본 상태값과 표시용(날짜 제거) 상태값 분리
+        const statusRaw = info?.status ?? '-';
+        const statusDisplay = _stripDateFromStatus(statusRaw);
+        const premiumPrice = info?.premium_price;
+
+        // === [층수 파싱] ===
+        // 광고(ad_baikuk_listings) 측: ad_floor_info에서 앞(해당층)/뒤(총층) 분리
+        const adFloorRaw = row.ad_floor_info ?? '';
+        const adFloorFront = String(adFloorRaw).split('/')[0]?.replace(/\s+/g, '').trim();
+
+        // 총층(뒤) 파싱
+        const adTotalRaw = adFloorRaw;
+        const adTotalBack = String(adTotalRaw).includes('/')
+          ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
+          : '';
+
+        // === [반전 로직 적용] ===
+        // adFloorFront = 광고 '해당층(앞)', adTotalBack = '총층(뒤)'
+        let adFloor = adFloorFront;
+        let adTotal = adTotalBack;
+
+        // 앞 > 뒤 → 반전
+        if (
+          adFloor &&
+          adTotal &&
+          !isNaN(Number(adFloor)) &&
+          !isNaN(Number(adTotal)) &&
+          Number(adFloor) > Number(adTotal)
+        ) {
+          const tmp = adFloor;
+          adFloor = adTotal;   // 총층
+          adTotal = tmp;       // 해당층
+        }
+
+        // === 기준 DB 값 준비 ===
+        const baseFloorRaw = info?.floor ?? '';
+        const baseFloorNorm = String(baseFloorRaw).replace(/\s+/g, '').trim();
+
+        const baseTotalRaw = info?.total_floors ?? '';
+        const baseTotalNorm = String(baseTotalRaw).replace(/\s+/g, '').trim();
+
+        // === [해당층] 비교 + 출력 ===
+        const hasAdFloor = !!adFloor;
+        const hasBaseFloor = !!baseFloorNorm;
+        const needFloorCheck = hasAdFloor && hasBaseFloor && adFloor !== baseFloorNorm;
+
+        const floorCell = needFloorCheck
+          ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
+          : (hasAdFloor ? adFloor : (baseFloorRaw ? String(baseFloorRaw) : '-'));
+
+        // === [총층] 비교 + 출력 ===
+        const hasAdTotal = !!adTotal;
+        const hasBaseTotal = !!baseTotalNorm;
+        const needTotalCheck = hasAdTotal && hasBaseTotal && adTotal !== baseTotalNorm;
+
+        const totalFloorCell = needTotalCheck
+          ? '<span class="text-red-600 font-semibold">총층 확인</span>'
+          : (hasAdTotal ? adTotal : (baseTotalRaw ? String(baseTotalRaw) : '-'));
+
+        // === [면적] 비교 ===
+        // 월세일 때만 적용
+        let areaCell = row.ad_area ?? '-';
+        if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+          // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
+          const adAreaRaw = row.ad_area ?? '';
+          const adAreaRight = String(adAreaRaw).includes('/')
+            ? String(adAreaRaw).split('/')[1].trim()
+            : String(adAreaRaw).trim();
+          const adAreaNum = _normMoney(adAreaRight);
+
+          // 기준값: baikukdbtest.area_m2
+          const baseAreaRaw = info?.area_m2 ?? '';
+          const baseAreaNum = _normMoney(baseAreaRaw);
+
+          // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
+          const needAreaCheck =
+            adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 6;
+
+          // 2) 광고값 vs (description_area_py ÷ 0.3025) 6㎡ 이상 차이면 → '상세설명' (빨간)
+          const descAreaPy = _normMoney(row.description_area_py);
+          const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
+          const needAreaDescBadge =
+            adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 6;
+
+          // 출력 우선순위 ...
+          let areaOut = needAreaCheck
+            ? '<span class="text-red-600 font-semibold">면적 확인</span>'
+            : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
+
+          if (needAreaDescBadge) {
+            areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
+          }
+
+          areaCell = areaOut;
+        }
+
+        // === [매매가] 비교 ===
+        let salePriceLabel = '-';
+        if (row.ad_deal_type && row.ad_deal_type.includes('매매')) {
+          const adSale = _normMoney(row.ad_sale_price);
+          const baseSale = _normMoney(info?.sale_price);
+
+          if (adSale !== null && baseSale !== null && adSale !== baseSale) {
+            salePriceLabel = '<span class="text-red-600 font-semibold">매매가 확인</span>';
+          } else if (adSale !== null) {
+            salePriceLabel = adSale.toLocaleString();
+          } else if (baseSale !== null) {
+            salePriceLabel = baseSale.toLocaleString();
+          }
+        }
+
+        // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
+        let depositLabel = row.ad_deposit_price ?? '-';
+        if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+          depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
+        }
+        let monthlyLabel = row.ad_monthly_rent ?? '-';
+        if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+          monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
+        }
+
+        // === [관리비] 표시 ===
+        // 규칙:
+        //  - '/' 기준 앞부분만 사용
+        //  - 공백 제거 + '만원' 제거
+        //  - 숫자 변환 후 2 미만이면 '관리비 체크'(빨강)
+        let maintenanceLabel = '-';
+        if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
+          const raw = String(row.maintenance_cost).split('/')[0] || '';
+          const cleaned = raw.replace(/\s+/g, '').replace(/만원/g, '');
+          const num = Number(cleaned);
+
+          if (!isNaN(num)) {
+            if (num < 1) {
+              maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
+            } else if (num < 2) {
+              maintenanceLabel = '<span class="font-semibold">관리비 체크</span>';
+            } else {
+              maintenanceLabel = num.toLocaleString();
             }
-
-            // 3) 정렬 키 계산 → 정렬 → 행 렌더링
-            const enriched = (rows || []).map((row, idx) => {
-              const adId  = row.ad_listing_id ?? '-';
-              const descId = row.description_listing_id ?? '-';
-
-              const info = row.description_listing_id
-                ? infoMap[String(row.description_listing_id)]
-                : null;
-
-              const title  = info?.title ?? '-';
-              // 원본 상태값과 표시용(날짜 제거) 상태값 분리
-              const statusRaw = info?.status ?? '-';
-              const statusDisplay = _stripDateFromStatus(statusRaw);
-                            const premiumPrice = info?.premium_price;
-
-              // === [층수 파싱] ===
-              // 광고(ad_baikuk_listings) 측: ad_floor_info에서 앞(해당층)/뒤(총층) 분리
-              const adFloorRaw = row.ad_floor_info ?? '';
-              const adFloorFront = String(adFloorRaw).split('/')[0]?.replace(/\s+/g, '').trim();
-
-              // 총층(뒤) 파싱
-              const adTotalRaw = adFloorRaw;
-              const adTotalBack = String(adTotalRaw).includes('/')
-                ? String(adTotalRaw).split('/')[1]?.replace(/\s+/g, '').trim()
-                : '';
-
-              // === [반전 로직 적용] ===
-              // adFloorFront = 광고 '해당층(앞)', adTotalBack = '총층(뒤)'
-              let adFloor = adFloorFront;
-              let adTotal = adTotalBack;
-
-              // 앞 > 뒤 → 반전
-              if (
-                adFloor &&
-                adTotal &&
-                !isNaN(Number(adFloor)) &&
-                !isNaN(Number(adTotal)) &&
-                Number(adFloor) > Number(adTotal)
-              ) {
-                const tmp = adFloor;
-                adFloor = adTotal;   // 총층
-                adTotal = tmp;       // 해당층
-              }
-
-              // === 기준 DB 값 준비 ===
-              const baseFloorRaw = info?.floor ?? '';
-              const baseFloorNorm = String(baseFloorRaw).replace(/\s+/g, '').trim();
-
-              const baseTotalRaw = info?.total_floors ?? '';
-              const baseTotalNorm = String(baseTotalRaw).replace(/\s+/g, '').trim();
-
-              // === [해당층] 비교 + 출력 ===
-              const hasAdFloor   = !!adFloor;
-              const hasBaseFloor = !!baseFloorNorm;
-              const needFloorCheck = hasAdFloor && hasBaseFloor && adFloor !== baseFloorNorm;
-
-              const floorCell = needFloorCheck
-                ? '<span class="text-red-600 font-semibold">해당층 확인</span>'
-                : (hasAdFloor ? adFloor : (baseFloorRaw ? String(baseFloorRaw) : '-'));
-
-              // === [총층] 비교 + 출력 ===
-              const hasAdTotal   = !!adTotal;
-              const hasBaseTotal = !!baseTotalNorm;
-              const needTotalCheck = hasAdTotal && hasBaseTotal && adTotal !== baseTotalNorm;
-
-              const totalFloorCell = needTotalCheck
-                ? '<span class="text-red-600 font-semibold">총층 확인</span>'
-                : (hasAdTotal ? adTotal : (baseTotalRaw ? String(baseTotalRaw) : '-'));
-
-              // === [면적] 비교 ===
-              // 월세일 때만 적용
-              let areaCell = row.ad_area ?? '-';
-              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
-                // 광고측 ad_area: '/' 기준 오른쪽 값(없으면 전체)
-                const adAreaRaw = row.ad_area ?? '';
-                const adAreaRight = String(adAreaRaw).includes('/')
-                  ? String(adAreaRaw).split('/')[1].trim()
-                  : String(adAreaRaw).trim();
-                const adAreaNum = _normMoney(adAreaRight);
-
-                // 기준값: baikukdbtest.area_m2
-                const baseAreaRaw = info?.area_m2 ?? '';
-                const baseAreaNum = _normMoney(baseAreaRaw);
-
-                // 1) 광고값 vs area_m2 다르면 → '면적 확인' (빨간)
-                const needAreaCheck =
-                  adAreaNum !== null && baseAreaNum !== null && Math.abs(adAreaNum - baseAreaNum) >= 6;
-
-                // 2) 광고값 vs (description_area_py ÷ 0.3025) 6㎡ 이상 차이면 → '상세설명' (빨간)
-                const descAreaPy = _normMoney(row.description_area_py);
-                const descAreaM2 = descAreaPy !== null ? descAreaPy / 0.3025 : null;
-                const needAreaDescBadge =
-                  adAreaNum !== null && descAreaM2 !== null && Math.abs(adAreaNum - descAreaM2) >= 6;
-
-                // 출력 우선순위 ...
-                let areaOut = needAreaCheck
-                  ? '<span class="text-red-600 font-semibold">면적 확인</span>'
-                  : (adAreaRight || (baseAreaRaw ? String(baseAreaRaw) : '-'));
-
-                if (needAreaDescBadge) {
-                  areaOut = `${areaOut !== '-' ? areaOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`;
-                }
-
-                areaCell = areaOut;
-              }
-
-              // === [매매가] 비교 ===
-              let salePriceLabel = '-';
-              if (row.ad_deal_type && row.ad_deal_type.includes('매매')) {
-                const adSale = _normMoney(row.ad_sale_price);
-                const baseSale = _normMoney(info?.sale_price);
-
-                if (adSale !== null && baseSale !== null && adSale !== baseSale) {
-                  salePriceLabel = '<span class="text-red-600 font-semibold">매매가 확인</span>';
-                } else if (adSale !== null) {
-                  salePriceLabel = adSale.toLocaleString();
-                } else if (baseSale !== null) {
-                  salePriceLabel = baseSale.toLocaleString();
-                }
-              }
-
-              // ✅ 보증금/월세 표시값: ad_* (현재) vs baikukdbtest.* (기준) 비교
-              let depositLabel = row.ad_deposit_price ?? '-';
-              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
-                depositLabel = _compareMoney(row.ad_deposit_price, info?.deposit_price, '보증금 확인');
-              }
-              let monthlyLabel = row.ad_monthly_rent ?? '-';
-              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
-                monthlyLabel = _compareMoney(row.ad_monthly_rent, info?.monthly_rent, '월세 확인');
-              }
-
-              // === [관리비] 표시 ===
-              // 규칙:
-              //  - '/' 기준 앞부분만 사용
-              //  - 공백 제거 + '만원' 제거
-              //  - 숫자 변환 후 2 미만이면 '관리비 체크'(빨강)
-              let maintenanceLabel = '-';
-              if (row.maintenance_cost !== undefined && row.maintenance_cost !== null) {
-                const raw = String(row.maintenance_cost).split('/')[0] || '';
-                const cleaned = raw.replace(/\s+/g, '').replace(/만원/g, '');
-                const num = Number(cleaned);
-
-                if (!isNaN(num)) {
-                  if (num < 1) {
-                    maintenanceLabel = '<span class="text-red-600 font-semibold">관리비 체크</span>';
-                  } else if (num < 2) {
-                    maintenanceLabel = '<span class="font-semibold">관리비 체크</span>';
-                  } else {
-                      maintenanceLabel = num.toLocaleString();
-                    }
-                }
-                else {
-                  maintenanceLabel = '-';
-                }
-              }
-
-              // === [화장실] 표시 ===
-              // 규칙: ad_restroom 값을 '/' 기준으로 오른쪽 문자열을 추출해 그 안에 '0'이 포함되면
-              //      빨간 '화장실 확인', 아니면 '-'
-              let restroomLabel = '-';
-              const rrRaw = row.ad_restroom ?? '';
-              const rrRight = String(rrRaw).includes('/')
-                ? String(rrRaw).split('/')[1].trim()
-                : '';
-              if (rrRight.includes('0')) {
-                restroomLabel = '<span class="text-red-600 font-semibold">화장실 확인</span>';
-              }
-
-              // === [위반] 표시 ===
-              // 규칙: ad_baikuk_listings.illegal_building 과 baikukdbtest.illegal_building 비교
-              //      다르면 '위반확인'(빨강), 같으면 '-'
-              const adViolation = (row.illegal_building || '').trim();
-              const baseViolation = (info?.illegal_building || '').trim();
-              const illegalLabel = (adViolation !== baseViolation)
-                ? '<span class="text-red-600 font-semibold">위반확인</span>'
-                : '-';
-
-              // 표시값 계산
-              const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
-
-              let premiumLabel = '-';
-              if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
-                if (premiumPrice !== undefined) {
-                  if (row.ad_premium === "없음" && Number(premiumPrice) >= 1) {
-                    premiumLabel = '권리금 없음';
-                  } else {
-                    premiumLabel = premiumPrice;
-                  }
-                }
-              }
-
-              // === [전화번호] 표시 ===
-              // 규칙:
-              //  - ad_baikuk_listings.contact_number(광고 원문)과 staff_profiles.extension(선택 직원) 비교
-              //  - 비교 시 공백 제거
-              //  - 둘 다 값이 있고 서로 다르면 '불일치'(빨강)
-              //  - 그 외에는 광고 contact_number 원문을 그대로 표시, 값 없으면 '-'
-              const contactRaw = row.contact_number ?? '';
-              const contactCmp = String(contactRaw).replace(/\s+/g, '');
-              let phoneCell = '-';
-              if (contactCmp && staffExtCmp) {
-                phoneCell = (contactCmp === staffExtCmp)
-                  ? '-'
-                  : '<span class="text-red-600 font-semibold">불일치</span>';
-              } else if (contactCmp) {
-                phoneCell = String(contactRaw);
-              }
-
-              // 매물특징 표시 정책 확장
-              // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
-              // - 정상(값 존재) → '-'
-              // - 단, premium_price === 0 && '완비' 포함 시 '시설체크'(빨강) 추가
-              const rawFeat = (row.ad_listings_features ?? '').trim();
-              const hasFeature = !!rawFeat && rawFeat !== '-';
-
-              let featuresLabel = hasFeature
-                ? '-'  // 정상일 때 기본값은 '-'
-                : '<span class="text-red-600 font-semibold">미노출</span>';
-
-              // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
-              if (premiumPrice === 0 && rawFeat.includes('완비')) {
-                if (featuresLabel.includes('미노출')) {
-                  featuresLabel += '<br><span class="font-semibold">시설체크</span>';
-                } else {
-                  featuresLabel = '<span class="font-semibold">시설체크</span>';
-                }
-              }
-
-              // 출력 라벨이 빈 문자열이라면 '-'로 표시
-              const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
-              const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
-
-              // ✅ (보증금) ad_baikuk_listings.description_deposit_price vs ad_deposit_price 비교
-              const adDepNorm   = _normMoney(row.ad_deposit_price);
-              const descDepNorm = _normMoney(row.description_deposit_price);
-              const needDepositDescBadge = (adDepNorm !== null && descDepNorm !== null && adDepNorm !== descDepNorm);
-
-              // ✅ (보증금) 다르면 줄바꿈 + '상세설명'(빨강) 추가
-              const depositOut = needDepositDescBadge
-                ? `${baseDepositOut !== '-' ? baseDepositOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
-                : baseDepositOut;
-
-              // ✅ (월세) ad_baikuk_listings.deposit_monthly_rent vs ad_monthly_rent 비교
-              const adMonNorm   = _normMoney(row.ad_monthly_rent);
-              const descMonNorm = _normMoney(row.deposit_monthly_rent);
-              const needMonthlyDescBadge = (adMonNorm !== null && descMonNorm !== null && adMonNorm !== descMonNorm);
-
-              // ✅ (월세) 다르면 줄바꿈 + '상세설명'(빨강) 추가
-              const monthlyOut = needMonthlyDescBadge
-                ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
-                : baseMonthlyOut;
-
-              // === 정렬 우선순위 계산 (요청 순서 그대로) ===
-
-              // 1) 매물번호 '-'
-              const descPriority = (descId === '-') ? 0 : 1;
-
-              // 2) 매물명 '-'
-              const titlePriority = (title === '-') ? 0 : 1;
-
-              // 3) 거래상태: '-', '0', '계약완료', '보류', 기타
-              const s = (statusDisplay || '').toString().trim();
-              let statusPriority = 99;
-              if (s === '-') statusPriority = 0;
-              else if (s === '0') statusPriority = 1;
-              else if (s.includes('계약완료')) statusPriority = 2;
-              else if (s.includes('보류')) statusPriority = 3;
-              else statusPriority = 4;
-
-              // 4) 매매가: '매매가 확인' 포함 우선
-              const salePriority = (String(salePriceLabel).includes('매매가 확인')) ? 0 : 1;
-
-              // 5) 보증금: '보증금 확인' → '상세설명' → 기타
-              let depositPriority = 2;
-              if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
-              else if (String(depositOut).includes('상세설명')) depositPriority = 1;
-
-              // 6) 월세: '월세 확인' → '상세설명' → 기타
-              let monthlyPriority = 2;
-              if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 0;
-              else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 1;
-
-              // 7) 권리금: '권리금 없음' 우선
-              const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
-
-              // 8) 면적: '면적 확인' → '상세설명' → 기타
-              let areaPriority = 2;
-              if (String(areaCell).includes('면적 확인')) areaPriority = 0;
-              else if (String(areaCell).includes('상세설명')) areaPriority = 1;
-
-              // 9) 위반: '위반확인' 포함 우선
-              const illegalPriority = (String(illegalLabel).includes('위반확인')) ? 0 : 1;
-
-              // 10) 융자금: '융자금 없음' 우선
-              const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
-
-              // 11) 관리비: '관리비 체크' 포함 우선
-              const manageFeePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
-
-              // 11) 화장실: '화장실 확인' 포함 우선
-              const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
-
-              // 12) 전화번호: '불일치' 포함 우선
-              const phonePriority = (String(phoneCell).includes('불일치')) ? 0 : 1;
-
-              // 13) 매물특징: '미노출' → '시설체크' → 기타
-              let featuresPriority = 2;
-              if (String(featuresLabel).includes('미노출')) featuresPriority = 0;
-              else if (String(featuresLabel).includes('시설체크')) featuresPriority = 1;
-
-              // 14) 해당층: '해당층 확인' 포함 우선
-              const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
-
-              // 15) 총층: '총층 확인' 포함 우선
-              const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
-
-              // 최종 sortKey: 요청 조건 순서대로
-              const sortKey = [
-                descPriority,
-                titlePriority,
-                statusPriority,
-                salePriority,
-                depositPriority,
-                monthlyPriority,
-                premiumPriority,
-                areaPriority,
-                illegalPriority,
-                loanPriority,
-                manageFeePriority,
-                restroomPriority,
-                phonePriority,
-                featuresPriority,
-                floorPriority,
-                totalFloorPriority,
-                idx // 안정정렬
-              ];
-
-              return {
-                adId,
-                descId,
-                title,
-                statusDisplay,
-                floorCell,
-                totalFloorCell,
-                areaCell,
-                dealType: row.ad_deal_type ?? '-',
-                depositLabel: depositOut,
-                monthlyLabel: monthlyOut,
-                premiumLabel,
-                illegalLabel,
-                loanLabel,
-                maintenanceLabel,
-                restroomLabel,
-                featuresLabel,
-                salePriceLabel,
-                phoneCell,
-                sortKey
-              };
-            });
-
-            // 우선순위대로 정렬
-            enriched.sort((a, b) => {
-              for (let i = 0; i < a.sortKey.length; i++) {
-                if (a.sortKey[i] !== b.sortKey[i]) return a.sortKey[i] - b.sortKey[i];
-              }
-              return 0;
-            });
-
-            enriched.forEach(item => {
-              const tr = document.createElement('tr');
-
-              // 네이버/백억 링크용 URL
-              const noId = (item.descId === '-' || item.descId === '매물번호 없음');
-              const noAdId = (item.adId === '-' || item.adId === '매물번호 없음');
-
-              const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.adId}`;
-              const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
-
-              // 1) 네이버 열: adId 표시 + 네이버 링크 (초록색)
-              const naverCell = noAdId
-                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.adId}</a>`;
-
-              // 2) 매물번호 열: descId 표시 + 백억 링크 (파란색)
-              const descCell = noId
-                ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
-                : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
-
-              // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시 (날짜 제거된 표시값 기준)
-              const statusCell = (item.statusDisplay.includes('계약완료') || item.statusDisplay.includes('보류'))
-                ? `<span class="text-red-600 font-semibold">${item.statusDisplay}</span>`
-                : item.statusDisplay;
-
-              // 권리금: '권리금 없음' → 빨간색
-              const premiumCell = (item.premiumLabel === '권리금 없음')
-                ? `<span class="text-red-600 font-semibold">${item.premiumLabel}</span>`
-                : item.premiumLabel;
-
-              // 융자금: '융자금 없음' → 빨간색
-              const loanCell = (item.loanLabel === '융자금 없음')
-                ? `<span class="text-red-600 font-semibold">${item.loanLabel}</span>`
-                : item.loanLabel;
-
-              tr.innerHTML = `
+          }
+          else {
+            maintenanceLabel = '-';
+          }
+        }
+
+        // === [화장실] 표시 ===
+        // 규칙: ad_restroom 값을 '/' 기준으로 오른쪽 문자열을 추출해 그 안에 '0'이 포함되면
+        //      빨간 '화장실 확인', 아니면 '-'
+        let restroomLabel = '-';
+        const rrRaw = row.ad_restroom ?? '';
+        const rrRight = String(rrRaw).includes('/')
+          ? String(rrRaw).split('/')[1].trim()
+          : '';
+        if (rrRight.includes('0')) {
+          restroomLabel = '<span class="text-red-600 font-semibold">화장실 확인</span>';
+        }
+
+        // === [위반] 표시 ===
+        // 규칙: ad_baikuk_listings.illegal_building 과 baikukdbtest.illegal_building 비교
+        //      다르면 '위반확인'(빨강), 같으면 '-'
+        const adViolation = (row.illegal_building || '').trim();
+        const baseViolation = (info?.illegal_building || '').trim();
+        const illegalLabel = (adViolation !== baseViolation)
+          ? '<span class="text-red-600 font-semibold">위반확인</span>'
+          : '-';
+
+        // 표시값 계산
+        const loanLabel = (row.ad_loan === 0) ? '융자금 없음' : (row.ad_loan ?? '-');
+
+        let premiumLabel = '-';
+        if (row.ad_deal_type && row.ad_deal_type.includes('월세')) {
+          if (premiumPrice !== undefined) {
+            if (row.ad_premium === "없음" && Number(premiumPrice) >= 1) {
+              premiumLabel = '권리금 없음';
+            } else {
+              premiumLabel = premiumPrice;
+            }
+          }
+        }
+
+        // === [전화번호] 표시 ===
+        // 규칙:
+        //  - ad_baikuk_listings.contact_number(광고 원문)과 staff_profiles.extension(선택 직원) 비교
+        //  - 비교 시 공백 제거
+        //  - 둘 다 값이 있고 서로 다르면 '불일치'(빨강)
+        //  - 그 외에는 광고 contact_number 원문을 그대로 표시, 값 없으면 '-'
+        const contactRaw = row.contact_number ?? '';
+        const contactCmp = String(contactRaw).replace(/\s+/g, '');
+        let phoneCell = '-';
+        if (contactCmp && staffExtCmp) {
+          phoneCell = (contactCmp === staffExtCmp)
+            ? '-'
+            : '<span class="text-red-600 font-semibold">불일치</span>';
+        } else if (contactCmp) {
+          phoneCell = String(contactRaw);
+        }
+
+        // 매물특징 표시 정책 확장
+        // - 비정상(미입력/빈값/'-') → '미노출'(빨강)
+        // - 정상(값 존재) → '-'
+        // - 단, premium_price === 0 && '완비' 포함 시 '시설체크'(빨강) 추가
+        const rawFeat = (row.ad_listings_features ?? '').trim();
+        const hasFeature = !!rawFeat && rawFeat !== '-';
+
+        let featuresLabel = hasFeature
+          ? '-'  // 정상일 때 기본값은 '-'
+          : '<span class="text-red-600 font-semibold">미노출</span>';
+
+        // ✅ 시설체크 조건 (기준: baikukdbtest.premium_price)
+        if (premiumPrice === 0 && rawFeat.includes('완비')) {
+          if (featuresLabel.includes('미노출')) {
+            featuresLabel += '<br><span class="font-semibold">시설체크</span>';
+          } else {
+            featuresLabel = '<span class="font-semibold">시설체크</span>';
+          }
+        }
+
+        // 출력 라벨이 빈 문자열이라면 '-'로 표시
+        const baseDepositOut = depositLabel && depositLabel.length ? depositLabel : '-';
+        const baseMonthlyOut = monthlyLabel && monthlyLabel.length ? monthlyLabel : '-';
+
+        // ✅ (보증금) ad_baikuk_listings.description_deposit_price vs ad_deposit_price 비교
+        const adDepNorm = _normMoney(row.ad_deposit_price);
+        const descDepNorm = _normMoney(row.description_deposit_price);
+        const needDepositDescBadge = (adDepNorm !== null && descDepNorm !== null && adDepNorm !== descDepNorm);
+
+        // ✅ (보증금) 다르면 줄바꿈 + '상세설명'(빨강) 추가
+        const depositOut = needDepositDescBadge
+          ? `${baseDepositOut !== '-' ? baseDepositOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
+          : baseDepositOut;
+
+        // ✅ (월세) ad_baikuk_listings.deposit_monthly_rent vs ad_monthly_rent 비교
+        const adMonNorm = _normMoney(row.ad_monthly_rent);
+        const descMonNorm = _normMoney(row.deposit_monthly_rent);
+        const needMonthlyDescBadge = (adMonNorm !== null && descMonNorm !== null && adMonNorm !== descMonNorm);
+
+        // ✅ (월세) 다르면 줄바꿈 + '상세설명'(빨강) 추가
+        const monthlyOut = needMonthlyDescBadge
+          ? `${baseMonthlyOut !== '-' ? baseMonthlyOut + '<br>' : ''}<span class="text-red-600 font-semibold">상세설명</span>`
+          : baseMonthlyOut;
+
+        // === 정렬 우선순위 계산 (요청 순서 그대로) ===
+
+        // 1) 매물번호 '-'
+        const descPriority = (descId === '-') ? 0 : 1;
+
+        // 2) 매물명 '-'
+        const titlePriority = (title === '-') ? 0 : 1;
+
+        // 3) 거래상태: '-', '0', '계약완료', '보류', 기타
+        const s = (statusDisplay || '').toString().trim();
+        let statusPriority = 99;
+        if (s === '-') statusPriority = 0;
+        else if (s === '0') statusPriority = 1;
+        else if (s.includes('계약완료')) statusPriority = 2;
+        else if (s.includes('보류')) statusPriority = 3;
+        else statusPriority = 4;
+
+        // 4) 매매가: '매매가 확인' 포함 우선
+        const salePriority = (String(salePriceLabel).includes('매매가 확인')) ? 0 : 1;
+
+        // 5) 보증금: '보증금 확인' → '상세설명' → 기타
+        let depositPriority = 2;
+        if (String(depositOut).includes('보증금 확인')) depositPriority = 0;
+        else if (String(depositOut).includes('상세설명')) depositPriority = 1;
+
+        // 6) 월세: '월세 확인' → '상세설명' → 기타
+        let monthlyPriority = 2;
+        if (String(monthlyOut).includes('월세 확인')) monthlyPriority = 0;
+        else if (String(monthlyOut).includes('상세설명')) monthlyPriority = 1;
+
+        // 7) 권리금: '권리금 없음' 우선
+        const premiumPriority = (premiumLabel === '권리금 없음') ? 0 : 1;
+
+        // 8) 면적: '면적 확인' → '상세설명' → 기타
+        let areaPriority = 2;
+        if (String(areaCell).includes('면적 확인')) areaPriority = 0;
+        else if (String(areaCell).includes('상세설명')) areaPriority = 1;
+
+        // 9) 위반: '위반확인' 포함 우선
+        const illegalPriority = (String(illegalLabel).includes('위반확인')) ? 0 : 1;
+
+        // 10) 융자금: '융자금 없음' 우선
+        const loanPriority = (loanLabel === '융자금 없음') ? 0 : 1;
+
+        // 11) 관리비: '관리비 체크' 포함 우선
+        const manageFeePriority = (String(maintenanceLabel).includes('관리비 체크')) ? 0 : 1;
+
+        // 11) 화장실: '화장실 확인' 포함 우선
+        const restroomPriority = (String(restroomLabel).includes('화장실 확인')) ? 0 : 1;
+
+        // 12) 전화번호: '불일치' 포함 우선
+        const phonePriority = (String(phoneCell).includes('불일치')) ? 0 : 1;
+
+        // 13) 매물특징: '미노출' → '시설체크' → 기타
+        let featuresPriority = 2;
+        if (String(featuresLabel).includes('미노출')) featuresPriority = 0;
+        else if (String(featuresLabel).includes('시설체크')) featuresPriority = 1;
+
+        // 14) 해당층: '해당층 확인' 포함 우선
+        const floorPriority = (String(floorCell).includes('해당층 확인')) ? 0 : 1;
+
+        // 15) 총층: '총층 확인' 포함 우선
+        const totalFloorPriority = (String(totalFloorCell).includes('총층 확인')) ? 0 : 1;
+
+        // 최종 sortKey: 요청 조건 순서대로
+        const sortKey = [
+          descPriority,
+          titlePriority,
+          statusPriority,
+          salePriority,
+          depositPriority,
+          monthlyPriority,
+          premiumPriority,
+          areaPriority,
+          illegalPriority,
+          loanPriority,
+          manageFeePriority,
+          restroomPriority,
+          phonePriority,
+          featuresPriority,
+          floorPriority,
+          totalFloorPriority,
+          idx // 안정정렬
+        ];
+
+        return {
+          adId,
+          descId,
+          title,
+          statusDisplay,
+          floorCell,
+          totalFloorCell,
+          areaCell,
+          dealType: row.ad_deal_type ?? '-',
+          depositLabel: depositOut,
+          monthlyLabel: monthlyOut,
+          premiumLabel,
+          illegalLabel,
+          loanLabel,
+          maintenanceLabel,
+          restroomLabel,
+          featuresLabel,
+          salePriceLabel,
+          phoneCell,
+          sortKey
+        };
+      });
+
+      // 우선순위대로 정렬
+      enriched.sort((a, b) => {
+        for (let i = 0; i < a.sortKey.length; i++) {
+          if (a.sortKey[i] !== b.sortKey[i]) return a.sortKey[i] - b.sortKey[i];
+        }
+        return 0;
+      });
+
+      enriched.forEach(item => {
+        const tr = document.createElement('tr');
+
+        // 네이버/백억 링크용 URL
+        const noId = (item.descId === '-' || item.descId === '매물번호 없음');
+        const noAdId = (item.adId === '-' || item.adId === '매물번호 없음');
+
+        const naverUrl = `https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.adId}`;
+        const baikukUrl = `https://baikuk.com/item/view/${item.descId}`;
+
+        // 1) 네이버 열: adId 표시 + 네이버 링크 (초록색)
+        const naverCell = noAdId
+          ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
+          : `<a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.adId}</a>`;
+
+        // 2) 매물번호 열: descId 표시 + 백억 링크 (파란색)
+        const descCell = noId
+          ? '<span class="text-red-600 font-semibold">매물번호 없음</span>'
+          : `<a href="${baikukUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">${item.descId}</a>`;
+
+        // 거래상태: '계약완료' 또는 '보류'면 빨간색 표시 (날짜 제거된 표시값 기준)
+        const statusCell = (item.statusDisplay.includes('계약완료') || item.statusDisplay.includes('보류'))
+          ? `<span class="text-red-600 font-semibold">${item.statusDisplay}</span>`
+          : item.statusDisplay;
+
+        // 권리금: '권리금 없음' → 빨간색
+        const premiumCell = (item.premiumLabel === '권리금 없음')
+          ? `<span class="text-red-600 font-semibold">${item.premiumLabel}</span>`
+          : item.premiumLabel;
+
+        // 융자금: '융자금 없음' → 빨간색
+        const loanCell = (item.loanLabel === '융자금 없음')
+          ? `<span class="text-red-600 font-semibold">${item.loanLabel}</span>`
+          : item.loanLabel;
+
+        tr.innerHTML = `
                 <td class="border border-gray-300 px-3 py-1">${naverCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${descCell}</td>
                 <td class="border border-gray-300 px-3 py-1">
@@ -1104,47 +1104,47 @@ async function renderStaffSidebar(me) {
                 <td class="border border-gray-300 px-3 py-1">${item.floorCell}</td>
                 <td class="border border-gray-300 px-3 py-1">${item.totalFloorCell}</td>
               `;
-              tbody.appendChild(tr);
-            });
+        tbody.appendChild(tr);
+      });
 
-            resultBox.appendChild(table);
+      resultBox.appendChild(table);
 
-            {
-              const [maemulAt, adAt] = await Promise.all([
-                _getLatestUpdateISO('매물장'),
-                _getLatestUpdateISO('백억광고'),
-              ]);
+      {
+        const [maemulAt, adAt] = await Promise.all([
+          _getLatestUpdateISO('매물장'),
+          _getLatestUpdateISO('백억광고'),
+        ]);
 
-              const parts = [];
-              // now = 현재 KST 기준 시간
-              const now = new Date();
+        const parts = [];
+        // now = 현재 KST 기준 시간
+        const now = new Date();
 
-              // 매물장: 1시간 이상 차이 나면 빨간색
-              if (maemulAt) {
-                const diff = diffHours(now, maemulAt);
-                const txt = `${formatDate(maemulAt)} (매물장)`;
-                parts.push(wrapRedIf(diff >= 1, txt));
-              }
-
-              // 백억광고: 24시간 이상 차이 나면 빨간색
-              if (adAt) {
-                const diff = diffHours(now, adAt);
-                const txt = `${formatDate(adAt)} (백억광고)`;
-                parts.push(wrapRedIf(diff >= 24, txt));
-              }
-
-              // 🔴 여기만 변경: textContent → innerHTML
-              meta.innerHTML = parts.length
-                ? `최신 업데이트: ${parts.join(' / ')}`
-                : '최신 업데이트 기록이 없습니다';
-            }
-
-        } catch (err) {
-            console.error(err);
-            meta.textContent = '매물 조회 중 오류가 발생했습니다.';
-            resultBox.innerHTML = '';
+        // 매물장: 1시간 이상 차이 나면 빨간색
+        if (maemulAt) {
+          const diff = diffHours(now, maemulAt);
+          const txt = `${formatDate(maemulAt)} (매물장)`;
+          parts.push(wrapRedIf(diff >= 1, txt));
         }
-    });
+
+        // 백억광고: 24시간 이상 차이 나면 빨간색
+        if (adAt) {
+          const diff = diffHours(now, adAt);
+          const txt = `${formatDate(adAt)} (백억광고)`;
+          parts.push(wrapRedIf(diff >= 24, txt));
+        }
+
+        // 🔴 여기만 변경: textContent → innerHTML
+        meta.innerHTML = parts.length
+          ? `최신 업데이트: ${parts.join(' / ')}`
+          : '최신 업데이트 기록이 없습니다';
+      }
+
+    } catch (err) {
+      console.error(err);
+      meta.textContent = '매물 조회 중 오류가 발생했습니다.';
+      resultBox.innerHTML = '';
+    }
+  });
 
   // 6) UX: 누구든(관리자/지점장/직원) 본인 항목이 보이면 자동 선택(조회까지 실행)
   //    - 본인 항목이 없거나 클릭 불가면 첫 번째 클릭 가능 항목을 클릭

@@ -293,6 +293,11 @@
       document.getElementById('phrase-panel').style.display = 'none';
       document.getElementById('phrase-col').classList.add('hidden');
       document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
+
+      // [ADD] 직원 클릭 시 네이버 필터 창 닫기 및 버튼 강조 제거
+      const naverFilter = document.getElementById('naver-filter-container');
+      if (naverFilter) naverFilter.style.display = 'none';
+      document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
     });
 
     // [ADD] 네이버 관련 페이징 상태
