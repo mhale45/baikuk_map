@@ -216,8 +216,8 @@
       </div>
     </section>
 
-    <!-- [ADD] 광고문구 상세 패널 -->
-    <section id="phrase-panel" class="p-4" style="display:none; width: 1400px; flex-shrink: 0; margin-top: 0.5rem;">
+    <!-- [ADD] 광고문구 상세 패널 (3단 확장) -->
+    <section id="phrase-panel" class="p-4" style="display:none; width: 1800px; flex-shrink: 0; margin-top: 0.5rem;">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
@@ -266,6 +266,24 @@
               <label class="font-semibold text-gray-600">생성 정보 내용</label>
               <textarea id="phrase-input-extra-content" placeholder="이곳에 생성 정보를 작성하거나 복붙하세요"
                 class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-green-200 outline-none"></textarea>
+            </div>
+            <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
+          </div>
+
+          <!-- [NEW] 우측 컬럼: 부기사용 정보 -->
+          <div class="flex-1 flex flex-col gap-4">
+            <h3 class="font-bold text-orange-600 border-l-4 border-orange-500 pl-2">부기사 문구 생성</h3>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">매물번호</label>
+              <div class="flex items-center gap-4">
+                <div class="w-1/4 p-2 bg-gray-50 border rounded-md text-gray-400 select-none">매물번호 연동</div>
+                <span class="font-bold text-gray-400 truncate flex-1">좌측 매물번호와 연동됩니다.</span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="font-semibold text-gray-600">부기사 문구 내용</label>
+              <textarea id="phrase-input-sub-content" placeholder="이곳에 부기사용 문구가 생성됩니다."
+                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-orange-200 outline-none"></textarea>
             </div>
             <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
           </div>
@@ -668,6 +686,8 @@
       document.getElementById('phrase-detail-title').textContent = '신규 문구 등록';
       document.getElementById('phrase-input-title').value = '';
       document.getElementById('phrase-input-content').value = '';
+      document.getElementById('phrase-input-extra-content').value = '';
+      document.getElementById('phrase-input-sub-content').value = '';
       
       // 목록 하이라이트 제거
       document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
@@ -969,6 +989,7 @@
         });
 
         extraTextarea.value = result;
+        document.getElementById('phrase-input-sub-content').value = result;
 
       } catch (err) {
         console.error('문구 생성 실패:', err);
@@ -976,6 +997,7 @@
       } finally {
         listingIdInput.disabled = false;
         extraTextarea.placeholder = '이곳에 추가 정보를 작성하거나 복붙하세요';
+        document.getElementById('phrase-input-sub-content').placeholder = '이곳에 부기사용 문구가 생성됩니다.';
       }
     }
 
