@@ -106,7 +106,7 @@
 
     <!-- [ADD] 광고문구 목록 패널 -->
     <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
-      <div class="grade-header text-center" style="margin: 0.5rem; background-color: #6366f1; color: white;">
+      <div id="phrase-list-header" class="grade-header text-center cursor-pointer hover:bg-indigo-500 transition-colors" style="margin: 0.5rem; background-color: #6366f1; color: white;">
         문구 목록
       </div>
       <div id="phrase-list" class="overflow-y-auto" style="max-height: 60vh;">
@@ -250,7 +250,7 @@
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
               <div class="flex items-center gap-4">
-                <input type="text" id="phrase-input-listing-id" placeholder="매물번호를 입력하세요"
+                <input type="text" id="phrase-input-listing-id" placeholder="매물번호 입력"
                   class="w-1/4 p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
                 <span id="phrase-listing-title-display" class="font-bold text-gray-800 truncate flex-1"></span>
               </div>
@@ -652,6 +652,27 @@
     // [ADD] 광고문구 관련 로직
     let currentPhraseId = null;
 
+    // [ADD] 신규 문구 등록 모드 진입
+    function enterNewPhraseMode() {
+      currentPhraseId = null;
+      document.getElementById('phrase-detail-title').textContent = '신규 문구 등록';
+      document.getElementById('phrase-input-title').value = '';
+      document.getElementById('phrase-input-content').value = '';
+      
+      // 목록 하이라이트 제거
+      document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
+      
+      // 상세 패널 표시
+      document.getElementById('phrase-panel').style.display = 'block';
+      document.getElementById('employee-listings-panel').style.display = 'none';
+      
+      // 입력창 포커스
+      document.getElementById('phrase-input-title').focus();
+    }
+
+    // "문구 목록" 헤더 클릭 시 신규 등록 모드
+    document.getElementById('phrase-list-header').addEventListener('click', enterNewPhraseMode);
+
     async function loadAddPhrases() {
       const listContainer = document.getElementById('phrase-list');
       if (!listContainer) return;
@@ -687,6 +708,7 @@
 
             // 상세 패널 업데이트
             document.getElementById('phrase-panel').style.display = 'block';
+            document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
             document.getElementById('employee-listings-panel').style.display = 'none';
             document.getElementById('phrase-input-title').value = item.title || '';
             document.getElementById('phrase-input-content').value = item.ad_copy || '';
@@ -702,11 +724,6 @@
 
     // [ADD] 광고문구 저장 기능
     async function saveAddPhrase() {
-      if (!currentPhraseId) {
-        alert('저장할 항목이 선택되지 않았습니다.');
-        return;
-      }
-
       const title = document.getElementById('phrase-input-title').value.trim();
       const ad_copy = document.getElementById('phrase-input-content').value.trim();
       const btn = document.getElementById('phrase-save-btn');
@@ -720,12 +737,28 @@
       btn.textContent = '저장 중...';
 
       try {
-        const { error } = await window.supabase
-          .from('add_phrase')
-          .update({ title, ad_copy })
-          .eq('id', currentPhraseId);
+        let result;
+        if (currentPhraseId) {
+          // 기존 수정
+          result = await window.supabase
+            .from('add_phrase')
+            .update({ title, ad_copy })
+            .eq('id', currentPhraseId);
+        } else {
+          // 신규 등록
+          result = await window.supabase
+            .from('add_phrase')
+            .insert({ title, ad_copy })
+            .select();
+        }
 
-        if (error) throw error;
+        if (result.error) throw result.error;
+
+        const isNew = !currentPhraseId;
+        if (isNew && result.data && result.data.length > 0) {
+          currentPhraseId = result.data[0].id;
+          document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
+        }
 
         // 성공 토스트 (기존 showToastGreenRed 사용 시)
         import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
@@ -738,7 +771,7 @@
         // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
         const items = document.querySelectorAll('#phrase-list .name-item');
         items.forEach(el => {
-          if (el.dataset.id === currentPhraseId) {
+          if (String(el.dataset.id) === String(currentPhraseId)) {
             el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
           }
         });
@@ -768,7 +801,12 @@
         document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
         document.getElementById('employee-listings-panel').style.display = 'none';
 
-        loadAddPhrases();
+        loadAddPhrases().then(() => {
+          // 선택된 문구가 없으면 신규 모드로
+          if (!currentPhraseId) {
+            enterNewPhraseMode();
+          }
+        });
       } else {
         // 숨김
         phraseCol.classList.add('hidden');
