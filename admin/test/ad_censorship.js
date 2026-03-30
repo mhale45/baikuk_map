@@ -1182,4 +1182,6 @@ export async function initAdCensorship() {
       tab.style.removeProperty('display');  // 관리자/지점장: 보이기
     }
   }
+
+  return me; // [ADD] 현재 로그인 사용자 정보 반환
 }

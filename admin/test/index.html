@@ -272,7 +272,10 @@
 
   <script type="module">
     import { initAdCensorship } from './ad_censorship.js';
-    initAdCensorship();
+    let currentUser = null; // [ADD] 전역 사용자 정보 저장용
+    initAdCensorship().then(me => {
+      currentUser = me;
+    });
 
     // 광고 검열용 예시: 필터 이벤트 수신
     document.addEventListener('adc:filter-change', (e) => {
@@ -748,7 +751,11 @@
           // 신규 등록
           result = await window.supabase
             .from('add_phrase')
-            .insert({ title, ad_copy })
+            .insert({ 
+              title, 
+              ad_copy,
+              user_id: currentUser?.userId // [ADD] 작성자 auth user_id 저장
+            })
             .select();
         }
 
