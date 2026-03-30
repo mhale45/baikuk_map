@@ -106,7 +106,8 @@
 
     <!-- [ADD] 광고문구 목록 패널 -->
     <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
-      <div id="phrase-list-header" class="grade-header text-center cursor-pointer hover:bg-indigo-500 transition-colors" style="margin: 0.5rem; background-color: #6366f1; color: white;">
+      <div id="phrase-list-header" class="grade-header text-center cursor-pointer hover:bg-indigo-500 transition-colors"
+        style="margin: 0.5rem; background-color: #6366f1; color: white;">
         문구 목록
       </div>
       <div id="phrase-list" class="overflow-y-auto" style="max-height: 60vh;">
@@ -217,7 +218,7 @@
     </section>
 
     <!-- [ADD] 광고문구 상세 패널 (컴팩트 3단) -->
-    <section id="phrase-panel" class="p-4" style="display:none; width: 1100px; flex-shrink: 0; margin-top: 0.5rem;">
+    <section id="phrase-panel" class="p-4" style="display:none; width: 1250px; flex-shrink: 0; margin-top: 0.5rem;">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
@@ -235,8 +236,8 @@
         </div>
 
         <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
-          <!-- 좌측 컬럼: 기존 광고 정보 (300px 고정) -->
-          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
+          <!-- 좌측 컬럼: 기존 광고 정보 (350px 고정) -->
+          <div class="w-[350px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">기존 광고 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">제목</label>
@@ -251,8 +252,8 @@
             <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
           </div>
 
-          <!-- 가운데 컬럼: 생성 정보 (300px 고정) -->
-          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
+          <!-- 가운데 컬럼: 생성 정보 (350px 고정) -->
+          <div class="w-[350px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
@@ -270,14 +271,12 @@
             <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
           </div>
 
-          <!-- [NEW] 우측 컬럼: 부기사용 정보 (300px 고정) -->
-          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
+          <!-- [NEW] 우측 컬럼: 부기사용 정보 (350px 고정) -->
+          <div class="w-[350px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-orange-600 border-l-4 border-orange-500 pl-2">부기사 문구 생성</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
               <div class="flex items-center gap-4">
-                <div class="w-1/4 p-2 bg-gray-50 border rounded-md text-gray-400 select-none">매물번호 연동</div>
-                <span class="font-bold text-gray-400 truncate flex-1">좌측 매물번호와 연동됩니다.</span>
               </div>
             </div>
             <div class="flex flex-col gap-2">
@@ -688,17 +687,17 @@
       document.getElementById('phrase-input-content').value = '';
       document.getElementById('phrase-input-extra-content').value = '';
       document.getElementById('phrase-input-sub-content').value = '';
-      
+
       // 목록 하이라이트 제거
       document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
-      
+
       // 삭제 버튼 숨김
       document.getElementById('phrase-delete-btn').style.display = 'none';
-      
+
       // 상세 패널 표시
       document.getElementById('phrase-panel').style.display = 'block';
       document.getElementById('employee-listings-panel').style.display = 'none';
-      
+
       // 입력창 포커스
       document.getElementById('phrase-input-title').focus();
     }
@@ -783,8 +782,8 @@
           // 신규 등록
           result = await window.supabase
             .from('add_phrase')
-            .insert({ 
-              title, 
+            .insert({
+              title,
               ad_copy,
               user_id: currentUser?.userId // [ADD] 작성자 auth user_id 저장
             })
