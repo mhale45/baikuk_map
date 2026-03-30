@@ -216,8 +216,8 @@
       </div>
     </section>
 
-    <!-- [ADD] 광고문구 상세 패널 (3단 확장) -->
-    <section id="phrase-panel" class="p-4" style="display:none; width: 1800px; flex-shrink: 0; margin-top: 0.5rem;">
+    <!-- [ADD] 광고문구 상세 패널 (컴팩트 3단) -->
+    <section id="phrase-panel" class="p-4" style="display:none; width: 1100px; flex-shrink: 0; margin-top: 0.5rem;">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
           <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
@@ -235,8 +235,8 @@
         </div>
 
         <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
-          <!-- 좌측 컬럼: 기존 광고 정보 -->
-          <div class="flex-1 flex flex-col gap-4">
+          <!-- 좌측 컬럼: 기존 광고 정보 (300px 고정) -->
+          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">기존 광고 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">제목</label>
@@ -251,8 +251,8 @@
             <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
           </div>
 
-          <!-- 우측 컬럼: 신규 입력 정보 -->
-          <div class="flex-1 flex flex-col gap-4">
+          <!-- 가운데 컬럼: 생성 정보 (300px 고정) -->
+          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 정보</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
@@ -270,8 +270,8 @@
             <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
           </div>
 
-          <!-- [NEW] 우측 컬럼: 부기사용 정보 -->
-          <div class="flex-1 flex flex-col gap-4">
+          <!-- [NEW] 우측 컬럼: 부기사용 정보 (300px 고정) -->
+          <div class="w-[300px] flex-shrink-0 flex flex-col gap-4">
             <h3 class="font-bold text-orange-600 border-l-4 border-orange-500 pl-2">부기사 문구 생성</h3>
             <div class="flex flex-col gap-2">
               <label class="font-semibold text-gray-600">매물번호</label>
