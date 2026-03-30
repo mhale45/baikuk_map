@@ -696,6 +696,7 @@
         const { data, error } = await window.supabase
           .from('add_phrase')
           .select('id, title, ad_copy')
+          .eq('user_id', currentUser?.userId) // [ADD] 본인 작성 문구만 필터링
           .order('created_at', { ascending: false });
 
         if (error) throw error;
