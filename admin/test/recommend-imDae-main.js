@@ -657,7 +657,7 @@ async function loadCurrentUserStaffInfo() {
           mainLogo.style.width = '14rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-          mainLogo.style.width = '24rem';
+          mainLogo.style.width = '20rem';
         }
       }
     }
