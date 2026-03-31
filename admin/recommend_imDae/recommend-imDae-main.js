@@ -649,13 +649,15 @@ async function loadCurrentUserStaffInfo() {
       staffInfoBox.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
       staffInfoBox.classList.remove('hidden');
 
-      // 담당자 이름이 '권준서'인 경우 로고 변경
+      // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
       const mainLogo = document.getElementById('main-logo');
       if (mainLogo) {
         if (staff.name === '권준서') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
+          mainLogo.style.width = '14rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
+          mainLogo.style.width = '25rem';
         }
       }
     }
@@ -783,13 +785,15 @@ function setupStaffDropdown() {
           selectedStaffId = staff.id;
           staffInfo.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
 
-          // 담당자 이름이 '권준서'인 경우 로고 변경
+          // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
           const mainLogo = document.getElementById('main-logo');
           if (mainLogo) {
             if (staff.name === '권준서') {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
+              mainLogo.style.width = '14rem';
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
+              mainLogo.style.width = '25rem';
             }
           }
 
