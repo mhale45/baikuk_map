@@ -67,14 +67,6 @@
           const { data: { user } } = await supabase.auth.getUser();
           if (!user?.id) return;
 
-          // 특정 유저(topjun1222@gmail.com)인 경우 로고 변경
-          if (user.email === 'topjun1222@gmail.com') {
-            const mainLogo = document.getElementById('main-logo');
-            if (mainLogo) {
-              mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
-            }
-          }
-
           const { data: me, error: authErr } = await supabase
             .from('staff_profiles')
             .select('authority')
@@ -504,7 +496,19 @@
       if (staffError || !staff) return;
       __selectedStaffId = staff.id; // ← 현재 로그인한 담당자 ID 저장
       const el = document.getElementById('staff-info');
-      if (el) el.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+      if (el) {
+        el.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+
+        // 담당자 이름이 '권준서'인 경우 로고 변경
+        const mainLogo = document.getElementById('main-logo');
+        if (mainLogo) {
+          if (staff.name === '권준서') {
+            mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
+          } else {
+            mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
+          }
+        }
+      }
     }
 
     /* ==============================
@@ -607,7 +611,19 @@
           const selectedId = staffSelectEl.value;
           if (selectedId) {
             const { data: staff } = await supabase.from('staff_profiles').select('position, name, phone_num').eq('id', selectedId).maybeSingle();
-            if (staff) staffInfoEl.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+            if (staff) {
+              staffInfoEl.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+
+              // 담당자 이름이 '권준서'인 경우 로고 변경
+              const mainLogo = document.getElementById('main-logo');
+              if (mainLogo) {
+                if (staff.name === '권준서') {
+                  mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
+                } else {
+                  mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
+                }
+              }
+            }
           }
           staffSelectEl.classList.add('hidden');
           staffInfoEl.classList.remove('hidden');
