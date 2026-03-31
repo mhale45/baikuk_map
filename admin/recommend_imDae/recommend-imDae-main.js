@@ -646,7 +646,8 @@ async function loadCurrentUserStaffInfo() {
   if (staff) {
     const staffInfoBox = document.getElementById('staff-info');
     if (staffInfoBox) {
-      staffInfoBox.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
+      const displayPosition = staff.name === '권준서' ? '대표' : (staff.position ?? '');
+      staffInfoBox.textContent = `${displayPosition} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
       staffInfoBox.classList.remove('hidden');
 
       // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
@@ -657,7 +658,7 @@ async function loadCurrentUserStaffInfo() {
           mainLogo.style.width = '14rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-          mainLogo.style.width = '25rem';
+          mainLogo.style.width = '20rem';
         }
       }
     }
@@ -770,7 +771,8 @@ function setupStaffDropdown() {
 
         const namePart = document.createElement('span');
         namePart.className = 'font-medium text-gray-800';
-        namePart.textContent = `${staff.position ?? ''} ${staff.name ?? ''}`.trim();
+        const displayPosition = staff.name === '권준서' ? '대표' : (staff.position ?? '');
+        namePart.textContent = `${displayPosition} ${staff.name ?? ''}`.trim();
 
         const phonePart = document.createElement('span');
         phonePart.className = 'text-sm text-gray-500';
@@ -783,7 +785,8 @@ function setupStaffDropdown() {
 
         item.addEventListener('click', () => {
           selectedStaffId = staff.id;
-          staffInfo.textContent = `${staff.position ?? ''} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
+          const displayPosition = staff.name === '권준서' ? '대표' : (staff.position ?? '');
+          staffInfo.textContent = `${displayPosition} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
 
           // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
           const mainLogo = document.getElementById('main-logo');
@@ -793,7 +796,7 @@ function setupStaffDropdown() {
               mainLogo.style.width = '14rem';
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-              mainLogo.style.width = '25rem';
+              mainLogo.style.width = '20rem';
             }
           }
 

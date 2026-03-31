@@ -497,7 +497,8 @@
       __selectedStaffId = staff.id; // ← 현재 로그인한 담당자 ID 저장
       const el = document.getElementById('staff-info');
       if (el) {
-        el.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+        const displayPosition = staff.name === '권준서' ? '대표' : staff.position;
+        el.textContent = `${displayPosition} ${staff.name} ${staff.phone_num}`;
 
         // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
         const mainLogo = document.getElementById('main-logo');
@@ -507,7 +508,7 @@
             mainLogo.style.width = '14rem';
           } else {
             mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-            mainLogo.style.width = '25rem';
+            mainLogo.style.width = '20rem';
           }
         }
       }
@@ -614,7 +615,8 @@
           if (selectedId) {
             const { data: staff } = await supabase.from('staff_profiles').select('position, name, phone_num').eq('id', selectedId).maybeSingle();
             if (staff) {
-              staffInfoEl.textContent = `${staff.position} ${staff.name} ${staff.phone_num}`;
+              const displayPosition = staff.name === '권준서' ? '대표' : staff.position;
+              staffInfoEl.textContent = `${displayPosition} ${staff.name} ${staff.phone_num}`;
 
               // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
               const mainLogo = document.getElementById('main-logo');
@@ -624,7 +626,7 @@
                   mainLogo.style.width = '14rem';
                 } else {
                   mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-                  mainLogo.style.width = '25rem';
+                  mainLogo.style.width = '20rem';
                 }
               }
             }
