@@ -655,10 +655,10 @@ async function loadCurrentUserStaffInfo() {
       if (mainLogo) {
         if (staff.name === '권준서') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
-          mainLogo.style.width = '14rem';
+          mainLogo.style.width = '10rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
-          mainLogo.style.width = '20rem';
+          mainLogo.style.width = '22rem';
         }
       }
     }
