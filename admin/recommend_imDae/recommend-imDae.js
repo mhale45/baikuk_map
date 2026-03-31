@@ -102,6 +102,14 @@ window.addEventListener("load", initializeWhiteBoxWidth);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) return;
 
+      // 특정 유저(topjun1222@gmail.com)인 경우 로고 변경
+      if (user.email === 'topjun1222@gmail.com') {
+        const mainLogo = document.getElementById('main-logo');
+        if (mainLogo) {
+          mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
+        }
+      }
+
       const { data: me, error: authErr } = await supabase
         .from('staff_profiles')
         .select('authority')
