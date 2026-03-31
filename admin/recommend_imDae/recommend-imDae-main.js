@@ -512,9 +512,9 @@ function buildAllMessages() {
   const combined = blocks.join('\n\n');
   if (!combined) return '';
 
-  const footer = `✅ 일산·파주 상가, 부동산마다 매물이 달라서 답답하셨죠?
-✅ 백억지도는 지역 내 모든 매물을 통합하여 정확한 실시간 정보를 제공합니다.
-✅ 창업과 이전의 시작, 백억지도로 가장 신속한 의사결정을 시작하세요.
+  const footer = `✔️ 일산·파주 상가, 부동산마다 매물이 달라서 답답하셨죠?
+✔️ 백억지도는 지역 내 모든 매물을 통합하여 정확한 실시간 정보를 제공합니다.
+✔️ 창업과 이전의 시작, 백억지도로 가장 신속한 의사결정을 시작하세요.
 👉 https://baikuk.com/map`;
 
   return combined + '\n\n' + footer;
