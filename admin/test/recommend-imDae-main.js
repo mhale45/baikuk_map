@@ -659,7 +659,7 @@ async function loadCurrentUserStaffInfo() {
           mainLogo.style.width = '10rem';
         } else if (aff === '1등운정점') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
-          mainLogo.style.width = '22rem';
+          mainLogo.style.width = '18rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
           mainLogo.style.width = '22rem';
@@ -801,7 +801,7 @@ function setupStaffDropdown() {
               mainLogo.style.width = '10rem';
             } else if (aff === '1등운정점') {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
-              mainLogo.style.width = '22rem';
+              mainLogo.style.width = '18rem';
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
               mainLogo.style.width = '22rem';
