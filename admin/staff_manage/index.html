@@ -241,9 +241,6 @@
                 </div>
                 <select id="signup-affiliation" class="w-[7.5rem] border rounded">
                   <option value="">선택</option>
-                  <option value="일산본점">일산본점</option>
-                  <option value="파주목동점">파주목동점</option>
-                  <option value="파주야당점">파주야당점</option>
                 </select>
               </div>
             </div>
@@ -911,6 +908,35 @@
       ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     };
 
+    // 부서 정보 가져오기
+    async function fetchBranchAffiliations() {
+      const { data, error } = await supabase
+        .from('branch_info')
+        .select('affiliation')
+        .order('affiliation', { ascending: true });
+
+      if (error) {
+        console.error('부서 정보를 불러오는데 실패했습니다:', error);
+        return;
+      }
+
+      const select = document.getElementById('signup-affiliation');
+      if (!select) return;
+
+      // "선택" 옵션만 남기고 초기화
+      select.innerHTML = '<option value="">선택</option>';
+
+      // 중복 제거 및 옵션 추가
+      const uniqueAffiliations = [...new Set(data.map(item => item.affiliation))].filter(Boolean);
+      uniqueAffiliations.forEach(aff => {
+        const opt = document.createElement('option');
+        opt.value = aff;
+        opt.textContent = aff;
+        select.appendChild(opt);
+      });
+    }
+
+
     // 위에서 설정한 supabase 객체를 사용합니다.
     async function fetchStaffProfiles() {
       const isStaff = (window.MY_AUTHORITY === '직원');
@@ -949,6 +975,7 @@
       if (!session) { showToast('로그인이 필요합니다.'); return; }
 
       await initAuthorityUi();
+      await fetchBranchAffiliations();
       await fetchStaffProfiles();
       applyUiByAuthority();
       resetSignupForm();
