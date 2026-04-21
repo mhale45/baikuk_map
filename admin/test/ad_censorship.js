@@ -21,6 +21,14 @@ const __AFFIL_STAFF_IDS = (window.__AFFIL_STAFF_IDS ||= {}); // 지점→직원I
 // === DOM refs (지연 바인딩) ===
 const $ = (sel, root = document) => root.querySelector(sel);
 
+// [ADD] 지점에 따른 매물 테이블 이름 반환
+function _getListingTable(branchName) {
+  if (branchName === '1등운정점') return 'ad_1st_listings';
+  if (branchName === '스타운정점') return 'ad_starfield_listings';
+  return 'ad_baikuk_listings';
+}
+
+
 // [ADD] 채널 문자열을 ','로 분리하고 공백 제거
 function _splitChannels(str) {
   return String(str || '')
@@ -111,8 +119,9 @@ function _compareMoney(current, baseline, diffLabel) {
 async function fetchAdCountByBranchAndChannel(branchName, channel) {
   if (!branchName || !channel) return 0;
   const likeValue = `%${String(channel).trim()}%`;
+  const tableName = _getListingTable(branchName);
   const { count, error } = await supabase
-    .from('ad_baikuk_listings')
+    .from(tableName)
     .select('*', { count: 'exact', head: true })
     .eq('branch_name', branchName)
     .ilike('agent_name', likeValue);
@@ -162,8 +171,9 @@ async function fillStaffAdCounts(container) {
 // 지점명(branch_name)으로 ad_baikuk_listings 전체 개수(count)만 가져온다.
 async function fetchAdCountByBranch(branchName) {
   if (!branchName) return 0;
+  const tableName = _getListingTable(branchName);
   const { count, error } = await supabase
-    .from('ad_baikuk_listings')
+    .from(tableName)
     .select('*', { count: 'exact', head: true })
     .eq('branch_name', branchName);
 
@@ -560,8 +570,9 @@ async function renderStaffSidebar(me) {
       const likeValue = `%${channel}%`;
       const staffExtRaw = (el.dataset.extension || '');      // ✅ 선택 직원 extension(원문)
       const staffExtCmp = staffExtRaw.replace(/\s+/g, '');
+      const tableName = _getListingTable(branchName);
       const { data, error } = await supabase
-        .from('ad_baikuk_listings')
+        .from(tableName)
         .select('contact_number, maintenance_cost, ad_restroom, ad_listing_id, description_listing_id, ad_loan, ad_premium, ad_deposit_price, ad_monthly_rent, description_deposit_price, deposit_monthly_rent, ad_floor_info, ad_listings_features, ad_area, description_area_py, ad_deal_type, ad_sale_price, illegal_building')
         .eq('branch_name', branchName)
         .ilike('agent_name', likeValue);
