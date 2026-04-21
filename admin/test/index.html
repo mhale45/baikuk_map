@@ -3,46 +3,22 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>광고관리</title>
+  <title>임대추천</title>
   <link rel="icon" type="image/png"
     href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- [ADD] 직원 리스트용 간단 스타일 -->
-  <style>
-    .shadow-right {
-      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
-    }
-
-    .grade-header {
-      background-color: #e5e7eb;
-      color: #111827;
-      font-weight: 700;
-      padding: 0.5rem;
-      border-radius: 0.25rem;
-      margin-top: 0.5rem;
-      user-select: none;
-    }
-
-    .name-item {
-      font-size: 0.9rem;
-      color: #374151;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      cursor: pointer;
-      margin-bottom: 0.4rem;
-    }
-
-    .name-item:hover {
-      background-color: #fef9c3;
-    }
-  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    let currentCustomerId = null; // 전역 변수로 추가
+    let whiteBoxExtraGap = 0; // white-box 오른쪽 여백 저장
+  </script>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 
-<body class="w-screen overflow-x-hidden">
+<body class="w-screen overflow-y-hidden min-h-screen overflow-x-auto">
   <div id="toast"
     class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
     메시지 영역
@@ -50,6 +26,9 @@
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
       alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
+  </div>
+  <div id="page-title" class="absolute top-[1.5rem] left-[15rem] text-2xl font-bold">
+    임대추천 <span id="selected-customer" class="text-blue-600"></span>
   </div>
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
@@ -63,7 +42,9 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div>
       </a>
       <a href="/admin/recommend_imDae/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div>
+        <div
+          class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">
+          임대추천</div>
       </a>
       <a href="/admin/recommend_maeMae/">
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div>
@@ -72,9 +53,7 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div>
       </a>
       <a href="/admin/ad_censorship/">
-        <div
-          class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">
-          광고관리</div>
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div>
       </a>
       <a href="/admin/staff_manage/">
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div>
@@ -89,911 +68,325 @@
         <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
       </a>
     </div>
-
-    <div id="staff-col" class="bg-gray-100 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left">
-      <div id="naver-link" class="grade-header text-center"
-        style="margin: 0.5rem; background-color: #03c75a; color: white; cursor: pointer;">
-        네이버 부동산
+    <div id="customer-col" class="bg-gray-100 w-[14%] pt-[2rem] shadow-right relative z-[10] text-left">
+      <!-- ⭐ 신규 고객 버튼 (오른쪽 정렬) -->
+      <div class="flex justify-end px-2 mb-2">
+        <button id="new-customer-btn"
+          class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">
+          새 고객
+        </button>
       </div>
-      <div id="add-phrase" class="grade-header text-center"
-        style="margin: 0.5rem; background-color: #4f46e5; color: white; cursor: pointer;">
-        광고문구
-      </div>
-      <div id="staff-list" class="overflow-y-auto">
-        <!-- JS로 렌더링 -->
+      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
+        <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
     </div>
-
-    <!-- [ADD] 광고문구 목록 패널 -->
-    <div id="phrase-col" class="bg-gray-50 w-[9.5%] pt-[5rem] shadow-right relative z-[10] text-left hidden">
-      <div id="phrase-list-header" class="grade-header text-center cursor-pointer hover:bg-indigo-500 transition-colors"
-        style="margin: 0.5rem; background-color: #6366f1; color: white;">
-        문구 목록
-      </div>
-      <div id="phrase-list" class="overflow-y-auto" style="max-height: 60vh;">
-        <!-- JS로 렌더링 -->
-      </div>
-      <!-- [ADD] 대체 키워드 안내 -->
-      <div class="mt-4 p-3 mx-2 bg-indigo-50 rounded-lg border border-indigo-100">
-        <p class="text-[12px] font-bold text-indigo-600 mb-2">※ 대체 가능 키워드</p>
-        <ul class="text-[14px] text-gray-500 space-y-1 font-mono">
-          <li>@매물번호@</li>
-          <li>@보증금@</li>
-          <li>@월세@</li>
-          <li>@권리금@</li>
-          <li>@전용면적@</li>
-          <li>@용도@</li>
-          <li>@위반건축물@</li>
-          <li>@화장실@</li>
-          <li>@추천업종@</li>
-          <li>@특징@</li>
-          <li>@해당층@</li>
-        </ul>
-      </div>
-    </div>
-    <section id="employee-listings-panel" class="employee-listings-panel"
-      style="display:none; margin-top: 0.5rem; margin-left: 0.5rem;">
-      <!-- [ADD] 네이버 필터 영역 -->
-      <div id="naver-filter-container" style="display:none; flex-direction: column; margin-bottom: 12px; gap: 8px;">
-        <!-- 두 번째 줄: 숫자형 조건 필터 -->
-        <div style="display:flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" class="text-sm">
-          <!-- 거래상태 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">거래상태</span>
-            <div class="flex gap-2 items-center bg-white border border-gray-300 rounded px-2 py-1 h-[30px]">
-              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
-                  value="진행중" class="w-4 h-4" /> 진행중</label>
-              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
-                  value="계약완료" class="w-4 h-4" /> 계약완료</label>
-              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status"
-                  value="보류" class="w-4 h-4" /> 보류</label>
-              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="naver-status" value="-"
-                  class="w-4 h-4" checked /> -</label>
+    <div class="w-[84%] flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
+      <div class="mt-[2rem] flex px-3 bg-gray-100">
+        <div class="text-left text-base rounded outline-none resize-none">
+          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
+          <div class="flex items-center gap-2 text-sm mb-2">
+            <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
+          </div>
+          <textarea placeholder="고객이름"
+            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none" id="top-row-input"
+            rows="2"></textarea>
+          <!-- 🔽 리스트 이름 입력 -->
+          <input id="list-name-input" placeholder="리스트 이름"
+            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base mt-2 h-[2rem]" />
+          <div class="flex mt-[0.5rem]">
+            <button id="delete-customer"
+              class="ml-1 h-[2.3rem] bg-rose-500 hover:bg-rose-600 text-white text-sm px-4 py-1 rounded font-bold">
+              삭제
+            </button>
+            <button id="save-new-customer"
+              class="ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold">
+              저장
+            </button>
+          </div>
+          <div class="flex mt-[0.5rem]">
+            <div class="flex">
+              <div class="ml-1 mt-1">구분:</div>
+              <select id="customer-grade"
+                class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                <option>A</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+                <option>계약</option>
+              </select>
             </div>
+            <input id="customer-phone" placeholder="전화번호"
+              class="w-[10rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
           </div>
-
-          <!-- 주소 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">주소</span>
-            <input type="text" id="input-naver-address" placeholder="포함 단어 콤마(,)로 구분"
-              class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-green-500 w-[180px]" />
-            <input type="text" id="input-naver-address-exclude" placeholder="제외 단어 콤마(,)로 구분"
-              class="px-3 py-1 border border-gray-300 rounded text-sm outline-none focus:border-red-500 w-[180px]" />
-          </div>
-
-          <!-- 보증금 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">보증금</span>
-            <input type="number" id="input-naver-deposit-min" placeholder="이상"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <input type="number" id="input-naver-deposit-max" placeholder="이하"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-          </div>
-
-          <!-- 월세 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">월세</span>
-            <input type="number" id="input-naver-rent-min" placeholder="이상"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <input type="number" id="input-naver-rent-max" placeholder="이하"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-          </div>
-
-          <!-- 전용면적 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">전용(㎡)</span>
-            <input type="number" id="input-naver-area-min" placeholder="이상"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <input type="number" id="input-naver-area-max" placeholder="이하"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-          </div>
-
-          <!-- 층 -->
-          <div class="flex flex-col gap-1">
-            <span class="font-semibold text-gray-700">층</span>
-            <input type="number" id="input-naver-floor-min" placeholder="이상"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-            <input type="number" id="input-naver-floor-max" placeholder="이하"
-              class="w-[70px] border border-gray-300 rounded px-2 py-1 outline-none focus:border-green-500" />
-          </div>
-
-          <!-- 선택형 -->
-          <div class="flex flex-col gap-1">
-            <button id="btn-naver-distinct"
-              class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-yellow-100 text-sm font-semibold transition-colors">
-              중복제거
-            </button>
-            <button id="btn-naver-address-search"
-              class="px-4 py-1.5 ml-2 bg-green-500 text-white rounded hover:bg-green-600 font-semibold transition-colors shadow-sm">
-              조회
-            </button>
-          </div>
-
-        </div>
-      </div>
-      <div id="employee-listings-meta" style="font-size:13px; color:#666; margin-bottom:8px;"></div>
-      <div id="employee-listings" style="overflow-x:auto; overflow-y:auto; max-width:100rem; max-height:47.0rem;">
-        <!-- 매물 카드가 여기에 렌더링됩니다 -->
-      </div>
-    </section>
-
-    <!-- [ADD] 광고문구 상세 패널 -->
-    <section id="phrase-panel" class="p-4" style="display:none; width: 1400px; flex-shrink: 0; margin-top: 0.5rem;">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
-        <div class="flex justify-between items-center mb-4 border-b pb-2">
-          <h2 id="phrase-detail-title" class="text-2xl font-bold text-gray-700">광고 정보 상세</h2>
-          <div class="flex gap-3">
-            <button id="phrase-delete-btn"
-              class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold shadow-md transition-all active:scale-95"
-              style="display:none;">
-              삭제하기
-            </button>
-            <button id="phrase-save-btn"
-              class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95">
-              저장하기
-            </button>
-          </div>
-        </div>
-
-        <div id="phrase-detail-content" class="text-gray-700 h-full flex flex-row gap-8">
-          <!-- 좌측 컬럼: 기존 광고 정보 -->
-          <div class="flex-1 flex flex-col gap-4">
-            <h3 class="font-bold text-indigo-600 border-l-4 border-indigo-500 pl-2">고정 광고 문구</h3>
-            <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">문구 제목</label>
-              <input type="text" id="phrase-input-title"
-                class="w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-200 outline-none" />
-            </div>
-            <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">내용</label>
-              <textarea id="phrase-input-content"
-                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
-            </div>
-            <p class="text-xs text-gray-400">수정 후 상단 저장 버튼을 클릭해 주세요.</p>
-          </div>
-
-          <!-- 우측 컬럼: 신규 입력 정보 -->
-          <div class="flex-1 flex flex-col gap-4">
-            <h3 class="font-bold text-green-600 border-l-4 border-green-500 pl-2">생성 광고 문구</h3>
-            <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">매물번호</label>
-              <div class="flex items-center gap-4">
-                <input type="text" id="phrase-input-listing-id" placeholder="매물번호 입력"
-                  class="w-1/4 p-2 border rounded-md focus:ring-2 focus:ring-green-200 outline-none" />
-                <span id="phrase-listing-title-display" class="font-bold text-gray-800 truncate flex-1"></span>
+          <textarea id="memo-textarea" placeholder="메모"
+            class="mt-[0.5rem] ml-1 px-1 pt-1 w-[17rem] h-[40rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none"></textarea>
+          <!-- 🔽 여기에 새 필터 영역 추가 -->
+          <div class="ml-1 mt-4 p-3 bg-white border border-gray-300 rounded text-sm w-[17rem]">
+            <!-- 층 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">층</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="floor-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="floor-max">
               </div>
             </div>
-            <div class="flex flex-col gap-2">
-              <label class="font-semibold text-gray-600">생성 정보 내용</label>
-              <textarea id="phrase-input-extra-content" placeholder="이곳에 생성 정보를 작성하거나 복붙하세요"
-                class="w-full p-2 border rounded-md font-mono text-sm h-[525px] resize-none focus:ring-2 focus:ring-green-200 outline-none"></textarea>
+
+            <!-- 전용면적 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">면적(평)</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="area-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="area-max">
+              </div>
             </div>
-            <p class="text-xs text-gray-400">이 영역은 저장되지 않습니다.</p>
+
+            <!-- 보증금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">보증금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="deposit-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="deposit-max">
+              </div>
+            </div>
+
+            <!-- 월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-max">
+              </div>
+            </div>
+
+            <!-- 평당 월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">평월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
+              </div>
+            </div>
+
+            <!-- 권리금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">권리금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="premium-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="premium-max">
+              </div>
+            </div>
+
+            <!-- 매매가 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">매매가</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="sale-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="sale-max">
+              </div>
+            </div>
+
+            <!-- 총보증금 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">총보증금</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-deposit-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-deposit-max">
+              </div>
+            </div>
+
+            <!-- 총월세 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">총월세</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-rent-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-rent-max">
+              </div>
+            </div>
+
+            <!-- 수익률 -->
+            <div class="flex flex-row items-center mb-3">
+              <div class="font-semibold w-[9rem]">수익률(%)</div>
+              <div class="flex gap-2 w-full">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="roi-min">
+                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="roi-max">
+              </div>
+            </div>
+
+          </div>
+          <!-- 🔼 필터 영역 끝 -->
+
+        </div>
+        <div class="ml-3 mt-[1rem] flex flex-col">
+          <div class="mb-2 px-2 text-right flex gap-1">
+            <button id="print-btn" class="h-[2rem] bg-gray-500 hover:bg-gray-600 text-white text-sm px-2 py-1 rounded">
+              🖨️
+            </button>
+            <button id="print-btn2"
+              class="h-[2rem] bg-neutral-400 hover:bg-neutral-500 text-white text-sm px-2 py-1 rounded">
+              🖨️
+            </button>
+            <button id="print-btn3" class="h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded"
+              title="이미지로 저장">
+              🖼️
+            </button>
+          </div>
+          <div class="pt-2 px-2 py-2bg-white border border-gray-300 rounded-md"> <!-- 매물번호 테이블 전체 -->
+            <div class="mb-2 justify-center flex gap-2">
+              <button id="clear-left-btn"
+                class="h-[2rem] w-[3.5rem] bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm px-1 py-1 rounded">
+                지우기
+              </button>
+              <button id="copy-link-btn"
+                class="h-[2rem] w-[3rem] bg-[#F2C130] hover:bg-[#E0B120] text-black font-bold px-1 py-1 rounded mr-2">
+                링크
+              </button>
+            </div>
+            <div id="table-container" class="border rounded-md">
+              <table class="w-[7rem] text-sm text-left">
+                <thead class="bg-gray-100 sticky top-0 z-10">
+                  <tr id="header-row">
+                    <th class="p-1 font-bold text-base text-center">매물번호</th>
+                  </tr>
+                </thead>
+                <tbody id="left-tbody" class="bg-white">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="white-box" class="ml-1 px-4 py-4 bg-white rounded-md self-start relative flex-shrink-0">
+          <div id="table-container" class="custom-scroll bg-white rounded-md">
+            <div id="print-block">
+              <div class="flex items-end mb-2 gap-3">
+                <img id="main-logo"
+                  src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png"
+                  alt="백억로고" class="h-auto max-w-full" style="width: 22rem;" />
+                <div class="justify-between items-end mb-2">
+                  <!-- 날짜 -->
+                  <div id="today-date" class="text-gray-600 text-sm font-semibold"></div>
+                  <!-- 담당자 -->
+                  <div id="staff-info-container" class="text-gray-800 text-lg font-semibold relative">
+                    <!-- 직원 정보 표시부 -->
+                    <div id="staff-info" class="cursor-pointer px-2 py-1 rounded hover:bg-gray-200 select-none">
+                    </div>
+                    <!-- 드롭다운 -->
+                    <div id="staff-dropdown"
+                      class="hidden fixed bg-white border rounded shadow-lg z-[9999] max-h-60 overflow-y-auto">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr id="header-row">
+                    <th class="resizable" style="width: 2.1rem;">
+                      <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 14rem;">
+                      매물명 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 11rem;">
+                      주소 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 5rem;">
+                      보증금 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 3.5rem;">
+                      월세 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 5rem;">
+                      권리금 <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 4.3rem;">
+                      전용(평) <div class="resize-handle"></div>
+                    </th>
+                    <th class="resizable" style="width: 13rem;">
+                      내용 <div class="resize-handle"></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="listings-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 오른쪽 리사이즈 핸들 -->
+          <div id="whitebox-resize-handle" style="
+                  position: absolute;
+                  top: 0;
+                  right: -4px;
+                  width: 8px;
+                  height: 100%;
+                  cursor: ew-resize;
+                  z-index: 50;
+              ">
+          </div>
+        </div>
+        <div class="ml-3 mt-[6.2rem] flex flex-col">
+          <div class="pt-2 px-2 py-2 bg-white border border-gray-300 rounded-md">
+            <!-- 오른쪽(스크린샷 제외) 메모 표 -->
+            <div id="memo-panel" class="print:hidden sticky top-2">
+              <table class="w-[20rem] border-collapse">
+                <thead>
+                  <tr>
+                    <td class="p-1 border-b border-gray-200 align-top">
+                      메모
+                      </th>
+                  </tr>
+                </thead>
+                <tbody id="memo-body"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- 어두운 오버레이 -->
-    <div id="sales-overlay" class="fixed inset-0 bg-black/30 z-[900] hidden"></div>
+    </div>
   </div>
-
-  <script type="module">
-    import { initAdCensorship } from './ad_censorship.js';
-    let currentUser = null; // [ADD] 전역 사용자 정보 저장용
-    initAdCensorship().then(me => {
-      currentUser = me;
-    });
-
-    // 광고 검열용 예시: 필터 이벤트 수신
-    document.addEventListener('adc:filter-change', (e) => {
-      const { staffId, affiliation } = e.detail || {};
-
-      // [ADD] 직원 클릭 시 광고 상세 창 및 문구 목록 닫기
-      document.getElementById('phrase-panel').style.display = 'none';
-      document.getElementById('phrase-col').classList.add('hidden');
-      document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
-
-      // [ADD] 직원 클릭 시 네이버 필터 창 닫기 및 버튼 강조 제거
-      const naverFilter = document.getElementById('naver-filter-container');
-      if (naverFilter) naverFilter.style.display = 'none';
-      document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
-    });
-
-    // [ADD] 네이버 관련 페이징 상태
-    let naverOffset = 0;
-    const NAVER_LIMIT = 500;
-    let isNaverLoading = false;
-    let hasMoreNaver = true;
-    let totalNaverCount = 0;
-
-    // [ADD] 네이버 필터 상태
-    let isNaverDistinctActive = false;
-    let seenCompositeKeys = new Set();
-    let naverAddressFilterWord = "";
-    let naverAddressExcludeWord = "";
-
-    // [ADD] 숫자 범위 필터 상태
-    let naverFilter = {
-      depositMin: null, depositMax: null,
-      rentMin: null, rentMax: null,
-      areaMin: null, areaMax: null,
-      floorMin: null, floorMax: null,
-      statuses: ['-'] // 초기값 '-'
-    };
-
-    // [ADD] 네이버 정렬 상태
-    let naverSortColumn = null;
-    let naverSortAscending = true;
-
-    async function loadMoreNaverListings(isFirstLoad = false) {
-      if (isNaverLoading || (!hasMoreNaver && !isFirstLoad)) return;
-
-      const meta = document.getElementById('employee-listings-meta');
-      const resultBox = document.getElementById('employee-listings');
-
-      if (isFirstLoad) {
-        naverOffset = 0;
-        hasMoreNaver = true;
-        totalNaverCount = 0;
-        seenCompositeKeys.clear();
-        resultBox.innerHTML = '';
-        meta.textContent = '네이버 매물 불러오는 중...';
-      } else {
-        meta.textContent = `불러오는 중... (현재 ${totalNaverCount}건 표시 중)`;
-      }
-
-      isNaverLoading = true;
-
-      try {
-        if (!window.supabase) {
-          throw new Error("Supabase is not initialized.");
-        }
-
-        let query = window.supabase
-          .from('naver_rent_listings')
-          .select('listing_id, feature, full_address, deposit_price, rent_price, net_area, floor_info, direction, realtor, composite_key');
-
-        if (naverAddressFilterWord) {
-          const keywords = naverAddressFilterWord.split(',').map(k => k.trim()).filter(Boolean);
-          if (keywords.length > 0) {
-            const orQuery = keywords.map(kw => `full_address.ilike.%${kw}%`).join(',');
-            query = query.or(orQuery);
-          }
-        }
-
-        if (naverAddressExcludeWord) {
-          const excludeKeywords = naverAddressExcludeWord.split(',').map(k => k.trim()).filter(Boolean);
-          excludeKeywords.forEach(kw => {
-            query = query.not('full_address', 'ilike', `%${kw}%`);
-          });
-        }
-
-        if (naverFilter.depositMin !== null) query = query.gte('deposit_price', naverFilter.depositMin);
-        if (naverFilter.depositMax !== null) query = query.lte('deposit_price', naverFilter.depositMax);
-        if (naverFilter.rentMin !== null) query = query.gte('rent_price', naverFilter.rentMin);
-        if (naverFilter.rentMax !== null) query = query.lte('rent_price', naverFilter.rentMax);
-        if (naverFilter.areaMin !== null) query = query.gte('net_area', naverFilter.areaMin);
-        if (naverFilter.areaMax !== null) query = query.lte('net_area', naverFilter.areaMax);
-        if (naverFilter.floorMin !== null) query = query.gte('current_floor', naverFilter.floorMin);
-        if (naverFilter.floorMax !== null) query = query.lte('current_floor', naverFilter.floorMax);
-
-        if (naverSortColumn) {
-          query = query.order(naverSortColumn, { ascending: naverSortAscending });
-        }
-
-        const { data, error } = await query.range(naverOffset, naverOffset + NAVER_LIMIT - 1);
-
-        if (error) throw error;
-
-        if (isFirstLoad && (!data || data.length === 0)) {
-          resultBox.innerHTML = '<div style="padding:8px; color:#666;">조회된 매물이 없습니다.</div>';
-          meta.textContent = '최신 업데이트 기록이 없습니다 / 네이버 매물 0건';
-          isNaverLoading = false;
-          hasMoreNaver = false;
-          return;
-        }
-
-        if (!data || data.length === 0) {
-          hasMoreNaver = false;
-          isNaverLoading = false;
-          meta.textContent = `조회 완료 (네이버 매물 총 ${totalNaverCount}건)`;
-          return;
-        }
-
-        let processedData = data;
-        if (isNaverDistinctActive) {
-          processedData = data.filter(item => {
-            if (!item.composite_key) return true;
-            if (seenCompositeKeys.has(item.composite_key)) {
-              return false;
-            } else {
-              seenCompositeKeys.add(item.composite_key);
-              return true;
-            }
-          });
-        }
-
-        // [ADD] baikukdbtest 내부 매물 정보 매핑
-        let baikukDataMap = {};
-        if (processedData.length > 0) {
-          const keys = Array.from(new Set(processedData.map(item => item.composite_key ? item.composite_key.trim() : null).filter(Boolean)));
-
-          if (keys.length > 0) {
-            try {
-              // 한 번에 많은 키를 in 쿼리로 넘기면 URL 길이 초과 에러가 발생할 수 있어 50개 단위로 나눕니다.
-              const chunkSize = 50;
-              for (let i = 0; i < keys.length; i += chunkSize) {
-                const chunk = keys.slice(i, i + chunkSize);
-                const { data: bData, error: bErr } = await window.supabase
-                  .from('baikukdbtest')
-                  .select('composite_key, listing_id, transaction_status, listing_title')
-                  .in('composite_key', chunk);
-
-                if (bErr) {
-                  console.warn('baikukdbtest 조인 청크 에러:', bErr);
-                  continue;
-                }
-                if (bData) {
-                  bData.forEach(row => {
-                    const rKey = row.composite_key ? row.composite_key.trim() : null;
-                    if (rKey && !baikukDataMap[rKey]) {
-                      baikukDataMap[rKey] = row;
-                    }
-                  });
-                }
-              }
-            } catch (e) { console.warn('baikukdbtest 조인 전체 에러:', e); }
-          }
-        }
-
-        // [ADD] 클라이언트 사이드 거래상태 필터링
-        const selected = naverFilter.statuses || [];
-        let finalData = processedData;
-
-        if (selected.length > 0 && selected.length < 4) {
-          finalData = processedData.filter(item => {
-            const cKey = item.composite_key ? item.composite_key.trim() : null;
-            const bInfo = cKey ? baikukDataMap[cKey] : null;
-            const statusRaw = bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-';
-
-            // 체크된 상태 중 하나라도 포함되어 있는지 확인
-            const isMatch = selected.some(s => {
-              if (s === '-') return statusRaw === '-';
-              return statusRaw.includes(s);
-            });
-            return isMatch;
-          });
-        }
-
-        let tbody;
-        if (isFirstLoad) {
-          const table = document.createElement('table');
-          table.id = 'naver-listings-table';
-          table.className = 'w-max table-auto border-collapse border border-gray-300 text-sm whitespace-nowrap';
-          table.innerHTML = `
-          <thead class="bg-gray-100 sticky top-0 z-10 select-none cursor-pointer">
-              <tr>
-                <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물번호</th>
-                <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">거래상태</th>
-                <th class="border border-gray-300 px-3 py-2 text-left bg-yellow-50">매물명</th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="listing_id">광고매물번호 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="feature">매물특징 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="full_address">주소 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="deposit_price">보증금 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="rent_price">월세 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="net_area">전용(㎡) <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="floor_info">층 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="direction">방향 <span></span></th>
-                <th class="border border-gray-300 px-3 py-2 text-left hover:bg-gray-200" data-sort-col="realtor">부동산 <span></span></th>
-              </tr>
-          </thead>
-          <tbody></tbody>
-          `;
-          resultBox.appendChild(table);
-          tbody = table.querySelector('tbody');
-
-          const thead = table.querySelector('thead');
-          thead.addEventListener('click', (e) => {
-            const th = e.target.closest('th');
-            if (!th) return;
-            const sortCol = th.getAttribute('data-sort-col');
-            if (!sortCol) return;
-
-            // 이미 정렬 중인 열이면 방향을 반전, 아니면 새 열을 오름차순으로 정렬
-            if (naverSortColumn === sortCol) {
-              naverSortAscending = !naverSortAscending;
-            } else {
-              naverSortColumn = sortCol;
-              naverSortAscending = true;
-            }
-            // 정렬을 변경했으므로 데이터를 처음부터 다시 불러옵니다.
-            loadMoreNaverListings(true);
-          });
-        } else {
-          tbody = document.querySelector('#naver-listings-table tbody');
-        }
-
-        // 정렬 상태 UI 업데이트 (화살표 추가/삭제)
-        const ths = resultBox.querySelectorAll('th[data-sort-col]');
-        ths.forEach(th => {
-          const col = th.getAttribute('data-sort-col');
-          const span = th.querySelector('span');
-          if (span) {
-            if (col === naverSortColumn) {
-              span.innerHTML = naverSortAscending ? '&nbsp;▲' : '&nbsp;▼';
-              span.className = 'text-green-600 text-xs';
-            } else {
-              span.innerHTML = '';
-              span.className = '';
-            }
-          }
-        });
-
-        finalData.forEach(item => {
-          const cKey = item.composite_key ? item.composite_key.trim() : null;
-          const bInfo = cKey ? baikukDataMap[cKey] : null;
-
-          // [ADD] 거래상태에 따른 행 색상 결정
-          let bgClass = '';
-          if (bInfo?.transaction_status) {
-            const status = bInfo.transaction_status;
-            if (status.includes('진행중')) bgClass = 'bg-green-50';
-            else if (status.includes('보류')) bgClass = 'bg-red-50';
-            else if (status.includes('계약완료')) bgClass = 'bg-red-100';
-          }
-
-          const tr = document.createElement('tr');
-          if (bgClass) tr.className = bgClass; // 배경색 적용
-
-          tr.innerHTML = `
-            <td class="border border-gray-300 px-3 py-1">${bInfo?.listing_id ? `<a href="https://baikuk.com/item/view/${bInfo.listing_id}" target="_blank" class="text-blue-600 hover:underline">${bInfo.listing_id}</a>` : '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${bInfo?.transaction_status ? bInfo.transaction_status.replace(/\s*\d{4}-\d{2}-\d{2}\s*/g, '').trim() : '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">
-              <div class="w-[13rem] overflow-hidden text-ellipsis whitespace-nowrap" title="${bInfo?.listing_title || ''}">
-                ${bInfo?.listing_title || '-'}
-              </div>
-            </td>
-            <td class="border border-gray-300 px-3 py-1"><a href="https://new.land.naver.com/offices?ms=37.7284146,126.734902,18&articleNo=${item.listing_id || ''}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600">${item.listing_id || '-'}</a></td>
-            <td class="border border-gray-300 px-3 py-1">
-              <div class="w-[15rem] overflow-hidden text-ellipsis whitespace-nowrap [text-wrap:balance] break-all" title="${item.feature || ''}">
-                ${item.feature || '-'}
-              </div>
-            </td>
-            <td class="border border-gray-300 px-3 py-1">
-              <div class="flex items-center gap-1">
-                ${item.full_address ? `
-                  <a href="https://map.naver.com/v5/search/${encodeURIComponent(item.full_address)}" target="_blank" title="네이버 지도로 보기" class="flex-shrink-0">
-                    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//naver_map_icon.png" class="w-5 h-5 rounded-sm" alt="map" />
-                  </a>
-                ` : ''}
-                <span>${item.full_address || '-'}</span>
-              </div>
-            </td>
-            <td class="border border-gray-300 px-3 py-1">${item.deposit_price ? Number(item.deposit_price).toLocaleString() : '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.rent_price ? Number(item.rent_price).toLocaleString() : '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.net_area || '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.floor_info || '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.direction || '-'}</td>
-            <td class="border border-gray-300 px-3 py-1">${item.realtor || '-'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        totalNaverCount += finalData.length;
-        naverOffset += NAVER_LIMIT;
-
-        if (data.length < NAVER_LIMIT) {
-          hasMoreNaver = false;
-        }
-
-        // 필터링 결과가 너무 적을 경우 자동으로 추가 로드 (최대 100건 표시될 때까지 시도)
-        if (hasMoreNaver && totalNaverCount < 100 && finalData.length < 10) {
-          setTimeout(() => loadMoreNaverListings(false), 50);
-        } else if (finalData.length === 0 && data.length === NAVER_LIMIT) {
-          setTimeout(() => loadMoreNaverListings(false), 50);
-        }
-
-        if (!hasMoreNaver) {
-          meta.textContent = `조회 완료 (네이버 매물 총 ${totalNaverCount}건)`;
-        } else {
-          meta.textContent = `조회 중 (현재 ${totalNaverCount}건 표시)`;
-        }
-
-      } catch (err) {
-        console.error(err);
-        meta.textContent = '매물 조회 중 오류가 발생했습니다.';
-      } finally {
-        isNaverLoading = false;
-      }
-    }
-
-    // [ADD] 중복제거 버튼 이벤트
-    document.getElementById('btn-naver-distinct').addEventListener('click', (e) => {
-      isNaverDistinctActive = !isNaverDistinctActive;
-      const btn = e.target;
-      if (isNaverDistinctActive) {
-        btn.classList.add('bg-yellow-200', 'border-yellow-400');
-        btn.classList.remove('bg-white', 'border-gray-300');
-      } else {
-        btn.classList.remove('bg-yellow-200', 'border-yellow-400');
-        btn.classList.add('bg-white', 'border-gray-300');
-      }
-      loadMoreNaverListings(true);
-    });
-
-    // [ADD] 통합 필터 검색 이벤트 (버튼 클릭 및 엔터 키 지원)
-    const doNaverSearch = () => {
-      naverAddressFilterWord = document.getElementById('input-naver-address').value.trim();
-      naverAddressExcludeWord = document.getElementById('input-naver-address-exclude').value.trim();
-
-      const getNum = (id) => {
-        const val = document.getElementById(id).value;
-        return val === '' ? null : Number(val);
-      };
-
-      naverFilter.depositMin = getNum('input-naver-deposit-min');
-      naverFilter.depositMax = getNum('input-naver-deposit-max');
-      naverFilter.rentMin = getNum('input-naver-rent-min');
-      naverFilter.rentMax = getNum('input-naver-rent-max');
-      naverFilter.areaMin = getNum('input-naver-area-min');
-      naverFilter.areaMax = getNum('input-naver-area-max');
-      naverFilter.floorMin = getNum('input-naver-floor-min');
-      naverFilter.floorMax = getNum('input-naver-floor-max');
-
-      // 거래상태 체크박스 값 읽기
-      const statusCheckboxes = document.querySelectorAll('input[name="naver-status"]:checked');
-      naverFilter.statuses = Array.from(statusCheckboxes).map(cb => cb.value);
-
-      loadMoreNaverListings(true);
-    };
-
-    document.getElementById('btn-naver-address-search').addEventListener('click', doNaverSearch);
-
-    // 입력창에서 Enter 키 누르면 검색 실행
-    const filterInputs = [
-      'input-naver-address', 'input-naver-address-exclude', 'input-naver-deposit-min', 'input-naver-deposit-max',
-      'input-naver-rent-min', 'input-naver-rent-max', 'input-naver-area-min', 'input-naver-area-max',
-      'input-naver-floor-min', 'input-naver-floor-max'
-    ];
-    filterInputs.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') doNaverSearch();
-        });
-      }
-    });
-
-    // [ADD] 광고문구 관련 로직
-    let currentPhraseId = null;
-
-    // [ADD] 신규 문구 등록 모드 진입
-    function enterNewPhraseMode() {
-      currentPhraseId = null;
-      document.getElementById('phrase-detail-title').textContent = '신규 문구 등록';
-      document.getElementById('phrase-input-title').value = '';
-      document.getElementById('phrase-input-content').value = '';
-
-      // 목록 하이라이트 제거
-      document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
-
-      // 삭제 버튼 숨김
-      document.getElementById('phrase-delete-btn').style.display = 'none';
-
-      // 상세 패널 표시
-      document.getElementById('phrase-panel').style.display = 'block';
-      document.getElementById('employee-listings-panel').style.display = 'none';
-
-      // 입력창 포커스
-      document.getElementById('phrase-input-title').focus();
-    }
-
-    // "문구 목록" 헤더 클릭 시 신규 등록 모드
-    document.getElementById('phrase-list-header').addEventListener('click', enterNewPhraseMode);
-
-    async function loadAddPhrases() {
-      const listContainer = document.getElementById('phrase-list');
-      if (!listContainer) return;
-
-      listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">불러오는 중...</div>';
-
-      try {
-        const { data, error } = await window.supabase
-          .from('add_phrase')
-          .select('id, title, ad_copy')
-          .eq('user_id', currentUser?.userId) // [ADD] 본인 작성 문구만 필터링
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        listContainer.innerHTML = '';
-        if (!data || data.length === 0) {
-          listContainer.innerHTML = '<div class="p-2 text-sm text-gray-500">데이터가 없습니다.</div>';
-          return;
-        }
-
-        data.forEach(item => {
-          const el = document.createElement('div');
-          el.className = 'name-item';
-          el.style.fontSize = '0.85rem';
-          el.textContent = item.title || '(제목 없음)';
-          el.dataset.id = item.id;
-
-          el.onclick = () => {
-            currentPhraseId = item.id;
-            // 모든 강조 제거
-            document.querySelectorAll('#phrase-list .name-item').forEach(x => x.classList.remove('bg-yellow-200', 'ring-1', 'ring-indigo-400'));
-            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
-
-            // 상세 패널 업데이트
-            document.getElementById('phrase-panel').style.display = 'block';
-            document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
-            document.getElementById('phrase-delete-btn').style.display = 'inline-block';
-            document.getElementById('employee-listings-panel').style.display = 'none';
-            document.getElementById('phrase-input-title').value = item.title || '';
-            document.getElementById('phrase-input-content').value = item.ad_copy || '';
-          };
-
-          listContainer.appendChild(el);
-        });
-      } catch (err) {
-        console.error('광고문구 로드 실패:', err);
-        listContainer.innerHTML = '<div class="p-2 text-sm text-red-500">로드 실패</div>';
-      }
-    }
-
-    // [ADD] 광고문구 저장 기능
-    async function saveAddPhrase() {
-      const title = document.getElementById('phrase-input-title').value.trim();
-      const ad_copy = document.getElementById('phrase-input-content').value.trim();
-      const btn = document.getElementById('phrase-save-btn');
-
-      if (!title) {
-        alert('제목을 입력해 주세요.');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = '저장 중...';
-
-      try {
-        let result;
-        if (currentPhraseId) {
-          // 기존 수정
-          result = await window.supabase
-            .from('add_phrase')
-            .update({ title, ad_copy })
-            .eq('id', currentPhraseId);
-        } else {
-          // 신규 등록
-          result = await window.supabase
-            .from('add_phrase')
-            .insert({
-              title,
-              ad_copy,
-              user_id: currentUser?.userId // [ADD] 작성자 auth user_id 저장
-            })
-            .select();
-        }
-
-        if (result.error) throw result.error;
-
-        const isNew = !currentPhraseId;
-        if (isNew && result.data && result.data.length > 0) {
-          currentPhraseId = result.data[0].id;
-          document.getElementById('phrase-detail-title').textContent = '광고 정보 상세';
-        }
-
-        // 성공 토스트 (기존 showToastGreenRed 사용 시)
-        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
-          showToastGreenRed?.('성공적으로 저장되었습니다.', 'green');
-        }).catch(() => alert('성공적으로 저장되었습니다.'));
-
-        // 목록 새로고침
-        await loadAddPhrases();
-
-        // 목록에서 현재 아이템 다시 강조 (제목 변경 시 필요)
-        const items = document.querySelectorAll('#phrase-list .name-item');
-        items.forEach(el => {
-          if (String(el.dataset.id) === String(currentPhraseId)) {
-            el.classList.add('bg-yellow-200', 'ring-1', 'ring-indigo-400');
-          }
-        });
-
-      } catch (err) {
-        console.error('저장 실패:', err);
-        alert('저장에 실패했습니다: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '저장하기';
-      }
-    }
-
-    document.getElementById('phrase-save-btn').addEventListener('click', saveAddPhrase);
-
-    // [ADD] 광고문구 삭제 기능
-    async function deleteAddPhrase() {
-      if (!currentPhraseId) return;
-
-      if (!confirm('정말로 이 광고 문구를 삭제하시겠습니까?')) return;
-
-      const btn = document.getElementById('phrase-delete-btn');
-      btn.disabled = true;
-      btn.textContent = '삭제 중...';
-
-      try {
-        const { error } = await window.supabase
-          .from('add_phrase')
-          .delete()
-          .eq('id', currentPhraseId);
-
-        if (error) throw error;
-
-        // 성공 토스트
-        import('../../modules/ui/toast.js').then(({ showToastGreenRed }) => {
-          showToastGreenRed?.('문구가 삭제되었습니다.', 'green');
-        }).catch(() => alert('삭제되었습니다.'));
-
-        // 목록 새로고침 및 신규 모드 진입
-        await loadAddPhrases();
-        enterNewPhraseMode();
-
-      } catch (err) {
-        console.error('삭제 실패:', err);
-        alert('삭제에 실패했습니다: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '삭제하기';
-      }
-    }
-
-    document.getElementById('phrase-delete-btn').addEventListener('click', deleteAddPhrase);
-
-    // [ADD] 광고문구 버튼 클릭 이벤트
-    document.getElementById('add-phrase').addEventListener('click', () => {
-      const phraseCol = document.getElementById('phrase-col');
-      const isHidden = phraseCol.classList.contains('hidden');
-
-      if (isHidden) {
-        // 보이게 함
-        phraseCol.classList.remove('hidden');
-        document.getElementById('add-phrase').classList.add('ring-2', 'ring-yellow-400');
-
-        // 네이버/직원 선택 해제
-        document.getElementById('naver-link').classList.remove('ring-2', 'ring-yellow-400');
-        document.getElementById('employee-listings-panel').style.display = 'none';
-
-        loadAddPhrases().then(() => {
-          // 선택된 문구가 없으면 신규 모드로
-          if (!currentPhraseId) {
-            enterNewPhraseMode();
-          }
-        });
-      } else {
-        // 숨김
-        phraseCol.classList.add('hidden');
-        document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
-        document.getElementById('phrase-panel').style.display = 'none';
-      }
-    });
-
-    // 네이버 버튼 클릭 시 광고문구 패널 정리 + 기존 로직
-    document.getElementById('naver-link').addEventListener('click', () => {
-      // 광고문구 정리
-      document.getElementById('phrase-col').classList.add('hidden');
-      document.getElementById('add-phrase').classList.remove('ring-2', 'ring-yellow-400');
-      document.getElementById('phrase-panel').style.display = 'none';
-
-      // 기존 네이버 로직
-      document.querySelectorAll('.name-item').forEach(el => el.classList.remove('bg-yellow-200'));
-      document.querySelectorAll('.grade-header').forEach(h => h.classList.remove('ring-2', 'ring-yellow-400'));
-      document.getElementById('naver-link').classList.add('ring-2', 'ring-yellow-400');
-
-      const panel = document.getElementById('employee-listings-panel');
-      panel.style.display = '';
-
-      const filterContainer = document.getElementById('naver-filter-container');
-      if (filterContainer) filterContainer.style.display = 'flex';
-
-      const resultBox = document.getElementById('employee-listings');
-      resultBox.onscroll = () => {
-        const isNaverTab = document.getElementById('naver-link').classList.contains('ring-yellow-400');
-        if (!isNaverTab) return;
-        if (resultBox.scrollTop + resultBox.clientHeight >= resultBox.scrollHeight - 100) {
-          loadMoreNaverListings(false);
-        }
-      };
-      loadMoreNaverListings(true);
-    });
-
-    // 직원 클릭 시 정리 + 기존 로직
-    // [ADD] 매물번호 연동 자동 문구 생성 기능
-    const formatNumber = (v) => {
-      if (v === null || v === undefined || isNaN(v)) return '-';
-      return Number(v).toLocaleString();
-    };
-
-    async function generateExtraContent() {
-      const listingIdInput = document.getElementById('phrase-input-listing-id');
-      const listingId = listingIdInput.value.trim();
-      const extraTextarea = document.getElementById('phrase-input-extra-content');
-      const titleDisplay = document.getElementById('phrase-listing-title-display');
-      const template = document.getElementById('phrase-input-content').value;
-
-      if (!listingId) {
-        if (titleDisplay) titleDisplay.textContent = '';
-        return;
-      }
-
-      // 로딩 중 표시 (커서 등)
-      listingIdInput.disabled = true;
-      extraTextarea.placeholder = '데이터 불러오는 중...';
-
-      try {
-        const { data, error } = await window.supabase
-          .from('baikukdbtest')
-          .select('deposit_price, monthly_rent, area_py, building_usage, restroom, store_type_detail, title, listing_title, premium_price, floor, illegal_building')
-          .eq('listing_id', listingId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-          if (titleDisplay) titleDisplay.textContent = '';
-          alert('해당 매물번호(' + listingId + ')의 정보를 찾을 수 없습니다.');
-          return;
-        }
-
-        // 제목 표시
-        if (titleDisplay) titleDisplay.textContent = data.listing_title || data.title || '(제목 없음)';
-
-        // 권리금 기반 텍스트 결정
-        const premiumPrice = data.premium_price ?? 0;
-        const premiumText = premiumPrice <= 10 ? '무권리' : '권리(전화문의)';
-
-        // 예약어 치환 매핑
-        const mapping = {
-          '@보증금@': formatNumber(data.deposit_price),
-          '@월세@': formatNumber(data.monthly_rent),
-          '@권리금@': premiumText,
-          '@전용면적@': data.area_py ? Number(data.area_py).toFixed(0) : '-',
-          '@해당층@': data.floor || '-',
-          '@용도@': data.building_usage || '-',
-          '@화장실@': data.restroom || '-',
-          '@추천업종@': data.store_type_detail || '-',
-          '@특징@': data.title || '-',
-          '@위반건축물@': data.illegal_building === '있음' ? '있음' : '',
-          '@매물번호@': listingId
-        };
-
-        // 템플릿 치환 로직 (일괄 정규식)
-        let result = template;
-        Object.entries(mapping).forEach(([key, value]) => {
-          const regex = new RegExp(key, 'g');
-          result = result.replace(regex, value);
-        });
-
-        extraTextarea.value = result;
-
-      } catch (err) {
-        console.error('문구 생성 실패:', err);
-        alert('데이터를 가져오는 중 오류가 발생했습니다: ' + err.message);
-      } finally {
-        listingIdInput.disabled = false;
-        extraTextarea.placeholder = '이곳에 추가 정보를 작성하거나 복붙하세요';
-      }
-    }
-
-    // 이벤트 연결
-    document.getElementById('phrase-input-listing-id').addEventListener('blur', generateExtraContent);
-    document.getElementById('phrase-input-listing-id').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        generateExtraContent();
-      }
-    });
-  </script>
+  <script type="module" src="./recommend-imDae.js"></script>
+  <script src="./recommend-imDae-main.js"></script>
+  <!-- === [저장 개선] 단순 덮어쓰기 모달 === -->
+  <div id="dup-customer-modal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-[9999]">
+    <div class="bg-white w-[440px] max-w-[92vw] rounded-2xl shadow-2xl overflow-hidden">
+      <div class="px-5 py-3 border-b font-semibold text-lg">
+        같은 이름의 고객이 이미 있습니다
+      </div>
+      <div class="p-5 space-y-3 max-h-[60vh] overflow-auto">
+        <p class="text-sm text-gray-700">
+          현재 입력한 내용으로 <b>기존 고객 정보를 덮어쓰시겠습니까?</b>
+        </p>
+        <!-- 선택 리스트는 사용 안함 -->
+      </div>
+      <div class="px-5 py-4 border-t flex items-center gap-2 justify-end bg-gray-50">
+        <button id="dup-overwrite"
+          class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+          덮어쓰기
+        </button>
+        <button id="dup-cancel" class="px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-200 text-sm">
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="color-picker-popup" class="fixed bg-white shadow-lg rounded-lg p-2 border hidden z-[9999] w-[15rem]">
+    <div class="flex gap-2">
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="none" style="background: repeating-linear-gradient(
+        45deg,
+        #fff,
+        #fff 5px,
+        #ccc 5px,
+        #ccc 10px
+      );"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#ffecec"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#fff7d4"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#eaffea"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e9f3ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#f3e9ff"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer" data-color="#e5e7eb"></div>
+      <div class="color-option w-6 h-6 rounded cursor-pointer flex items-center justify-center" data-color="strike"
+        style="font-size: 18px; font-weight: bold; line-height: 1;">
+        -
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
