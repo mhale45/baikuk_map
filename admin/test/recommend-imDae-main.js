@@ -639,7 +639,7 @@ async function loadCurrentUserStaffInfo() {
   // staff_profiles 테이블에서 해당 사용자 정보 조회
   const { data: staff } = await supabase
     .from('staff_profiles')
-    .select('id, position, name, phone_num')
+    .select('id, position, name, phone_num, affiliation')
     .eq('user_id', userId) // 혹은 eq('id', userId) → 실제 구조에 따라 변경
     .maybeSingle();
 
@@ -650,12 +650,16 @@ async function loadCurrentUserStaffInfo() {
       staffInfoBox.textContent = `${displayPosition} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
       staffInfoBox.classList.remove('hidden');
 
-      // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
+      // 지점에 따른 로고 및 크기 변경
       const mainLogo = document.getElementById('main-logo');
       if (mainLogo) {
-        if (staff.name === '권준서') {
+        const aff = (staff.affiliation || '').trim();
+        if (aff === '스타운정점') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
           mainLogo.style.width = '10rem';
+        } else if (aff === '1등운정점') {
+          mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
+          mainLogo.style.width = '22rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
           mainLogo.style.width = '22rem';
@@ -788,12 +792,16 @@ function setupStaffDropdown() {
           const displayPosition = staff.name === '권준서' ? '대표' : (staff.position ?? '');
           staffInfo.textContent = `${displayPosition} ${staff.name ?? ''} ${staff.phone_num ?? ''}`.trim();
 
-          // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
+          // 지점에 따른 로고 및 크기 변경
           const mainLogo = document.getElementById('main-logo');
           if (mainLogo) {
-            if (staff.name === '권준서') {
+            const aff = (staff.affiliation || '').trim();
+            if (aff === '스타운정점') {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
               mainLogo.style.width = '10rem';
+            } else if (aff === '1등운정점') {
+              mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
+              mainLogo.style.width = '22rem';
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
               mainLogo.style.width = '22rem';

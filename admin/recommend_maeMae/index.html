@@ -489,7 +489,7 @@
       if (userError || !user) return;
       const { data: staff, error: staffError } = await supabase
         .from('staff_profiles')
-        .select('id, position, name, phone_num')
+        .select('id, position, name, phone_num, affiliation')
         .eq('user_id', user.id)   /* ← user_id 기준으로 수정 */
         .maybeSingle();
 
@@ -500,12 +500,16 @@
         const displayPosition = staff.name === '권준서' ? '대표' : staff.position;
         el.textContent = `${displayPosition} ${staff.name} ${staff.phone_num}`;
 
-        // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
+        // 지점에 따른 로고 및 크기 변경
         const mainLogo = document.getElementById('main-logo');
         if (mainLogo) {
-          if (staff.name === '권준서') {
+          const aff = (staff.affiliation || '').trim();
+          if (aff === '스타운정점') {
             mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
             mainLogo.style.width = '10rem';
+          } else if (aff === '1등운정점') {
+            mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
+            mainLogo.style.width = '22rem';
           } else {
             mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
             mainLogo.style.width = '22rem';
@@ -613,17 +617,21 @@
           // 셀렉트가 있다면 선택된 담당자 텍스트 표기만 (DB저장은 현재 페이지 스펙상 생략)
           const selectedId = staffSelectEl.value;
           if (selectedId) {
-            const { data: staff } = await supabase.from('staff_profiles').select('position, name, phone_num').eq('id', selectedId).maybeSingle();
+            const { data: staff } = await supabase.from('staff_profiles').select('position, name, phone_num, affiliation').eq('id', selectedId).maybeSingle();
             if (staff) {
               const displayPosition = staff.name === '권준서' ? '대표' : staff.position;
               staffInfoEl.textContent = `${displayPosition} ${staff.name} ${staff.phone_num}`;
 
-              // 담당자 이름이 '권준서'인 경우 로고 및 크기 변경
+              // 지점에 따른 로고 및 크기 변경
               const mainLogo = document.getElementById('main-logo');
               if (mainLogo) {
-                if (staff.name === '권준서') {
+                const aff = (staff.affiliation || '').trim();
+                if (aff === '스타운정점') {
                   mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
                   mainLogo.style.width = '10rem';
+                } else if (aff === '1등운정점') {
+                  mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name.png';
+                  mainLogo.style.width = '22rem';
                 } else {
                   mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
                   mainLogo.style.width = '22rem';
