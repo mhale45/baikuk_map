@@ -368,12 +368,9 @@ async function renderStaffSidebar(me) {
   let staffQuery = supabase
     .from('staff_profiles')
     .select('id, name, affiliation, leave_date, ad_channel, extension')
+    .is('leave_date', null) // 항상 재직자만 조회
     .order('affiliation', { ascending: true })
     .order('name', { ascending: true });
-
-  if (me.authority === '직원') {
-    staffQuery = staffQuery.is('leave_date', null); // 직원은 재직자만
-  }
 
   const { data, error } = await staffQuery;
   if (error) {
@@ -385,10 +382,8 @@ async function renderStaffSidebar(me) {
   // 2) 소속별 그룹핑 + 캐시
   const grouped = {};
   (data || []).forEach(({ id, name, affiliation, leave_date, ad_channel, extension }) => {
-    if (!grouped[affiliation]) grouped[affiliation] = { active: [], inactive: [] };
-    const entry = { id, name, affiliation, leave_date, ad_channel, extension };
-    if (!leave_date) grouped[affiliation].active.push(entry);
-    else grouped[affiliation].inactive.push(entry);
+    if (!grouped[affiliation]) grouped[affiliation] = [];
+    grouped[affiliation].push({ id, name, affiliation, leave_date, ad_channel, extension });
 
     if (!__AFFIL_STAFF_IDS[affiliation]) __AFFIL_STAFF_IDS[affiliation] = new Set();
     __AFFIL_STAFF_IDS[affiliation].add(String(id));
@@ -415,7 +410,7 @@ async function renderStaffSidebar(me) {
   // 4) 렌더링
   let firstClickableStaffEl = null;
 
-  Object.entries(grouped).forEach(([aff, { active, inactive }], idx) => {
+  Object.entries(grouped).forEach(([aff, staffList], idx) => {
     // --- 지점 헤더 ---
     const header = document.createElement('div');
     header.className = 'grade-header';
@@ -493,39 +488,10 @@ async function renderStaffSidebar(me) {
     };
 
     // 활성(재직) 직원 렌더: 직원 1명 → 채널 개수만큼 줄 생성
-    active.forEach((emp) => {
+    staffList.forEach((emp) => {
       const els = createNameItems(emp);
       els.forEach((el) => container.appendChild(el));
     });
-
-    // --- 퇴사자 토글(관리자/지점장만 노출) ---
-    if (me.authority !== '직원' && inactive.length > 0) {
-      const toggleBtn = document.createElement('button');
-      toggleBtn.textContent = '▼ 퇴사자 보기';
-      toggleBtn.className = 'text-sm text-blue-600 hover:underline ml-2 mb-1';
-
-      const collapseDiv = document.createElement('div');
-      collapseDiv.className = 'pl-4 mt-1 hidden';
-      collapseDiv.id = `inactive-group-${idx}`;
-
-      // 퇴사자도 채널 분리하여 여러 줄 생성 (클릭은 비활성)
-      inactive.forEach((emp) => {
-        const els = createNameItems(emp, { dim: true });
-        els.forEach((el) => {
-          // 퇴사자는 항상 클릭 불가
-          el.classList.add('opacity-60', 'pointer-events-none', 'select-none');
-          collapseDiv.appendChild(el);
-        });
-      });
-
-      toggleBtn.onclick = () => {
-        const isHidden = collapseDiv.classList.toggle('hidden');
-        toggleBtn.textContent = isHidden ? '▼ 퇴사자 보기' : '▲ 퇴사자 숨기기';
-      };
-
-      container.appendChild(toggleBtn);
-      container.appendChild(collapseDiv);
-    }
 
   });
 
