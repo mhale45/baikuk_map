@@ -1,18 +1,31 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <title>모든고객</title>
-  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="icon" type="image/png"
+    href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .shadow-right { box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08); }
-    .slide-panel { transition: transform 0.3s ease-in-out; }
-    .slide-panel.hidden { transform: translateX(100%); }
-    .slide-panel.visible { transform: translateX(0%); }
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    .slide-panel {
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .slide-panel.hidden {
+      transform: translateX(100%);
+    }
+
+    .slide-panel.visible {
+      transform: translateX(0%);
+    }
   </style>
 
   <script type="module">
@@ -23,12 +36,12 @@
     let currentStaffId = null;
     let selectedIsOwner = false;
     let myAuth = '';   // '관리자' | '지점장' | '직원' | ''
-    let myAff  = '';
+    let myAff = '';
     let selectedCanEdit = false;
     let __toastTimer = null;
 
     // 담당자(대표/보조)
-    let selectedAssigneeId  = null; // 대표
+    let selectedAssigneeId = null; // 대표
     let selectedAssigneeId2 = null; // 보조
 
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -36,7 +49,7 @@
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
     );
-    
+
     // ✅ 로그인 여부 확인 + 권한 확인 + '정산' 탭 최종 제어
     (async () => {
       try {
@@ -143,16 +156,16 @@
       const el = document.getElementById('customer-phone');
       if (!el) return;
       if (isOwner) { el.placeholder = '전화번호(전체)'; el.removeAttribute('maxLength'); }
-      else { el.placeholder = '전화번호(끝 4자리만)'; el.maxLength = 4; el.value = (el.value || '').replace(/\D/g,'').slice(-4); }
+      else { el.placeholder = '전화번호(끝 4자리만)'; el.maxLength = 4; el.value = (el.value || '').replace(/\D/g, '').slice(-4); }
     }
     function formatPhoneForView(value) {
       const s = (value || '').replace(/\D/g, '');
-      if (s.length === 11) return `${s.slice(0,3)}-${s.slice(3,7)}-${s.slice(7)}`;
-      if (s.length === 10) { if (s.startsWith('02')) return `02-${s.slice(2,6)}-${s.slice(6)}`; return `${s.slice(0,3)}-${s.slice(3,6)}-${s.slice(6)}`; }
-      if (s.length === 9 && s.startsWith('02')) return `02-${s.slice(2,5)}-${s.slice(5)}`;
+      if (s.length === 11) return `${s.slice(0, 3)}-${s.slice(3, 7)}-${s.slice(7)}`;
+      if (s.length === 10) { if (s.startsWith('02')) return `02-${s.slice(2, 6)}-${s.slice(6)}`; return `${s.slice(0, 3)}-${s.slice(3, 6)}-${s.slice(6)}`; }
+      if (s.length === 9 && s.startsWith('02')) return `02-${s.slice(2, 5)}-${s.slice(5)}`;
       return value || '-';
     }
-    function buildOption(el, value, label, selected=false, disabled=false) {
+    function buildOption(el, value, label, selected = false, disabled = false) {
       const opt = document.createElement('option');
       opt.value = value;
       opt.textContent = label;
@@ -249,13 +262,13 @@
           try {
             const { data, error } = await supabase.from('staff_profiles').select('id').eq(col, user.id).single();
             if (!error && data?.id) return String(data.id);
-          } catch {}
+          } catch { }
         }
         if (user.email) {
           try {
             const { data, error } = await supabase.from('staff_profiles').select('id').eq('email', user.email).single();
             if (!error && data?.id) return String(data.id);
-          } catch {}
+          } catch { }
         }
         return null;
       } catch (e) { console.warn('resolveCurrentStaffId 실패:', e); return null; }
@@ -279,11 +292,11 @@
           .from('staff_profiles')
           .select('id, name, affiliation, leave_date');
         // 내 지점 우선 → 이름순
-        return (rows || []).sort((a,b) => {
-          const ap = (a.affiliation||'') === myAff ? 0 : 1;
-          const bp = (b.affiliation||'') === myAff ? 0 : 1;
+        return (rows || []).sort((a, b) => {
+          const ap = (a.affiliation || '') === myAff ? 0 : 1;
+          const bp = (b.affiliation || '') === myAff ? 0 : 1;
           if (ap !== bp) return ap - bp;
-          return (a.name||'').localeCompare(b.name||'', 'ko-KR', { sensitivity: 'base', numeric: true });
+          return (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base', numeric: true });
         });
       }
 
@@ -295,11 +308,11 @@
       const rows = (all || []).filter(m => !shouldHideStaffName(m, myAuth, myAff));
 
       // 내 지점 우선 → 이름순
-      rows.sort((a,b) => {
-        const ap = (a.affiliation||'') === myAff ? 0 : 1;
-        const bp = (b.affiliation||'') === myAff ? 0 : 1;
+      rows.sort((a, b) => {
+        const ap = (a.affiliation || '') === myAff ? 0 : 1;
+        const bp = (b.affiliation || '') === myAff ? 0 : 1;
         if (ap !== bp) return ap - bp;
-        return (a.name||'').localeCompare(b.name||'', 'ko-KR', { sensitivity: 'base', numeric: true });
+        return (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base', numeric: true });
       });
 
       return rows;
@@ -328,7 +341,7 @@
         myAff
       });
 
-      selectedAssigneeId  = sel1.value || null;
+      selectedAssigneeId = sel1.value || null;
       selectedAssigneeId2 = sel2.value || null;
 
       // 변경 시 서로 중복 금지 + 담당자2 옵션을 동적으로 갱신
@@ -358,7 +371,7 @@
         .select('staff_profiles_id, is_primary')
         .eq('customer_id', customerId);
       const primary = (links || []).find(l => l.is_primary);
-      const others  = (links || []).filter(l => !l.is_primary);
+      const others = (links || []).filter(l => !l.is_primary);
       const id1 = primary?.staff_profiles_id || null;
       const id2 = others[0]?.staff_profiles_id || null;
       return { id1, id2 };
@@ -369,7 +382,7 @@
       let viewRows = [];
       currentStaffId = await resolveCurrentStaffId();
       const ctx = await resolveMyAuthAff();
-      myAuth = ctx.authority;  myAff  = ctx.affiliation;
+      myAuth = ctx.authority; myAff = ctx.affiliation;
 
       const fm = sessionStorage.getItem('flashMessage');
       const fd = +(sessionStorage.getItem('flashDuration') || '0');
@@ -378,7 +391,7 @@
       if (!currentStaffId) { showToast('로그인이 필요합니다.'); return; }
 
       function setFormEditable(enable) {
-        const ids = ['top-row-input','customer-phone','customer-grade','starr_name','starr_name2','memo-textarea','save-button'];
+        const ids = ['top-row-input', 'customer-phone', 'customer-grade', 'starr_name', 'starr_name2', 'memo-textarea', 'save-button'];
         ids.forEach(id => {
           const el = document.getElementById(id);
           if (!el) return;
@@ -462,7 +475,7 @@
       for (const row of data) {
         const links = byCust.get(row.id) || [];
         const primary = links.find(x => x.is_primary);
-        const other   = links.find(x => !x.is_primary);
+        const other = links.find(x => !x.is_primary);
         const id1 = primary?.staff_profiles_id || row.staff_profiles_id || null;
         const id2 = other?.staff_profiles_id || null;
 
@@ -476,10 +489,10 @@
         } else {
           row.__displayStaff2 = maskNameForViewer(m2, myAuth, myAff);
         }
-        row.__displayAff    = (m1?.affiliation) || (row.staff_profiles?.affiliation) || '-';
+        row.__displayAff = (m1?.affiliation) || (row.staff_profiles?.affiliation) || '-';
         // 🔹 추가: 대표담당자 id/퇴사 여부 기록 (id1은 없으면 staff_profiles_id로 보정되어 있음)
-        row.__primaryStaffId   = id1 || null;
-        row.__primaryIsLeaver  = !!(m1 && m1.leave_date);
+        row.__primaryStaffId = id1 || null;
+        row.__primaryIsLeaver = !!(m1 && m1.leave_date);
       }
 
       setPhoneInputMode(true); // 전체 번호 입력 모드
@@ -544,7 +557,7 @@
             myAuth, myAff
           );
           const staff2NameDisplay = row.__displayStaff2 ?? '-';
-          const affDisplay        = row.__displayAff ?? (row.staff_profiles?.affiliation || '-');
+          const affDisplay = row.__displayAff ?? (row.staff_profiles?.affiliation || '-');
 
           tr.innerHTML = `
             <td>${row.grade ?? '-'}</td>
@@ -559,7 +572,7 @@
           tr.addEventListener('click', async () => {
             const rowStaffId = row.staff_profiles_id ?? staff.id;
             const isOwner = currentStaffId && rowStaffId && String(rowStaffId) === String(currentStaffId);
-            const rowAff  = (row.staff_profiles?.affiliation || '').trim();
+            const rowAff = (row.staff_profiles?.affiliation || '').trim();
             const sameAff = myAff && rowAff && (rowAff === myAff);
 
             // 일반 수정 가능(이름/전화/등급/메모)
@@ -624,7 +637,7 @@
               myAff
             });
 
-            selectedAssigneeId  = sel1.value || null;
+            selectedAssigneeId = sel1.value || null;
             selectedAssigneeId2 = sel2.value || null;
 
             sel1.onchange = () => {
@@ -648,7 +661,7 @@
       function applyFilters() {
         const freeVal = document.getElementById('filter-free').value.trim().toLowerCase();
         const nameVal = document.getElementById('filter-name').value.trim().toLowerCase();
-        const affVal  = document.getElementById('filter-aff').value.trim().toLowerCase();
+        const affVal = document.getElementById('filter-aff').value.trim().toLowerCase();
 
         const filtered = BASE.filter(row => {
           // 1) 자유 검색: 고객명, 전체전화/끝4자리, 메모 중 하나라도 포함하면 통과
@@ -662,9 +675,9 @@
 
           // 2) 담당자명/소속 필터 (표시값 기준)
           const staffNameShown = (row.__displayStaff1 || '').toLowerCase();
-          const affShown       = (row.__displayAff   || '').toLowerCase();
+          const affShown = (row.__displayAff || '').toLowerCase();
           const staffNameMatch = !nameVal || staffNameShown.includes(nameVal);
-          const affMatch       = !affVal  || affShown.includes(affVal);
+          const affMatch = !affVal || affShown.includes(affVal);
 
           return freeMatch && staffNameMatch && affMatch;
         });
@@ -696,7 +709,7 @@
               break;
             default: va = (a[field] ?? '').toString().toLowerCase(); vb = (b[field] ?? '').toString().toLowerCase();
           }
-          if (va < vb) return -1 * dir; if (va > vb) return  1 * dir; return 0;
+          if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
         });
       }
       document.querySelectorAll('th[data-field]').forEach((th) => {
@@ -715,10 +728,10 @@
       // 6) 저장
       document.getElementById('save-button').addEventListener('click', async () => {
         try {
-          const name  = document.getElementById('top-row-input')?.value.trim();
+          const name = document.getElementById('top-row-input')?.value.trim();
           const grade = document.getElementById('customer-grade')?.value;
-          const memo  = document.getElementById('memo-textarea')?.value.trim();
-          const raw   = document.getElementById('customer-phone').value.trim();
+          const memo = document.getElementById('memo-textarea')?.value.trim();
+          const raw = document.getElementById('customer-phone').value.trim();
           const digits = raw.replace(/\D/g, '');
           if (!name) return showToast('고객 이름을 입력해주세요.');
 
@@ -731,8 +744,8 @@
 
           const sel1 = document.getElementById('starr_name');
           const sel2 = document.getElementById('starr_name2');
-          const id1  = (sel1 && !sel1.disabled && sel1.value) ? sel1.value : (selectedAssigneeId  || null);
-          const id2  = (sel2 && !sel2.disabled && sel2.value) ? sel2.value : (selectedAssigneeId2 || null);
+          const id1 = (sel1 && !sel1.disabled && sel1.value) ? sel1.value : (selectedAssigneeId || null);
+          const id2 = (sel2 && !sel2.disabled && sel2.value) ? sel2.value : (selectedAssigneeId2 || null);
           const distinctIds = [id1, id2].filter(Boolean);
           const uniq = [...new Set(distinctIds)];
           if (uniq.length !== distinctIds.length) return showToast('담당자 2명은 서로 달라야 합니다.');
@@ -768,7 +781,7 @@
             return showToast('담당자 연결 조회 실패');
           }
 
-          const wantPrimary   = id1 || null;
+          const wantPrimary = id1 || null;
           const wantSecondary = id2 || null;
 
           const links = existingLinks || [];
@@ -844,28 +857,42 @@
 </head>
 
 <body class="w-screen bg-gray-100">
-  <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">메시지 영역</div>
+  <div id="toast"
+    class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[9999] hidden">
+    메시지 영역</div>
 
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-         alt="글씨로고"
-         class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
+      alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
   </div>
 
   <div class="flex min-h-screen">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
-      <a href="https://baikuk.com/map"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
-      <a href="/admin/mmap/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
-      <a href="/admin/listings/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
-      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
-      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
-      <a href="/admin/customer_manage/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
-      <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
-      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
-      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
-      <a href="/admin/cost_management/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">비용</div></a>
-      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      <a href="https://baikuk.com/map">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div>
+      </a>
+      <a href="/admin/mmap/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div>
+      </a>
+      <a href="/admin/listings/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div>
+      </a>
+      <a href="/admin/recommend_imDae/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div>
+      </a>
+      <a href="/admin/recommend_maeMae/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div>
+      </a>
+      <a href="/admin/customer_manage/">
+        <div
+          class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">
+          모든고객</div>
+      </a>
+      <a href="/admin/ad_censorship/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div>
+      </a>
+      <a href="/admin/staff_manage/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div>
       </a>
     </div>
 
@@ -873,15 +900,16 @@
     <div class="flex pt-[5rem] p-6 gap-3">
       <div class="flex flex-col">
         <!-- 필터창 -->
-         <div class="flex">
+        <div class="flex">
           <div class="flex gap-2 mb-2">
-            <input id="filter-free" placeholder="고객명 / 고객 전화 / 메모" class="border border-gray-300 px-2 py-1 rounded w-[15rem]" />
+            <input id="filter-free" placeholder="고객명 / 고객 전화 / 메모"
+              class="border border-gray-300 px-2 py-1 rounded w-[15rem]" />
           </div>
           <div class="flex gap-2 ml-auto mb-2 justify-end">
             <input id="filter-name" placeholder="담당자 필터" class="border border-gray-300 px-2 py-1 rounded w-[6.8rem]" />
-            <input id="filter-aff"  placeholder="소속 필터"   class="border border-gray-300 px-2 py-1 rounded w-[6.8rem]" />
+            <input id="filter-aff" placeholder="소속 필터" class="border border-gray-300 px-2 py-1 rounded w-[6.8rem]" />
           </div>
-         </div>
+        </div>
 
         <!-- 테이블 -->
         <div class="overflow-auto rounded-lg shadow">
@@ -904,45 +932,46 @@
 
       <!-- 우측 폼 -->
       <div class="sticky top-[5rem] self-start">
-        <button id="save-button"
-          class="ml-[1rem] mt-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <button id="save-button" class="ml-[1rem] mt-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
           저장
         </button>
 
-        <div id="customer-form"
-            class="mt-[0.5rem] w-[30rem] text-left text-base rounded
+        <div id="customer-form" class="mt-[0.5rem] w-[30rem] text-left text-base rounded
                     flex flex-col h-[calc(100vh-6rem)] overflow-hidden">
           <input id="top-row-input" placeholder="고객이름"
-                class="border border-gray-300 px-2 rounded ml-[1rem] w-[23.7rem] text-left text-base h-[2rem]" />
+            class="border border-gray-300 px-2 rounded ml-[1rem] w-[23.7rem] text-left text-base h-[2rem]" />
 
           <div class="flex mt-[0.5rem]">
             <div class="flex">
               <div class="ml-5 mt-1">구분:</div>
               <select id="customer-grade"
-                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base">
-                <option>A</option><option>B</option><option>C</option><option>F</option><option>계약</option>
+                class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base">
+                <option>A</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+                <option>계약</option>
               </select>
             </div>
             <input id="customer-phone" placeholder="전화번호"
-                  class="w-[15rem] ml-[3rem] px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+              class="w-[15rem] ml-[3rem] px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
           </div>
 
           <div class="flex">
             <div class="flex mt-[0.5rem] items-center">
               <div class="ml-5 mt-1">담당자:</div>
               <select id="starr_name"
-                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
+                class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
             </div>
             <div class="flex mt-[0.5rem] items-center">
               <div class="ml-5 mt-1">담당자2:</div>
               <select id="starr_name2"
-                      class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
+                class="ml-[0.5rem] px-1 h-[2rem] box-border border border-gray-300 rounded text-base"></select>
             </div>
           </div>
 
           <!-- 남은 공간을 메모가 채우고, 메모만 내부 스크롤 -->
-          <textarea id="memo-textarea" placeholder="메모"
-                    class="mt-[0.5rem] ml-[1rem] px-1 pt-1 w-[23.7rem] box-border text-left text-base
+          <textarea id="memo-textarea" placeholder="메모" class="mt-[0.5rem] ml-[1rem] px-1 pt-1 w-[23.7rem] box-border text-left text-base
                           border border-gray-300 rounded bg-white outline-none resize-none
                           h-[40rem] min-h-0 overflow-y-auto"></textarea>
         </div>
@@ -950,4 +979,5 @@
     </div>
   </div>
 </body>
+
 </html>

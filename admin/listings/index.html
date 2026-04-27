@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <title>매물장부</title>
-  <link rel="icon" type="image/png" href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="icon" type="image/png"
+    href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
   <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,20 +15,25 @@
       width: 20px;
       height: 20px;
     }
+
     .custom-scroll::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
+
     .custom-scroll::-webkit-scrollbar-thumb {
       background-color: #c1c1c1;
       border-radius: 6px;
       border: 2px solid #f1f1f1;
     }
+
     .custom-scroll::-webkit-scrollbar-thumb:hover {
       background-color: #999;
     }
+
     th.resizable {
       position: relative;
     }
+
     .resize-handle {
       position: absolute;
       right: 0;
@@ -36,24 +43,30 @@
       cursor: col-resize;
       z-index: 10;
     }
+
     th.resizing {
       cursor: col-resize;
     }
+
     .filter-popup {
       position: absolute;
       background: white;
-      border: 1px solid #d1d5db; /* gray-300 */
-      border-radius: 0.375rem; /* rounded-md */
+      border: 1px solid #d1d5db;
+      /* gray-300 */
+      border-radius: 0.375rem;
+      /* rounded-md */
       padding: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       z-index: 50;
-    }    
+    }
+
     .shadow-right {
       box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
     }
   </style>
   <script type="module" src="./listings.js"></script>
 </head>
+
 <body class="h-screen w-screen">
   <!-- 🔐 로그인 전체 화면 -->
   <div id="auth-screen" class="fixed inset-0 z-[99999] hidden">
@@ -61,15 +74,13 @@
       <div class="bg-white w-[22rem] rounded-xl shadow-xl p-6">
         <h2 class="text-xl font-bold text-center mb-4">직원 로그인</h2>
         <input id="auth-email" type="email" placeholder="이메일"
-               class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
+          class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
         <input id="auth-password" type="password" placeholder="비밀번호"
-               class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
-        <button id="auth-login"
-                class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+          class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+        <button id="auth-login" class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
           로그인
         </button>
-        <button id="auth-close"
-                class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
+        <button id="auth-close" class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
           닫기
         </button>
         <div id="auth-error" class="text-red-600 text-sm mt-3 hidden"></div>
@@ -78,24 +89,35 @@
   </div>
   <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
     <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
-        alt="글씨로고"
-        class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]"
-        onclick="location.reload()"/>
+      alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
   </div>
-  <div class="flex h-full">    
+  <div class="flex h-full">
     <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
-      <a href="https://baikuk.com/map"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div></a>
-      <a href="/admin/mmap/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div></a>
-      <a href="/admin/listings/"><div class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div></a>
-      <a href="/admin/recommend_imDae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div></a>
-      <a href="/admin/recommend_maeMae/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div></a>
-      <a href="/admin/customer_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div></a>
-      <a href="/admin/ad_censorship/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div></a>
-      <a href="/admin/staff_manage/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div></a>
-      <a href="/admin/performance/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매출</div></a>
-      <a href="/admin/cost_management/"><div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">비용</div></a>
-      <a id="settlement-tab" href="/admin/settlement/" style="display:none">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">정산</div>
+      <a href="https://baikuk.com/map">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div>
+      </a>
+      <a href="/admin/mmap/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div>
+      </a>
+      <a href="/admin/listings/">
+        <div
+          class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">
+          매물장부</div>
+      </a>
+      <a href="/admin/recommend_imDae/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div>
+      </a>
+      <a href="/admin/recommend_maeMae/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div>
+      </a>
+      <a href="/admin/customer_manage/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">모든고객</div>
+      </a>
+      <a href="/admin/ad_censorship/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고관리</div>
+      </a>
+      <a href="/admin/staff_manage/">
+        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div>
       </a>
     </div>
     <div class="w-[94%] flex flex-col bg-gray-50">
@@ -103,7 +125,8 @@
         <div class="flex flex-col w-[37%] mt-2">
           <div class="flex ml-[6.7rem] gap-3">
             <!-- 계정정보 + 로그아웃 버튼 -->
-            <div id="account-info" class="flex items-center justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700 gap-4">
+            <div id="account-info"
+              class="flex items-center justify-between bg-gray-200 rounded px-3 py-2 mb-2 text-sm text-gray-700 gap-4">
               <div class="flex flex-row flex-wrap items-center gap-2 text-sm text-gray-700">
                 <span id="account-affiliation" class="text-xs text-gray-600"></span>
                 <span id="account-position" class="text-xs text-gray-600"></span>
@@ -113,21 +136,24 @@
               </div>
               <button id="logout-btn" class="text-xs text-red-600 hover:underline">로그아웃</button>
             </div>
-            <button id="open-admin-listing-btn" class="hidden text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded ml-auto px-3 py-1 leading-none h-[1.7rem]">🏢 매물등록</button>  
-            
+            <button id="open-admin-listing-btn"
+              class="hidden text-sm bg-blue-400 text-white rounded hover:bg-blue-600 rounded ml-auto px-3 py-1 leading-none h-[1.7rem]">🏢
+              매물등록</button>
+
             <div class="ml-auto">
-              <button id="reset-filters-btn"
-                      class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
+              <button id="reset-filters-btn" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
                 정렬 초기화
               </button>
             </div>
-          </div>      
+          </div>
           <div class="w-[100%] p-4 bg-gray-100 flex items-center gap-2 text-sm">
             <input type="text" id="id-input" placeholder="매물번호" class="border px-1.5 py-1 rounded w-[14%]" />
             <input type="text" id="title-input" placeholder="매물명" class="border px-1.5 py-1 rounded w-[27%]" />
-            <input type="text" id="address-input" placeholder="주소(콤마로 복수 입력)" class="border px-1.5 py-1 rounded w-[26%]" />
+            <input type="text" id="address-input" placeholder="주소(콤마로 복수 입력)"
+              class="border px-1.5 py-1 rounded w-[26%]" />
             <input type="text" id="building-input" placeholder="건물명" class="border px-1.5 py-1 rounded w-[22%]" />
-            <button id="search-button" class="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-600 w-[10%]">검색</button>
+            <button id="search-button"
+              class="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-600 w-[10%]">검색</button>
           </div>
         </div>
         <!-- 필터 입력창 영역 -->
@@ -145,7 +171,7 @@
 
           <!-- 이상 입력창 -->
           <div class="flex gap-4 mb-1">
-            <input id="filter-floor-min"    type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-floor-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[4rem]" />
             <input id="filter-deposit-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
             <input id="filter-rent-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[5rem]" />
             <input id="filter-premium-min" type="number" placeholder="이상" class="border rounded px-2 py-1 w-[6rem]" />
@@ -156,7 +182,7 @@
 
           <!-- 이하 입력창 -->
           <div class="flex gap-4">
-            <input id="filter-floor-max"    type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
+            <input id="filter-floor-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
             <input id="filter-deposit-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
             <input id="filter-rent-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[5rem]" />
             <input id="filter-premium-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[6rem]" />
@@ -165,41 +191,41 @@
             <input id="filter-roi-max" type="number" placeholder="이하" class="border rounded px-2 py-1 w-[4rem]" />
           </div>
         </div>
-          <!-- 필터 입력창 영역 -->
-          <div id="fixed-filter-box" class="h-[3.45rem] bg-gray-100 px-4 pt-2 pb-4 flex gap-7">
-            <!-- 거래유형 -->
-            <div>
-              <div class="font-semibold mb-1">거래유형</div>
-              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
-              <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
-            </div>
+        <!-- 필터 입력창 영역 -->
+        <div id="fixed-filter-box" class="h-[3.45rem] bg-gray-100 px-4 pt-2 pb-4 flex gap-7">
+          <!-- 거래유형 -->
+          <div>
+            <div class="font-semibold mb-1">거래유형</div>
+            <label class="block"><input type="checkbox" class="deal-type-checkbox" value="월세" /> 월세</label>
+            <label class="block"><input type="checkbox" class="deal-type-checkbox" value="매매" /> 매매</label>
+          </div>
 
-            <!-- 거래완료 -->
-            <div>
-              <div class="font-semibold mb-1">거래상태</div>
-              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="진행중" /> 진행중</label>
-              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="보류" /> 보류</label>
-              <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="계약완료" /> 계약완료</label>
-            </div>
+          <!-- 거래완료 -->
+          <div>
+            <div class="font-semibold mb-1">거래상태</div>
+            <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="진행중" /> 진행중</label>
+            <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="보류" /> 보류</label>
+            <label class="block"><input type="checkbox" class="transaction-status-checkbox" value="계약완료" /> 계약완료</label>
+          </div>
 
-            <!-- 대분류 -->
-            <div class="flex flex-col items-center">
-              <div class="font-semibold mb-1">대분류</div>
-              <div>
-                <div class="flex gap-2">
-                  <div>
-                    <label class="block"><input type="checkbox" class="category-checkbox" value="상가" /> 상가</label>
-                    <label class="block"><input type="checkbox" class="category-checkbox" value="빌딩" /> 빌딩</label>
-                  </div>
-                  <div>
-                    <label class="block"><input type="checkbox" class="category-checkbox" value="주택" /> 주택</label>
-                    <label class="block"><input type="checkbox" class="category-checkbox" value="토지" /> 토지</label>
-                  </div>
+          <!-- 대분류 -->
+          <div class="flex flex-col items-center">
+            <div class="font-semibold mb-1">대분류</div>
+            <div>
+              <div class="flex gap-2">
+                <div>
+                  <label class="block"><input type="checkbox" class="category-checkbox" value="상가" /> 상가</label>
+                  <label class="block"><input type="checkbox" class="category-checkbox" value="빌딩" /> 빌딩</label>
                 </div>
-                <label class="block"><input type="checkbox" class="category-checkbox" value="공장·창고" /> 공장·창고</label>
+                <div>
+                  <label class="block"><input type="checkbox" class="category-checkbox" value="주택" /> 주택</label>
+                  <label class="block"><input type="checkbox" class="category-checkbox" value="토지" /> 토지</label>
+                </div>
               </div>
+              <label class="block"><input type="checkbox" class="category-checkbox" value="공장·창고" /> 공장·창고</label>
             </div>
           </div>
+        </div>
       </div>
       <div class="px-4 bg-gray-100">
         <div class="px-4 py-4 bg-white border border-gray-300 rounded-md">
@@ -209,7 +235,8 @@
                 <tr id="header-row">
                   <th class="p-1 border-r text-sm text-center w-[4.54rem]">매물번호</th>
                   <th class="p-1 border-r text-sm text-center w-[5rem]">상태</th>
-                  <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div></th>
+                  <th class="resizable p-2 border-r text-sm text-center w-[16rem]">매물명<div class="resize-handle"></div>
+                  </th>
                   <th class="p-1 border-r text-sm text-center w-[10.5rem]">주소</th>
                   <th class="p-1 border-r text-sm text-center w-[9rem]">건물정보</th>
                   <th class="p-1 border-r text-sm text-center">호수</th>
@@ -234,4 +261,5 @@
     </div>
   </div>
 </body>
+
 </html>
