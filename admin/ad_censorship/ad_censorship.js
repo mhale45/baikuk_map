@@ -397,14 +397,13 @@ async function renderStaffSidebar(me) {
   // 3) 권한별 클릭 허용 로직
   const canClickStaff = (emp) => {
     if (me.authority === '관리자') return true;
-    if (me.authority === '지점장') return emp.affiliation === me.affiliation;
-    if (me.authority === '직원') return String(emp.id) === String(me.staffId);
-    return false;
+    // 소속 지점이 같으면 직급에 상관없이 클릭 가능
+    return emp.affiliation === me.affiliation;
   };
   const canClickAff = (aff) => {
     if (me.authority === '관리자') return true;
-    if (me.authority === '지점장') return aff === me.affiliation;
-    return false; // 직원은 지점 헤더 클릭 불가
+    // 본인 소속 지점 헤더는 클릭 가능
+    return aff === me.affiliation;
   };
 
   // 4) 렌더링
