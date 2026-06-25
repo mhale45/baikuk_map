@@ -9,6 +9,8 @@ window.supabase = supabase;
 
 // 로그인한 직원의 소속 매장 정보를 기억할 변수
 let myAffiliation = '';
+// 선택된 자동갱신 계정 정보를 기억할 변수
+let selectedAccount = null;
 
 (async () => {
   try {
@@ -208,8 +210,19 @@ function initTabSystem() {
   if ($saveBtn) {
     $saveBtn.onclick = saveAutoRenew;
   }
+
+  // 새로고침 버튼 이벤트 바인딩
+  const $refreshBtn = document.getElementById('btn-refresh-results');
+  if ($refreshBtn) {
+    $refreshBtn.onclick = () => {
+      if (selectedAccount) {
+        loadRenewalResults(selectedAccount.channel, selectedAccount.id);
+      }
+    };
+  }
 }
 
+// 자동갱신 목록 로드 및 렌더링
 // 자동갱신 목록 로드 및 렌더링
 async function loadAutoRenewList() {
   const $list = document.getElementById('auto-renew-list');
@@ -237,7 +250,7 @@ async function loadAutoRenewList() {
         : '-';
 
       return `
-        <tr class="border-b hover:bg-gray-50 transition-colors">
+        <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors" data-id="${item.id}">
           <td class="px-4 py-3 font-semibold text-gray-800">${item.add_channal || '-'}</td>
           <td class="px-4 py-3 text-gray-600 font-mono">${item.add_id || '-'}</td>
           <td class="px-4 py-3 text-gray-600">${item.max_renewal_count || '-'}개</td>
@@ -252,12 +265,37 @@ async function loadAutoRenewList() {
       `;
     }).join('');
 
+    // 각 행 클릭 이벤트 바인딩
+    const $rows = $list.querySelectorAll('tr');
+    $rows.forEach(($row, idx) => {
+      const item = data[idx];
+      
+      // 만약 이미 선택된 계정이 있고 그 계정 정보와 일치하면 다시 활성화 처리
+      if (selectedAccount && selectedAccount.channel === item.add_channal && selectedAccount.id === item.add_id) {
+        $row.classList.add('bg-blue-50/70', 'hover:bg-blue-50/70');
+      }
+
+      $row.addEventListener('click', () => {
+        // 모든 행 스타일 초기화
+        $rows.forEach(r => r.classList.remove('bg-blue-50/70', 'hover:bg-blue-50/70'));
+        // 현재 클릭 행 활성화
+        $row.classList.add('bg-blue-50/70', 'hover:bg-blue-50/70');
+        
+        selectedAccount = { channel: item.add_channal, id: item.add_id };
+        loadRenewalResults(item.add_channal, item.add_id);
+      });
+    });
+
     // 삭제 버튼 이벤트 바인딩
     const $deleteBtns = $list.querySelectorAll('.btn-delete-auto');
-    $deleteBtns.forEach($btn => {
-      $btn.onclick = async () => {
+    $deleteBtns.forEach(($btn, idx) => {
+      $btn.onclick = async (e) => {
+        e.stopPropagation(); // 행 클릭 이벤트 전파 차단
+        
         const id = $btn.getAttribute('data-id');
         if (!id) return;
+
+        const item = data[idx];
 
         if (confirm('정말로 이 자동갱신 설정을 삭제하시겠습니까?')) {
           try {
@@ -272,6 +310,12 @@ async function loadAutoRenewList() {
             if (delErr) throw delErr;
 
             alert('삭제되었습니다.');
+            
+            // 삭제된 계정이 현재 선택된 계정일 경우 결과 이력 영역 초기화
+            if (selectedAccount && selectedAccount.channel === item.add_channal && selectedAccount.id === item.add_id) {
+              clearRenewalResults();
+            }
+
             await loadAutoRenewList();
           } catch (e) {
             console.error('삭제 오류:', e);
@@ -353,6 +397,9 @@ async function saveAutoRenew() {
     $maxCountSelect.value = '';
     $alarmMailInput.value = '';
 
+    // 결과 목록 초기화
+    clearRenewalResults();
+
     // 목록 새로고침
     await loadAutoRenewList();
 
@@ -362,5 +409,96 @@ async function saveAutoRenew() {
   } finally {
     $saveBtn.disabled = false;
     $saveBtn.textContent = '저장하기';
+  }
+}
+
+// 선택된 계정의 갱신 결과 로드
+async function loadRenewalResults(channel, idVal) {
+  const $resultList = document.getElementById('auto-renew-result-list');
+  const $selectedInfo = document.getElementById('selected-account-info');
+  const $refreshBtn = document.getElementById('btn-refresh-results');
+  
+  if (!$resultList) return;
+  
+  if ($selectedInfo) {
+    $selectedInfo.textContent = `(${channel} - ${idVal})`;
+  }
+  if ($refreshBtn) {
+    $refreshBtn.classList.remove('hidden');
+  }
+  
+  $resultList.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">결과를 불러오는 중...</td></tr>`;
+  
+  try {
+    const { data, error } = await supabase
+      .from('aa_renewal_result')
+      .select('*')
+      .eq('add_channal', channel)
+      .eq('add_id', idVal)
+      .order('created_at', { ascending: false })
+      .limit(50);
+      
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      $resultList.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">갱신 결과 이력이 없습니다.</td></tr>`;
+      return;
+    }
+    
+    $resultList.innerHTML = data.map(item => {
+      const dateStr = item.created_at 
+        ? new Date(item.created_at).toLocaleString('ko-KR', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          }) 
+        : '-';
+        
+      const statusText = item.status || '-';
+      let statusBadge = '';
+      
+      // 상태값에 따른 뱃지 연출 (성공/완료 등은 초록색, 실패/에러 등은 빨간색, 그 외는 회색)
+      if (statusText.includes('성공') || statusText.includes('완료') || statusText.includes('정상')) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">${statusText}</span>`;
+      } else if (statusText.includes('실패') || statusText.includes('에러') || statusText.includes('오류')) {
+        statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">${statusText}</span>`;
+      } else {
+        statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">${statusText}</span>`;
+      }
+      
+      return `
+        <tr class="border-b hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 text-xs text-gray-500 font-mono">${dateStr}</td>
+          <td class="px-4 py-3 font-semibold text-gray-800">${item.add_channal || '-'}</td>
+          <td class="px-4 py-3 text-gray-600 font-mono">${item.add_id || '-'}</td>
+          <td class="px-4 py-3">${statusBadge}</td>
+        </tr>
+      `;
+    }).join('');
+    
+  } catch (e) {
+    console.error('결과 이력 로드 실패:', e);
+    $resultList.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-500 font-semibold">이력을 불러오는 도중 오류가 발생했습니다: ${e.message}</td></tr>`;
+  }
+}
+
+// 결과 영역 초기화
+function clearRenewalResults() {
+  selectedAccount = null;
+  const $resultList = document.getElementById('auto-renew-result-list');
+  const $selectedInfo = document.getElementById('selected-account-info');
+  const $refreshBtn = document.getElementById('btn-refresh-results');
+  
+  if ($resultList) {
+    $resultList.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">계정 목록에서 계정을 선택해 주세요.</td></tr>`;
+  }
+  if ($selectedInfo) {
+    $selectedInfo.textContent = '';
+  }
+  if ($refreshBtn) {
+    $refreshBtn.classList.add('hidden');
   }
 }
