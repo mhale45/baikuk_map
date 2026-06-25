@@ -45,6 +45,11 @@
     let selectedAssigneeId2 = null; // 보조
 
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { renderSidebar } from '../../modules/ui/sidebar.js';
+
+    // 사이드바 렌더링
+    renderSidebar('customer_manage');
+
     const supabase = createClient(
       'https://sfinbtiqlfnaaarziixu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA'
@@ -867,34 +872,7 @@
   </div>
 
   <div class="flex min-h-screen">
-    <div class="w-[6%] pt-[5rem] shadow-right text-center bg-white">
-      <a href="https://baikuk.com/map">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">백억지도</div>
-      </a>
-      <a href="/admin/mmap/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">백억지도</div>
-      </a>
-      <a href="/admin/listings/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매물장부</div>
-      </a>
-      <a href="/admin/recommend_imDae/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">임대추천</div>
-      </a>
-      <a href="/admin/recommend_maeMae/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">매매추천</div>
-      </a>
-      <a href="/admin/customer_manage/">
-        <div
-          class="bg-gray-100 border-l-4 border-gray-500 text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer mb-5">
-          모든고객</div>
-      </a>
-      <a href="/admin/ad_censorship/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">광고검토</div>
-      </a>
-      <a href="/admin/staff_manage/">
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer">직원정보</div>
-      </a>
-    </div>
+    <div id="sidebar-container"></div>
 
     <!-- 본문 -->
     <div class="flex pt-[5rem] p-6 gap-3">

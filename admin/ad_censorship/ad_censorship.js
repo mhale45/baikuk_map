@@ -8,6 +8,10 @@
 
 import { client as supabase, waitForSupabase } from '../../modules/core/supabase.js';
 import { showToastGreenRed } from '../../modules/ui/toast.js';
+import { renderSidebar } from '../../modules/ui/sidebar.js';
+
+// 사이드바 렌더링
+renderSidebar('ad_censorship');
 
 // --- 전역 노출 (기존 페이지와 동일 동작 유지) ---
 window.supabase = supabase;

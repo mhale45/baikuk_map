@@ -1,4 +1,8 @@
 import { client as supabase, waitForSupabase } from '../../modules/core/supabase.js';
+import { renderSidebar } from '../../modules/ui/sidebar.js';
+
+// 사이드바 렌더링
+renderSidebar('ad_management');
 
 // 전역 객체로 supabase 노출 (타 스크립트와의 호환성)
 window.supabase = supabase;

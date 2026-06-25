@@ -1,4 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.3/+esm';
+import { renderSidebar } from '../../modules/ui/sidebar.js';
+
+// 사이드바 렌더링
+renderSidebar('recommend_imDae');
 
 const supabase = createClient(
   'https://sfinbtiqlfnaaarziixu.supabase.co',
