@@ -153,6 +153,18 @@ async function checkUserAuthority(user) {
 
 // 상단 서브 탭 시스템 초기화
 function initTabSystem() {
+  // 갱신 최대 갯수 선택박스 옵션 채우기 (1~50)
+  const $maxCountSelect = document.getElementById('auto-max-count');
+  if ($maxCountSelect) {
+    $maxCountSelect.innerHTML = '<option value="">갯수 선택</option>';
+    for (let i = 1; i <= 50; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      $maxCountSelect.appendChild(opt);
+    }
+  }
+
   const tabs = [
     { buttonId: 'tab-auto-renew', contentId: 'content-auto-renew' },
     { buttonId: 'tab-top-renew', contentId: 'content-top-renew' }
