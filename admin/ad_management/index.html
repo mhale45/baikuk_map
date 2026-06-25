@@ -108,8 +108,63 @@
 
       <!-- 각 탭에 따른 컨텐츠 패널 -->
       <div id="content-auto-renew" class="tab-content flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">자동갱신 관리</h2>
-        <p class="text-gray-600">자동갱신 관련 설정 및 목록이 이곳에 위치합니다.</p>
+        <div class="flex flex-col md:flex-row gap-6 h-full">
+          <!-- 좌측: 입력 폼 영역 (약 35%) -->
+          <div class="w-full md:w-[35%] bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">새로운 자동갱신 등록</h3>
+            
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">광고 채널명</label>
+              <input type="text" id="auto-channel-name" placeholder="예: 네이버 부동산" 
+                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">아이디</label>
+              <input type="text" id="auto-channel-id" placeholder="채널 로그인 아이디" 
+                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">비밀번호</label>
+              <input type="password" id="auto-channel-pw" placeholder="채널 로그인 비밀번호" 
+                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">갱신 최대 갯수</label>
+              <input type="number" id="auto-max-count" placeholder="예: 10" 
+                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <button id="btn-save-auto-renew" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all active:scale-95 text-sm">
+              저장하기
+            </button>
+          </div>
+
+          <!-- 우측: Supabase 목록 표시 영역 (약 65%) -->
+          <div class="flex-1 bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-green-600 pl-2">자동갱신 목록</h3>
+            <div class="overflow-x-auto flex-1 border rounded-lg">
+              <table class="w-full text-sm text-left text-gray-600">
+                <thead class="bg-gray-50 text-gray-700 font-semibold border-b">
+                  <tr>
+                    <th class="px-4 py-3">채널명</th>
+                    <th class="px-4 py-3">아이디</th>
+                    <th class="px-4 py-3">최대 갱신 수</th>
+                    <th class="px-4 py-3">등록일</th>
+                    <th class="px-4 py-3 text-center">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="auto-renew-list">
+                  <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-400">데이터가 없습니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="content-top-renew"
