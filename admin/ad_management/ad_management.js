@@ -137,6 +137,7 @@ async function checkUserAuthority(user) {
       $screen?.classList.add('hidden');
       console.log('✅ 권한 검증 완료: ad_management 접근이 허용되었습니다.');
       initTabSystem();
+      loadAutoRenewList();
     } else {
       // '1'이 아닐 경우 경고 후 ad_censorship 페이지로 리다이렉트
       alert('광고 관리 권한이 없습니다. 광고 검토 페이지로 이동합니다.');
@@ -195,4 +196,154 @@ function initTabSystem() {
       };
     }
   });
+
+  // 저장 버튼 이벤트 바인딩
+  const $saveBtn = document.getElementById('btn-save-auto-renew');
+  if ($saveBtn) {
+    $saveBtn.onclick = saveAutoRenew;
+  }
+}
+
+// 자동갱신 목록 로드 및 렌더링
+async function loadAutoRenewList() {
+  const $list = document.getElementById('auto-renew-list');
+  if (!$list) return;
+
+  $list.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>`;
+
+  try {
+    const { data, error } = await supabase
+      .from('aa_renewal_channel_list')
+      .select('*');
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      $list.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">등록된 자동갱신 채널이 없습니다.</td></tr>`;
+      return;
+    }
+
+    $list.innerHTML = data.map(item => {
+      // 날짜 포맷팅 (KST)
+      const dateStr = item.created_at 
+        ? new Date(item.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) 
+        : '-';
+
+      return `
+        <tr class="border-b hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 font-semibold text-gray-800">${item.add_channal || '-'}</td>
+          <td class="px-4 py-3 text-gray-600 font-mono">${item.add_id || '-'}</td>
+          <td class="px-4 py-3 text-gray-600">${item.max_renewal_count || '-'}개</td>
+          <td class="px-4 py-3 text-xs text-gray-400">${dateStr}</td>
+          <td class="px-4 py-3 text-center">
+            <button class="btn-delete-auto px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 transition-all active:scale-95" data-id="${item.id}">
+              삭제
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // 삭제 버튼 이벤트 바인딩
+    const $deleteBtns = $list.querySelectorAll('.btn-delete-auto');
+    $deleteBtns.forEach($btn => {
+      $btn.onclick = async () => {
+        const id = $btn.getAttribute('data-id');
+        if (!id) return;
+
+        if (confirm('정말로 이 자동갱신 설정을 삭제하시겠습니까?')) {
+          try {
+            $btn.disabled = true;
+            $btn.textContent = '삭제 중...';
+
+            const { error: delErr } = await supabase
+              .from('aa_renewal_channel_list')
+              .delete()
+              .eq('id', id);
+
+            if (delErr) throw delErr;
+
+            alert('삭제되었습니다.');
+            await loadAutoRenewList();
+          } catch (e) {
+            console.error('삭제 오류:', e);
+            alert('삭제에 실패했습니다: ' + e.message);
+            $btn.disabled = false;
+            $btn.textContent = '삭제';
+          }
+        }
+      };
+    });
+
+  } catch (e) {
+    console.error('목록 로드 실패:', e);
+    $list.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">목록을 불러오는 중 오류가 발생했습니다: ${e.message}</td></tr>`;
+  }
+}
+
+// 자동갱신 저장 로직
+async function saveAutoRenew() {
+  const $channelNameSelect = document.getElementById('auto-channel-name');
+  const $channelIdInput = document.getElementById('auto-channel-id');
+  const $channelPwInput = document.getElementById('auto-channel-pw');
+  const $maxCountSelect = document.getElementById('auto-max-count');
+  const $saveBtn = document.getElementById('btn-save-auto-renew');
+
+  if (!$channelNameSelect || !$channelIdInput || !$channelPwInput || !$maxCountSelect || !$saveBtn) return;
+
+  const channelName = $channelNameSelect.value;
+  const channelId = $channelIdInput.value.trim();
+  const channelPw = $channelPwInput.value.trim();
+  const maxCount = $maxCountSelect.value;
+
+  if (!channelName) {
+    alert('광고 채널명을 선택해 주세요.');
+    return;
+  }
+  if (!channelId) {
+    alert('아이디를 입력해 주세요.');
+    return;
+  }
+  if (!channelPw) {
+    alert('비밀번호를 입력해 주세요.');
+    return;
+  }
+  if (!maxCount) {
+    alert('갱신 최대 갯수를 선택해 주세요.');
+    return;
+  }
+
+  try {
+    $saveBtn.disabled = true;
+    $saveBtn.textContent = '저장 중...';
+
+    const { error } = await supabase
+      .from('aa_renewal_channel_list')
+      .insert({
+        add_channal: channelName,
+        add_id: channelId,
+        add_password: channelPw,
+        max_renewal_count: parseInt(maxCount, 10)
+      });
+
+    if (error) throw error;
+
+    alert('성공적으로 저장되었습니다.');
+    
+    // 입력창 초기화
+    $channelNameSelect.value = '';
+    $channelIdInput.value = '';
+    $channelPwInput.value = '';
+    $maxCountSelect.value = '';
+
+    // 목록 새로고침
+    await loadAutoRenewList();
+
+  } catch (e) {
+    console.error('저장 실패:', e);
+    alert('저장에 실패했습니다: ' + e.message);
+  } finally {
+    $saveBtn.disabled = false;
+    $saveBtn.textContent = '저장하기';
+  }
 }
