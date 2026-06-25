@@ -1,6 +1,4 @@
-/**
- * 공통 사이드바 메뉴 렌더링 모듈
- */
+import { client as supabase, waitForSupabase } from '../core/supabase.js';
 
 const menuItems = [
   { key: 'baikuk_map', label: '백억지도', href: 'https://baikuk.com/map', target: '_self' },
@@ -19,7 +17,7 @@ const menuItems = [
  * @param {string} activeKey 현재 활성화된 페이지 키
  * @param {string} [containerId='sidebar-container'] 사이드바가 들어갈 div ID
  */
-export function renderSidebar(activeKey, containerId = 'sidebar-container') {
+export async function renderSidebar(activeKey, containerId = 'sidebar-container') {
   const container = document.getElementById(containerId);
   if (!container) {
     console.warn(`[Sidebar] Container element with id "${containerId}" not found.`);
@@ -29,7 +27,35 @@ export function renderSidebar(activeKey, containerId = 'sidebar-container') {
   // 레이아웃 스타일 보장
   container.className = 'w-[6%] pt-[5rem] shadow-right text-center bg-white';
 
-  const html = menuItems.map(item => {
+  let showAdManagement = false;
+  try {
+    await waitForSupabase();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (user?.id) {
+      const { data: staff } = await supabase
+        .from('staff_profiles')
+        .select('authority_grade')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (staff && String(staff.authority_grade || '').trim() === '1') {
+        showAdManagement = true;
+      }
+    }
+  } catch (e) {
+    console.warn('[Sidebar] 권한 확인 실패:', e);
+  }
+
+  // 권한에 맞춰 메뉴 필터링
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.key === 'ad_management') {
+      return showAdManagement;
+    }
+    return true;
+  });
+
+  const html = filteredMenuItems.map(item => {
     const isActive = item.key === activeKey;
     const activeClass = isActive 
       ? 'bg-gray-100 border-l-4 border-gray-500' 
