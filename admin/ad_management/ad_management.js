@@ -7,6 +7,9 @@ renderSidebar('ad_management');
 // 전역 객체로 supabase 노출 (타 스크립트와의 호환성)
 window.supabase = supabase;
 
+// 로그인한 직원의 소속 매장 정보를 기억할 변수
+let myAffiliation = '';
+
 (async () => {
   try {
     await waitForSupabase();
@@ -119,7 +122,7 @@ async function checkUserAuthority(user) {
 
     const { data: staff, error: spErr } = await supabase
       .from('staff_profiles')
-      .select('authority_grade')
+      .select('authority_grade, affiliation')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -132,6 +135,9 @@ async function checkUserAuthority(user) {
     const grade = String(staff.authority_grade || '').trim();
 
     if (grade === '1') {
+      // 소속 매장 정보 저장
+      myAffiliation = staff.affiliation || '';
+
       // 권한이 '1' 이면 로그인 화면을 완전히 숨기고 페이지에 머무름
       const $screen = document.getElementById('auth-screen');
       $screen?.classList.add('hidden');
@@ -214,7 +220,8 @@ async function loadAutoRenewList() {
   try {
     const { data, error } = await supabase
       .from('aa_renewal_channel_list')
-      .select('*');
+      .select('*')
+      .eq('affiliation', myAffiliation);
 
     if (error) throw error;
 
@@ -323,7 +330,8 @@ async function saveAutoRenew() {
         add_channal: channelName,
         add_id: channelId,
         add_password: channelPw,
-        max_renewal_count: parseInt(maxCount, 10)
+        max_renewal_count: parseInt(maxCount, 10),
+        affiliation: myAffiliation
       });
 
     if (error) throw error;
