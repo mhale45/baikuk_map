@@ -109,14 +109,14 @@
       <!-- 각 탭에 따른 컨텐츠 패널 -->
       <div id="content-auto-renew" class="tab-content flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex flex-col md:flex-row gap-6 h-full">
-          <!-- 좌측: 입력 폼 영역 (약 35%) -->
-          <div class="w-full md:w-[35%] bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
-            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">새로운 자동갱신 등록</h3>
-            
+          <!-- 좌측: 입력 폼 영역  -->
+          <div class="w-full md:w-[30%] bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">새 등록</h3>
+
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-semibold text-gray-600">광고 채널명</label>
-              <select id="auto-channel-name" 
-                      class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+              <select id="auto-channel-name"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
                 <option value="">채널 선택</option>
                 <option value="뱅크">뱅크</option>
                 <option value="한경">한경</option>
@@ -130,25 +130,26 @@
 
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-semibold text-gray-600">아이디</label>
-              <input type="text" id="auto-channel-id" placeholder="채널 로그인 아이디" 
-                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+              <input type="text" id="auto-channel-id" placeholder="채널 로그인 아이디"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
             </div>
 
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-semibold text-gray-600">비밀번호</label>
-              <input type="password" id="auto-channel-pw" placeholder="채널 로그인 비밀번호" 
-                     class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+              <input type="password" id="auto-channel-pw" placeholder="채널 로그인 비밀번호"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
             </div>
 
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-semibold text-gray-600">갱신 최대 갯수</label>
-              <select id="auto-max-count" 
-                      class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+              <select id="auto-max-count"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
                 <!-- JS에서 1~50 동적 생성 -->
               </select>
             </div>
 
-            <button id="btn-save-auto-renew" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all active:scale-95 text-sm">
+            <button id="btn-save-auto-renew"
+              class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all active:scale-95 text-sm">
               저장하기
             </button>
           </div>
