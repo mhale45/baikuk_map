@@ -136,6 +136,7 @@ async function checkUserAuthority(user) {
       const $screen = document.getElementById('auth-screen');
       $screen?.classList.add('hidden');
       console.log('✅ 권한 검증 완료: ad_management 접근이 허용되었습니다.');
+      initTabSystem();
     } else {
       // '1'이 아닐 경우 경고 후 ad_censorship 페이지로 리다이렉트
       alert('광고 관리 권한이 없습니다. 광고 검토 페이지로 이동합니다.');
@@ -148,4 +149,38 @@ async function checkUserAuthority(user) {
     // 보안을 위해 오류 발생 시 ad_censorship으로 강제 리다이렉트
     location.replace('/admin/ad_censorship/');
   }
+}
+
+// 상단 서브 탭 시스템 초기화
+function initTabSystem() {
+  const tabs = [
+    { buttonId: 'tab-auto-renew', contentId: 'content-auto-renew' },
+    { buttonId: 'tab-top-renew', contentId: 'content-top-renew' }
+  ];
+
+  tabs.forEach(tab => {
+    const $btn = document.getElementById(tab.buttonId);
+    if ($btn) {
+      $btn.onclick = () => {
+        // 모든 탭 스타일 초기화 및 패널 숨김
+        tabs.forEach(t => {
+          const $b = document.getElementById(t.buttonId);
+          const $c = document.getElementById(t.contentId);
+          if ($b) {
+            $b.className = 'px-4 py-2 font-bold text-lg text-gray-500 hover:text-gray-700 focus:outline-none transition-all';
+          }
+          if ($c) {
+            $c.classList.add('hidden');
+          }
+        });
+
+        // 클릭된 탭 활성화
+        $btn.className = 'px-4 py-2 font-bold text-lg border-b-2 border-blue-600 text-blue-600 focus:outline-none transition-all';
+        const $targetContent = document.getElementById(tab.contentId);
+        if ($targetContent) {
+          $targetContent.classList.remove('hidden');
+        }
+      };
+    }
+  });
 }
