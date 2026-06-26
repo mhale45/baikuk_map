@@ -154,6 +154,15 @@
                 class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
             </div>
 
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">실행여부</label>
+              <select id="auto-execution"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+                <option value="true">실행</option>
+                <option value="false">미실행</option>
+              </select>
+            </div>
+
             <button id="btn-save-auto-renew"
               class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all active:scale-95 text-sm">
               저장하기
@@ -171,13 +180,14 @@
                     <th class="px-4 py-3">아이디</th>
                     <th class="px-4 py-3">최대 갱신 수</th>
                     <th class="px-4 py-3">알람메일</th>
+                    <th class="px-4 py-3">실행여부</th>
                     <th class="px-4 py-3">등록일</th>
                     <th class="px-4 py-3 text-center">관리</th>
                   </tr>
                 </thead>
                 <tbody id="auto-renew-list">
                   <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-gray-400">데이터가 없습니다.</td>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-400">데이터가 없습니다.</td>
                   </tr>
                 </tbody>
               </table>

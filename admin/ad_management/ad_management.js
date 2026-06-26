@@ -228,7 +228,7 @@ async function loadAutoRenewList() {
   const $list = document.getElementById('auto-renew-list');
   if (!$list) return;
 
-  $list.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>`;
+  $list.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>`;
 
   try {
     const { data, error } = await supabase
@@ -239,7 +239,7 @@ async function loadAutoRenewList() {
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      $list.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">등록된 자동갱신 채널이 없습니다.</td></tr>`;
+      $list.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">등록된 자동갱신 채널이 없습니다.</td></tr>`;
       return;
     }
 
@@ -249,12 +249,23 @@ async function loadAutoRenewList() {
         ? new Date(item.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) 
         : '-';
 
+      const isExec = item.execution === true;
+
       return `
         <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors" data-id="${item.id}">
           <td class="px-4 py-3 font-semibold text-gray-800">${item.add_channal || '-'}</td>
           <td class="px-4 py-3 text-gray-600 font-mono">${item.add_id || '-'}</td>
           <td class="px-4 py-3 text-gray-600">${item.max_renewal_count || '-'}개</td>
           <td class="px-4 py-3 text-gray-600">${item.mail_address || '-'}</td>
+          <td class="px-4 py-3">
+            <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${
+              isExec 
+                ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200' 
+                : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
+            }" data-id="${item.id}" data-execution="${isExec}">
+              ${isExec ? '실행' : '미실행'}
+            </button>
+          </td>
           <td class="px-4 py-3 text-xs text-gray-400">${dateStr}</td>
           <td class="px-4 py-3 text-center">
             <button class="btn-delete-auto px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 transition-all active:scale-95" data-id="${item.id}">
@@ -284,6 +295,39 @@ async function loadAutoRenewList() {
         selectedAccount = { channel: item.add_channal, id: item.add_id };
         loadRenewalResults(item.add_channal, item.add_id);
       });
+    });
+
+    // 실행여부 토글 버튼 이벤트 바인딩
+    const $toggleBtns = $list.querySelectorAll('.btn-toggle-execution');
+    $toggleBtns.forEach(($btn) => {
+      $btn.onclick = async (e) => {
+        e.stopPropagation(); // 행 클릭 이벤트 전파 차단
+        
+        const id = $btn.getAttribute('data-id');
+        const currentExecution = $btn.getAttribute('data-execution') === 'true';
+        if (!id) return;
+
+        try {
+          $btn.disabled = true;
+          $btn.textContent = '변경 중...';
+
+          const nextExecution = !currentExecution;
+          const { error: updateErr } = await supabase
+            .from('aa_renewal_channel_list')
+            .update({ execution: nextExecution })
+            .eq('id', id);
+
+          if (updateErr) throw updateErr;
+
+          // 즉시 반영을 위해 목록 다시 불러오기
+          await loadAutoRenewList();
+        } catch (err) {
+          console.error('실행여부 업데이트 오류:', err);
+          alert('상태 변경에 실패했습니다: ' + err.message);
+          $btn.disabled = false;
+          $btn.textContent = currentExecution ? '실행' : '미실행';
+        }
+      };
     });
 
     // 삭제 버튼 이벤트 바인딩
@@ -340,6 +384,7 @@ async function saveAutoRenew() {
   const $channelPwInput = document.getElementById('auto-channel-pw');
   const $maxCountSelect = document.getElementById('auto-max-count');
   const $alarmMailInput = document.getElementById('auto-alarm-mail');
+  const $executionSelect = document.getElementById('auto-execution');
   const $saveBtn = document.getElementById('btn-save-auto-renew');
 
   if (!$channelNameSelect || !$channelIdInput || !$channelPwInput || !$maxCountSelect || !$alarmMailInput || !$saveBtn) return;
@@ -349,6 +394,7 @@ async function saveAutoRenew() {
   const channelPw = $channelPwInput.value.trim();
   const maxCount = $maxCountSelect.value;
   const alarmMail = $alarmMailInput.value.trim();
+  const executionVal = $executionSelect ? ($executionSelect.value === 'true') : true;
 
   if (!channelName) {
     alert('광고 채널명을 선택해 주세요.');
@@ -383,7 +429,8 @@ async function saveAutoRenew() {
         add_password: channelPw,
         max_renewal_count: parseInt(maxCount, 10),
         affiliation: myAffiliation,
-        mail_address: alarmMail
+        mail_address: alarmMail,
+        execution: executionVal
       });
 
     if (error) throw error;
@@ -396,6 +443,7 @@ async function saveAutoRenew() {
     $channelPwInput.value = '';
     $maxCountSelect.value = '';
     $alarmMailInput.value = '';
+    if ($executionSelect) $executionSelect.value = 'true';
 
     // 결과 목록 초기화
     clearRenewalResults();
