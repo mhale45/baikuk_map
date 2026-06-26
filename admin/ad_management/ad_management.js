@@ -211,6 +211,17 @@ function initTabSystem() {
     $saveBtn.onclick = saveAutoRenew;
   }
 
+  // 자동갱신 여부 선택에 따른 거래완료 갱신 연동 이벤트 바인딩
+  const $executionSelect = document.getElementById('auto-execution');
+  const $completedSelect = document.getElementById('auto-completed');
+  if ($executionSelect && $completedSelect) {
+    $executionSelect.addEventListener('change', () => {
+      if ($executionSelect.value === 'false') {
+        $completedSelect.value = 'false';
+      }
+    });
+  }
+
   // 새로고침 버튼 이벤트 바인딩
   const $refreshBtn = document.getElementById('btn-refresh-results');
   if ($refreshBtn) {
@@ -320,9 +331,14 @@ async function loadAutoRenewList() {
           $btn.textContent = '변경 중...';
 
           const nextExecution = !currentExecution;
+          const updateData = { execution: nextExecution };
+          if (nextExecution === false) {
+            updateData.completed = false;
+          }
+
           const { error: updateErr } = await supabase
             .from('aa_renewal_channel_list')
-            .update({ execution: nextExecution })
+            .update(updateData)
             .eq('id', id);
 
           if (updateErr) throw updateErr;
