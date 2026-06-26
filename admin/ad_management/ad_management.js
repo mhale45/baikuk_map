@@ -584,7 +584,7 @@ async function loadRenewalResults(channel, idVal) {
           <td class="px-4 py-3">${statusBadge}</td>
           <td class="px-4 py-3 text-gray-600 font-mono">
             ${item.naver_listing_id 
-              ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.naver_listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.naver_listing_id}</a>` 
+              ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.naver_listing_id}" target="_blank" class="text-orange-600 hover:underline font-semibold">${item.naver_listing_id}</a>` 
               : '-'
             }
           </td>
