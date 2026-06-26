@@ -583,7 +583,12 @@ async function loadRenewalResults(channel, idVal) {
           <td class="px-4 py-3 text-xs text-gray-500 font-mono">${dateStr}</td>
           <td class="px-4 py-3">${statusBadge}</td>
           <td class="px-4 py-3 text-gray-600 font-mono">${item.naver_listing_id || '-'}</td>
-          <td class="px-4 py-3 text-gray-600 font-mono">${item.listing_id || '-'}</td>
+          <td class="px-4 py-3 text-gray-600 font-mono">
+            ${item.listing_id 
+              ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.listing_id}</a>` 
+              : '-'
+            }
+          </td>
           <td class="px-4 py-3 text-gray-600">${item.product || '-'}</td>
           <td class="px-4 py-3 text-xs text-gray-400 max-w-[200px] truncate" title="${item.note || ''}">${item.note || '-'}</td>
         </tr>
