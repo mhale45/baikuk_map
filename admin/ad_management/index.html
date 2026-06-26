@@ -155,11 +155,11 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-600">실행여부</label>
+              <label class="text-sm font-semibold text-gray-600">활성화 여부</label>
               <select id="auto-execution"
                 class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
-                <option value="true">실행</option>
-                <option value="false">미실행</option>
+                <option value="true">활성화</option>
+                <option value="false">비활성화</option>
               </select>
             </div>
 
@@ -180,7 +180,7 @@
                     <th class="px-4 py-3">아이디</th>
                     <th class="px-4 py-3">최대 갱신 수</th>
                     <th class="px-4 py-3">알람메일</th>
-                    <th class="px-4 py-3">실행여부</th>
+                    <th class="px-4 py-3">활성화 여부</th>
                     <th class="px-4 py-3">등록일</th>
                     <th class="px-4 py-3 text-center">관리</th>
                   </tr>
@@ -199,7 +199,8 @@
                 <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">
                   갱신 결과 이력 <span id="selected-account-info" class="text-sm font-normal text-gray-500 ml-2"></span>
                 </h3>
-                <button id="btn-refresh-results" class="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border transition-all hidden">
+                <button id="btn-refresh-results"
+                  class="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border transition-all hidden">
                   새로고침
                 </button>
               </div>
