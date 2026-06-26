@@ -34,11 +34,11 @@ let selectedAccount = null;
 // 로그인 화면 표시 및 이벤트 바인딩
 function showLoginScreen() {
   const $screen = document.getElementById('auth-screen');
-  const $email  = document.getElementById('auth-email');
-  const $pw     = document.getElementById('auth-password');
-  const $login  = document.getElementById('auth-login');
-  const $close  = document.getElementById('auth-close');
-  const $err    = document.getElementById('auth-error');
+  const $email = document.getElementById('auth-email');
+  const $pw = document.getElementById('auth-password');
+  const $login = document.getElementById('auth-login');
+  const $close = document.getElementById('auth-close');
+  const $err = document.getElementById('auth-error');
 
   $screen?.classList.remove('hidden');
 
@@ -228,7 +228,7 @@ async function loadAutoRenewList() {
   const $list = document.getElementById('auto-renew-list');
   if (!$list) return;
 
-  $list.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>`;
+  $list.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>`;
 
   try {
     const { data, error } = await supabase
@@ -239,17 +239,18 @@ async function loadAutoRenewList() {
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      $list.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">등록된 자동갱신 채널이 없습니다.</td></tr>`;
+      $list.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">등록된 자동갱신 채널이 없습니다.</td></tr>`;
       return;
     }
 
     $list.innerHTML = data.map(item => {
       // 날짜 포맷팅 (KST)
-      const dateStr = item.created_at 
-        ? new Date(item.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) 
+      const dateStr = item.created_at
+        ? new Date(item.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
         : '-';
 
       const isExec = item.execution === true;
+      const isCompleted = item.completed === true;
 
       return `
         <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors" data-id="${item.id}">
@@ -258,12 +259,19 @@ async function loadAutoRenewList() {
           <td class="px-4 py-3 text-gray-600">${item.max_renewal_count || '-'}개</td>
           <td class="px-4 py-3 text-gray-600">${item.mail_address || '-'}</td>
           <td class="px-4 py-3">
-            <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${
-              isExec 
-                ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200' 
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
-            }" data-id="${item.id}" data-execution="${isExec}">
-              ${isExec ? '실행' : '미실행'}
+            <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${isExec
+          ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
+          : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
+        }" data-id="${item.id}" data-execution="${isExec}">
+              ${isExec ? '활성화' : '비활성화'}
+            </button>
+          </td>
+          <td class="px-4 py-3">
+            <button class="btn-toggle-completed px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${isCompleted
+          ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+          : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
+        }" data-id="${item.id}" data-completed="${isCompleted}">
+              ${isCompleted ? '갱신' : '종료'}
             </button>
           </td>
           <td class="px-4 py-3 text-xs text-gray-400">${dateStr}</td>
@@ -280,7 +288,7 @@ async function loadAutoRenewList() {
     const $rows = $list.querySelectorAll('tr');
     $rows.forEach(($row, idx) => {
       const item = data[idx];
-      
+
       // 만약 이미 선택된 계정이 있고 그 계정 정보와 일치하면 다시 활성화 처리
       if (selectedAccount && selectedAccount.channel === item.add_channal && selectedAccount.id === item.add_id) {
         $row.classList.add('bg-blue-50/70', 'hover:bg-blue-50/70');
@@ -291,7 +299,7 @@ async function loadAutoRenewList() {
         $rows.forEach(r => r.classList.remove('bg-blue-50/70', 'hover:bg-blue-50/70'));
         // 현재 클릭 행 활성화
         $row.classList.add('bg-blue-50/70', 'hover:bg-blue-50/70');
-        
+
         selectedAccount = { channel: item.add_channal, id: item.add_id };
         loadRenewalResults(item.add_channal, item.add_id);
       });
@@ -302,7 +310,7 @@ async function loadAutoRenewList() {
     $toggleBtns.forEach(($btn) => {
       $btn.onclick = async (e) => {
         e.stopPropagation(); // 행 클릭 이벤트 전파 차단
-        
+
         const id = $btn.getAttribute('data-id');
         const currentExecution = $btn.getAttribute('data-execution') === 'true';
         if (!id) return;
@@ -322,10 +330,43 @@ async function loadAutoRenewList() {
           // 즉시 반영을 위해 목록 다시 불러오기
           await loadAutoRenewList();
         } catch (err) {
-          console.error('실행여부 업데이트 오류:', err);
+          console.error('자동갱신 여부 업데이트 오류:', err);
           alert('상태 변경에 실패했습니다: ' + err.message);
           $btn.disabled = false;
-          $btn.textContent = currentExecution ? '실행' : '미실행';
+          $btn.textContent = currentExecution ? '활성화' : '비활성화';
+        }
+      };
+    });
+
+    // 거래완료 갱신 토글 버튼 이벤트 바인딩
+    const $completedToggleBtns = $list.querySelectorAll('.btn-toggle-completed');
+    $completedToggleBtns.forEach(($btn) => {
+      $btn.onclick = async (e) => {
+        e.stopPropagation(); // 행 클릭 이벤트 전파 차단
+
+        const id = $btn.getAttribute('data-id');
+        const currentCompleted = $btn.getAttribute('data-completed') === 'true';
+        if (!id) return;
+
+        try {
+          $btn.disabled = true;
+          $btn.textContent = '변경 중...';
+
+          const nextCompleted = !currentCompleted;
+          const { error: updateErr } = await supabase
+            .from('aa_renewal_channel_list')
+            .update({ completed: nextCompleted })
+            .eq('id', id);
+
+          if (updateErr) throw updateErr;
+
+          // 즉시 반영을 위해 목록 다시 불러오기
+          await loadAutoRenewList();
+        } catch (err) {
+          console.error('거래완료 갱신 여부 업데이트 오류:', err);
+          alert('상태 변경에 실패했습니다: ' + err.message);
+          $btn.disabled = false;
+          $btn.textContent = currentCompleted ? '갱신' : '종료';
         }
       };
     });
@@ -335,7 +376,7 @@ async function loadAutoRenewList() {
     $deleteBtns.forEach(($btn, idx) => {
       $btn.onclick = async (e) => {
         e.stopPropagation(); // 행 클릭 이벤트 전파 차단
-        
+
         const id = $btn.getAttribute('data-id');
         if (!id) return;
 
@@ -354,7 +395,7 @@ async function loadAutoRenewList() {
             if (delErr) throw delErr;
 
             alert('삭제되었습니다.');
-            
+
             // 삭제된 계정이 현재 선택된 계정일 경우 결과 이력 영역 초기화
             if (selectedAccount && selectedAccount.channel === item.add_channal && selectedAccount.id === item.add_id) {
               clearRenewalResults();
@@ -373,7 +414,7 @@ async function loadAutoRenewList() {
 
   } catch (e) {
     console.error('목록 로드 실패:', e);
-    $list.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">목록을 불러오는 중 오류가 발생했습니다: ${e.message}</td></tr>`;
+    $list.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">목록을 불러오는 중 오류가 발생했습니다: ${e.message}</td></tr>`;
   }
 }
 
@@ -385,6 +426,7 @@ async function saveAutoRenew() {
   const $maxCountSelect = document.getElementById('auto-max-count');
   const $alarmMailInput = document.getElementById('auto-alarm-mail');
   const $executionSelect = document.getElementById('auto-execution');
+  const $completedSelect = document.getElementById('auto-completed');
   const $saveBtn = document.getElementById('btn-save-auto-renew');
 
   if (!$channelNameSelect || !$channelIdInput || !$channelPwInput || !$maxCountSelect || !$alarmMailInput || !$saveBtn) return;
@@ -395,6 +437,7 @@ async function saveAutoRenew() {
   const maxCount = $maxCountSelect.value;
   const alarmMail = $alarmMailInput.value.trim();
   const executionVal = $executionSelect ? ($executionSelect.value === 'true') : true;
+  const completedVal = $completedSelect ? ($completedSelect.value === 'true') : true;
 
   if (!channelName) {
     alert('광고 채널명을 선택해 주세요.');
@@ -430,13 +473,14 @@ async function saveAutoRenew() {
         max_renewal_count: parseInt(maxCount, 10),
         affiliation: myAffiliation,
         mail_address: alarmMail,
-        execution: executionVal
+        execution: executionVal,
+        completed: completedVal
       });
 
     if (error) throw error;
 
     alert('성공적으로 저장되었습니다.');
-    
+
     // 입력창 초기화
     $channelNameSelect.value = '';
     $channelIdInput.value = '';
@@ -444,6 +488,7 @@ async function saveAutoRenew() {
     $maxCountSelect.value = '';
     $alarmMailInput.value = '';
     if ($executionSelect) $executionSelect.value = 'true';
+    if ($completedSelect) $completedSelect.value = 'true';
 
     // 결과 목록 초기화
     clearRenewalResults();
@@ -465,18 +510,18 @@ async function loadRenewalResults(channel, idVal) {
   const $resultList = document.getElementById('auto-renew-result-list');
   const $selectedInfo = document.getElementById('selected-account-info');
   const $refreshBtn = document.getElementById('btn-refresh-results');
-  
+
   if (!$resultList) return;
-  
+
   if ($selectedInfo) {
     $selectedInfo.textContent = `(${channel} - ${idVal})`;
   }
   if ($refreshBtn) {
     $refreshBtn.classList.remove('hidden');
   }
-  
+
   $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">결과를 불러오는 중...</td></tr>`;
-  
+
   try {
     const { data, error } = await supabase
       .from('aa_renewal_result')
@@ -485,29 +530,29 @@ async function loadRenewalResults(channel, idVal) {
       .eq('add_id', idVal)
       .order('created_at', { ascending: false })
       .limit(50);
-      
+
     if (error) throw error;
-    
+
     if (!data || data.length === 0) {
       $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">갱신 결과 이력이 없습니다.</td></tr>`;
       return;
     }
-    
+
     $resultList.innerHTML = data.map(item => {
-      const dateStr = item.created_at 
-        ? new Date(item.created_at).toLocaleString('ko-KR', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          }) 
+      const dateStr = item.created_at
+        ? new Date(item.created_at).toLocaleString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
         : '-';
-        
+
       const statusText = item.status || '-';
       let statusBadge = '';
-      
+
       // 상태값에 따른 뱃지 연출 (성공/완료 등은 초록색, 실패/에러 등은 빨간색, 그 외는 회색)
       if (statusText.includes('성공') || statusText.includes('완료') || statusText.includes('정상')) {
         statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">${statusText}</span>`;
@@ -516,7 +561,7 @@ async function loadRenewalResults(channel, idVal) {
       } else {
         statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">${statusText}</span>`;
       }
-      
+
       return `
         <tr class="border-b hover:bg-gray-50 transition-colors">
           <td class="px-4 py-3 text-xs text-gray-500 font-mono">${dateStr}</td>
@@ -528,7 +573,7 @@ async function loadRenewalResults(channel, idVal) {
         </tr>
       `;
     }).join('');
-    
+
   } catch (e) {
     console.error('결과 이력 로드 실패:', e);
     $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500 font-semibold">이력을 불러오는 도중 오류가 발생했습니다: ${e.message}</td></tr>`;
@@ -541,7 +586,7 @@ function clearRenewalResults() {
   const $resultList = document.getElementById('auto-renew-result-list');
   const $selectedInfo = document.getElementById('selected-account-info');
   const $refreshBtn = document.getElementById('btn-refresh-results');
-  
+
   if ($resultList) {
     $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">계정 목록에서 계정을 선택해 주세요.</td></tr>`;
   }
