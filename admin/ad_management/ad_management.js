@@ -253,11 +253,11 @@ async function loadAutoRenewList() {
       const isCompleted = item.completed === true;
 
       return `
-        <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors" data-id="${item.id}">
-          <td class="px-4 py-3 font-semibold text-gray-800">${item.add_channal || '-'}</td>
-          <td class="px-4 py-3 text-gray-600 font-mono">${item.add_id || '-'}</td>
-          <td class="px-4 py-3 text-gray-600">${item.max_renewal_count || '-'}개</td>
-          <td class="px-4 py-3 text-gray-600">${item.mail_address || '-'}</td>
+        <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors ${!isExec ? 'bg-gray-100/70' : ''}" data-id="${item.id}">
+          <td class="px-4 py-3 font-semibold ${isExec ? 'text-gray-800' : 'text-gray-400'}">${item.add_channal || '-'}</td>
+          <td class="px-4 py-3 font-mono ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.add_id || '-'}</td>
+          <td class="px-4 py-3 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.max_renewal_count || '-'}개</td>
+          <td class="px-4 py-3 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.mail_address || '-'}</td>
           <td class="px-4 py-3">
             <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${isExec
           ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
