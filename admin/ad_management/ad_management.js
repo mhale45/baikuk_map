@@ -272,7 +272,11 @@ async function loadAutoRenewList() {
               ${item.max_renewal_count || '-'}개
             </span>
           </td>
-          <td class="px-4 py-3 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.mail_address || '-'}</td>
+          <td class="px-4 py-3 alarm-mail-cell cursor-pointer hover:bg-gray-100 transition-colors" data-id="${item.id}" data-value="${item.mail_address || ''}" data-exec="${isExec}">
+            <span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">
+              ${item.mail_address || '-'}
+            </span>
+          </td>
           <td class="px-4 py-3">
             <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${isExec
           ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
@@ -467,6 +471,93 @@ async function loadAutoRenewList() {
             // 변경 취소 및 복원
             isSaving = true; // saveChange가 실행되지 않도록 flag 설정
             $cell.innerHTML = `<span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${currentValue || '-'}개</span>`;
+          }
+        };
+      };
+    });
+
+    // 알람메일 클릭 인라인 수정 이벤트 바인딩
+    const $alarmMailCells = $list.querySelectorAll('.alarm-mail-cell');
+    $alarmMailCells.forEach(($cell) => {
+      $cell.onclick = (e) => {
+        e.stopPropagation(); // 행 클릭 이벤트 전파 차단
+        
+        // 이미 input 박스가 활성화되어 있으면 중복 처리 방지
+        if ($cell.querySelector('input')) return;
+
+        const id = $cell.getAttribute('data-id');
+        const currentValue = $cell.getAttribute('data-value') || '';
+        const isExec = $cell.getAttribute('data-exec') === 'true';
+        
+        // input 엘리먼트 생성
+        const $input = document.createElement('input');
+        $input.type = 'email';
+        $input.value = currentValue;
+        $input.className = 'border border-gray-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all w-full';
+        
+        // 기존 텍스트 비우기 및 input 추가
+        $cell.innerHTML = '';
+        $cell.appendChild($input);
+        $input.focus();
+
+        let isSaving = false;
+
+        const saveChange = async () => {
+          if (isSaving) return;
+          isSaving = true;
+
+          const newValue = $input.value.trim();
+          if (newValue === currentValue) {
+            // 변경사항이 없으면 원래 텍스트로 복원
+            $cell.innerHTML = `<span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${currentValue || '-'}</span>`;
+            return;
+          }
+
+          if (!newValue) {
+            alert('이메일 주소를 입력해 주세요.');
+            isSaving = false;
+            $input.focus();
+            return;
+          }
+
+          // 간단한 이메일 정규식 검증
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(newValue)) {
+            alert('올바른 이메일 형식이 아닙니다.');
+            isSaving = false;
+            $input.focus();
+            return;
+          }
+
+          try {
+            $input.disabled = true;
+            
+            const { error: updateErr } = await supabase
+              .from('aa_renewal_channel_list')
+              .update({ mail_address: newValue })
+              .eq('id', id);
+
+            if (updateErr) throw updateErr;
+
+            // 즉시 반영을 위해 목록 다시 불러오기
+            await loadAutoRenewList();
+          } catch (err) {
+            console.error('알람메일 업데이트 오류:', err);
+            alert('알람메일 변경에 실패했습니다: ' + err.message);
+            // 에러 발생 시 원래 상태 복구를 위해 리로드
+            await loadAutoRenewList();
+          }
+        };
+
+        // 이벤트 바인딩
+        $input.onblur = saveChange;
+        $input.onkeydown = (ev) => {
+          if (ev.key === 'Enter') {
+            saveChange();
+          } else if (ev.key === 'Escape') {
+            // 변경 취소 및 복원
+            isSaving = true; // saveChange가 실행되지 않도록 flag 설정
+            $cell.innerHTML = `<span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${currentValue || '-'}</span>`;
           }
         };
       };
