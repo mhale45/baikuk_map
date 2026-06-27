@@ -604,9 +604,9 @@ async function loadRenewalResults(channel, idVal) {
         <tr class="border-b hover:bg-gray-50 transition-colors">
           <td class="px-4 py-3 text-xs text-gray-500 font-mono">${dateStr}</td>
           <td class="px-4 py-3">${statusBadge}</td>
-          <td class="px-4 py-3 text-gray-600 truncate max-w-[250px]" title="${item.listing_id ? `[${item.listing_id}] ` : ''}${listingTitle}">
+          <td class="px-4 py-3 text-gray-600 truncate max-w-[250px]" title="${item.listing_id ? `${item.listing_id} ` : ''}${listingTitle}">
             ${item.listing_id
-              ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">[${item.listing_id}]</a> ${listingTitle}`
+              ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.listing_id} ${listingTitle}</a>`
               : listingTitle
             }
           </td>
