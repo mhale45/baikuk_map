@@ -267,7 +267,11 @@ async function loadAutoRenewList() {
         <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors ${!isExec ? 'bg-gray-100/70' : ''}" data-id="${item.id}">
           <td class="px-4 py-3 font-semibold ${isExec ? 'text-gray-800' : 'text-gray-400'}">${item.add_channal || '-'}</td>
           <td class="px-4 py-3 font-mono ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.add_id || '-'}</td>
-          <td class="px-4 py-3 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.max_renewal_count || '-'}개</td>
+          <td class="px-4 py-3 max-renewal-cell cursor-pointer hover:bg-gray-100 transition-colors" data-id="${item.id}" data-value="${item.max_renewal_count || ''}" data-exec="${isExec}">
+            <span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">
+              ${item.max_renewal_count || '-'}개
+            </span>
+          </td>
           <td class="px-4 py-3 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${item.mail_address || '-'}</td>
           <td class="px-4 py-3">
             <button class="btn-toggle-execution px-2.5 py-1 text-xs font-semibold rounded-md border transition-all active:scale-95 ${isExec
@@ -384,6 +388,87 @@ async function loadAutoRenewList() {
           $btn.disabled = false;
           $btn.textContent = currentCompleted ? '갱신' : '종료';
         }
+      };
+    });
+
+    // 최대 갱신 수 클릭 인라인 수정 이벤트 바인딩
+    const $maxRenewalCells = $list.querySelectorAll('.max-renewal-cell');
+    $maxRenewalCells.forEach(($cell) => {
+      $cell.onclick = (e) => {
+        e.stopPropagation(); // 행 클릭 이벤트 전파 차단
+        
+        // 이미 select 박스가 활성화되어 있으면 중복 처리 방지
+        if ($cell.querySelector('select')) return;
+
+        const id = $cell.getAttribute('data-id');
+        const currentValue = parseInt($cell.getAttribute('data-value'), 10) || 0;
+        const isExec = $cell.getAttribute('data-exec') === 'true';
+        
+        // select 엘리먼트 생성
+        const $select = document.createElement('select');
+        $select.className = 'border border-gray-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all';
+        
+        // 1~50 옵션 추가
+        for (let i = 1; i <= 50; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = `${i}개`;
+          if (i === currentValue) {
+            opt.selected = true;
+          }
+          $select.appendChild(opt);
+        }
+
+        // 기존 텍스트 비우기 및 select 추가
+        $cell.innerHTML = '';
+        $cell.appendChild($select);
+        $select.focus();
+
+        let isSaving = false;
+
+        const saveChange = async () => {
+          if (isSaving) return;
+          isSaving = true;
+
+          const newValue = parseInt($select.value, 10);
+          if (newValue === currentValue) {
+            // 변경사항이 없으면 원래 텍스트로 복원
+            $cell.innerHTML = `<span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${currentValue || '-'}개</span>`;
+            return;
+          }
+
+          try {
+            $select.disabled = true;
+            
+            const { error: updateErr } = await supabase
+              .from('aa_renewal_channel_list')
+              .update({ max_renewal_count: newValue })
+              .eq('id', id);
+
+            if (updateErr) throw updateErr;
+
+            // 즉시 반영을 위해 목록 다시 불러오기
+            await loadAutoRenewList();
+          } catch (err) {
+            console.error('최대 갱신 수 업데이트 오류:', err);
+            alert('최대 갱신 수 변경에 실패했습니다: ' + err.message);
+            // 에러 발생 시 원래 상태 복구를 위해 리로드
+            await loadAutoRenewList();
+          }
+        };
+
+        // 이벤트 바인딩
+        $select.onchange = saveChange;
+        $select.onblur = saveChange;
+        $select.onkeydown = (ev) => {
+          if (ev.key === 'Enter') {
+            saveChange();
+          } else if (ev.key === 'Escape') {
+            // 변경 취소 및 복원
+            isSaving = true; // saveChange가 실행되지 않도록 flag 설정
+            $cell.innerHTML = `<span class="border-b border-dashed border-gray-400 pb-0.5 ${isExec ? 'text-gray-600' : 'text-gray-400'}">${currentValue || '-'}개</span>`;
+          }
+        };
       };
     });
 
