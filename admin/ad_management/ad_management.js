@@ -610,9 +610,9 @@ async function loadRenewalResults(channel, idVal) {
               : listingTitle
             }
           </td>
-          <td class="px-4 py-3 text-gray-600 font-mono">
+          <td class="px-4 py-3 text-gray-600">
             ${item.listing_id
-          ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.listing_id}" target="_blank" class="text-orange-600 hover:underline font-semibold">링크</a>`
+          ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.listing_id}" target="_blank" class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-all duration-200 shadow-sm hover:shadow active:scale-95">링크</a>`
           : '-'
         }
           </td>
