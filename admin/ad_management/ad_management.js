@@ -554,23 +554,23 @@ async function loadRenewalResults(channel, idVal) {
       return;
     }
 
-    // baikukdbtest2에서 listing_title 매핑 정보 조회
+    // baikukdbtest에서 listing_title 매핑 정보 조회
     const listingIds = data.map(item => item.listing_id).filter(Boolean);
     let titleMap = {};
     if (listingIds.length > 0) {
       try {
         const { data: dbData, error: dbError } = await supabase
-          .from('baikukdbtest2')
+          .from('baikukdbtest')
           .select('listing_id, listing_title')
           .in('listing_id', listingIds);
-        
+
         if (!dbError && dbData) {
           dbData.forEach(row => {
             titleMap[row.listing_id] = row.listing_title;
           });
         }
       } catch (err) {
-        console.error('baikukdbtest2 조회 에러:', err);
+        console.error('baikukdbtest 조회 에러:', err);
       }
     }
 
@@ -606,16 +606,16 @@ async function loadRenewalResults(channel, idVal) {
           <td class="px-4 py-3">${statusBadge}</td>
           <td class="px-4 py-3 text-gray-600 truncate max-w-[150px]" title="${listingTitle}">${listingTitle}</td>
           <td class="px-4 py-3 text-gray-600 font-mono">
-            ${item.listing_id 
-              ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.listing_id}</a>` 
-              : '-'
-            }
+            ${item.listing_id
+          ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.listing_id}</a>`
+          : '-'
+        }
           </td>
           <td class="px-4 py-3 text-gray-600 font-mono">
-            ${item.listing_id 
-              ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.listing_id}" target="_blank" class="text-orange-600 hover:underline font-semibold">${item.listing_id}</a>` 
-              : '-'
-            }
+            ${item.listing_id
+          ? `<a href="https://agency.neonet.co.kr/novo-agency/view/offerings/NaverOfferingsList.neo?search_type=total&search_text=${item.listing_id}" target="_blank" class="text-orange-600 hover:underline font-semibold">${item.listing_id}</a>`
+          : '-'
+        }
           </td>
           <td class="px-4 py-3 text-gray-600">${item.product || '-'}</td>
           <td class="px-4 py-3 text-xs text-gray-400 max-w-[200px] truncate" title="${item.note || ''}">${item.note || '-'}</td>
