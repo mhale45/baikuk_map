@@ -536,7 +536,7 @@ async function loadRenewalResults(channel, idVal) {
     $refreshBtn.classList.remove('hidden');
   }
 
-  $resultList.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">결과를 불러오는 중...</td></tr>`;
+  $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">결과를 불러오는 중...</td></tr>`;
 
   try {
     const { data, error } = await supabase
@@ -550,7 +550,7 @@ async function loadRenewalResults(channel, idVal) {
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      $resultList.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">갱신 결과 이력이 없습니다.</td></tr>`;
+      $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">갱신 결과 이력이 없습니다.</td></tr>`;
       return;
     }
 
@@ -604,12 +604,11 @@ async function loadRenewalResults(channel, idVal) {
         <tr class="border-b hover:bg-gray-50 transition-colors">
           <td class="px-4 py-3 text-xs text-gray-500 font-mono">${dateStr}</td>
           <td class="px-4 py-3">${statusBadge}</td>
-          <td class="px-4 py-3 text-gray-600 truncate max-w-[150px]" title="${listingTitle}">${listingTitle}</td>
-          <td class="px-4 py-3 text-gray-600 font-mono">
+          <td class="px-4 py-3 text-gray-600 truncate max-w-[250px]" title="${item.listing_id ? `[${item.listing_id}] ` : ''}${listingTitle}">
             ${item.listing_id
-          ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">${item.listing_id}</a>`
-          : '-'
-        }
+              ? `<a href="https://baikuk.com/item/view/${item.listing_id}" target="_blank" class="text-blue-600 hover:underline font-semibold">[${item.listing_id}]</a> ${listingTitle}`
+              : listingTitle
+            }
           </td>
           <td class="px-4 py-3 text-gray-600 font-mono">
             ${item.listing_id
@@ -625,7 +624,7 @@ async function loadRenewalResults(channel, idVal) {
 
   } catch (e) {
     console.error('결과 이력 로드 실패:', e);
-    $resultList.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-red-500 font-semibold">이력을 불러오는 도중 오류가 발생했습니다: ${e.message}</td></tr>`;
+    $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500 font-semibold">이력을 불러오는 도중 오류가 발생했습니다: ${e.message}</td></tr>`;
   }
 }
 
@@ -637,7 +636,7 @@ function clearRenewalResults() {
   const $refreshBtn = document.getElementById('btn-refresh-results');
 
   if ($resultList) {
-    $resultList.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">계정 목록에서 계정을 선택해 주세요.</td></tr>`;
+    $resultList.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">계정 목록에서 계정을 선택해 주세요.</td></tr>`;
   }
   if ($selectedInfo) {
     $selectedInfo.textContent = '';
