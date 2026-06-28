@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>매물장부</title>
+  <link rel="icon" type="image/png"
+    href="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" />
+  <link rel="preconnect" href="https://sfinbtiqlfnaaarziixu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="//sfinbtiqlfnaaarziixu.supabase.co">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .custom-scroll::-webkit-scrollbar {
+      width: 20px;
+      height: 20px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1;
+      border-radius: 6px;
+      border: 2px solid #f1f1f1;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background-color: #999;
+    }
+
+    th.resizable {
+      position: relative;
+    }
+
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+    }
+
+    th.resizing {
+      cursor: col-resize;
+    }
+
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #d1d5db;
+      /* gray-300 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      padding: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 50;
+    }
+
+    .shadow-right {
+      box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+  <script type="module" src="./ad_management.js"></script>
+</head>
+
+<body class="h-screen w-screen">
+  <!-- 🔐 로그인 전체 화면 -->
+  <div id="auth-screen" class="fixed inset-0 z-[99999] hidden">
+    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+      <div class="bg-white w-[22rem] rounded-xl shadow-xl p-6">
+        <h2 class="text-xl font-bold text-center mb-4">직원 로그인</h2>
+        <input id="auth-email" type="email" placeholder="이메일"
+          class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
+        <input id="auth-password" type="password" placeholder="비밀번호"
+          class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+        <button id="auth-login" class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">
+          로그인
+        </button>
+        <button id="auth-close" class="w-full mt-2 border border-gray-300 text-gray-600 py-2 rounded hover:bg-gray-50">
+          닫기
+        </button>
+        <div id="auth-error" class="text-red-600 text-sm mt-3 hidden"></div>
+      </div>
+    </div>
+  </div>
+  <div class="absolute top-0 left-0 z-[9998] bg-white w-[13rem] h-[60px] rounded-xl">
+    <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/logotype-baikuk.png"
+      alt="글씨로고" class="absolute h-11 w-auto cursor-pointer top-2 left-2 z-[9999]" onclick="location.reload()" />
+  </div>
+  <div class="flex h-full">
+    <div id="sidebar-container"></div>
+    <div class="w-[94%] flex flex-col bg-gray-50 p-6 overflow-y-auto">
+      <!-- 상단 서브 탭 메뉴 -->
+      <div class="flex gap-6 border-b border-gray-300 pb-3 mb-6 pl-20">
+        <button id="tab-auto-renew"
+          class="px-4 py-2 font-bold text-lg border-b-2 border-blue-600 text-blue-600 focus:outline-none transition-all">
+          자동갱신
+        </button>
+        <button id="tab-top-renew"
+          class="px-4 py-2 font-bold text-lg text-gray-500 hover:text-gray-700 focus:outline-none transition-all">
+          상단갱신
+        </button>
+      </div>
+
+      <!-- 각 탭에 따른 컨텐츠 패널 -->
+      <div id="content-auto-renew" class="tab-content flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col md:flex-row gap-6 h-full">
+          <!-- 좌측: 입력 폼 영역  -->
+          <div class="w-full md:w-[20%] bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">새 등록</h3>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">광고 채널명</label>
+              <select id="auto-channel-name"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+                <option value="">채널 선택</option>
+                <option value="뱅크">뱅크</option>
+                <option value="한경">한경</option>
+                <option value="우리집">우리집</option>
+                <option value="써브">써브</option>
+                <option value="선방">선방</option>
+                <option value="매경">매경</option>
+                <option value="텐">텐</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">아이디</label>
+              <input type="text" id="auto-channel-id" placeholder="채널 로그인 아이디"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">비밀번호</label>
+              <input type="password" id="auto-channel-pw" placeholder="채널 로그인 비밀번호"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">갱신 최대 갯수</label>
+              <select id="auto-max-count"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+                <!-- JS에서 1~50 동적 생성 -->
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">알람메일</label>
+              <input type="email" id="auto-alarm-mail" placeholder="알림받을 이메일 주소"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">자동갱신 여부</label>
+              <select id="auto-execution"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+                <option value="true">활성화</option>
+                <option value="false">비활성화</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-gray-600">거래완료 갱신</label>
+              <select id="auto-completed"
+                class="border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all">
+                <option value="false">종료</option>
+                <option value="true">갱신</option>
+              </select>
+            </div>
+
+            <button id="btn-save-auto-renew"
+              class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all active:scale-95 text-sm">
+              저장하기
+            </button>
+          </div>
+
+          <!-- 우측: Supabase 목록 표시 영역 (약 65%) -->
+          <div class="flex-1 bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-green-600 pl-2">자동갱신 계정 목록</h3>
+            <div class="overflow-x-auto flex-1 border rounded-lg">
+              <table class="w-full text-sm text-left text-gray-600">
+                <thead class="bg-gray-50 text-gray-700 font-semibold border-b">
+                  <tr>
+                    <th class="px-4 py-3">채널명</th>
+                    <th class="px-4 py-3">아이디</th>
+                    <th class="px-4 py-3">최대 갱신 수</th>
+                    <th class="px-4 py-3">알람메일</th>
+                    <th class="px-4 py-3">자동갱신 여부</th>
+                    <th class="px-4 py-3">거래완료 갱신</th>
+                    <th class="px-4 py-3">등록일</th>
+                    <th class="px-4 py-3 text-center">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="auto-renew-list">
+                  <tr>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-400">데이터가 없습니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 자동갱신 결과 이력 영역 -->
+            <div class="border-t pt-4 flex flex-col gap-2 mt-2">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-2">
+                  갱신 결과 이력 <span id="selected-account-info" class="text-sm font-normal text-gray-500 ml-2"></span>
+                </h3>
+                <button id="btn-refresh-results"
+                  class="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border transition-all hidden">
+                  새로고침
+                </button>
+              </div>
+              <div class="overflow-x-auto border rounded-lg max-h-[250px] custom-scroll">
+                <table class="w-full text-sm text-left text-gray-600">
+                  <thead class="bg-gray-50 text-gray-700 font-semibold border-b sticky top-0 bg-white">
+                    <tr>
+                      <th class="px-4 py-3">실행 일시</th>
+                      <th class="px-4 py-3">상태</th>
+                      <th class="px-4 py-3">제목</th>
+                      <th class="px-4 py-3">뱅크</th>
+                      <th class="px-4 py-3">상품</th>
+                      <th class="px-4 py-3">비고</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auto-renew-result-list">
+                    <tr>
+                      <td colspan="6" class="px-4 py-8 text-center text-gray-400">계정 목록에서 계정을 선택해 주세요.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="content-top-renew"
+        class="tab-content flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">상단갱신 관리</h2>
+        <p class="text-gray-600">상단갱신 관련 설정 및 목록이 이곳에 위치합니다.</p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

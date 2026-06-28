@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>mMap</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 카카오 지도 -->
+    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
+
+    <style>
+        :root {
+            --header-height: 4.3rem;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: #fff;
+            z-index: 10000;
+        }
+
+        @media (min-width: 769px) {
+            #side-panel {
+                position: absolute !important;
+                max-width: 320px;
+                max-height: 50vh;
+                left: 0;
+                top: 0;
+                transform: translate(-50%, -100%); /* 마커 위로 */
+                z-index: 999999;
+            }
+        }
+
+    </style>
+
+    <!-- 🔥 Supabase Client -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.3/+esm';
+
+        const supabaseUrl = 'https://sfinbtiqlfnaaarziixu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW5idGlxbGZuYWFhcnppaXh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MDkxNjEsImV4cCI6MjA2ODA4NTE2MX0.4-7vnIjbF-biWWuv9-vTxK9Y99gMm-vS6oaRMdRL5fA';
+
+        window.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+
+        // 🔥 로그인 여부 확인 후 접속 불가하면 listings 로 이동
+        async function enforceAuthForMMap() {
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (!session) {
+                location.replace("/admin/listings/");
+            }
+        }
+
+        enforceAuthForMMap();
+    </script>
+
+</head>
+<body>
+    <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
+        <div class="flex flex-row gap-2 mt-1">  
+            <div class="flex flex-col gap-2">
+                <button id="filter-reset-btn"
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
+                        hover:bg-gray-200 transition duration-150">
+                    초기화
+                </button>
+            </div> 
+            <div class="flex flex-col gap-2">   
+                <!-- 🔥 통합 필터 버튼 -->
+                <button id="filter-btn"
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[55px]
+                        hover:bg-gray-200 transition duration-150">
+                    필터
+                </button>
+            </div> 
+            <div class="flex flex-col gap-2">
+                <button id="toggle-customer-panel"
+                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm max-w-[260px]
+                        hover:bg-gray-200 transition duration-150">
+                    👤 고객 리스트
+                </button>
+            </div> 
+        </div>     
+    </header>
+
+    <!-- 오른쪽 하단 컨트롤 버튼 -->
+    <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
+        <button id="btn-current-location"
+                class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
+                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5"
+                title="현재 위치로 이동">
+            <span class="text-xl text-black font-bold">◉</span>
+        </button>
+    </div>
+    
+    <!-- 🔥 통합 필터 박스 -->
+    <div id="filter-box-merged"
+        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
+        style="display:none;">
+
+        <!-- ▼ 기존 '종류' 체크박스들 옮기기 -->
+        <div class="flex flex-row flex-wrap">
+            <div class="flex flex-col gap-1">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="진행중" class="status-check" /> 진행중
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="보류" class="status-check" /> 보류
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
+                </label>
+
+                <label class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" value="월세" class="dealtype-check" /> 월세
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="매매" class="dealtype-check" /> 매매
+                </label>
+            </div>
+            <div class="flex flex-col gap-1 ml-10">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="상가" class="category-check" /> 상가
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="공장" class="category-check" /> 공장·창고
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" value="주택" class="category-check" /> 주택
+                </label>
+            </div>
+        </div>
+        <!-- ▼ 기존 '조건' 숫자 필터 전부 옮기기 -->
+        <div class="flex flex-col gap-1 mt-5">
+
+            <!-- 층 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">층</span>
+                <input id="floor-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="floor-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 전용면적 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">전용면적</span>
+                <input id="area-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="area-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 보증금 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">보증금</span>
+                <input id="deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 월세 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">월세</span>
+                <input id="rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 권리금 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">권리금</span>
+                <input id="premium-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 평당월세 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">평월세</span>
+                <input id="rent_per_py-min" type="number" placeholder="이상"
+                    class="border p-1 rounded w-20" />
+                <input id="rent_per_py-max" type="number" placeholder="이하"
+                    class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 매매가 -->
+            <div class="flex items-center gap-2 mt-5">
+                <span class="w-20">매매가</span>
+                <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 총보증금 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">총보증금</span>
+                <input id="total-deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="total-deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 총월세 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">총월세</span>
+                <input id="total-rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="total-rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+
+            <!-- 수익률 -->
+            <div class="flex items-center gap-2">
+                <span class="w-20">수익률</span>
+                <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
+                <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
+            </div>
+        </div>        
+    </div>
+    
+    <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
+    <div id="customer-panel"
+        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
+        style="
+            display:none;
+            position: fixed;
+            top: calc(var(--header-height) + 10px);
+            left: 10px;
+            z-index: 99999;
+            max-width: 380px;
+            max-height: 70vh;
+            overflow-y: auto;
+            background: white;
+            min-width: 220px;
+            max-width: 90vh;
+        ">
+    </div>
+
+    <div id="side-panel"
+        style="
+            position: fixed;
+            top: calc(var(--header-height) + 10px);
+            left: 10px;
+            max-width: 95vw;
+            width: auto;
+            max-height: 70vh;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 15px;
+            overflow-y: auto;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 999999;
+            display: none;
+        ">
+    </div>
+        
+    <!-- 🔍 제목 검색창 (지도 오른쪽 상단 고정) -->
+    <div id="map-search-box"
+        style="
+            position: fixed;
+            top: calc(var(--header-height) + 10px);
+            right: 20px;
+            z-index: 5000;
+            background: white;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+        ">
+
+        <!-- 🔥 검색어 초기화 X 버튼 -->
+        <button
+            id="search-clear-btn"
+            type="button"
+            style="
+                display: none;          /* 기본은 숨김, 글자 입력되면 JS에서 보이게 */
+                padding: 0 8px;
+                height: 30px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                background: #f3f3f3;
+                font-size: 14px;
+                cursor: pointer;
+            "
+        >
+            ✕
+        </button>
+
+        <input
+            id="search-title-input"
+            type="text"
+            placeholder="검색"
+            style="
+                width: 280px;
+                padding: 5px 8px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
+            "
+        />
+        
+        <!-- 🔄 재검색 버튼 -->
+        <button
+            id="search-refresh-btn"
+            type="button"
+            style="
+                padding: 0 10px;
+                height: 30px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                background: #fef3c7;   /* 연한 노랑 */
+                font-size: 14px;
+                cursor: pointer;
+            "
+        >
+            재검색
+        </button>
+    </div>
+
+    <!-- 🔍 검색 결과 리스트 -->
+    <div id="search-result-box"
+        style="
+            position: fixed;
+            top: calc(var(--header-height) + 60px);
+            right: 20px;
+            z-index: 5000;
+            background: white;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+            overflow-x: auto;
+            overflow-y: auto;
+            max-width: 380px;
+            max-height: 70vh;
+            display: none;
+            font-size: 14px;
+        ">
+    </div>
+
+    <!-- 지도 -->
+    <div id="map"></div>
+
+    <script type="module" src="./mMap.js"></script>
+
+</body>
+</html>
