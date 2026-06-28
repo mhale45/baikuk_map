@@ -1241,8 +1241,8 @@ async function loadCustomersForCurrentStaff() {
           // 선택 표시
           firstListItem.classList.add("selected");
 
-          // 리스트 이름 파싱 (“- 리스트명” → “리스트명”)
-          const firstListName = firstListItem.textContent.replace(/^- /, "").trim();
+          // 리스트 이름 파싱 (dataset에서 오리지널 리스트명을 직접 가져옴)
+          const firstListName = firstListItem.dataset.listName || firstListItem.textContent.replace(/^- /, "").trim();
 
           // 고객 데이터 자동 로드
           loadCustomerDataByName(cust.customer_name, firstListName);
@@ -1259,6 +1259,7 @@ async function loadCustomersForCurrentStaff() {
         const listItem = document.createElement("div");
         // flex 레이아웃으로 텍스트와 x 버튼을 양쪽으로 정렬
         listItem.className = "customer-list-item flex items-center justify-between pl-4 pr-2 cursor-pointer text-gray-700 hover:bg-gray-100 py-0.5 rounded transition-all group";
+        listItem.dataset.listName = listName; // 오리지널 리스트명 저장
 
         // 텍스트 부분
         const textSpan = document.createElement("span");
