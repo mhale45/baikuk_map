@@ -2252,7 +2252,37 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
   let customerId = null;
 
   if (currentCustomerId) {
-    // 변경하려는 이름+리스트 조합이 '나를 제외한' 다른 고객과 중복되는지 체크
+    // 1-1) 기존 고객 조회하여 원래 이름(oldName) 파악
+    const { data: originalCust, error: origErr } = await supabase
+      .from("customers")
+      .select("customer_name")
+      .eq("id", currentCustomerId)
+      .maybeSingle();
+
+    const oldName = originalCust?.customer_name;
+    const isNameChanged = oldName && oldName !== name;
+
+    if (isNameChanged) {
+      const changeAll = confirm(
+        `고객 이름을 "${oldName}"에서 "${name}"으로 변경하시겠습니까?\n이 고객의 다른 리스트에 있는 고객 이름도 함께 변경됩니다.`
+      );
+      if (!changeAll) return;
+
+      // 본인 담당의 동일 이름 고객들 이름 일괄 수정
+      const { error: batchErr } = await supabase
+        .from("customers")
+        .update({ customer_name: name })
+        .eq("customer_name", oldName)
+        .eq("staff_profiles_id", selectedStaffId ?? myStaffId);
+
+      if (batchErr) {
+        console.error("일괄 이름 변경 실패:", batchErr);
+        showToast("다른 리스트의 고객 이름 변경 중 오류가 발생했습니다.");
+        return;
+      }
+    }
+
+    // 1-2) 변경하려는 이름+리스트 조합이 '나를 제외한' 다른 고객과 중복되는지 체크
     const { data: duplicate, error: dupErr } = await supabase
       .from("customers")
       .select("id")
