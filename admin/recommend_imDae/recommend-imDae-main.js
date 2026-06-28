@@ -925,6 +925,7 @@ async function loadCustomerDataByName(name, list_name = null) {
 
   // 3) 현재 고객 ID 저장
   currentCustomerId = customer.id;
+  updateSaveButtonState();
 
   // 4) 매물 정보 로딩
   await loadListingsForCustomerId(customer.id);
@@ -1021,6 +1022,7 @@ async function loadCustomerByNameAndList(name, list_name) {
 
   // 현재 고객 ID 저장
   currentCustomerId = customer.id;
+  updateSaveButtonState();
 
   // ⭐⭐ 매물 로딩 — 정확한 함수명
   await loadListingsForCurrentCustomer();
@@ -2245,27 +2247,27 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
   }
 
   /* ===========================================================
-     🔍 1) 고객이름 + 리스트이름 조합으로 기존 고객 여부 확인
+     🔍 1) 기존 고객을 선택한 상태에서 수정하는 경우 (currentCustomerId 존재 시)
   =========================================================== */
-  const { data: existing, error: existErr } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("customer_name", name)
-    .eq("list_name", list_name)
-    .maybeSingle();
-
   let customerId = null;
 
-  if (existing) {
-    /* ===========================================================
-       🔥 2) 기존 조합이 있으면 → confirm 후 전체 덮어쓰기
-    =========================================================== */
-    const ok = confirm(
-      `"${name}" - "${list_name}"가\n이미 존재합니다. 덮어쓸까요?`
-    );
-    if (!ok) return;
+  if (currentCustomerId) {
+    // 변경하려는 이름+리스트 조합이 '나를 제외한' 다른 고객과 중복되는지 체크
+    const { data: duplicate, error: dupErr } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("customer_name", name)
+      .eq("list_name", list_name)
+      .neq("id", currentCustomerId)
+      .maybeSingle();
 
-    customerId = existing.id;
+    if (duplicate) {
+      const ok = confirm(`"${name}" - "${list_name}" 조합이 이미 다른 고객으로 존재합니다. 해당 고객 정보로 덮어쓰시겠습니까?`);
+      if (!ok) return;
+      customerId = duplicate.id;
+    } else {
+      customerId = currentCustomerId;
+    }
 
     // 고객정보 업데이트
     const { error: updateErr } = await supabase
@@ -2298,42 +2300,88 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
 
   } else {
     /* ===========================================================
-       🆕 3) 기존 조합이 없으면 신규 고객 INSERT
+       🆕 2) 신규 고객 등록 모드인 경우 (currentCustomerId가 null인 경우)
     =========================================================== */
-    const { data: inserted, error: insertErr } = await supabase
+    const { data: existing, error: existErr } = await supabase
       .from("customers")
-      .insert({
-        customer_name: name,
-        list_name: list_name,
-        customer_phone_number: phone,
-        grade: grade,
-        memo: memo,
-        staff_profiles_id: selectedStaffId ?? myStaffId,
-        floor_min, floor_max,
-        area_min, area_max,
-        deposit_min, deposit_max,
-        rent_min, rent_max,
-        rent_per_py_min, rent_per_py_max,
-        premium_min, premium_max,
-        sale_min, sale_max,
-        total_deposit_min, total_deposit_max,
-        total_rent_min, total_rent_max,
-        roi_min, roi_max
-      })
-      .select()
-      .single();
+      .select("*")
+      .eq("customer_name", name)
+      .eq("list_name", list_name)
+      .maybeSingle();
 
-    if (insertErr || !inserted) {
-      console.error(insertErr);
-      showToast("신규 고객 저장 실패");
-      return;
+    if (existing) {
+      const ok = confirm(
+        `"${name}" - "${list_name}"가\n이미 존재합니다. 덮어쓸까요?`
+      );
+      if (!ok) return;
+
+      customerId = existing.id;
+
+      // 고객정보 업데이트
+      const { error: updateErr } = await supabase
+        .from("customers")
+        .update({
+          customer_name: name,
+          list_name: list_name,
+          customer_phone_number: phone,
+          grade: grade,
+          memo: memo,
+          staff_profiles_id: selectedStaffId ?? myStaffId,
+          floor_min, floor_max,
+          area_min, area_max,
+          deposit_min, deposit_max,
+          rent_min, rent_max,
+          rent_per_py_min, rent_per_py_max,
+          premium_min, premium_max,
+          sale_min, sale_max,
+          total_deposit_min, total_deposit_max,
+          total_rent_min, total_rent_max,
+          roi_min, roi_max
+        })
+        .eq("id", customerId);
+
+      if (updateErr) {
+        console.error(updateErr);
+        showToast("고객 정보 업데이트 중 오류가 발생했습니다.");
+        return;
+      }
+
+    } else {
+      const { data: inserted, error: insertErr } = await supabase
+        .from("customers")
+        .insert({
+          customer_name: name,
+          list_name: list_name,
+          customer_phone_number: phone,
+          grade: grade,
+          memo: memo,
+          staff_profiles_id: selectedStaffId ?? myStaffId,
+          floor_min, floor_max,
+          area_min, area_max,
+          deposit_min, deposit_max,
+          rent_min, rent_max,
+          rent_per_py_min, rent_per_py_max,
+          premium_min, premium_max,
+          sale_min, sale_max,
+          total_deposit_min, total_deposit_max,
+          total_rent_min, total_rent_max,
+          roi_min, roi_max
+        })
+        .select()
+        .single();
+
+      if (insertErr || !inserted) {
+        console.error(insertErr);
+        showToast("신규 고객 저장 실패");
+        return;
+      }
+
+      customerId = inserted.id;
     }
-
-    customerId = inserted.id;
   }
 
   /* ===========================================================
-     🏠 4) 추천매물 전체 덮어쓰기
+     🏠 3) 추천매물 전체 덮어쓰기
         (기존 데이터 삭제 → 신규매물 insert)
   =========================================================== */
   currentCustomerId = customerId;
@@ -2345,6 +2393,7 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
   }
 
   showToast("저장 완료!");
+  updateSaveButtonState();
 
   // 고객 목록 갱신
   loadCustomersForCurrentStaff();
@@ -2378,7 +2427,21 @@ document.getElementById('new-customer-btn')?.addEventListener('click', () => {
   loadCurrentUserStaffInfo();
 
   showToast('신규 고객 작성 모드입니다.');
+  updateSaveButtonState();
 });
+
+// ⭐ 저장 버튼 상태(텍스트/스타일) 업데이트 함수
+function updateSaveButtonState() {
+  const saveBtn = document.getElementById("save-new-customer");
+  if (!saveBtn) return;
+  if (currentCustomerId) {
+    saveBtn.textContent = "수정";
+    saveBtn.className = "ml-auto h-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
+  } else {
+    saveBtn.textContent = "저장";
+    saveBtn.className = "ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
+  }
+}
 
 // === 숫자열 클릭 시 행 강조 기능 ===
 function enableRowHighlight() {
