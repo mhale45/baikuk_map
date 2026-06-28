@@ -151,6 +151,10 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
 
   // 메뉴 열기/닫기 제어
   const openMenu = () => {
+    // 상대방(고객목록)이 열려있다면 닫기
+    const customerCloseBtn = document.getElementById('mobile-customer-close-btn');
+    if (customerCloseBtn) customerCloseBtn.click();
+
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100');
     drawer.classList.remove('-translate-x-full');

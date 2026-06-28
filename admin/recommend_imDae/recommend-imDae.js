@@ -230,6 +230,10 @@ function setupMobileCustomerCol() {
   }
 
   const openCol = () => {
+    // 상대방(메인메뉴)이 열려있다면 닫기
+    const sidebarCloseBtn = document.getElementById('mobile-sidebar-close-btn');
+    if (sidebarCloseBtn) sidebarCloseBtn.click();
+
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100');
     customerCol.classList.add('open');
