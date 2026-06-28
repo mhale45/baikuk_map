@@ -882,7 +882,7 @@ async function loadCustomerDataByName(name, list_name = null) {
     .select("*")
     .eq("customer_name", name);
 
-  const hasListName = list_name && list_name.trim() !== "";
+  const hasListName = list_name && list_name.trim() !== "" && list_name !== "null" && list_name !== "undefined";
   if (hasListName) {
     query = query.eq("list_name", list_name);
   }
@@ -1257,7 +1257,7 @@ async function loadCustomersForCurrentStaff() {
           firstListItem.classList.add("selected");
 
           // 리스트 이름 파싱 (dataset에서 오리지널 리스트명을 직접 가져옴)
-          const firstListName = firstListItem.dataset.listName || firstListItem.textContent.replace(/^- /, "").trim();
+          const firstListName = firstListItem.dataset.listName;
 
           // 고객 데이터 자동 로드
           loadCustomerDataByName(cust.customer_name, firstListName);
@@ -1277,12 +1277,12 @@ async function loadCustomersForCurrentStaff() {
         const listItem = document.createElement("div");
         // flex 레이아웃으로 텍스트와 x 버튼을 양쪽으로 정렬
         listItem.className = "customer-list-item flex items-center justify-between pl-4 pr-2 cursor-pointer text-gray-700 hover:bg-gray-100 py-0.5 rounded transition-all group";
-        listItem.dataset.listName = listName; // 오리지널 리스트명 저장
+        listItem.dataset.listName = listName || ""; // 오리지널 리스트명 저장 (null 방지)
 
         // 텍스트 부분
         const textSpan = document.createElement("span");
         textSpan.className = "hover:underline flex-grow pr-2 truncate";
-        textSpan.textContent = `- ${listName}`;
+        textSpan.textContent = `- ${listName || ""}`;
         listItem.appendChild(textSpan);
 
         // x 삭제 버튼 부분
