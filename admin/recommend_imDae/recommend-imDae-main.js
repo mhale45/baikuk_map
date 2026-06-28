@@ -886,7 +886,21 @@ async function loadCustomerDataByName(name, list_name = null) {
     query = query.eq("list_name", list_name);
   }
 
-  const { data: customer, error } = await query.maybeSingle();
+  let customer = null;
+  let error = null;
+
+  if (list_name) {
+    const res = await query.maybeSingle();
+    customer = res.data;
+    error = res.error;
+  } else {
+    // 리스트 이름이 없을 경우 첫 번째 레코드를 무사히 획득하도록 limit(1) 처리
+    const res = await query.limit(1);
+    if (res.data && res.data.length > 0) {
+      customer = res.data[0];
+    }
+    error = res.error;
+  }
 
   if (error || !customer) {
     showToast("고객 정보를 불러올 수 없습니다.");
@@ -1246,6 +1260,9 @@ async function loadCustomersForCurrentStaff() {
 
           // 고객 데이터 자동 로드
           loadCustomerDataByName(cust.customer_name, firstListName);
+        } else {
+          // ⭐ 저장되어 있는 리스트가 없는 경우에도 고객명으로 기본 정보 조회하여 로드
+          loadCustomerDataByName(cust.customer_name, null);
         }
       });
 
