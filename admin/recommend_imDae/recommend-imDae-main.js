@@ -2645,10 +2645,10 @@ function updateSaveButtonState() {
   if (!saveBtn) return;
   if (currentCustomerId) {
     saveBtn.textContent = "수정";
-    saveBtn.className = "ml-auto h-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
+    saveBtn.className = "ml-auto h-[2rem] bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
   } else {
     saveBtn.textContent = "저장";
-    saveBtn.className = "ml-auto h-[2rem] bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
+    saveBtn.className = "ml-auto h-[2rem] bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded font-bold transition-colors";
   }
 }
 
