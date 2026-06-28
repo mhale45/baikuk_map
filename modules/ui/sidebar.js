@@ -163,16 +163,16 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   };
   backdrop.classList.add('opacity-0', 'pointer-events-none');
   drawer.classList.add('-translate-x-full');
-};
 
-toggleBtn.addEventListener('click', openMenu);
-backdrop.addEventListener('click', closeMenu);
+  toggleBtn.addEventListener('click', openMenu);
+  backdrop.addEventListener('click', closeMenu);
 
-// 닫기 버튼 이벤트 연결
-setTimeout(() => {
-  const closeBtn = document.getElementById('mobile-sidebar-close-btn');
-  if (closeBtn) closeBtn.addEventListener('click', closeMenu);
-}, 100);
+  // 닫기 버튼 이벤트 연결
+  setTimeout(() => {
+    const closeBtn = document.getElementById('mobile-sidebar-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', closeMenu);
+  }, 100);
+}
 
 /**
  * 지정된 컨테이너에 사이드바를 동적으로 생성 및 주입합니다.
