@@ -88,13 +88,42 @@ function injectMobileStyles() {
 
 // 모바일 전용 메뉴 버튼 및 Drawer 렌더링
 function renderMobileMenu(filteredMenuItems, activeKey) {
-  if (document.getElementById('mobile-sidebar-toggle-btn')) return;
+  const toggleBtn = document.getElementById('mobile-sidebar-toggle-btn');
+  const drawer = document.getElementById('mobile-sidebar-drawer');
+
+  const getMenuHtml = () => {
+    return filteredMenuItems.map(item => {
+      const isActive = item.key === activeKey;
+      const activeClass = isActive 
+        ? 'bg-amber-50 text-amber-600 border-l-4 border-[#F2C130]' 
+        : 'text-gray-700 hover:bg-gray-100';
+      const mbClass = item.mb5 ? 'mb-4' : '';
+      const targetAttr = item.target ? `target="${item.target}"` : '';
+
+      return `
+        <a href="${item.href}" ${targetAttr} class="block no-underline">
+          <div class="text-lg font-bold px-4 py-3 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
+            ${item.label}
+          </div>
+        </a>
+      `;
+    }).join('');
+  };
+
+  // 이미 렌더링된 상태라면 내부 메뉴 목록만 업데이트하고 리턴
+  if (toggleBtn && drawer) {
+    const listContainer = drawer.querySelector('.menu-list-container');
+    if (listContainer) {
+      listContainer.innerHTML = getMenuHtml();
+    }
+    return;
+  }
 
   // 1. 햄버거 토글 버튼 생성
-  const toggleBtn = document.createElement('div');
-  toggleBtn.id = 'mobile-sidebar-toggle-btn';
-  toggleBtn.className = 'fixed bottom-6 right-6 z-[99999] bg-[#F2C130] hover:bg-[#E0B120] text-black w-14 h-14 rounded-full flex items-center justify-center shadow-2xl cursor-pointer select-none transition-transform duration-200 active:scale-95 lg:hidden';
-  toggleBtn.innerHTML = `
+  const newToggleBtn = document.createElement('div');
+  newToggleBtn.id = 'mobile-sidebar-toggle-btn';
+  newToggleBtn.className = 'fixed bottom-6 right-6 z-[99999] bg-[#F2C130] hover:bg-[#E0B120] text-black w-14 h-14 rounded-full flex items-center justify-center shadow-2xl cursor-pointer select-none transition-transform duration-200 active:scale-95 lg:hidden';
+  newToggleBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
@@ -106,29 +135,11 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   backdrop.className = 'fixed inset-0 bg-black/55 z-[99997] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden';
 
   // 3. Drawer(서랍 메뉴) 생성
-  const drawer = document.createElement('div');
-  drawer.id = 'mobile-sidebar-drawer';
-  drawer.className = 'fixed inset-y-0 left-0 w-[280px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
-  
-  // Drawer 내부 마크업
-  const menuHtml = filteredMenuItems.map(item => {
-    const isActive = item.key === activeKey;
-    const activeClass = isActive 
-      ? 'bg-amber-50 text-amber-600 border-l-4 border-[#F2C130]' 
-      : 'text-gray-700 hover:bg-gray-100';
-    const mbClass = item.mb5 ? 'mb-4' : '';
-    const targetAttr = item.target ? `target="${item.target}"` : '';
+  const newDrawer = document.createElement('div');
+  newDrawer.id = 'mobile-sidebar-drawer';
+  newDrawer.className = 'fixed inset-y-0 left-0 w-[280px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
 
-    return `
-      <a href="${item.href}" ${targetAttr} class="block no-underline">
-        <div class="text-lg font-bold px-4 py-3 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
-          ${item.label}
-        </div>
-      </a>
-    `;
-  }).join('');
-
-  drawer.innerHTML = `
+  newDrawer.innerHTML = `
     <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
       <div class="flex items-center gap-2">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" class="h-6 w-auto" alt="Logo" />
@@ -136,8 +147,8 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
       </div>
       <button id="mobile-sidebar-close-btn" class="text-3xl font-light text-gray-400 hover:text-black focus:outline-none leading-none">&times;</button>
     </div>
-    <div class="flex-1 overflow-y-auto p-4 space-y-2">
-      ${menuHtml}
+    <div class="menu-list-container flex-1 overflow-y-auto p-4 space-y-2">
+      ${getMenuHtml()}
     </div>
     <div class="p-4 border-t border-gray-200 text-center text-xs text-gray-400 bg-gray-50">
       © 백억지도 Admin Mobile
@@ -145,24 +156,24 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   `;
 
   // body에 요소들 추가
-  document.body.appendChild(toggleBtn);
+  document.body.appendChild(newToggleBtn);
   document.body.appendChild(backdrop);
-  document.body.appendChild(drawer);
+  document.body.appendChild(newDrawer);
 
   // 메뉴 열기/닫기 제어
   const openMenu = () => {
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100');
-    drawer.classList.remove('-translate-x-full');
+    newDrawer.classList.remove('-translate-x-full');
   };
 
   const closeMenu = () => {
     backdrop.classList.remove('opacity-100');
     backdrop.classList.add('opacity-0', 'pointer-events-none');
-    drawer.classList.add('-translate-x-full');
+    newDrawer.classList.add('-translate-x-full');
   };
 
-  toggleBtn.addEventListener('click', openMenu);
+  newToggleBtn.addEventListener('click', openMenu);
   backdrop.addEventListener('click', closeMenu);
   
   // 닫기 버튼 이벤트 연결
@@ -177,7 +188,7 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
  * @param {string} activeKey 현재 활성화된 페이지 키
  * @param {string} [containerId='sidebar-container'] 사이드바가 들어갈 div ID
  */
-export async function renderSidebar(activeKey, containerId = 'sidebar-container') {
+export function renderSidebar(activeKey, containerId = 'sidebar-container') {
   const container = document.getElementById(containerId);
   if (!container) {
     console.warn(`[Sidebar] Container element with id "${containerId}" not found.`);
@@ -191,53 +202,67 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   container.className = 'w-[6%] pt-[5rem] shadow-right text-center bg-white';
 
   let showAdManagement = false;
-  try {
-    await waitForSupabase();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData?.session?.user;
-    if (user?.id) {
-      const { data: staff } = await supabase
-        .from('staff_profiles')
-        .select('authority_grade')
-        .eq('user_id', user.id)
-        .maybeSingle();
 
-      if (staff && String(staff.authority_grade || '').trim() === '1') {
-        showAdManagement = true;
+  // 메뉴 렌더링 헬퍼 함수
+  const drawSidebarAndMenu = () => {
+    // 권한에 맞춰 메뉴 필터링
+    const filteredMenuItems = menuItems.filter(item => {
+      if (item.key === 'ad_management') {
+        return showAdManagement;
       }
+      return true;
+    });
+
+    // 모바일용 햄버거 메뉴 렌더링
+    renderMobileMenu(filteredMenuItems, activeKey);
+
+    const html = filteredMenuItems.map(item => {
+      const isActive = item.key === activeKey;
+      const activeClass = isActive 
+        ? 'bg-gray-100 border-l-4 border-gray-500' 
+        : '';
+      const mbClass = item.mb5 ? 'mb-5' : '';
+      const targetAttr = item.target ? `target="${item.target}"` : '';
+
+      return `
+        <a href="${item.href}" ${targetAttr}>
+          <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer ${activeClass} ${mbClass}">
+            ${item.label}
+          </div>
+        </a>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+  };
+
+  // 1. 즉각 1차 렌더링 (지연시간 0ms, 광고관리 메뉴 제외 상태)
+  drawSidebarAndMenu();
+
+  // 2. 백그라운드에서 Supabase 준비 대기 및 권한 비동기 확인
+  (async () => {
+    try {
+      // 타임아웃을 1.5초로 줄여, Supabase 전역 노출이 없는 페이지에서도 대기 시간을 단축
+      await waitForSupabase(1500);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (user?.id) {
+        const { data: staff } = await supabase
+          .from('staff_profiles')
+          .select('authority_grade')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (staff && String(staff.authority_grade || '').trim() === '1') {
+          showAdManagement = true;
+          // 권한이 있으므로 '광고관리' 메뉴를 추가하여 2차 렌더링(갱신)
+          drawSidebarAndMenu();
+        }
+      }
+    } catch (e) {
+      // Supabase가 준비되지 않았거나 권한 획득 실패 시 조용히 넘어감
+      console.log('[Sidebar] 백그라운드 권한 확인 생략:', e.message);
     }
-  } catch (e) {
-    console.warn('[Sidebar] 권한 확인 실패:', e);
-  }
-
-  // 권한에 맞춰 메뉴 필터링
-  const filteredMenuItems = menuItems.filter(item => {
-    if (item.key === 'ad_management') {
-      return showAdManagement;
-    }
-    return true;
-  });
-
-  // 모바일용 햄버거 메뉴 렌더링
-  renderMobileMenu(filteredMenuItems, activeKey);
-
-  const html = filteredMenuItems.map(item => {
-    const isActive = item.key === activeKey;
-    const activeClass = isActive 
-      ? 'bg-gray-100 border-l-4 border-gray-500' 
-      : '';
-    const mbClass = item.mb5 ? 'mb-5' : '';
-    const targetAttr = item.target ? `target="${item.target}"` : '';
-
-    return `
-      <a href="${item.href}" ${targetAttr}>
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer ${activeClass} ${mbClass}">
-          ${item.label}
-        </div>
-      </a>
-    `;
-  }).join('');
-
-  container.innerHTML = html;
+  })();
 }
 
