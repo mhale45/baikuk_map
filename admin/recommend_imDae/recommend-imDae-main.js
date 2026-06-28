@@ -2584,7 +2584,14 @@ document.getElementById('new-customer-btn')?.addEventListener('click', () => {
   // 2) 오른쪽 고객 입력칸 초기화
   document.getElementById('top-row-input').value = '';
   document.getElementById('customer-phone').value = '';
-  document.getElementById('list-name-input').value = '리스트';
+  
+  const today = new Date();
+  const yy = String(today.getFullYear()).slice(-2);
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = yy + mm + dd;
+  document.getElementById('list-name-input').value = todayStr;
+  
   document.getElementById('customer-grade').value = 'A';
   document.getElementById('memo-textarea').value = '';
 
@@ -2619,8 +2626,13 @@ document.getElementById('new-list-btn')?.addEventListener('click', () => {
   currentCustomerId = null;
   updateSaveButtonState();
 
-  // 2) 리스트 이름 입력란 초기화
-  document.getElementById('list-name-input').value = '리스트';
+  // 2) 리스트 이름 입력란 초기화 (오늘 날짜 입력)
+  const today = new Date();
+  const yy = String(today.getFullYear()).slice(-2);
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = yy + mm + dd;
+  document.getElementById('list-name-input').value = todayStr;
 
   // 3) 매물번호 모두 지우기 (오른쪽 매물 표도 함께 클리어됨)
   document.querySelectorAll('input[data-index]').forEach(inp => {
