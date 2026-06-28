@@ -1241,6 +1241,13 @@ async function loadCustomersForCurrentStaff() {
         const listItems = custBlock.querySelectorAll(".customer-list-item");
         const listCount = listItems.length;
 
+        // ⭐ 다른 모든 고객의 서브리스트는 자동으로 접기 (아코디언 방식)
+        document.querySelectorAll(".customer-sublist").forEach(otherSub => {
+          if (otherSub !== sub) {
+            otherSub.classList.add("hidden");
+          }
+        });
+
         // ⭐ 리스트가 2개 이상일 때만 펼치기 / 접기 토글
         if (sub && listCount >= 2) {
           sub.classList.toggle("hidden");
