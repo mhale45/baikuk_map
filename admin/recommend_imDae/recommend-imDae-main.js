@@ -1257,8 +1257,31 @@ async function loadCustomersForCurrentStaff() {
       // 리스트 렌더링
       group.lists.forEach(listName => {
         const listItem = document.createElement("div");
-        listItem.className = "customer-list-item pl-4 cursor-pointer text-gray-700 hover:underline";
-        listItem.textContent = `- ${listName}`;
+        // flex 레이아웃으로 텍스트와 x 버튼을 양쪽으로 정렬
+        listItem.className = "customer-list-item flex items-center justify-between pl-4 pr-2 cursor-pointer text-gray-700 hover:bg-gray-100 py-0.5 rounded transition-all group";
+
+        // 텍스트 부분
+        const textSpan = document.createElement("span");
+        textSpan.className = "hover:underline flex-grow pr-2 truncate";
+        textSpan.textContent = `- ${listName}`;
+        listItem.appendChild(textSpan);
+
+        // x 삭제 버튼 부분
+        const deleteBtn = document.createElement("button");
+        deleteBtn.innerHTML = "&times;"; // x 문자
+        deleteBtn.className = "text-gray-400 hover:text-red-500 font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ml-auto";
+        deleteBtn.title = "리스트 삭제";
+
+        // 클릭 시 삭제 로직 실행
+        deleteBtn.addEventListener("click", async (e) => {
+          e.stopPropagation(); // 부모 listItem 클릭 이벤트 방지
+          const ok = confirm(`"${cust.customer_name}" 고객의 "${listName}" 리스트를 삭제하시겠습니까?`);
+          if (!ok) return;
+
+          // 삭제 실행 함수 호출
+          await deleteCustomerList(cust.customer_name, listName);
+        });
+        listItem.appendChild(deleteBtn);
 
         listItem.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -2038,6 +2061,104 @@ document.getElementById('delete-customer')?.addEventListener('click', async () =
 
   loadCustomersForCurrentStaff();
 });
+
+// ⭐ 특정 리스트 삭제 함수
+async function deleteCustomerList(customerName, listName) {
+  try {
+    // 1) customers 테이블에서 customer_name과 list_name으로 레코드 찾기
+    const { data: customer, error: findErr } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("customer_name", customerName)
+      .eq("list_name", listName)
+      .maybeSingle();
+
+    if (findErr || !customer) {
+      showToast("삭제할 리스트를 찾을 수 없습니다.");
+      return;
+    }
+
+    const targetId = customer.id;
+
+    // 2) 권한 체크: 대표/보조만 삭제 가능
+    if (!(await isMyAssignedCustomer(targetId))) {
+      showToast("담당자가 아닌 고객의 리스트는 삭제할 수 없습니다.");
+      return;
+    }
+
+    // 3) 연관 데이터부터 삭제 (FK 충돌 방지)
+    const { error: recErr } = await supabase
+      .from('customers_recommendations')
+      .delete()
+      .eq('customers_id', String(targetId));
+
+    if (recErr) {
+      console.error('추천매물 삭제 실패:', recErr);
+      showToast('추천 매물 삭제 중 오류가 발생했습니다.');
+      return;
+    }
+
+    const { error: assErr } = await supabase
+      .from('customer_assignees')
+      .delete()
+      .eq('customer_id', targetId);
+
+    if (assErr) {
+      console.error('담당 배정 삭제 실패:', assErr);
+      showToast('담당 배정 삭제 중 오류가 발생했습니다.');
+      return;
+    }
+
+    // 4) 고객 레코드 삭제
+    const { error: custErr } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', targetId);
+
+    if (custErr) {
+      console.error('고객 삭제 실패:', custErr);
+      showToast('고객 삭제 중 오류가 발생했습니다.');
+      return;
+    }
+
+    // 5) 만약 현재 열려있는 리스트를 삭제했다면 화면 초기화
+    if (currentCustomerId === targetId) {
+      currentCustomerId = null;
+      updateSaveButtonState?.();
+
+      document.getElementById('top-row-input').value = '';
+      document.getElementById('customer-phone').value = '';
+      document.getElementById('list-name-input').value = '리스트';
+      document.getElementById('customer-grade').value = 'A';
+      document.getElementById('memo-textarea').value = '';
+
+      setDocumentTitle('');
+
+      // 매물번호 및 표 초기화
+      document.querySelectorAll('input[data-index]').forEach(inp => {
+        inp.value = '';
+        inp.dispatchEvent(new Event('change'));
+      });
+
+      const listingsBodyEl = document.getElementById('listings-body');
+      if (listingsBodyEl) listingsBodyEl.innerHTML = '';
+
+      const memoBody = document.getElementById('memo-body');
+      if (memoBody) memoBody.innerHTML = '';
+
+      document.getElementById('staff-info')?.classList.add('hidden');
+      document.getElementById('staff-select')?.classList.add('hidden');
+    }
+
+    // 6) 왼쪽 고객 목록 새로고침
+    loadCustomersForCurrentStaff();
+    showToast('리스트를 삭제했습니다.');
+
+  } catch (e) {
+    console.error('리스트 삭제 중 예외:', e);
+    showToast('리스트 삭제 중 오류가 발생했습니다.');
+  }
+}
 
 // ✅ 버튼 이벤트
 document.getElementById('copy-link-btn')?.addEventListener('click', () => {
