@@ -1191,9 +1191,9 @@ async function loadCustomersForCurrentStaff() {
     listBox.className = 'mt-1';
     section.appendChild(listBox);
 
-    // F는 기본 접힘
-    const isF = grade === 'F';
-    if (isF) {
+    // F, C는 기본 접힘
+    const isFoldedByDefault = grade === 'F' || grade === 'C';
+    if (isFoldedByDefault) {
       listBox.style.display = 'none';
       header.querySelector('.caret').style.transform = 'rotate(-90deg)';
     }
