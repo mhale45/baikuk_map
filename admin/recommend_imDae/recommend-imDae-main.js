@@ -2607,6 +2607,38 @@ document.getElementById('new-customer-btn')?.addEventListener('click', () => {
   updateSaveButtonState();
 });
 
+// ⭐ 새 리스트 버튼 기능 (고객 기본정보는 유지한 채 새로운 리스트 추가 모드)
+document.getElementById('new-list-btn')?.addEventListener('click', () => {
+  const customerName = document.getElementById('top-row-input').value.trim();
+  if (!customerName) {
+    showToast('먼저 고객을 선택하거나 입력해 주세요.');
+    return;
+  }
+
+  // 1) 현재 선택 고객 ID 초기화 (신규 저장으로 유도)
+  currentCustomerId = null;
+  updateSaveButtonState();
+
+  // 2) 리스트 이름 입력란 초기화
+  document.getElementById('list-name-input').value = '리스트';
+
+  // 3) 매물번호 모두 지우기 (오른쪽 매물 표도 함께 클리어됨)
+  document.querySelectorAll('input[data-index]').forEach(inp => {
+    inp.value = '';
+    inp.dispatchEvent(new Event('change'));
+  });
+
+  // 4) 문서 제목 및 메모 영역 초기화
+  setDocumentTitle('');
+  renderMemoPanel([]);
+
+  // 5) 사이드바 선택 강조 해제
+  document.querySelectorAll(".customer-list-item.selected")
+    .forEach(el => el.classList.remove("selected"));
+
+  showToast(`"${customerName}" 고객의 새 리스트 작성 모드입니다.`);
+});
+
 // ⭐ 저장 버튼 상태(텍스트/스타일) 업데이트 함수
 function updateSaveButtonState() {
   const saveBtn = document.getElementById("save-new-customer");
