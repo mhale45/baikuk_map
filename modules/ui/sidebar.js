@@ -173,7 +173,6 @@ setTimeout(() => {
   const closeBtn = document.getElementById('mobile-sidebar-close-btn');
   if (closeBtn) closeBtn.addEventListener('click', closeMenu);
 }, 100);
-}
 
 /**
  * 지정된 컨테이너에 사이드바를 동적으로 생성 및 주입합니다.
