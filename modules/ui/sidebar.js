@@ -19,7 +19,7 @@ function injectMobileStyles() {
   const style = document.createElement('style');
   style.id = 'mobile-sidebar-styles';
   style.innerHTML = `
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       /* 기존 sidebar-container 레이아웃 점유 제거 */
       #sidebar-container {
         display: none !important;
@@ -93,7 +93,7 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   // 1. 햄버거 토글 버튼 생성
   const toggleBtn = document.createElement('div');
   toggleBtn.id = 'mobile-sidebar-toggle-btn';
-  toggleBtn.className = 'fixed bottom-6 right-6 z-[99999] bg-[#F2C130] hover:bg-[#E0B120] text-black w-14 h-14 rounded-full flex items-center justify-center shadow-2xl cursor-pointer select-none transition-transform duration-200 active:scale-95 md:hidden';
+  toggleBtn.className = 'fixed bottom-6 right-6 z-[99999] bg-[#F2C130] hover:bg-[#E0B120] text-black w-14 h-14 rounded-full flex items-center justify-center shadow-2xl cursor-pointer select-none transition-transform duration-200 active:scale-95 lg:hidden';
   toggleBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -103,12 +103,12 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   // 2. Backdrop(어두운 배경) 생성
   const backdrop = document.createElement('div');
   backdrop.id = 'mobile-sidebar-backdrop';
-  backdrop.className = 'fixed inset-0 bg-black/55 z-[99997] opacity-0 pointer-events-none transition-opacity duration-300 md:hidden';
+  backdrop.className = 'fixed inset-0 bg-black/55 z-[99997] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden';
 
   // 3. Drawer(서랍 메뉴) 생성
   const drawer = document.createElement('div');
   drawer.id = 'mobile-sidebar-drawer';
-  drawer.className = 'fixed inset-y-0 left-0 w-[280px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col md:hidden';
+  drawer.className = 'fixed inset-y-0 left-0 w-[280px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
   
   // Drawer 내부 마크업
   const menuHtml = filteredMenuItems.map(item => {
