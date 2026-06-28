@@ -665,7 +665,7 @@ async function loadCurrentUserStaffInfo() {
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
           mainLogo.style.width = '22rem';
-          mainLogo.style.marginTop = '1.6rem';
+          mainLogo.style.marginTop = '0.5rem';
         }
       }
     }
@@ -810,7 +810,7 @@ function setupStaffDropdown() {
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
               mainLogo.style.width = '22rem';
-              mainLogo.style.marginTop = '1.6rem';
+              mainLogo.style.marginTop = '0.5rem';
             }
           }
 
