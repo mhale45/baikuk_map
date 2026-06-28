@@ -1324,25 +1324,25 @@ function updateListingsTableByInputs() {
         ></button>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="listing_title_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="listing_title_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="full_address_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="full_address_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="deposit_price_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="deposit_price_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="monthly_rent_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="monthly_rent_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="premium_price_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="premium_price_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="area_py_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="true" class="text-base block" data-field="description_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="description_${i}"></span>
       </td>
     `;
 
@@ -2591,3 +2591,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
+
+// === 테이블 셀 클릭 시 실시간 편집 모드 전환 기능 ===
+document.addEventListener("DOMContentLoaded", () => {
+  const listingsBody = document.getElementById("listings-body");
+  if (!listingsBody) return;
+
+  // 1) 클릭 시 contenteditable=true로 전환 후 포커스
+  listingsBody.addEventListener("click", (e) => {
+    const span = e.target.closest("span");
+    if (span && span.hasAttribute("data-field")) {
+      if (span.getAttribute("contenteditable") !== "true") {
+        span.setAttribute("contenteditable", "true");
+        span.focus();
+
+        // 텍스트 맨 끝으로 커서 이동시키기 (더 나은 UX)
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(span);
+        range.collapse(false); // false는 끝으로 커서 이동
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  });
+
+  // 2) 포커스를 잃었을 때(blur) 다시 contenteditable=false로 전환 (캡처링 활성화)
+  listingsBody.addEventListener("blur", (e) => {
+    const span = e.target;
+    if (span && span.tagName === "SPAN" && span.hasAttribute("data-field")) {
+      span.setAttribute("contenteditable", "false");
+    }
+  }, true);
+
+  // 3) 엔터 키 입력 시 줄바꿈 방지 및 Blur 처리하여 완료
+  listingsBody.addEventListener("keydown", (e) => {
+    const span = e.target;
+    if (span && span.tagName === "SPAN" && span.hasAttribute("data-field")) {
+      if (e.key === "Enter") {
+        e.preventDefault(); // 엔터 줄바꿈 방지
+        span.blur(); // 포커스 해제하여 blur 이벤트를 유도
+      }
+    }
+  });
+});
