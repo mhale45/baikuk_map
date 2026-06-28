@@ -153,12 +153,13 @@ function injectMobileCustomerColStyles() {
   style.id = 'mobile-customer-col-styles';
   style.innerHTML = `
     @media (max-width: 1024px) {
-      #customer-col {
+      div#customer-col {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
         bottom: 0 !important;
         width: 280px !important;
+        min-width: 280px !important;
         max-width: 85% !important;
         height: 100vh !important;
         z-index: 99990 !important;
@@ -166,19 +167,12 @@ function injectMobileCustomerColStyles() {
         box-shadow: 10px 0 25px -5px rgba(0, 0, 0, 0.15) !important;
         transform: translateX(-100%) !important;
         transition: transform 0.3s ease-in-out !important;
-        padding-top: 1rem !important;
+        padding: 1rem 0.5rem !important;
+        display: block !important;
       }
       
-      #customer-col.open {
+      div#customer-col.open {
         transform: translateX(0) !important;
-      }
-
-      /* 모바일 레이아웃 점유 무력화 */
-      .flex > div#customer-col {
-        width: 0 !important;
-        min-width: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
       }
       
       #customer-list {
