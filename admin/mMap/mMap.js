@@ -821,20 +821,31 @@ function renderCustomerList(customers) {
         return "<div class='text-sm'>등록된 고객이 없습니다.</div>";
     }
 
+    // 🌟 고객 이름 중복 제거 (최신 1건만 남기기)
+    const uniqueCustomers = [];
+    const seenNames = new Set();
+    customers.forEach(c => {
+        const name = (c.customer_name || "").trim();
+        if (name && !seenNames.has(name)) {
+            seenNames.add(name);
+            uniqueCustomers.push(c);
+        }
+    });
+
     // 등급 정렬 우선순위
     const gradeOrder = {
         "계약": 0, "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6
     };
 
     // 등급별 정렬
-    customers.sort((a, b) => {
+    uniqueCustomers.sort((a, b) => {
         const aRank = gradeOrder[a.grade] ?? 999;
         const bRank = gradeOrder[b.grade] ?? 999;
         return aRank - bRank;
     });
 
     // 등급별 그룹핑
-    const grouped = customers.reduce((acc, c) => {
+    const grouped = uniqueCustomers.reduce((acc, c) => {
         const g = c.grade || "기타";
         if (!acc[g]) acc[g] = [];
         acc[g].push(c);
