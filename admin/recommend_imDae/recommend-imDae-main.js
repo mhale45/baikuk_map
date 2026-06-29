@@ -1393,8 +1393,8 @@ function updateListingsTableByInputs() {
       <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
-      <td class="border p-0 text-center" style="height: inherit;">
-        <textarea class="w-full h-full min-h-[2.5rem] box-border text-center text-base border-none bg-transparent outline-none resize-none p-2 leading-tight hover:bg-gray-100 focus:bg-white focus:border focus:border-blue-500 rounded overflow-hidden" data-field="description_${i}"></textarea>
+      <td class="border p-1 text-center align-middle hover:bg-gray-100 focus-within:bg-white focus-within:border focus-within:border-blue-500 transition-colors rounded" style="height: inherit;">
+        <textarea class="w-full h-auto min-h-[1.5rem] box-border text-center text-base border-none bg-transparent outline-none resize-none leading-tight overflow-hidden" data-field="description_${i}"></textarea>
       </td>
     `;
 
