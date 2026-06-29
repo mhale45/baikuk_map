@@ -283,12 +283,6 @@ function setDescriptionValue(index, value) {
     el.textContent = value ?? '';
   } else {
     el.value = value ?? '';
-    if (el.tagName === 'TEXTAREA') {
-      setTimeout(() => {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-      }, 0);
-    }
   }
 }
 
@@ -1409,7 +1403,7 @@ function updateListingsTableByInputs() {
     // 자동 높이 조절 이벤트 바인딩
     const textarea = row.querySelector(`[data-field="description_${i}"]`);
     if (textarea) {
-      textarea.addEventListener('input', function() {
+      textarea.addEventListener('input', function () {
         this.style.height = 'auto';
         this.style.height = this.scrollHeight + 'px';
       });
@@ -1893,6 +1887,12 @@ window.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('resize', syncRowHeights);
 
 function syncRowHeights() {
+  // 1) 모든 내용 textarea 높이부터 콘텐츠에 맞춰 세팅 (tr 높이를 결정하는 요인이므로 최우선 실행)
+  document.querySelectorAll('#listings-body textarea[data-field^="description_"]').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+
   const rightRows = document.querySelectorAll('#listings-body tr');
   const leftRows = document.querySelectorAll('#left-tbody tr');
 
@@ -2603,14 +2603,14 @@ function handleNewCustomerClick() {
   // 2) 오른쪽 고객 입력칸 초기화
   document.getElementById('top-row-input').value = '';
   document.getElementById('customer-phone').value = '';
-  
+
   const today = new Date();
   const yy = String(today.getFullYear()).slice(-2);
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const dd = String(today.getDate()).padStart(2, '0');
   const todayStr = yy + mm + dd;
   document.getElementById('list-name-input').value = todayStr;
-  
+
   document.getElementById('customer-grade').value = 'A';
   document.getElementById('memo-textarea').value = '';
 
