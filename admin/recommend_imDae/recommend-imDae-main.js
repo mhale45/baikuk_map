@@ -284,8 +284,10 @@ function setDescriptionValue(index, value) {
   } else {
     el.value = value ?? '';
     if (el.tagName === 'TEXTAREA') {
-      el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
+      setTimeout(() => {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }, 0);
     }
   }
 }
@@ -1379,25 +1381,25 @@ function updateListingsTableByInputs() {
           data-index="${i}"
         ></button>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="listing_title_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="full_address_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="deposit_price_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="monthly_rent_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="premium_price_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
-      <td class="border p-0 text-center h-px">
+      <td class="border p-0 text-center" style="height: inherit;">
         <textarea class="w-full h-full min-h-[2.5rem] box-border text-center text-base border-none bg-transparent outline-none resize-none p-2 leading-tight hover:bg-gray-100 focus:bg-white focus:border focus:border-blue-500 rounded overflow-hidden" data-field="description_${i}"></textarea>
       </td>
     `;
