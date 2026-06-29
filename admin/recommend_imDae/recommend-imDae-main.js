@@ -279,8 +279,15 @@ function getDescriptionValue(index) {
 function setDescriptionValue(index, value) {
   const el = document.querySelector(`[data-field="description_${index}"]`);
   if (!el) return;
-  if (el.tagName === 'SPAN') el.textContent = value ?? '';
-  else el.value = value ?? '';
+  if (el.tagName === 'SPAN') {
+    el.textContent = value ?? '';
+  } else {
+    el.value = value ?? '';
+    if (el.tagName === 'TEXTAREA') {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+  }
 }
 
 /** 현재 50칸의 '매물번호' input들 중 동일 매물번호가 있는 행 index 반환 (없으면 null)
@@ -1391,11 +1398,21 @@ function updateListingsTableByInputs() {
         <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <textarea class="w-full h-[3rem] box-border text-center text-base border-none bg-transparent outline-none resize-none p-1 leading-tight hover:bg-gray-100 focus:bg-white focus:border focus:border-blue-500 rounded" data-field="description_${i}"></textarea>
+        <textarea class="w-full h-[3rem] box-border text-center text-base border-none bg-transparent outline-none resize-none p-1 leading-tight hover:bg-gray-100 focus:bg-white focus:border focus:border-blue-500 rounded overflow-hidden" data-field="description_${i}"></textarea>
       </td>
     `;
 
     listingsBody.appendChild(row);
+
+    // 자동 높이 조절 이벤트 바인딩
+    const textarea = row.querySelector(`[data-field="description_${i}"]`);
+    if (textarea) {
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+      });
+    }
+
     applyRowStriping(); // ⬅ 새 행 추가 후에도 적용
   }
 
