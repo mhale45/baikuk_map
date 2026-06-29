@@ -1391,7 +1391,7 @@ function updateListingsTableByInputs() {
         <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
       <td class="p-1 border text-center">
-        <span contenteditable="false" spellcheck="false" class="text-base block outline-none min-h-[1.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="description_${i}"></span>
+        <textarea class="w-full h-[3rem] box-border text-left text-base border rounded bg-white outline-none resize-none p-1 leading-tight" data-field="description_${i}"></textarea>
       </td>
     `;
 
