@@ -917,6 +917,9 @@ async function loadCustomerDataByName(name, list_name = null) {
   document.getElementById("customer-phone").value = customer.customer_phone_number || "";
   document.getElementById("customer-grade").value = customer.grade || "F";
   document.getElementById("memo-textarea").value = customer.memo || "";
+  if (window.adjustMemoHeight) {
+    window.adjustMemoHeight();
+  }
 
   // 숫자 필드들
   const fill = (id, v) => document.getElementById(id).value = v ?? "";
@@ -1682,7 +1685,20 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   observeRows();   // 현재 있는 모든 행 관찰 시작
 
+  // ─────────────────────────────────────────
+  // 메모장(memo-textarea) 자동 높이 조절 및 max-height 제한
+  // ─────────────────────────────────────────
   const memoTextarea = document.getElementById('memo-textarea');
+  if (memoTextarea) {
+    const adjustMemoHeight = () => {
+      memoTextarea.style.height = 'auto';
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const maxH = rem * 40; // 40rem = 640px
+      memoTextarea.style.height = Math.min(memoTextarea.scrollHeight, maxH) + 'px';
+    };
+    memoTextarea.addEventListener('input', adjustMemoHeight);
+    window.adjustMemoHeight = adjustMemoHeight;
+  }
 
   document.querySelectorAll('input[data-index]').forEach(input => {
     const index = parseInt(input.dataset.index, 10);
@@ -2044,6 +2060,7 @@ document.getElementById('delete-customer')?.addEventListener('click', async () =
     document.getElementById('customer-phone').value = '';
     document.getElementById('customer-grade').value = 'F';
     document.getElementById('memo-textarea').value = '';
+    window.adjustMemoHeight?.();
 
     setDocumentTitle('');
 
@@ -2148,6 +2165,7 @@ async function deleteCustomerList(customerName, listName) {
       document.getElementById('list-name-input').value = '리스트';
       document.getElementById('customer-grade').value = 'A';
       document.getElementById('memo-textarea').value = '';
+      window.adjustMemoHeight?.();
 
       setDocumentTitle('');
 
@@ -2585,6 +2603,9 @@ function handleNewCustomerClick() {
 
   document.getElementById('customer-grade').value = 'A';
   document.getElementById('memo-textarea').value = '';
+  if (window.adjustMemoHeight) {
+    window.adjustMemoHeight();
+  }
 
   // 3) 문서 제목 초기화
   setDocumentTitle('');
