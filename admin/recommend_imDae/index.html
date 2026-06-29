@@ -51,9 +51,15 @@
           <div class="flex items-center gap-2 text-sm mb-2">
             <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
           </div>
-          <textarea placeholder="고객이름"
-            class="border border-gray-300 px-2 rounded ml-1 w-full text-left text-base resize-none" id="top-row-input"
-            rows="2"></textarea>
+          <div class="flex items-start gap-1 ml-1 w-full">
+            <textarea placeholder="고객이름"
+              class="border border-gray-300 px-2 rounded text-left text-base resize-none flex-grow min-w-0" id="top-row-input"
+              rows="2"></textarea>
+            <button id="new-customer-btn-right"
+              class="h-[3.3rem] w-[3.5rem] bg-green-500 hover:bg-green-600 text-white text-xs rounded font-bold transition-colors select-none flex-shrink-0 flex items-center justify-center text-center leading-tight">
+              신규<br>고객
+            </button>
+          </div>
           <!-- 🔽 리스트 이름 입력 -->
           <div class="flex items-center mt-2 ml-1 gap-1 w-full">
             <input id="list-name-input" placeholder="리스트 이름"

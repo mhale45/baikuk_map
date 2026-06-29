@@ -2577,7 +2577,7 @@ document.getElementById("save-new-customer").addEventListener("click", async () 
 });
 
 // ⭐ 신규 고객 버튼 기능
-document.getElementById('new-customer-btn')?.addEventListener('click', () => {
+function handleNewCustomerClick() {
   // 1) 현재 선택 고객 초기화
   currentCustomerId = null;
 
@@ -2612,7 +2612,10 @@ document.getElementById('new-customer-btn')?.addEventListener('click', () => {
 
   showToast('신규 고객 작성 모드입니다.');
   updateSaveButtonState();
-});
+}
+
+document.getElementById('new-customer-btn')?.addEventListener('click', handleNewCustomerClick);
+document.getElementById('new-customer-btn-right')?.addEventListener('click', handleNewCustomerClick);
 
 // ⭐ 새 리스트 버튼 기능 (고객 기본정보는 유지한 채 새로운 리스트 추가 모드)
 document.getElementById('new-list-btn')?.addEventListener('click', () => {
