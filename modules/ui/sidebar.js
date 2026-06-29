@@ -108,7 +108,7 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   // 3. Drawer(서랍 메뉴) 생성
   const drawer = document.createElement('div');
   drawer.id = 'mobile-sidebar-drawer';
-  drawer.className = 'fixed inset-y-0 left-0 w-[140px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
+  drawer.className = 'fixed inset-y-0 left-0 w-[130px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
 
   // Drawer 내부 마크업
   const menuHtml = filteredMenuItems.map(item => {
@@ -202,7 +202,7 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   injectMobileStyles();
 
   // 레이아웃 스타일 보장
-  container.className = 'w-[140px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
+  container.className = 'w-[130px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
 
   let showAdManagement = false;
   try {
