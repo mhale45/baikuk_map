@@ -1236,6 +1236,7 @@ async function loadCustomersForCurrentStaff() {
       const otherText = other ? `(${other})` : "";
 
       nameRow.textContent = `${cust.customer_name} ${otherText}`;
+      nameRow.title = `${cust.customer_name} ${otherText}`;
       custBlock.appendChild(nameRow);
 
       // ⭐ 고객명 클릭 시 → 첫 번째 리스트 자동 선택
