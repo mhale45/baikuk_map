@@ -168,7 +168,15 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   backdrop.classList.add('opacity-0', 'pointer-events-none');
   drawer.classList.add('-translate-x-full');
 
-  toggleBtn.addEventListener('click', openMenu);
+  const toggleMenu = () => {
+    if (drawer.classList.contains('-translate-x-full')) {
+      openMenu();
+    } else {
+      closeMenu();
+    }
+  };
+
+  toggleBtn.addEventListener('click', toggleMenu);
   backdrop.addEventListener('click', closeMenu);
 
   // 닫기 버튼 이벤트 연결
