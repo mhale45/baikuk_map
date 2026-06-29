@@ -1422,54 +1422,7 @@ function updateListingsTableByInputs() {
   syncRowHeights();
 }
 
-(function setupColumnResizeSync() {
-  const box = document.getElementById('white-box');
-  const headerRow = document.querySelector('#white-box thead tr');
 
-  if (!headerRow) return;
-
-  const handles = headerRow.querySelectorAll('.resize-handle');
-
-  handles.forEach(handle => {
-    let startX = 0;
-    let startWidth = 0;
-    let th = handle.parentElement;
-
-    handle.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      startX = e.clientX;
-      startWidth = th.offsetWidth;
-
-      function onMouseMove(ev) {
-        const delta = ev.clientX - startX;
-        const newWidth = Math.max(40, startWidth + delta);
-        th.style.width = newWidth + 'px';
-
-        // 테이블 전체 너비 계산
-        const table = document.querySelector('#white-box table');
-        const tableWidth = table.offsetWidth;
-
-        // white-box의 신규 width = 테이블너비 + 기존 여백
-        box.style.width = (tableWidth + whiteBoxExtraGap) + 'px';
-      }
-
-      function onMouseUp() {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-
-        // 리사이즈 종료 후 여백 재측정
-        const table = document.querySelector('#white-box table');
-        const tableWidth = table.offsetWidth;
-        const boxWidth = box.offsetWidth;
-
-        whiteBoxExtraGap = boxWidth - tableWidth;
-      }
-
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-    });
-  });
-})();
 
 function showToast(message, duration = 3000) {
   const toast = document.getElementById('toast');
@@ -1826,8 +1779,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ✅ 열 리사이즈
+  // ✅ 열 리사이즈 및 부모 white-box 너비 동기화
   let startX, startWidth, resizableTh;
+  const whiteBox = document.getElementById('white-box');
+
   document.querySelectorAll('.resize-handle').forEach(h => {
     h.addEventListener('mousedown', e => {
       resizableTh = e.target.closest('th');
@@ -1838,14 +1793,31 @@ window.addEventListener('DOMContentLoaded', () => {
       document.addEventListener('mouseup', stopResize);
     });
   });
+
   function resizeColumn(e) {
     if (!resizableTh) return;
-    const newWidth = startWidth + (e.clientX - startX);
+    const newWidth = Math.max(40, startWidth + (e.clientX - startX));
     resizableTh.style.width = newWidth + 'px';
+
+    // 테이블 전체 너비 계산 및 white-box 배경 크기 동기화
+    const table = document.querySelector('#white-box table');
+    if (table && whiteBox) {
+      if (typeof window.whiteBoxExtraGap === 'undefined' || isNaN(window.whiteBoxExtraGap)) {
+        window.whiteBoxExtraGap = whiteBox.offsetWidth - table.offsetWidth;
+      }
+      whiteBox.style.width = (table.offsetWidth + window.whiteBoxExtraGap) + 'px';
+    }
   }
+
   function stopResize() {
     document.removeEventListener('mousemove', resizeColumn);
     document.removeEventListener('mouseup', stopResize);
+
+    // 리사이즈 종료 후 여백 최종 재측정
+    const table = document.querySelector('#white-box table');
+    if (table && whiteBox) {
+      window.whiteBoxExtraGap = whiteBox.offsetWidth - table.offsetWidth;
+    }
     resizableTh = null;
   }
 
