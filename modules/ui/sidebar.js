@@ -202,7 +202,7 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   injectMobileStyles();
 
   // 레이아웃 스타일 보장
-  container.className = 'w-[6%] pt-[5rem] shadow-right text-center bg-white';
+  container.className = 'w-[140px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
 
   let showAdManagement = false;
   try {
@@ -238,14 +238,14 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   const html = filteredMenuItems.map(item => {
     const isActive = item.key === activeKey;
     const activeClass = isActive
-      ? 'bg-gray-100 border-l-4 border-gray-500'
-      : '';
-    const mbClass = item.mb5 ? 'mb-5' : '';
+      ? 'bg-amber-50 text-amber-600 border-l-4 border-[#F2C130]'
+      : 'text-gray-700 hover:bg-gray-100';
+    const mbClass = item.mb5 ? 'mb-4' : '';
     const targetAttr = item.target ? `target="${item.target}"` : '';
 
     return `
-      <a href="${item.href}" ${targetAttr}>
-        <div class="text-lg font-extrabold px-2 py-1 rounded hover:bg-gray-200 cursor-pointer ${activeClass} ${mbClass}">
+      <a href="${item.href}" ${targetAttr} class="block no-underline">
+        <div class="text-lg font-bold px-4 py-3 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
           ${item.label}
         </div>
       </a>
