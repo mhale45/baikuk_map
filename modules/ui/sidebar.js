@@ -132,7 +132,7 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
     <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
       <div class="flex items-center gap-2">
         <img src="https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/baikuk-images-open/pabicon-baikuk-simbol.png" class="h-6 w-auto" alt="Logo" />
-        <span class="font-extrabold text-lg text-gray-800">백억지도 메뉴</span>
+        <span class="font-extrabold text-lg text-gray-800">메뉴</span>
       </div>
       <button id="mobile-sidebar-close-btn" class="text-3xl font-light text-gray-400 hover:text-black focus:outline-none leading-none">&times;</button>
     </div>
