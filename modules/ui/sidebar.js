@@ -108,7 +108,7 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
   // 3. Drawer(서랍 메뉴) 생성
   const drawer = document.createElement('div');
   drawer.id = 'mobile-sidebar-drawer';
-  drawer.className = 'fixed inset-y-0 left-0 w-[170px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
+  drawer.className = 'fixed inset-y-0 left-0 w-[140px] bg-white z-[99998] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col lg:hidden';
 
   // Drawer 내부 마크업
   const menuHtml = filteredMenuItems.map(item => {
