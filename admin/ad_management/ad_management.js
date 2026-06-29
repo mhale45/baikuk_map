@@ -491,7 +491,8 @@ async function loadAutoRenewList() {
         
         // input 엘리먼트 생성
         const $input = document.createElement('input');
-        $input.type = 'email';
+        $input.type = 'text';
+        $input.placeholder = '예: test1@a.com, test2@b.com';
         $input.value = currentValue;
         $input.className = 'border border-gray-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-blue-100 outline-none bg-white transition-all w-full';
         
@@ -520,14 +521,25 @@ async function loadAutoRenewList() {
             return;
           }
 
-          // 간단한 이메일 정규식 검증
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(newValue)) {
-            alert('올바른 이메일 형식이 아닙니다.');
+          // 이메일 주소 여러 개(쉼표, 세미콜론 구분) 검증 및 정제
+          const emails = newValue.split(/[,;]+/).map(e => e.trim()).filter(Boolean);
+          if (emails.length === 0) {
+            alert('이메일 주소를 올바르게 입력해 주세요.');
             isSaving = false;
             $input.focus();
             return;
           }
+
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          const invalidEmails = emails.filter(e => !emailRegex.test(e));
+          if (invalidEmails.length > 0) {
+            alert(`올바르지 않은 이메일 형식이 포함되어 있습니다:\n${invalidEmails.join(', ')}`);
+            isSaving = false;
+            $input.focus();
+            return;
+          }
+
+          const finalValue = emails.join(', ');
 
           try {
             $input.disabled = true;
@@ -652,6 +664,22 @@ async function saveAutoRenew() {
     return;
   }
 
+  // 이메일 주소 여러 개(쉼표, 세미콜론 구분) 검증 및 정제
+  const emails = alarmMail.split(/[,;]+/).map(e => e.trim()).filter(Boolean);
+  if (emails.length === 0) {
+    alert('알람메일을 올바르게 입력해 주세요.');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const invalidEmails = emails.filter(e => !emailRegex.test(e));
+  if (invalidEmails.length > 0) {
+    alert(`올바르지 않은 이메일 형식이 포함되어 있습니다:\n${invalidEmails.join(', ')}`);
+    return;
+  }
+
+  const finalAlarmMail = emails.join(', ');
+
   try {
     $saveBtn.disabled = true;
     $saveBtn.textContent = '저장 중...';
@@ -664,7 +692,7 @@ async function saveAutoRenew() {
         add_password: channelPw,
         max_renewal_count: parseInt(maxCount, 10),
         affiliation: myAffiliation,
-        mail_address: alarmMail,
+        mail_address: finalAlarmMail,
         execution: executionVal,
         completed: completedVal
       });
