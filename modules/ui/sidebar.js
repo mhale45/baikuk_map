@@ -202,7 +202,7 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   injectMobileStyles();
 
   // 레이아웃 스타일 보장
-  container.className = 'w-[140px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
+  container.className = 'w-[110px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
 
   let showAdManagement = false;
   try {
@@ -245,7 +245,7 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
 
     return `
       <a href="${item.href}" ${targetAttr} class="block no-underline">
-        <div class="text-lg font-bold px-4 py-3 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
+        <div class="text-base font-bold px-2 py-2 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
           ${item.label}
         </div>
       </a>
