@@ -60,6 +60,7 @@
             -webkit-appearance: none;
             margin: 0;
         }
+
         input[type="number"] {
             -moz-appearance: textfield;
             min-width: 0;
@@ -115,37 +116,53 @@
 
         <!-- 오른쪽 입력 테이블 그룹 (가로 스크롤 가능) -->
         <div class="flex-1 overflow-x-auto custom-scroll">
-            <table class="min-w-max text-xs border-collapse mx-auto">
+            <table class="min-w-max text-xs border-collapse">
                 <thead>
                     <tr class="text-gray-600 font-semibold bg-gray-50">
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">층</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">면적<br>(평)</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">보증금</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">월세</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">평월세</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">권리금</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">매매가</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">총보증<br>금</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">총월세</th>
-                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">수익률<br>(%)</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">층
+                        </th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            면적(평)</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            보증금</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">월세
+                        </th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            평월세</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            권리금</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            매매가</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            총보증금</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            총월세</th>
+                        <th class="px-1 py-0.5 border border-gray-200 text-center w-[50px] text-[11px] leading-tight">
+                            수익률(%)</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="floor-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="floor-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="area-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="area-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="deposit-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="deposit-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="rent-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="rent-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                         <td class="p-0.5 border border-gray-200 text-center"><input id="rent_per_py-min" type="number"
                                 placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="premium-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="premium-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="sale-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="sale-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                         <td class="p-0.5 border border-gray-200 text-center"><input id="total-deposit-min" type="number"
                                 placeholder="이상"
@@ -153,24 +170,31 @@
                         <td class="p-0.5 border border-gray-200 text-center"><input id="total-rent-min" type="number"
                                 placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="roi-min" type="number" placeholder="이상"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="roi-min" type="number"
+                                placeholder="이상"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                     </tr>
                     <tr>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="floor-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="floor-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="area-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="area-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="deposit-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="deposit-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="rent-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="rent-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                         <td class="p-0.5 border border-gray-200 text-center"><input id="rent_per_py-max" type="number"
                                 placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="premium-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="premium-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="sale-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="sale-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                         <td class="p-0.5 border border-gray-200 text-center"><input id="total-deposit-max" type="number"
                                 placeholder="이하"
@@ -178,7 +202,8 @@
                         <td class="p-0.5 border border-gray-200 text-center"><input id="total-rent-max" type="number"
                                 placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200 text-center"><input id="roi-max" type="number" placeholder="이하"
+                        <td class="p-0.5 border border-gray-200 text-center"><input id="roi-max" type="number"
+                                placeholder="이하"
                                 class="w-[50px] p-1 border border-gray-300 rounded text-center text-xs" /></td>
                     </tr>
                 </tbody>
