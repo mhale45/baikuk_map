@@ -13,6 +13,7 @@ let map;
 let clusterer = null;
 let allMarkers = [];
 let desktopInfoWindow = null;
+let currentCustomerId = null;
 
 window.addEventListener("DOMContentLoaded", () => {
     map = new kakao.maps.Map(document.getElementById("map"), {
@@ -648,6 +649,61 @@ window.addEventListener("DOMContentLoaded", () => {
 
 window.addEventListener("DOMContentLoaded", () => {
     attachFilterInputEvents(onFilterChanged);
+
+    const saveBtn = document.getElementById("save-customer-filter-btn");
+    if (saveBtn) {
+        saveBtn.addEventListener("click", async () => {
+            if (!currentCustomerId) {
+                showToast("저장할 고객을 먼저 선택해주세요.");
+                return;
+            }
+
+            const floor_min = document.getElementById("floor-min").value !== "" ? Number(document.getElementById("floor-min").value) : null;
+            const floor_max = document.getElementById("floor-max").value !== "" ? Number(document.getElementById("floor-max").value) : null;
+            const area_min = document.getElementById("area-min").value !== "" ? Number(document.getElementById("area-min").value) : null;
+            const area_max = document.getElementById("area-max").value !== "" ? Number(document.getElementById("area-max").value) : null;
+            const deposit_min = document.getElementById("deposit-min").value !== "" ? Number(document.getElementById("deposit-min").value) : null;
+            const deposit_max = document.getElementById("deposit-max").value !== "" ? Number(document.getElementById("deposit-max").value) : null;
+            const rent_min = document.getElementById("rent-min").value !== "" ? Number(document.getElementById("rent-min").value) : null;
+            const rent_max = document.getElementById("rent-max").value !== "" ? Number(document.getElementById("rent-max").value) : null;
+            const rent_per_py_min = document.getElementById("rent_per_py-min").value !== "" ? Number(document.getElementById("rent_per_py-min").value) : null;
+            const rent_per_py_max = document.getElementById("rent_per_py-max").value !== "" ? Number(document.getElementById("rent_per_py-max").value) : null;
+            const premium_min = document.getElementById("premium-min").value !== "" ? Number(document.getElementById("premium-min").value) : null;
+            const premium_max = document.getElementById("premium-max").value !== "" ? Number(document.getElementById("premium-max").value) : null;
+            const sale_min = document.getElementById("sale-min").value !== "" ? Number(document.getElementById("sale-min").value) : null;
+            const sale_max = document.getElementById("sale-max").value !== "" ? Number(document.getElementById("sale-max").value) : null;
+            const total_deposit_min = document.getElementById("total-deposit-min").value !== "" ? Number(document.getElementById("total-deposit-min").value) : null;
+            const total_deposit_max = document.getElementById("total-deposit-max").value !== "" ? Number(document.getElementById("total-deposit-max").value) : null;
+            const total_rent_min = document.getElementById("total-rent-min").value !== "" ? Number(document.getElementById("total-rent-min").value) : null;
+            const total_rent_max = document.getElementById("total-rent-max").value !== "" ? Number(document.getElementById("total-rent-max").value) : null;
+            const roi_min = document.getElementById("roi-min").value !== "" ? Number(document.getElementById("roi-min").value) : null;
+            const roi_max = document.getElementById("roi-max").value !== "" ? Number(document.getElementById("roi-max").value) : null;
+
+            const { error } = await window.supabase
+                .from("customers")
+                .update({
+                    floor_min, floor_max,
+                    area_min, area_max,
+                    deposit_min, deposit_max,
+                    rent_min, rent_max,
+                    rent_per_py_min, rent_per_py_max,
+                    premium_min, premium_max,
+                    sale_min, sale_max,
+                    total_deposit_min, total_deposit_max,
+                    total_rent_min, total_rent_max,
+                    roi_min, roi_max
+                })
+                .eq("id", currentCustomerId);
+
+            if (error) {
+                console.error("❌ 고객 필터 정보 저장 실패:", error);
+                showToast("고객 필터 정보를 저장하지 못했습니다.");
+            } else {
+                showToast("고객 필터 정보가 저장되었습니다.");
+                onFilterChanged();
+            }
+        });
+    }
 });
 
 // =============================
@@ -670,6 +726,7 @@ function reloadListingsOnMapThrottled() {
 
 // 필터 초기화 함수
 function resetFilterSelections() {
+    currentCustomerId = null;
     // 전체 체크박스 false
     document.querySelectorAll(".status-check, .dealtype-check, .category-check")
         .forEach(cb => cb.checked = false);
@@ -977,6 +1034,8 @@ async function loadCustomerFilter(customerId) {
         console.error("❌ 고객 필터 조회 실패:", error);
         return;
     }
+
+    currentCustomerId = customerId;
 
     // -----------------------------------------
     // 1) 숫자 필터 매핑 테이블

@@ -12,7 +12,7 @@
 
     <style>
         :root {
-            --header-height: 4.3rem;
+            --header-height: 5.8rem;
         }
 
         body {
@@ -77,31 +77,72 @@
 
 </head>
 <body>
-    <header class="flex items-start gap-4 w-full px-4 pt-1 bg-white shadow-md border-b border-gray-200">
-        <div class="flex flex-row gap-2 mt-1">  
-            <div class="flex flex-col gap-2">
-                <button id="filter-reset-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm 
-                        hover:bg-gray-200 transition duration-150">
-                    초기화
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">   
-                <!-- 🔥 통합 필터 버튼 -->
-                <button id="filter-btn"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm w-[55px]
-                        hover:bg-gray-200 transition duration-150">
-                    필터
-                </button>
-            </div> 
-            <div class="flex flex-col gap-2">
-                <button id="toggle-customer-panel"
-                    class="px-3 py-1 border border-gray-300 rounded bg-gray-100 text-sm max-w-[260px]
-                        hover:bg-gray-200 transition duration-150">
-                    👤 고객 리스트
-                </button>
-            </div> 
-        </div>     
+    <header class="flex flex-row items-center gap-4 w-full px-4 py-2 bg-white shadow-md border-b border-gray-200 z-[10000]">
+        <!-- 왼쪽 버튼 그룹 -->
+        <div class="flex flex-row items-center gap-2 shrink-0">
+            <button id="filter-reset-btn"
+                class="px-3 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm font-medium hover:bg-gray-200 transition duration-150">
+                초기화
+            </button>
+            <button id="filter-btn"
+                class="px-3 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm font-medium w-[55px] hover:bg-gray-200 transition duration-150">
+                필터
+            </button>
+            <button id="toggle-customer-panel"
+                class="px-3 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm font-medium max-w-[260px] hover:bg-gray-200 transition duration-150">
+                👤 고객 리스트
+            </button>
+            <button id="save-customer-filter-btn"
+                class="px-3 py-1.5 border border-blue-500 rounded bg-blue-500 text-white text-sm font-bold hover:bg-blue-600 transition duration-150">
+                💾 저장
+            </button>
+        </div>
+
+        <!-- 오른쪽 입력 테이블 그룹 (가로 스크롤 가능) -->
+        <div class="flex-1 overflow-x-auto custom-scroll">
+            <table class="min-w-max text-xs border-collapse mx-auto">
+                <thead>
+                    <tr class="text-gray-600 font-semibold bg-gray-50">
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">층</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">면적(평)</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">보증금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">평월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">권리금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">매매가</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">총보증금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">총월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">수익률(%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="p-0.5 border border-gray-200"><input id="floor-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="area-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="deposit-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="premium-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="sale-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-rent-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="roi-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                    </tr>
+                    <tr>
+                        <td class="p-0.5 border border-gray-200"><input id="floor-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="area-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="deposit-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="premium-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="sale-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-rent-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="roi-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </header>
 
     <!-- 오른쪽 하단 컨트롤 버튼 -->
@@ -154,81 +195,7 @@
                 </label>
             </div>
         </div>
-        <!-- ▼ 기존 '조건' 숫자 필터 전부 옮기기 -->
-        <div class="flex flex-col gap-1 mt-5">
-
-            <!-- 층 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">층</span>
-                <input id="floor-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="floor-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 전용면적 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">전용면적</span>
-                <input id="area-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="area-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">보증금</span>
-                <input id="deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">월세</span>
-                <input id="rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 권리금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">권리금</span>
-                <input id="premium-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="premium-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 평당월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">평월세</span>
-                <input id="rent_per_py-min" type="number" placeholder="이상"
-                    class="border p-1 rounded w-20" />
-                <input id="rent_per_py-max" type="number" placeholder="이하"
-                    class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 매매가 -->
-            <div class="flex items-center gap-2 mt-5">
-                <span class="w-20">매매가</span>
-                <input id="sale-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="sale-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총보증금 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총보증금</span>
-                <input id="total-deposit-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-deposit-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 총월세 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">총월세</span>
-                <input id="total-rent-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="total-rent-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-
-            <!-- 수익률 -->
-            <div class="flex items-center gap-2">
-                <span class="w-20">수익률</span>
-                <input id="roi-min" type="number" placeholder="이상" class="border p-1 rounded w-20" />
-                <input id="roi-max" type="number" placeholder="이하" class="border p-1 rounded w-20" />
-            </div>
-        </div>        
+        
     </div>
     
     <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
