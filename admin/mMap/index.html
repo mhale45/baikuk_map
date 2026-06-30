@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8" />
     <title>mMap</title>
@@ -8,7 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- 카카오 지도 -->
-    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
+    <script
+        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f605c7b72dc7f3083f36483e55e2bc77&libraries=clusterer,services"></script>
 
     <style>
         :root {
@@ -46,11 +48,11 @@
                 max-height: 50vh;
                 left: 0;
                 top: 0;
-                transform: translate(-50%, -100%); /* 마커 위로 */
+                transform: translate(-50%, -100%);
+                /* 마커 위로 */
                 z-index: 999999;
             }
         }
-
     </style>
 
     <!-- 🔥 Supabase Client -->
@@ -76,8 +78,10 @@
     </script>
 
 </head>
+
 <body>
-    <header class="flex flex-row items-center gap-4 w-full px-4 py-2 bg-white shadow-md border-b border-gray-200 z-[10000]">
+    <header
+        class="flex flex-row items-center gap-4 w-full px-4 py-2 bg-white shadow-md border-b border-gray-200 z-[10000]">
         <!-- 왼쪽 버튼 그룹 -->
         <div class="flex flex-row items-center gap-2 shrink-0">
             <button id="filter-reset-btn"
@@ -103,42 +107,68 @@
             <table class="min-w-max text-xs border-collapse mx-auto">
                 <thead>
                     <tr class="text-gray-600 font-semibold bg-gray-50">
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">층</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">면적(평)</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">보증금</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">월세</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">평월세</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">권리금</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">매매가</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">총보증금</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">총월세</th>
-                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[70px]">수익률(%)</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">층</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">면적(평)</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">보증금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">평월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">권리금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">매매가</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">총보증금</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">총월세</th>
+                        <th class="px-2 py-0.5 border border-gray-200 text-center min-w-[30px]">수익률(%)</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="p-0.5 border border-gray-200"><input id="floor-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="area-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="deposit-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="rent-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="premium-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="sale-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="total-rent-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="roi-min" type="number" placeholder="이상" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="floor-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="area-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="deposit-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-min" type="number"
+                                placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="premium-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="sale-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-min" type="number"
+                                placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-rent-min" type="number"
+                                placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="roi-min" type="number" placeholder="이상"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
                     </tr>
                     <tr>
-                        <td class="p-0.5 border border-gray-200"><input id="floor-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="area-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="deposit-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="rent-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="premium-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="sale-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="total-rent-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
-                        <td class="p-0.5 border border-gray-200"><input id="roi-max" type="number" placeholder="이하" class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="floor-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="area-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="deposit-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="rent_per_py-max" type="number"
+                                placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="premium-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="sale-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-deposit-max" type="number"
+                                placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="total-rent-max" type="number"
+                                placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
+                        <td class="p-0.5 border border-gray-200"><input id="roi-max" type="number" placeholder="이하"
+                                class="w-full p-1 border border-gray-300 rounded text-center text-xs" /></td>
                     </tr>
                 </tbody>
             </table>
@@ -147,17 +177,14 @@
 
     <!-- 오른쪽 하단 컨트롤 버튼 -->
     <div id="map-controls" class="fixed z-[11000] flex flex-col items-center bottom-10 right-5">
-        <button id="btn-current-location"
-                class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
-                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5"
-                title="현재 위치로 이동">
+        <button id="btn-current-location" class="w-9 h-9 sm:w-10 sm:h-10 shadow rounded-lg flex items-center justify-center
+                    border border-gray-300 bg-white hover:bg-yellow-200 transition mb-5" title="현재 위치로 이동">
             <span class="text-xl text-black font-bold">◉</span>
         </button>
     </div>
-    
+
     <!-- 🔥 통합 필터 박스 -->
-    <div id="filter-box-merged"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
+    <div id="filter-box-merged" class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
         style="display:none;">
 
         <!-- ▼ 기존 '종류' 체크박스들 옮기기 -->
@@ -195,13 +222,11 @@
                 </label>
             </div>
         </div>
-        
+
     </div>
-    
+
     <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
-    <div id="customer-panel"
-        class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2"
-        style="
+    <div id="customer-panel" class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2" style="
             display:none;
             position: fixed;
             top: calc(var(--header-height) + 10px);
@@ -216,8 +241,7 @@
         ">
     </div>
 
-    <div id="side-panel"
-        style="
+    <div id="side-panel" style="
             position: fixed;
             top: calc(var(--header-height) + 10px);
             left: 10px;
@@ -236,10 +260,9 @@
             display: none;
         ">
     </div>
-        
+
     <!-- 🔍 제목 검색창 (지도 오른쪽 상단 고정) -->
-    <div id="map-search-box"
-        style="
+    <div id="map-search-box" style="
             position: fixed;
             top: calc(var(--header-height) + 10px);
             right: 20px;
@@ -252,10 +275,7 @@
         ">
 
         <!-- 🔥 검색어 초기화 X 버튼 -->
-        <button
-            id="search-clear-btn"
-            type="button"
-            style="
+        <button id="search-clear-btn" type="button" style="
                 display: none;          /* 기본은 숨김, 글자 입력되면 JS에서 보이게 */
                 padding: 0 8px;
                 height: 30px;
@@ -264,29 +284,20 @@
                 background: #f3f3f3;
                 font-size: 14px;
                 cursor: pointer;
-            "
-        >
+            ">
             ✕
         </button>
 
-        <input
-            id="search-title-input"
-            type="text"
-            placeholder="검색"
-            style="
+        <input id="search-title-input" type="text" placeholder="검색" style="
                 width: 280px;
                 padding: 5px 8px;
                 border: 1px solid #ccc;
                 border-radius: 6px;
                 font-size: 14px;
-            "
-        />
-        
+            " />
+
         <!-- 🔄 재검색 버튼 -->
-        <button
-            id="search-refresh-btn"
-            type="button"
-            style="
+        <button id="search-refresh-btn" type="button" style="
                 padding: 0 10px;
                 height: 30px;
                 border: 1px solid #ccc;
@@ -294,15 +305,13 @@
                 background: #fef3c7;   /* 연한 노랑 */
                 font-size: 14px;
                 cursor: pointer;
-            "
-        >
+            ">
             재검색
         </button>
     </div>
 
     <!-- 🔍 검색 결과 리스트 -->
-    <div id="search-result-box"
-        style="
+    <div id="search-result-box" style="
             position: fixed;
             top: calc(var(--header-height) + 60px);
             right: 20px;
@@ -327,4 +336,5 @@
     <script type="module" src="./mMap.js"></script>
 
 </body>
+
 </html>
