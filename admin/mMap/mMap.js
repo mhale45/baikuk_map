@@ -226,8 +226,8 @@ function renderSearchResults(list) {
 
             const icon =
                 status.includes("완료") ? "🔴" :
-                status.includes("보류") ? "🟡" :
-                "🟢";
+                    status.includes("보류") ? "🟡" :
+                        "🟢";
 
             let bgColor = "";
             if (status.includes("완료")) {
@@ -425,8 +425,8 @@ function renderListingWithFloorSeparator(listings) {
         const status = item.transaction_status || "";
         const icon =
             status.includes("완료") ? "🔴" :
-            status.includes("보류") ? "🟡" :
-            "🟢";    // 진행중 기본값
+                status.includes("보류") ? "🟡" :
+                    "🟢";    // 진행중 기본값
 
         // ==============================
         // 🔥 상태별 배경색
@@ -447,10 +447,10 @@ function renderListingWithFloorSeparator(listings) {
 
         if (dealType.includes("월세")) {
             html += renderRentItem(item, floor, icon, bgColor);
-        } 
+        }
         else if (dealType.includes("매매")) {
             html += renderSaleItem(item, floor, icon, bgColor);
-        } 
+        }
         else {
             // 혹시 모르는 기타 타입 → 기본 월세 형식 적용
             html += renderRentItem(item, floor, icon, bgColor);
@@ -526,7 +526,7 @@ async function renderListingsOnMap() {
 
                     let listings = await loadListingsByAddress(addr);
                     listings = applyAllFilters(listings);
-                    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
+                    listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
 
                     // =================================
                     // 📌 PC — InfoWindow 사용 (끝)
@@ -754,8 +754,8 @@ function resetFilterSelections() {
 // 🔥 초기화 버튼 클릭 시 함수 실행
 document.getElementById("filter-reset-btn").addEventListener("click", () => {
     resetFilterSelections();     // 필터 모두 초기화
-    updateCustomerButtonLabel(""); 
-    clearAllMarkers();           
+    updateCustomerButtonLabel("");
+    clearAllMarkers();
     reloadListingsOnMapThrottled();
 });
 
@@ -927,13 +927,13 @@ function renderCustomerList(customers) {
                 </div>
                 <div class="grade-content pl-2" id="grade-${grade}" style="display:none;">
                     ${list
-                        .map(c => `
+                .map(c => `
                             <div class="customer-item py-1 text-sm border-b cursor-pointer"
                                 data-id="${c.id}">
                                 ${c.customer_name}
                             </div>
                         `)
-                        .join("")}
+                .join("")}
                 </div>
             </div>
         `;
@@ -970,7 +970,7 @@ window.addEventListener("DOMContentLoaded", () => {
                 panel.style.left = "10px";
                 panel.style.zIndex = "99999";
                 panel.style.display = "block";
-            } 
+            }
             // 🔥 패널 닫기
             else {
                 panel.style.display = "none";
@@ -1109,15 +1109,15 @@ function showToast(message) {
         toast = document.createElement("div");
         toast.id = "copy-toast";
         toast.style.position = "fixed";
-        toast.style.top = "33px";                
-        toast.style.left = "50%";               
+        toast.style.top = "33px";
+        toast.style.left = "50%";
         toast.style.transform = "translate(-50%, -50%)";
         toast.style.background = "#F2C130";          // 🔥 완전 불투명 배경
         toast.style.color = "#000";                  // 🔥 글씨 색 검정
         toast.style.padding = "12px 20px";
         toast.style.borderRadius = "8px";
         toast.style.fontSize = "15px";
-        toast.style.fontWeight = "bold"; 
+        toast.style.fontWeight = "bold";
         toast.style.zIndex = "999999";
         toast.style.opacity = "0";                   // ← 애니메이션용 (배경 투명 X)
         toast.style.transition = "opacity 0.35s ease";
@@ -1313,17 +1313,16 @@ function renderSaleItem(item, floor, icon, bgColor) {
             <strong><span style="color:#d32f2f;">매매 </span>${formatNumber(item.sale_price)}</strong> /
             <strong><span style="color:blue;">보 </span>${formatNumber(item.total_deposit)}</strong> /
             <strong><span style="color:green;">월 </span>${formatNumber(item.total_rent)}</strong> /
-            <strong><span style="color:green;">수 </span>${
-                item.roi != null
-                    ? (Number(item.roi) * 100).toFixed(1) + "%"
-                    : ""
-            }</strong> /
+            <strong><span style="color:green;">수 </span>${item.roi != null
+            ? (Number(item.roi) * 100).toFixed(1) + "%"
+            : ""
+        }</strong> /
             <strong>${formatNumber(item.sale_per_py != null ? Number(item.sale_per_py).toFixed(0) : "")}</strong> /
             <strong>
-                ${ (item.total_rent != null && item.area_py > 0)
-                    ? (Number(item.total_rent) / Number(item.area_py)).toFixed(1)
-                    : ""
-                }
+                ${(item.total_rent != null && item.area_py > 0)
+            ? (Number(item.total_rent) / Number(item.area_py)).toFixed(1)
+            : ""
+        }
             </strong>
 
         </div>
@@ -1353,13 +1352,12 @@ function renderRentItem(item, floor, icon, bgColor) {
             <strong><span style="color:blue;">보 </span>${formatNumber(item.deposit_price)}</strong> /
             <strong><span style="color:green;">월 </span>${formatNumber(item.monthly_rent)}</strong> /
 
-            ${
-                (!item.premium_price || Number(item.premium_price) === 0)
-                    ? `<strong><span style="color:#d32f2f;">무권리</span></strong> /`
-                    : `<strong><span style="color:#d32f2f;">권 ${formatNumber(item.premium_price)}</span></strong> /`
-            }
+            ${(!item.premium_price || Number(item.premium_price) === 0)
+            ? `<strong><span style="color:#d32f2f;">무권리</span></strong> /`
+            : `<strong><span style="color:#d32f2f;">권 ${formatNumber(item.premium_price)}</span></strong> /`
+        }
 
-            ${ item.rent_per_py ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` : "" }
+            ${item.rent_per_py ? `<strong>${Number(item.rent_per_py).toFixed(1)}만</strong>` : ""}
         </div>
     `;
 }
@@ -1381,7 +1379,7 @@ async function openListingPopupByAddress(fullAddress, lat, lng, filterInfo = nul
     }
 
     listings = applyAllFilters(listings);
-    listings.sort((a,b)=> (a.floor ?? 0) - (b.floor ?? 0));
+    listings.sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0));
 
     // ===========================
     // PC : InfoWindow 방식
