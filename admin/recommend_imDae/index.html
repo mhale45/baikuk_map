@@ -50,43 +50,41 @@
     </div>
     <div class="flex-1 flex flex-col bg-gray-100 overflow-y-auto min-h-0 h-screen">
       <div class="mt-[2rem] flex px-3 bg-gray-100">
-        <div class="text-left text-base rounded outline-none resize-none">
-          <!-- [ADD] 매물 패널 상단:  업데이트 표시줄 -->
-          <div class="flex items-center gap-2 text-sm mb-2">
-            <span id="employee-listings-meta" class="font-medium">불러오는 중…</span>
+        <!-- 🔽 세련된 고객 정보 및 필터 카드 적용 -->
+        <div class="customer-info-card bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-4 w-[21rem] text-left text-xs flex-shrink-0">
+          
+          <!-- [ADD] 매물 패널 상단: 업데이트 표시줄 -->
+          <div class="flex items-center justify-between text-slate-500 mb-3 pb-2 border-b border-slate-100">
+            <span class="font-bold text-slate-700 text-xs">👤 고객 상세 정보</span>
+            <span id="employee-listings-meta" class="text-[10px] font-medium bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">불러오는 중…</span>
           </div>
-          <div class="flex items-center gap-1 ml-1 w-[20rem]">
+
+          <!-- 고객 이름 입력 -->
+          <div class="flex items-center gap-1.5 mb-2">
             <textarea id="top-row-input" placeholder="고객이름"
-              class="border border-gray-300 px-2 py-1.5 rounded text-left text-base h-[3.8rem] flex-grow min-w-0 resize-none outline-none overflow-y-auto box-border"></textarea>
+              class="border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 px-2.5 py-2 rounded-lg text-left text-xs h-[2.5rem] flex-grow min-w-0 resize-none outline-none overflow-y-auto box-border transition-all placeholder:text-slate-400 text-slate-700"></textarea>
             <button id="new-customer-btn-right"
-              class="h-[3.8rem] w-[3rem] bg-[#478C5C] hover:bg-[#397249] text-white text-xs px-1 rounded font-bold transition-colors select-none flex-shrink-0 flex items-center justify-center text-center leading-tight">
-              신규<br>고객
+              class="h-[2.5rem] px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs rounded-lg font-semibold transition-all select-none flex-shrink-0 flex items-center justify-center text-center">
+              신규 고객
             </button>
           </div>
-          <!-- 🔽 리스트 이름 입력 -->
-          <div class="flex items-center mt-2 ml-1 gap-1 w-[20rem]">
+
+          <!-- 리스트 이름 입력 -->
+          <div class="flex items-center gap-1.5 mb-2">
             <textarea id="list-name-input" placeholder="리스트 이름"
-              class="border border-gray-300 px-2 py-1.5 rounded text-left text-base h-[3.8rem] flex-grow min-w-0 resize-none outline-none overflow-y-auto box-border"></textarea>
+              class="border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 px-2.5 py-2 rounded-lg text-left text-xs h-[2.5rem] flex-grow min-w-0 resize-none outline-none overflow-y-auto box-border transition-all placeholder:text-slate-400 text-slate-700"></textarea>
             <button id="new-list-btn"
-              class="h-[3.8rem] w-[3rem] bg-[#478C5C] hover:bg-[#397249] text-white text-xs px-1 rounded font-bold transition-colors select-none flex-shrink-0 flex items-center justify-center text-center leading-tight">
-              신규<br>리스트
+              class="h-[2.5rem] px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs rounded-lg font-semibold transition-all select-none flex-shrink-0 flex items-center justify-center text-center">
+              신규 리스트
             </button>
           </div>
-          <div class="flex mt-[0.5rem] items-center w-[20rem]">
-            <button id="delete-customer"
-              class="ml-1 h-[2rem] w-[4.5rem] bg-rose-500 hover:bg-rose-600 text-white text-sm rounded font-bold transition-colors select-none">
-              삭제
-            </button>
-            <button id="save-new-customer"
-              class="ml-auto h-[2rem] w-[4.5rem] bg-blue-500 hover:bg-blue-600 text-white text-sm rounded font-bold transition-colors select-none">
-              저장
-            </button>
-          </div>
-          <div class="flex mt-[0.5rem] w-[20rem]">
-            <div class="flex">
-              <div class="ml-1 mt-1">구분:</div>
+
+          <!-- 구분 및 전화번호 -->
+          <div class="flex gap-2 mb-2 items-center">
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <span class="text-slate-500 font-medium">구분:</span>
               <select id="customer-grade"
-                class="ml-1 px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+                class="px-2 h-[2.2rem] text-left box-border border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-lg text-xs bg-white outline-none cursor-pointer text-slate-700 font-semibold">
                 <option>A</option>
                 <option>B</option>
                 <option>C</option>
@@ -95,105 +93,132 @@
               </select>
             </div>
             <input id="customer-phone" placeholder="전화번호"
-              class="w-[12rem] ml-auto px-1 h-[2rem] text-left box-border border border-gray-300 rounded text-base">
+              class="flex-grow px-2.5 h-[2.2rem] text-left box-border border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-lg text-xs outline-none transition-all placeholder:text-slate-400 text-slate-700">
           </div>
-          <textarea id="memo-textarea" placeholder="메모" rows="5"
-            class="mt-[0.5rem] ml-1 px-2 py-2 w-[20rem] h-[8rem] max-h-[40rem] box-border text-left text-base border border-gray-300 rounded bg-white outline-none resize-none overflow-y-auto transition-all duration-200"></textarea>
-          <!-- 🔽 여기에 새 필터 영역 추가 -->
-          <div class="ml-1 mt-4 p-3 bg-white border border-gray-300 rounded text-sm w-[20rem]">
+
+          <!-- 메모 -->
+          <textarea id="memo-textarea" placeholder="고객 관련 중요 메모나 특이사항을 입력해 주세요." rows="4"
+            class="w-full px-2.5 py-2 h-[5.5rem] max-h-[25rem] box-border text-left text-xs border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-lg bg-white outline-none resize-none overflow-y-auto transition-all placeholder:text-slate-400 text-slate-700"></textarea>
+
+          <!-- 저장 및 삭제 버튼 액션 바 -->
+          <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+            <button id="delete-customer"
+              class="flex-1 h-[2.2rem] bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs rounded-lg font-bold transition-all select-none">
+              삭제
+            </button>
+            <button id="save-new-customer"
+              class="flex-1 h-[2.2rem] bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-bold shadow-sm shadow-blue-500/10 transition-all select-none">
+              저장
+            </button>
+          </div>
+
+          <!-- 🔽 희망 매물 필터 조건 서브 카드 -->
+          <div class="mt-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5 text-[11px] text-slate-600">
+            <div class="font-bold text-slate-800 flex items-center gap-1.5 pb-1.5 border-b border-slate-200/60 mb-1">
+              <span>🔍 희망 매물 조건 필터</span>
+            </div>
+
             <!-- 층 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">층</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="floor-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="floor-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">층수 (층)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="floor-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="floor-max">
               </div>
             </div>
 
             <!-- 전용면적 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">면적(평)</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="area-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="area-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">면적 (평)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="area-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="area-max">
               </div>
             </div>
 
             <!-- 보증금 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">보증금</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="deposit-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="deposit-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">보증금 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="deposit-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="deposit-max">
               </div>
             </div>
 
             <!-- 월세 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">월세</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">월세 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="rent-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="rent-max">
               </div>
             </div>
 
             <!-- 평당 월세 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">평월세</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="rent-per-py-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="rent-per-py-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">평당월세 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="rent-per-py-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="rent-per-py-max">
               </div>
             </div>
 
             <!-- 권리금 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">권리금</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="premium-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="premium-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">권리금 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="premium-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="premium-max">
               </div>
             </div>
 
             <!-- 매매가 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">매매가</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="sale-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="sale-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">매매가 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="sale-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="sale-max">
               </div>
             </div>
 
             <!-- 총보증금 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">총보증금</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-deposit-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-deposit-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">총보증금 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="total-deposit-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="total-deposit-max">
               </div>
             </div>
 
             <!-- 총월세 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">총월세</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="total-rent-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="total-rent-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">총월세 (만원)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="total-rent-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="total-rent-max">
               </div>
             </div>
 
             <!-- 수익률 -->
-            <div class="flex flex-row items-center mb-3">
-              <div class="font-semibold w-[9rem]">수익률(%)</div>
-              <div class="flex gap-2 w-full">
-                <input type="number" placeholder="이상" class="w-full px-2 py-1 border rounded" id="roi-min">
-                <input type="number" placeholder="이하" class="w-full px-2 py-1 border rounded" id="roi-max">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold w-[4rem] text-slate-500">수익률 (%)</span>
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <input type="number" placeholder="이상" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="roi-min">
+                <span class="text-slate-300">~</span>
+                <input type="number" placeholder="이하" class="w-full px-2 py-1.5 border border-slate-200 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white text-xs text-center" id="roi-max">
               </div>
             </div>
 
           </div>
-          <!-- 🔼 필터 영역 끝 -->
-
         </div>
         <div class="ml-3 mt-[1rem] flex flex-col">
           <div class="mb-2 px-2 text-right flex gap-1">
