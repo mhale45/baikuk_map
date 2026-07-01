@@ -88,7 +88,10 @@ function injectMobileStyles() {
 
 // 모바일 전용 메뉴 버튼 및 Drawer 렌더링
 function renderMobileMenu(filteredMenuItems, activeKey) {
-  if (document.getElementById('mobile-sidebar-toggle-btn')) return;
+  // 기존 엘리먼트가 있을 경우 제거하여 중복 생성을 막고 최신 권한으로 업데이트
+  document.getElementById('mobile-sidebar-toggle-btn')?.remove();
+  document.getElementById('mobile-sidebar-backdrop')?.remove();
+  document.getElementById('mobile-sidebar-drawer')?.remove();
 
   // 1. 햄버거 토글 버튼 생성
   const toggleBtn = document.createElement('div');
@@ -228,7 +231,42 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
   // 레이아웃 스타일 보장
   container.className = 'w-[110px] pt-[5rem] shadow-right bg-white p-2 flex flex-col space-y-2 shrink-0';
 
-  let showAdManagement = false;
+  // 1단계 및 2단계 공통 렌더링 함수
+  const drawMenu = (showAdmin) => {
+    const filteredMenuItems = menuItems.filter(item => {
+      if (item.key === 'ad_management' || item.key === 'staff_manage') {
+        return showAdmin;
+      }
+      return true;
+    });
+
+    // 모바일용 햄버거 메뉴 렌더링
+    renderMobileMenu(filteredMenuItems, activeKey);
+
+    const html = filteredMenuItems.map(item => {
+      const isActive = item.key === activeKey;
+      const activeClass = isActive
+        ? 'bg-amber-50 text-amber-600 border-l-4 border-[#F2C130]'
+        : 'text-gray-700 hover:bg-gray-100';
+      const mbClass = item.mb5 ? 'mb-4' : '';
+      const targetAttr = item.target ? `target="${item.target}"` : '';
+
+      return `
+        <a href="${item.href}" ${targetAttr} class="block no-underline">
+          <div class="text-base font-bold px-2 py-2 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
+            ${item.label}
+          </div>
+        </a>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+  };
+
+  // [1단계] 즉시 일반 권한 기준으로 메뉴 및 모바일 햄버거 버튼 렌더링 (0초 대기)
+  drawMenu(false);
+
+  // [2단계] 백그라운드에서 비동기로 권한 검사 후 관리자 권한 확인 시 추가 메뉴 노출
   try {
     await waitForSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
@@ -241,41 +279,11 @@ export async function renderSidebar(activeKey, containerId = 'sidebar-container'
         .maybeSingle();
 
       if (staff && String(staff.authority_grade || '').trim() === '1') {
-        showAdManagement = true;
+        drawMenu(true);
       }
     }
   } catch (e) {
     console.warn('[Sidebar] 권한 확인 실패:', e);
   }
-
-  // 권한에 맞춰 메뉴 필터링
-  const filteredMenuItems = menuItems.filter(item => {
-    if (item.key === 'ad_management') {
-      return showAdManagement;
-    }
-    return true;
-  });
-
-  // 모바일용 햄버거 메뉴 렌더링
-  renderMobileMenu(filteredMenuItems, activeKey);
-
-  const html = filteredMenuItems.map(item => {
-    const isActive = item.key === activeKey;
-    const activeClass = isActive
-      ? 'bg-amber-50 text-amber-600 border-l-4 border-[#F2C130]'
-      : 'text-gray-700 hover:bg-gray-100';
-    const mbClass = item.mb5 ? 'mb-4' : '';
-    const targetAttr = item.target ? `target="${item.target}"` : '';
-
-    return `
-      <a href="${item.href}" ${targetAttr} class="block no-underline">
-        <div class="text-base font-bold px-2 py-2 rounded-lg cursor-pointer transition-colors ${activeClass} ${mbClass}">
-          ${item.label}
-        </div>
-      </a>
-    `;
-  }).join('');
-
-  container.innerHTML = html;
 }
 
