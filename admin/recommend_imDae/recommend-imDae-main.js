@@ -2265,6 +2265,9 @@ function cleanupPrintPortal() {
     document.title = originalTitle;
   }
 
+  // 가로 스타일 제거
+  document.getElementById("landscape-style")?.remove();
+
   // 포털 제거
   portalEl?.remove();
   portalEl = null;
@@ -2279,10 +2282,7 @@ window.addEventListener('afterprint', cleanupPrintPortal);
 
 // 세로인쇄
 document.getElementById('print-btn')?.addEventListener('click', () => {
-  buildPrintPortal();   // 혹시 beforeprint 못 받는 브라우저 보정
   window.print();
-  // 일부 브라우저 보정
-  setTimeout(cleanupPrintPortal, 0);
 });
 
 // 가로인쇄
@@ -2297,15 +2297,7 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   `;
   document.head.appendChild(style);
 
-  // 2) 포털 생성 → 인쇄 실행
-  buildPrintPortal();
   window.print();
-
-  // 3) 인쇄 후 가로 스타일 제거 + cleanup
-  setTimeout(() => {
-    document.getElementById("landscape-style")?.remove();
-    cleanupPrintPortal();
-  }, 100);
 });
 
 // 이미지 저장 (단일 이미지로 저장)
