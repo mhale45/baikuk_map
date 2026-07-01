@@ -2206,6 +2206,8 @@ document.getElementById('copy-link-btn')?.addEventListener('click', () => {
   copyToClipboard(text);
 });
 
+let wasEditModeForPrint = false;
+let portalEl = null;
 let originalTitle = '';
 
 function buildPrintPortal() {
