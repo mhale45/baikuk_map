@@ -1067,7 +1067,7 @@ async function loadCustomersForCurrentStaff() {
   ============================================ */
   const { data: primaryList, error: pErr } = await supabase
     .from('customers')
-    .select('id, customer_name, list_name, grade')
+    .select('id, customer_name, list_name, grade, customer_phone_number, memo')
     .eq('staff_profiles_id', myId);
 
   /* ============================================
@@ -1080,6 +1080,8 @@ async function loadCustomersForCurrentStaff() {
       customer_name,
       list_name,
       grade,
+      customer_phone_number,
+      memo,
       customer_assignees!inner(staff_profiles_id, is_primary)
     `)
     .eq('customer_assignees.staff_profiles_id', myId);
@@ -1104,11 +1106,9 @@ async function loadCustomersForCurrentStaff() {
       ? '대표'
       : '보조';
 
+    // 🔽 스프레드를 통해 customer_phone_number, memo도 같이 맵핑되도록 함
     map.set(c.id, {
-      id: c.id,
-      customer_name: c.customer_name,
-      list_name: c.list_name,
-      grade: c.grade,
+      ...c,
       role
     });
   });
@@ -1163,11 +1163,17 @@ function renderCustomerList(filterKeyword = '') {
 
   const keyword = filterKeyword.toLowerCase().trim();
 
-  // 검색어가 있을 경우 필터링
+  // 검색어가 있을 경우 필터링 (고객이름, 리스트이름, 전화번호, 메모 매칭)
   const filteredCustomers = cachedCustomers.filter(c => {
     if (!keyword) return true;
     const name = (c.customer_name || '').toLowerCase();
-    return name.includes(keyword);
+    const listName = (c.list_name || '').toLowerCase();
+    const phone = (c.customer_phone_number || '').toLowerCase();
+    const memo = (c.memo || '').toLowerCase();
+    return name.includes(keyword) || 
+           listName.includes(keyword) || 
+           phone.includes(keyword) || 
+           memo.includes(keyword);
   });
 
   if (!filteredCustomers.length) {
