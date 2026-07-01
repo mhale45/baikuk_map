@@ -248,6 +248,67 @@ tbody tr:nth-child(even) {
     /* bg-gray-50 */
 }
 
+/* --- 추천 매물 테이블 리뉴얼 (화면 전용) --- */
+.recommend-table,
+#white-box table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    border: none !important;
+}
+
+.recommend-table th,
+.recommend-table td,
+#white-box table th,
+#white-box table td {
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important; /* 세련된 수평 구분선 */
+    padding: 0.65rem 0.5rem !important; /* 패딩 증가 */
+    text-align: center;
+    vertical-align: middle !important;
+    font-size: 0.775rem !important;
+    color: #475569 !important; /* slate-600 */
+}
+
+/* 테이블 헤더 */
+.recommend-table thead,
+#white-box table thead {
+    background-color: #f8fafc !important; /* slate-50 */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.recommend-table thead tr th,
+#white-box table thead tr th {
+    color: #475569 !important; /* slate-600 */
+    font-weight: 700 !important;
+    font-size: 0.775rem !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* 행 호버 및 홀짝 배경색 덮어쓰기 */
+.recommend-table tbody tr,
+#white-box table tbody tr {
+    transition: background-color 0.15s ease !important;
+    background-color: #ffffff !important;
+}
+
+.recommend-table tbody tr:nth-child(odd),
+#white-box table tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+
+.recommend-table tbody tr:nth-child(even),
+#white-box table tbody tr:nth-child(even) {
+    background-color: #fbfcfd !important; /* 아주 은은한 짝수행 구분 */
+}
+
+.recommend-table tbody tr:hover,
+#white-box table tbody tr:hover {
+    background-color: #f1f5f9 !important; /* 호버 시 세련된 그레이 */
+}
+
 #staff-dropdown {
     max-height: 520px;
     /* 기존보다 훨씬 길게 */
