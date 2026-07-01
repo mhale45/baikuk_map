@@ -2,7 +2,7 @@
 @media print {
     @page {
         size: A4 portrait;
-        margin: 12mm;
+        margin: 0;
     }
 
     html,
@@ -23,13 +23,14 @@
         display: none !important;
     }
 
-    /* 인쇄 포털만 표시 */
+    /* 인쇄 포털만 표시 (margin 대신 padding으로 여백을 채워 머리글/바닥글 영역 소멸) */
     #print-portal {
         display: block !important;
         position: static !important;
         width: 100% !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 12mm !important;
+        box-sizing: border-box !important;
     }
 
     #print-portal table {

@@ -2292,7 +2292,7 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   style.id = "landscape-style";
   style.innerHTML = `
     @media print {
-      @page { size: A4 landscape; margin: 12mm; }
+      @page { size: A4 landscape; margin: 0; }
     }
   `;
   document.head.appendChild(style);
