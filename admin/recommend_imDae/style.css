@@ -146,9 +146,9 @@ th.resizable {
     border: 1px solid #d1fae5;
 }
 .grade-header.grade-a {
-    background-color: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #dbeafe;
+    background-color: #fff1f2; /* 빨간색 계열 (기존 F) */
+    color: #be123c;
+    border: 1px solid #ffe4e6;
 }
 .grade-header.grade-b {
     background-color: #f5f3ff;
@@ -161,9 +161,9 @@ th.resizable {
     border: 1px solid #fef3c7;
 }
 .grade-header.grade-f {
-    background-color: #fff1f2;
-    color: #be123c;
-    border: 1px solid #ffe4e6;
+    background-color: #f1f5f9; /* 회색 계열 */
+    color: #475569;
+    border: 1px solid #e2e8f0;
 }
 .grade-header.grade-unknown {
     background-color: #f8fafc;
