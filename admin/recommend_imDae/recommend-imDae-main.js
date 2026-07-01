@@ -2206,10 +2206,13 @@ document.getElementById('copy-link-btn')?.addEventListener('click', () => {
   copyToClipboard(text);
 });
 
-let wasEditModeForPrint = false;
-let portalEl = null;
+let originalTitle = '';
 
 function buildPrintPortal() {
+  // 브라우저 머리글(title) 출력 방지를 위해 타이틀 임시 비우기
+  originalTitle = document.title;
+  document.title = '';
+
   // 기존 포털 제거
   portalEl?.remove();
 
@@ -2255,6 +2258,11 @@ function buildPrintPortal() {
 }
 
 function cleanupPrintPortal() {
+  // 타이틀 복원
+  if (originalTitle) {
+    document.title = originalTitle;
+  }
+
   // 포털 제거
   portalEl?.remove();
   portalEl = null;
