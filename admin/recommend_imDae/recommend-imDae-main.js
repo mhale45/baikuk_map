@@ -2282,11 +2282,18 @@ window.addEventListener('afterprint', cleanupPrintPortal);
 
 // 세로인쇄
 document.getElementById('print-btn')?.addEventListener('click', () => {
-  window.print();
+  originalTitle = document.title;
+  document.title = ''; // window.print() 전에 즉시 타이틀을 비워 브라우저 캐싱 방지
+  setTimeout(() => {
+    window.print();
+  }, 50);
 });
 
 // 가로인쇄
 document.getElementById('print-btn2')?.addEventListener('click', () => {
+  originalTitle = document.title;
+  document.title = ''; // window.print() 전에 즉시 타이틀을 비워 브라우저 캐싱 방지
+  
   // 1) A4 가로 스타일 주입
   const style = document.createElement("style");
   style.id = "landscape-style";
@@ -2297,7 +2304,9 @@ document.getElementById('print-btn2')?.addEventListener('click', () => {
   `;
   document.head.appendChild(style);
 
-  window.print();
+  setTimeout(() => {
+    window.print();
+  }, 50);
 });
 
 // 이미지 저장 (단일 이미지로 저장)
