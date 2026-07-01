@@ -16,6 +16,13 @@
         display: none !important;
     }
 
+    /* 특정 ID 요소들 명시적으로 숨김 (명시도 이슈 해결) */
+    #main-header-logo,
+    #page-title,
+    #main-layout {
+        display: none !important;
+    }
+
     /* 인쇄 포털만 표시 */
     #print-portal {
         display: block !important;
