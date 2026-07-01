@@ -1051,6 +1051,10 @@ async function loadCustomerByNameAndList(name, list_name) {
 }
 
 // 왼쪽패널 고객 + 리스트이름 트리 구조 로딩 (대표/보조 표시 + 등급 그룹 유지)
+let cachedCustomers = [];
+let cachedOtherNameMap = new Map();
+
+// 왼쪽패널 고객 + 리스트이름 트리 구조 로딩 (대표/보조 표시 + 등급 그룹 유지)
 async function loadCustomersForCurrentStaff() {
   const myId = await getMyStaffId();
   if (!myId) {
@@ -1109,19 +1113,19 @@ async function loadCustomersForCurrentStaff() {
     });
   });
 
-  let customers = Array.from(map.values());
+  cachedCustomers = Array.from(map.values());
 
   /* ============================================
      4) 담당자 2명일 때 내 이름 제외한 상대 이름 표시
   ============================================ */
-  const custIds = customers.map(c => c.id);
+  const custIds = cachedCustomers.map(c => c.id);
 
   const { data: assigneesAll } = await supabase
     .from('customer_assignees')
     .select('customer_id, staff_profiles!inner(id, name)')
     .in('customer_id', custIds);
 
-  const otherNameMap = new Map();
+  cachedOtherNameMap.clear();
   if (assigneesAll) {
     const byCustomer = new Map();
 
@@ -1137,7 +1141,7 @@ async function loadCustomersForCurrentStaff() {
       if (idNameMap.size === 2 && idNameMap.has(myId)) {
         for (const [sid, sname] of idNameMap.entries()) {
           if (sid !== myId) {
-            otherNameMap.set(cid, sname);
+            cachedOtherNameMap.set(cid, sname);
             break;
           }
         }
@@ -1145,25 +1149,39 @@ async function loadCustomersForCurrentStaff() {
     });
   }
 
-  /* ============================================
-     5) 등급 그룹별 고객 표시
-  ============================================ */
+  // 렌더링 호출
+  const searchInput = document.getElementById('customer-search');
+  const keyword = searchInput ? searchInput.value.trim() : '';
+  renderCustomerList(keyword);
+}
+
+// 🔽 손님목록 트리 렌더링 함수 분리 및 UI 보강
+function renderCustomerList(filterKeyword = '') {
   const container = document.getElementById('customer-list');
   if (!container) return;
   container.innerHTML = '';
 
-  if (!customers.length) {
-    container.textContent = '등록된 고객이 없습니다.';
+  const keyword = filterKeyword.toLowerCase().trim();
+
+  // 검색어가 있을 경우 필터링
+  const filteredCustomers = cachedCustomers.filter(c => {
+    if (!keyword) return true;
+    const name = (c.customer_name || '').toLowerCase();
+    return name.includes(keyword);
+  });
+
+  if (!filteredCustomers.length) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'text-center py-8 text-xs text-gray-400 font-medium';
+    emptyMsg.textContent = keyword ? '검색 결과가 없습니다.' : '등록된 고객이 없습니다.';
+    container.appendChild(emptyMsg);
     return;
   }
 
+  // 등급 그룹별 분류
   const gradeOrder = { 계약: 0, A: 1, B: 2, C: 3, F: 4 };
-  const filteredCustomers = customers.filter(c =>
-    ['계약', 'A', 'B', 'C', 'F'].includes((c.grade || '').toUpperCase())
-  );
-
   const grouped = filteredCustomers.reduce((acc, c) => {
-    const g = (c.grade || '미분류').toUpperCase();
+    const g = c.grade ? c.grade.trim() : '미분류';
     (acc[g] ||= []).push(c);
     return acc;
   }, {});
@@ -1171,30 +1189,38 @@ async function loadCustomersForCurrentStaff() {
   const gradeOrderList = ['계약', 'A', 'B', 'C', 'F'];
   const sortedGrades = [
     ...gradeOrderList.filter(g => grouped[g]?.length),
-    ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g))
+    ...Object.keys(grouped).filter(g => !gradeOrderList.includes(g) && grouped[g]?.length)
   ];
 
-  /* ============================================
-     6) 렌더링: 고객이름 + 리스트이름 트리화
-  ============================================ */
+  /* 렌더링: 등급 -> 고객이름 -> 리스트이름 트리화 */
   sortedGrades.forEach(grade => {
     const list = grouped[grade] || [];
     if (!list.length) return;
 
     const section = document.createElement('div');
-    section.className = 'mb-1';
+    section.className = 'mb-2';
     container.appendChild(section);
 
     const header = document.createElement('div');
-    header.className = 'grade-header flex items-center justify-between cursor-pointer select-none';
+    let gradeClass = 'grade-unknown';
+    if (grade === '계약') gradeClass = 'grade-contract';
+    else if (grade === 'A') gradeClass = 'grade-a';
+    else if (grade === 'B') gradeClass = 'grade-b';
+    else if (grade === 'C') gradeClass = 'grade-c';
+    else if (grade === 'F') gradeClass = 'grade-f';
+
+    header.className = `grade-header ${gradeClass} flex items-center justify-between cursor-pointer select-none`;
     header.innerHTML = `
-      <span>${grade} (${list.length})</span>
-      <span class="caret text-gray-600 transition-transform duration-200">▼</span>
+      <span class="flex items-center gap-1.5">
+        <span>${grade}</span>
+        <span class="grade-badge">${list.length}</span>
+      </span>
+      <span class="caret text-current/60 transition-transform duration-200 text-[10px]">▼</span>
     `;
     section.appendChild(header);
 
     const listBox = document.createElement('div');
-    listBox.className = 'mt-1';
+    listBox.className = 'mt-1.5 space-y-1';
     section.appendChild(listBox);
 
     // F, C는 기본 접힘
@@ -1214,10 +1240,12 @@ async function loadCustomersForCurrentStaff() {
           lists: []
         };
       }
-      customersByName[c.customer_name].lists.push(c.list_name);
+      if (!customersByName[c.customer_name].lists.includes(c.list_name)) {
+        customersByName[c.customer_name].lists.push(c.list_name);
+      }
     });
 
-    /* ⭐ 고객이름 내림차순 정렬 */
+    /* 고객이름 내림차순 정렬 */
     const sortedCustomerGroups = Object.values(customersByName).sort(
       (a, b) => b.info.customer_name.localeCompare(a.info.customer_name, "ko")
     );
@@ -1227,110 +1255,91 @@ async function loadCustomersForCurrentStaff() {
       const cust = group.info;
 
       const custBlock = document.createElement("div");
-      custBlock.className = "customer-block mb-1";
+      custBlock.className = "customer-block";
 
       const nameRow = document.createElement("div");
-      nameRow.className = "customer-name font-bold cursor-pointer";
+      nameRow.className = "customer-name";
 
-      const other = otherNameMap.get(cust.id);
+      const other = cachedOtherNameMap.get(cust.id);
       const otherText = other ? `(${other})` : "";
 
-      nameRow.textContent = `${cust.customer_name} ${otherText}`;
-      nameRow.title = `${cust.customer_name} ${otherText}`;
+      nameRow.innerHTML = `
+        <div class="flex items-center gap-1.5 truncate max-w-[80%]">
+          <span class="text-slate-400 flex-shrink-0 text-xs">👤</span>
+          <span class="truncate" title="${cust.customer_name}">${cust.customer_name}</span>
+        </div>
+        ${otherText ? `<span class="text-[10px] text-slate-400 font-normal ml-auto truncate max-w-[40%]" title="${other}">${other}</span>` : ''}
+      `;
       custBlock.appendChild(nameRow);
 
-      // ⭐ 고객명 클릭 시 → 첫 번째 리스트 자동 선택
-      nameRow.addEventListener("click", () => {
-
-        const sub = custBlock.querySelector(".customer-sublist");
-
-        // 리스트 아이템 수 가져오기
-        const listItems = custBlock.querySelectorAll(".customer-list-item");
-        const listCount = listItems.length;
-
-        // ⭐ 다른 모든 고객의 서브리스트는 자동으로 접기 (아코디언 방식)
-        document.querySelectorAll(".customer-sublist").forEach(otherSub => {
-          if (otherSub !== sub) {
-            otherSub.classList.add("hidden");
-          }
-        });
-
-        // ⭐ 리스트가 2개 이상일 때만 펼치기 / 접기 토글
-        if (sub && listCount >= 2) {
-          sub.classList.toggle("hidden");
-        }
-
-        // ⭐ 리스트가 1개 이상 있으면 첫 번째 리스트 선택 자동 실행
-        const firstListItem = listItems[0];
-        if (firstListItem) {
-          // 기존 선택 제거
-          document.querySelectorAll(".customer-list-item.selected")
-            .forEach(el => el.classList.remove("selected"));
-
-          // 선택 표시
-          firstListItem.classList.add("selected");
-
-          // 리스트 이름 파싱 (dataset에서 오리지널 리스트명을 직접 가져옴)
-          const firstListName = firstListItem.dataset.listName;
-
-          // 고객 데이터 자동 로드
-          loadCustomerDataByName(cust.customer_name, firstListName);
-        } else {
-          // ⭐ 저장되어 있는 리스트가 없는 경우에도 고객명으로 기본 정보 조회하여 로드
-          loadCustomerDataByName(cust.customer_name, null);
-        }
-      });
-
-      // 리스트 wrapper
       const sublist = document.createElement("div");
-      sublist.className = "customer-sublist hidden ml-3 mt-1";
+      sublist.className = "customer-sublist hidden";
       custBlock.appendChild(sublist);
 
       // 리스트 렌더링
       group.lists.forEach(listName => {
         const listItem = document.createElement("div");
-        // flex 레이아웃으로 텍스트와 x 버튼을 양쪽으로 정렬
-        listItem.className = "customer-list-item flex items-center justify-between pl-4 pr-2 cursor-pointer text-gray-700 hover:bg-gray-100 py-0.5 rounded transition-all group";
-        listItem.dataset.listName = listName || ""; // 오리지널 리스트명 저장 (null 방지)
+        listItem.className = "customer-list-item group";
+        listItem.dataset.listName = listName || "";
 
-        // 텍스트 부분
         const textSpan = document.createElement("span");
-        textSpan.className = "hover:underline flex-grow pr-2 truncate";
-        textSpan.textContent = `- ${listName || ""}`;
+        textSpan.className = "flex items-center gap-1.5 flex-grow pr-2 truncate";
+        textSpan.innerHTML = `
+          <span class="text-slate-400 text-[10px] flex-shrink-0">📄</span>
+          <span class="truncate" title="${listName || '기본 리스트'}">${listName || "기본 리스트"}</span>
+        `;
         listItem.appendChild(textSpan);
 
-        // x 삭제 버튼 부분
         const deleteBtn = document.createElement("button");
-        deleteBtn.innerHTML = "&times;"; // x 문자
-        deleteBtn.className = "text-gray-400 hover:text-red-500 font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ml-auto";
+        deleteBtn.innerHTML = "&times;";
+        deleteBtn.className = "text-slate-400 hover:text-rose-500 font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-all ml-auto hover:bg-rose-50 flex items-center justify-center text-xs";
         deleteBtn.title = "리스트 삭제";
 
-        // 클릭 시 삭제 로직 실행
         deleteBtn.addEventListener("click", async (e) => {
-          e.stopPropagation(); // 부모 listItem 클릭 이벤트 방지
+          e.stopPropagation();
           const ok = confirm(`"${cust.customer_name}" 고객의 "${listName}" 리스트를 삭제하시겠습니까?`);
           if (!ok) return;
-
-          // 삭제 실행 함수 호출
           await deleteCustomerList(cust.customer_name, listName);
         });
         listItem.appendChild(deleteBtn);
 
         listItem.addEventListener("click", (e) => {
           e.stopPropagation();
-
-          // ⭐ 기존 선택 제거
           document.querySelectorAll(".customer-list-item.selected")
             .forEach(el => el.classList.remove("selected"));
-
-          // ⭐ 현재 클릭된 리스트 강조
           listItem.classList.add("selected");
-
-          // 고객 정보 불러오기
           loadCustomerDataByName(cust.customer_name, listName);
         });
 
         sublist.appendChild(listItem);
+      });
+
+      // 고객명 클릭 시 → 서브리스트 토글 & 첫번째 리스트 선택 자동 실행
+      nameRow.addEventListener("click", () => {
+        const sub = custBlock.querySelector(".customer-sublist");
+        const listItems = custBlock.querySelectorAll(".customer-list-item");
+        const listCount = listItems.length;
+
+        document.querySelectorAll(".customer-sublist").forEach(otherSub => {
+          if (otherSub !== sub) {
+            otherSub.classList.add("hidden");
+          }
+        });
+
+        if (sub && listCount >= 2) {
+          sub.classList.toggle("hidden");
+        }
+
+        const firstListItem = listItems[0];
+        if (firstListItem) {
+          document.querySelectorAll(".customer-list-item.selected")
+            .forEach(el => el.classList.remove("selected"));
+          firstListItem.classList.add("selected");
+          const firstListName = firstListItem.dataset.listName;
+          loadCustomerDataByName(cust.customer_name, firstListName);
+        } else {
+          loadCustomerDataByName(cust.customer_name, null);
+        }
       });
 
       listBox.appendChild(custBlock);
@@ -1671,6 +1680,14 @@ window.addEventListener('DOMContentLoaded', () => {
   loadStaffOptions();
   refreshLatestMeta(); // [ADD] 매물장 최신 업데이트 시간 갱신
   setupStaffDropdown();
+
+  // 🔽 실시간 고객 검색 이벤트 바인딩
+  const searchInput = document.getElementById('customer-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      renderCustomerList(e.target.value.trim());
+    });
+  }
 
   // ⭐ staff-dropdown 을 body로 이동 (부모 overflow 영향 안 받게)
   const dropdown = document.getElementById('staff-dropdown');

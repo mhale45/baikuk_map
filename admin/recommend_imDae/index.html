@@ -32,8 +32,19 @@
   </div>
   <div id="main-layout" class="flex min-h-screen print:hidden">
     <div id="sidebar-container"></div>
-    <div id="customer-col" class="bg-gray-100 w-[280px] shrink-0 pt-[4rem] shadow-right relative z-[10] text-left">
-      <div id="customer-list" class="overflow-y-auto max-h-[calc(100vh-5rem)]">
+    <div id="customer-col" class="bg-white border-r border-gray-100 w-[280px] shrink-0 pt-[4rem] shadow-right relative z-[10] text-left flex flex-col h-screen">
+      <!-- 🔽 실시간 고객 검색 추가 -->
+      <div class="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 text-sm">
+            🔍
+          </span>
+          <input type="text" id="customer-search" placeholder="고객 이름 검색..." 
+            class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400 text-gray-700" />
+        </div>
+      </div>
+      <!-- 고객 목록 영역 -->
+      <div id="customer-list" class="overflow-y-auto flex-1 custom-scroll p-3 space-y-1">
         <!-- 여기에 고객 이름들이 표시됩니다 -->
       </div>
     </div>

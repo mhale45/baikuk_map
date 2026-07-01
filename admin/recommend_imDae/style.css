@@ -122,14 +122,66 @@ th.resizable {
 
 /* 눌렀을 때 살짝 더 진하게 */
 .grade-header {
-    background-color: #e5e7eb;
-    /* bg-yellow-100 같은 효과 */
-    color: #000000;
-    /* 진한 주황색 글씨 */
-    font-weight: bold;
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.375rem;
+    margin-top: 0.6rem;
+    font-size: 0.775rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.grade-header:hover {
+    filter: brightness(0.96);
+}
+
+/* 등급별 테마 */
+.grade-header.grade-contract {
+    background-color: #ecfdf5;
+    color: #047857;
+    border: 1px solid #d1fae5;
+}
+.grade-header.grade-a {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+}
+.grade-header.grade-b {
+    background-color: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ede9fe;
+}
+.grade-header.grade-c {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fef3c7;
+}
+.grade-header.grade-f {
+    background-color: #fff1f2;
+    color: #be123c;
+    border: 1px solid #ffe4e6;
+}
+.grade-header.grade-unknown {
+    background-color: #f8fafc;
+    color: #475569;
+    border: 1px solid #f1f5f9;
+}
+
+/* 등급 갯수 뱃지 */
+.grade-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.05rem 0.35rem;
+    border-radius: 9999px;
+    font-size: 0.675rem;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 /* 테이블 전체 + 셀 테두리 */
@@ -213,51 +265,89 @@ tbody tr:nth-child(even) {
     border: 1px solid #ccc;
 }
 
+/* 커스텀 스크롤바 */
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 3px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
+}
+
+.customer-block {
+    margin-top: 0.35rem;
+    margin-bottom: 0.35rem;
+}
+
 .customer-name {
-    font-size: 0.95rem;
-    color: #1f2937;
-    /* text-gray-800 */
-    padding: 0.25rem 0.35rem;
-    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155; /* slate-700 */
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.375rem;
     cursor: pointer;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background-color: #ffffff;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .customer-name:hover {
-    background-color: #fef9c3;
-    /* hover:bg-yellow-100 */
+    background-color: #f8fafc; /* slate-50 */
+    border-color: #cbd5e1; /* slate-300 */
+    color: #0f172a; /* slate-900 */
+    transform: translateY(-0.5px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.customer-name:active {
+    transform: translateY(0);
+    background-color: #e2e8f0;
 }
 
 .customer-sublist {
-    margin-left: 0.75rem;
-    padding-left: 0.25rem;
-    border-left: 2px solid #e5e7eb;
-    /* 살짝 라인 */
+    margin-left: 0.95rem;
+    padding-left: 0.6rem;
+    border-left: 1px dashed #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.4rem;
 }
 
 .customer-list-item {
-    font-size: 0.85rem;
-    padding: 0.2rem 0.4rem;
-    color: #374151;
-    /* text-gray-700 */
-    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.775rem;
+    padding: 0.35rem 0.5rem;
+    color: #64748b; /* slate-500 */
+    border-radius: 0.3125rem;
     cursor: pointer;
-    background-color: #fcfcfc;
-    /* ⭐ 기본 배경: 더 하얀 회색 */
-    transition: background-color 0.15s ease;
+    background-color: transparent;
+    transition: all 0.15s ease;
 }
 
 .customer-list-item:hover {
-    background-color: #ffffff;
-    /* ⭐ hover 시 조금 진한 회색 */
-    text-decoration: underline;
+    background-color: #f1f5f9; /* slate-100 */
+    color: #1e293b; /* slate-800 */
 }
 
 .customer-list-item.selected {
-    background-color: #fff9c4 !important;
-    /* ⭐ 연한 노란색 */
+    background-color: #eff6ff !important; /* blue-50 */
+    color: #2563eb !important; /* blue-600 */
     font-weight: 600;
+    border: 1px solid #bfdbfe; /* blue-200 */
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.03);
 }
