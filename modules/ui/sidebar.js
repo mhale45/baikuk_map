@@ -184,6 +184,30 @@ function renderMobileMenu(filteredMenuItems, activeKey) {
     const closeBtn = document.getElementById('mobile-sidebar-close-btn');
     if (closeBtn) closeBtn.addEventListener('click', closeMenu);
   }, 100);
+
+  // 🔽 [Visual Viewport 위치 보정] 핀치 줌 / 스크롤에 관계없이 우하단 고정
+  if (window.visualViewport) {
+    const adjust = () => {
+      const vv = window.visualViewport;
+      const scale = vv.scale;
+      const baseSize = 56; // 14rem = 56px
+      const baseOffset = 24; // bottom-6 / right-6 = 24px
+      const size = baseSize / scale;
+      const offset = baseOffset / scale;
+
+      toggleBtn.style.width = `${size}px`;
+      toggleBtn.style.height = `${size}px`;
+      toggleBtn.style.top = `${vv.offsetTop + vv.height - size - offset}px`;
+      toggleBtn.style.left = `${vv.offsetLeft + vv.width - size - offset}px`;
+      toggleBtn.style.right = 'auto';
+    };
+    window.visualViewport.addEventListener('resize', adjust);
+    window.visualViewport.addEventListener('scroll', adjust);
+    // 초기 보정
+    adjust();
+    // 로드 시 2차 보정
+    window.addEventListener('load', adjust);
+  }
 }
 
 /**
