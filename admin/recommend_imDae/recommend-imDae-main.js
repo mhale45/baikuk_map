@@ -320,14 +320,14 @@ function renderMemoPanel(listings = []) {
   for (let i = 1; i <= 50; i++) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="p-1 border-b border-gray-200 align-top">
-        <div class="flex items-start gap-2 h-full">
+      <td class="py-1.5 px-1 border-b border-slate-100 align-top bg-white">
+        <div class="flex items-center gap-2 w-full">
+          <span class="text-[10px] font-bold text-slate-300 select-none pl-1 w-[1.2rem] text-center">${String(i).padStart(2, '0')}</span>
           <textarea
-            class="w-[18rem] h-full resize-none outline-none bg-transparent text-sm align-top box-border p-1"
+            class="flex-1 w-full bg-slate-50/50 hover:bg-slate-100/70 focus:bg-white text-xs text-slate-700 placeholder:text-slate-300 border border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-lg p-1.5 transition-all outline-none resize-none align-top box-border"
             data-memo-index="${i}"
             placeholder="메모 입력"
             rows="1"
-            style="height:100%;min-height:0"
           ></textarea>
         </div>
       </td>
@@ -1385,35 +1385,35 @@ function updateListingsTableByInputs() {
   for (let i = currentRows + 1; i <= maxIndex; i++) {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td class="p-2 border text-center relative">
+      <td class="p-2 border text-center relative font-semibold text-slate-400 text-xs select-none">
         ${i}
         <input type="hidden" data-field="color_${i}" value="">
         <input type="hidden" data-field="strike_${i}" value=""> 
         <button 
-          class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-gray-400"
+          class="color-picker-btn absolute right-1 top-1 w-3 h-3 rounded-full border border-slate-300 shadow-sm"
           data-index="${i}"
         ></button>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="listing_title_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="listing_title_${i}"></span>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="full_address_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="full_address_${i}"></span>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="deposit_price_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="deposit_price_${i}"></span>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="monthly_rent_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="monthly_rent_${i}"></span>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="premium_price_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="premium_price_${i}"></span>
       </td>
       <td class="border p-0 text-center" style="height: inherit;">
-        <span contenteditable="false" spellcheck="false" class="text-base flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-gray-100 px-1 transition-all" data-field="area_py_${i}"></span>
+        <span contenteditable="false" spellcheck="false" class="text-[13px] text-slate-700 flex items-center justify-center w-full h-full min-h-[2.5rem] cursor-text rounded hover:bg-slate-50 px-1 transition-all" data-field="area_py_${i}"></span>
       </td>
-      <td class="border p-1 text-center align-middle hover:bg-gray-100 focus-within:bg-white focus-within:border focus-within:border-blue-500 transition-colors rounded" style="height: inherit;">
-        <textarea rows="1" class="w-full h-auto min-h-[1.5rem] box-border text-center text-base border-none bg-transparent outline-none resize-none leading-tight overflow-hidden transform translate-y-[3px]" data-field="description_${i}"></textarea>
+      <td class="border p-1 text-center align-middle hover:bg-slate-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all rounded" style="height: inherit;">
+        <textarea rows="1" class="w-full h-auto min-h-[1.5rem] box-border text-center text-[13px] text-slate-700 border-none bg-transparent outline-none resize-none leading-tight overflow-hidden transform translate-y-[3px]" data-field="description_${i}"></textarea>
       </td>
     `;
 
@@ -1514,9 +1514,10 @@ const leftTbody = document.getElementById('left-tbody');
 for (let i = 1; i <= 50; i++) {
   const row = document.createElement('tr');
   row.innerHTML = `
-    <td class="border-b text-right pr-2"> <!-- 오른쪽 정렬 -->
-      <input type="text" placeholder="입력 ${i}" 
-            class="w-[5rem] border px-2 rounded text-base ml-auto block" 
+    <td class="border-b border-slate-100 py-1.5 px-2 flex items-center justify-between gap-1.5 bg-white">
+      <span class="text-[10px] font-bold text-slate-400 select-none">${String(i).padStart(2, '0')}</span>
+      <input type="text" placeholder="매물번호" 
+            class="w-[5rem] px-2 py-1 text-xs border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-md transition-all placeholder:text-slate-300 text-slate-700 outline-none text-center bg-slate-50/30 focus:bg-white" 
             data-index="${i}" />
     </td>
   `;
