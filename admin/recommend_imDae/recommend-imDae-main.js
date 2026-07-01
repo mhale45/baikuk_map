@@ -1223,8 +1223,8 @@ function renderCustomerList(filterKeyword = '') {
     listBox.className = 'mt-1.5 space-y-1';
     section.appendChild(listBox);
 
-    // F, C는 기본 접힘
-    const isFoldedByDefault = grade === 'F' || grade === 'C';
+    // B, C, F는 기본 접힘
+    const isFoldedByDefault = grade === 'B' || grade === 'C' || grade === 'F';
     if (isFoldedByDefault) {
       listBox.style.display = 'none';
       header.querySelector('.caret').style.transform = 'rotate(-90deg)';
