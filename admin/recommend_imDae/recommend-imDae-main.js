@@ -660,15 +660,15 @@ async function loadCurrentUserStaffInfo() {
         if (aff === '스타운정점') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
           mainLogo.style.width = '10rem';
-          mainLogo.style.marginTop = '1.4rem';
+          mainLogo.style.marginTop = '1.6rem';
         } else if (aff === '1등운정점') {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name_12.png';
           mainLogo.style.width = '17rem';
-          mainLogo.style.marginTop = '1.7rem';
+          mainLogo.style.marginTop = '1.9rem';
         } else {
           mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
           mainLogo.style.width = '22rem';
-          mainLogo.style.marginTop = '1rem';
+          mainLogo.style.marginTop = '1.2rem';
         }
       }
     }
@@ -805,15 +805,15 @@ function setupStaffDropdown() {
             if (aff === '스타운정점') {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//starfield-logo.png';
               mainLogo.style.width = '10rem';
-              mainLogo.style.marginTop = '1.4rem';
+              mainLogo.style.marginTop = '1.6rem';
             } else if (aff === '1등운정점') {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//1st_simbol+name_12.png';
               mainLogo.style.width = '17rem';
-              mainLogo.style.marginTop = '1.7rem';
+              mainLogo.style.marginTop = '1.9rem';
             } else {
               mainLogo.src = 'https://sfinbtiqlfnaaarziixu.supabase.co/storage/v1/object/public/biakuk-images//baikuk-logo-yellow_simbol_name.png';
               mainLogo.style.width = '22rem';
-              mainLogo.style.marginTop = '1rem';
+              mainLogo.style.marginTop = '1.2rem';
             }
           }
 
