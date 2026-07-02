@@ -1688,6 +1688,45 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshLatestMeta(); // [ADD] 매물장 최신 업데이트 시간 갱신
   setupStaffDropdown();
 
+  // 🔽 희망 매물 조건 필터 지도로 보기 이동 이벤트
+  const goMmapBtn = document.getElementById('go-mmap-btn');
+  if (goMmapBtn) {
+    goMmapBtn.addEventListener('click', () => {
+      const filterData = {
+        'floor-min': document.getElementById('floor-min')?.value.trim(),
+        'floor-max': document.getElementById('floor-max')?.value.trim(),
+        'area-min': document.getElementById('area-min')?.value.trim(),
+        'area-max': document.getElementById('area-max')?.value.trim(),
+        'deposit-min': document.getElementById('deposit-min')?.value.trim(),
+        'deposit-max': document.getElementById('deposit-max')?.value.trim(),
+        'rent-min': document.getElementById('rent-min')?.value.trim(),
+        'rent-max': document.getElementById('rent-max')?.value.trim(),
+        'rent_per_py-min': document.getElementById('rent-per-py-min')?.value.trim(),
+        'rent_per_py-max': document.getElementById('rent-per-py-max')?.value.trim(),
+        'premium-min': document.getElementById('premium-min')?.value.trim(),
+        'premium-max': document.getElementById('premium-max')?.value.trim(),
+        'sale-min': document.getElementById('sale-min')?.value.trim(),
+        'sale-max': document.getElementById('sale-max')?.value.trim(),
+        'total-deposit-min': document.getElementById('total-deposit-min')?.value.trim(),
+        'total-deposit-max': document.getElementById('total-deposit-max')?.value.trim(),
+        'total-rent-min': document.getElementById('total-rent-min')?.value.trim(),
+        'total-rent-max': document.getElementById('total-rent-max')?.value.trim(),
+        'roi-min': document.getElementById('roi-min')?.value.trim(),
+        'roi-max': document.getElementById('roi-max')?.value.trim()
+      };
+
+      const queryParams = [];
+      Object.entries(filterData).forEach(([key, val]) => {
+        if (val !== '' && val !== null && val !== undefined) {
+          queryParams.push(`${key}=${encodeURIComponent(val)}`);
+        }
+      });
+
+      const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+      window.location.href = `../mMap/index.html${queryString}`;
+    });
+  }
+
   // 🔽 실시간 고객 검색 이벤트 바인딩
   const searchInput = document.getElementById('customer-search');
   if (searchInput) {

@@ -62,6 +62,9 @@ window.addEventListener("DOMContentLoaded", () => {
     // 🔥 페이지 첫 로드 시 필터 초기화 실행
     resetFilterSelections();
 
+    // 🔗 URL 파라미터가 있으면 필터 값을 대입하고 지도를 갱신
+    applyFiltersFromURL();
+
     // 📌 현재 위치 버튼 기능
     const currentBtn = document.getElementById("btn-current-location");
     if (currentBtn) {
@@ -749,6 +752,31 @@ function resetFilterSelections() {
 
     // 지도 reload
     reloadListingsOnMapThrottled();
+}
+
+// URL 파라미터에서 필터 설정을 읽어와 세팅하는 함수
+function applyFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    let hasParams = false;
+
+    Object.keys(numericFilters).forEach(key => {
+        ["min", "max"].forEach(type => {
+            const paramKey = `${key}-${type}`;
+            if (params.has(paramKey)) {
+                const val = params.get(paramKey);
+                const inputEl = document.getElementById(`${key}-${type}`);
+                if (inputEl) {
+                    inputEl.value = val;
+                    hasParams = true;
+                }
+            }
+        });
+    });
+
+    if (hasParams) {
+        // 필터 입력값이 세팅되었으면 지도의 매물을 새로고침
+        reloadListingsOnMapThrottled();
+    }
 }
 
 // 🔥 초기화 버튼 클릭 시 함수 실행
