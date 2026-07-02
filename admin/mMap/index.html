@@ -115,42 +115,52 @@
         </div>
 
         <!-- 🔥 상단 바 고정 통합 필터 박스 (기존 필터 버튼 대체) -->
-        <div id="filter-box-merged" class="flex flex-row items-center gap-3 text-xs border border-gray-200 rounded-lg p-2 bg-gray-50/50 shrink-0">
-            <!-- 진행상태 -->
-            <div class="flex flex-row items-center gap-2 border-r border-gray-200 pr-3.5">
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="진행중" class="status-check" /> 진행중
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="보류" class="status-check" /> 보류
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
-                </label>
+        <div id="filter-box-merged" class="flex flex-row items-center gap-4 text-xs border border-gray-200 rounded-lg p-1.5 bg-gray-50/50 shrink-0">
+            <!-- 왼쪽 열 (진행상태 및 거래유형) -->
+            <div class="flex flex-col gap-1 border-r border-gray-200 pr-3.5">
+                <!-- 1행: 진행상태 -->
+                <div class="flex flex-row items-center gap-2">
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="진행중" class="status-check" /> 진행중
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="보류" class="status-check" /> 보류
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="계약완료" class="status-check" /> 계약완료
+                    </label>
+                </div>
+                <!-- 2행: 거래유형 -->
+                <div class="flex flex-row items-center gap-2">
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="월세" class="dealtype-check" /> 월세
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="매매" class="dealtype-check" /> 매매
+                    </label>
+                </div>
             </div>
-            <!-- 거래유형 -->
-            <div class="flex flex-row items-center gap-2 border-r border-gray-200 pr-3.5">
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="월세" class="dealtype-check" /> 월세
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="매매" class="dealtype-check" /> 매매
-                </label>
-            </div>
-            <!-- 카테고리 -->
-            <div class="flex flex-row items-center gap-2.5">
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="상가" class="category-check" /> 상가
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="공장" class="category-check" /> 공장·창고
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
-                    <input type="checkbox" value="주택" class="category-check" /> 주택
-                </label>
+
+            <!-- 오른쪽 열 (카테고리) -->
+            <div class="flex flex-col gap-1 pr-1">
+                <!-- 1행: 상가, 공장·창고 -->
+                <div class="flex flex-row items-center gap-2.5">
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700 w-[42px]">
+                        <input type="checkbox" value="상가" class="category-check" /> 상가
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="공장" class="category-check" /> 공장·창고
+                    </label>
+                </div>
+                <!-- 2행: 빌딩, 주택 -->
+                <div class="flex flex-row items-center gap-2.5">
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700 w-[42px]">
+                        <input type="checkbox" value="빌딩" class="category-check" /> 빌딩
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer font-medium text-gray-700">
+                        <input type="checkbox" value="주택" class="category-check" /> 주택
+                    </label>
+                </div>
             </div>
         </div>
 
