@@ -2807,10 +2807,10 @@ function updateSaveButtonState() {
   if (!saveBtn) return;
   if (currentCustomerId) {
     saveBtn.textContent = "수정";
-    saveBtn.className = "ml-auto h-[2rem] w-[4.5rem] bg-white border border-blue-500 text-blue-500 hover:bg-blue-50 text-sm rounded font-bold transition-colors select-none";
+    saveBtn.className = "flex-1 h-[2.2rem] bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 text-xs rounded-lg font-bold shadow-sm transition-all select-none";
   } else {
     saveBtn.textContent = "저장";
-    saveBtn.className = "ml-auto h-[2rem] w-[4.5rem] bg-blue-500 hover:bg-blue-600 text-white text-sm rounded font-bold transition-colors select-none";
+    saveBtn.className = "flex-1 h-[2.2rem] bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-bold shadow-sm shadow-blue-500/10 transition-all select-none";
   }
 }
 
