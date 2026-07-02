@@ -271,19 +271,30 @@
 
 
     <!-- 🔥 고객 리스트 패널 (필터창과 동일한 UI / 좌측 상단 고정) -->
-    <div id="customer-panel" class="flex flex-col gap-3 text-sm border border-gray-300 rounded p-3 bg-white mt-2" style="
+    <div id="customer-panel" class="flex flex-col gap-3 text-sm border border-gray-300 rounded-xl p-3 bg-white mt-2 shadow-2xl" style="
             display:none;
             position: fixed;
             top: calc(var(--header-height) + 10px);
             left: 10px;
             z-index: 99999;
-            max-width: 380px;
+            width: 320px;
             max-height: 70vh;
-            overflow-y: auto;
             background: white;
-            min-width: 220px;
-            max-width: 90vh;
         ">
+        <!-- 🔽 실시간 고객 검색 창 추가 -->
+        <div class="border-b border-gray-100 pb-2 flex-shrink-0">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 text-sm">
+                    🔍
+                </span>
+                <input type="text" id="customer-search" placeholder="고객 검색..."
+                    class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400 text-gray-700" />
+            </div>
+        </div>
+        <!-- 실제 고객 목록이 들어가는 스크롤 영역 -->
+        <div id="customer-list-container" class="overflow-y-auto flex-1 custom-scroll max-h-[50vh] pr-1 space-y-1">
+            <!-- 여기에 고객 리스트가 들어감 -->
+        </div>
     </div>
 
     <div id="side-panel" style="

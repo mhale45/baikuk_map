@@ -957,19 +957,25 @@ function renderCustomerList(customers) {
 window.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("toggle-customer-panel");
     const panel = document.getElementById("customer-panel");
-    const filterBox = document.getElementById("filter-box-merged");
+    const listContainer = document.getElementById("customer-list-container");
+    const searchInput = document.getElementById("customer-search");
 
     if (btn && panel) {
         btn.addEventListener("click", async () => {
-
             const isHidden = panel.style.display === "none";
 
             // 🔥 패널 열기
             if (isHidden) {
-                // 고객 데이터 로드
+                // 고객 데이터 로드 및 캐시
                 const customers = await loadCustomers();
-                panel.innerHTML = renderCustomerList(customers);
+                window.allCustomersCache = customers;
 
+                if (listContainer) {
+                    listContainer.innerHTML = renderCustomerList(customers);
+                }
+                if (searchInput) {
+                    searchInput.value = "";
+                }
 
                 // filter-box-merged 와 완전히 동일한 위치로 고정
                 panel.style.position = "fixed";
@@ -981,6 +987,25 @@ window.addEventListener("DOMContentLoaded", () => {
             // 🔥 패널 닫기
             else {
                 panel.style.display = "none";
+            }
+        });
+    }
+
+    // 🔽 실시간 고객 검색 이벤트 바인딩
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            const keyword = e.target.value.trim().toLowerCase();
+            const customers = window.allCustomersCache || [];
+            
+            // 이름 또는 전화번호에 검색어가 포함되는 고객 필터링
+            const filtered = customers.filter(c => {
+                const name = (c.customer_name || "").toLowerCase();
+                const phone = (c.customer_phone_number || "").toLowerCase();
+                return name.includes(keyword) || phone.includes(keyword);
+            });
+
+            if (listContainer) {
+                listContainer.innerHTML = renderCustomerList(filtered);
             }
         });
     }
