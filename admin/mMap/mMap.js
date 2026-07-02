@@ -754,11 +754,23 @@ function resetFilterSelections() {
     reloadListingsOnMapThrottled();
 }
 
-// URL 파라미터에서 필터 설정을 읽어와 세팅하는 함수
-function applyFiltersFromURL() {
+// URL 파라미터에서 필터 설정을 읽어와 세팅하는 함수 (고객 자동 선택 포함)
+async function applyFiltersFromURL() {
     const params = new URLSearchParams(window.location.search);
-    let hasParams = false;
+    
+    // 1. 고객 정보(ID, 이름)가 넘어온 경우 해당 고객을 자동 선택 처리
+    if (params.has("customerId")) {
+        const customerId = params.get("customerId");
+        const customerName = params.get("customerName") || "고객";
+        
+        // 고객 버튼 라벨 업데이트 및 해당 고객의 필터 적용
+        updateCustomerButtonLabel(customerName);
+        await loadCustomerFilter(customerId);
+        return;
+    }
 
+    // 2. 고객 정보는 없고 개별 필터 값들만 넘어온 경우
+    let hasParams = false;
     Object.keys(numericFilters).forEach(key => {
         ["min", "max"].forEach(type => {
             const paramKey = `${key}-${type}`;

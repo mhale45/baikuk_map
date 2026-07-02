@@ -1692,6 +1692,18 @@ window.addEventListener('DOMContentLoaded', () => {
   const goMmapBtn = document.getElementById('go-mmap-btn');
   if (goMmapBtn) {
     goMmapBtn.addEventListener('click', () => {
+      const queryParams = [];
+
+      // 현재 선택된 고객 정보가 있다면 함께 전달
+      const customerName = document.getElementById('top-row-input')?.value.trim();
+      if (currentCustomerId) {
+        queryParams.push(`customerId=${encodeURIComponent(currentCustomerId)}`);
+        if (customerName) {
+          queryParams.push(`customerName=${encodeURIComponent(customerName)}`);
+        }
+      }
+
+      // 개별 필터 값 수집
       const filterData = {
         'floor-min': document.getElementById('floor-min')?.value.trim(),
         'floor-max': document.getElementById('floor-max')?.value.trim(),
@@ -1715,7 +1727,6 @@ window.addEventListener('DOMContentLoaded', () => {
         'roi-max': document.getElementById('roi-max')?.value.trim()
       };
 
-      const queryParams = [];
       Object.entries(filterData).forEach(([key, val]) => {
         if (val !== '' && val !== null && val !== undefined) {
           queryParams.push(`${key}=${encodeURIComponent(val)}`);
