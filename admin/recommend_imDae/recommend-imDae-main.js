@@ -2367,7 +2367,11 @@ document.getElementById('print-btn3')?.addEventListener('click', async () => {
           div.style.wordBreak = 'break-all';
           div.style.width = '100%';
           div.style.textAlign = 'center';
-          div.style.minHeight = textarea.style.height || '1.5rem';
+          div.style.height = 'auto'; // 높이가 자동으로 늘어나도록 설정
+          div.style.minHeight = '1.5rem';
+          div.style.overflow = 'visible'; // 텍스트가 잘리지 않고 다 보이도록 설정
+          div.style.transform = 'none'; // 하단이 밀려 잘리지 않게 기존 y축 이동(translate-y-[3px]) 무효화
+          div.style.paddingBottom = '6px'; // 텍스트 하단과 셀 하단 사이의 시각적 여백 확보
           div.textContent = val;
           
           if (textarea.dataset.field) {
