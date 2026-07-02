@@ -799,43 +799,7 @@ document.getElementById("filter-reset-btn").addEventListener("click", () => {
     reloadListingsOnMapThrottled();
 });
 
-// 🎯 통합 필터 토글 버튼
-window.addEventListener("DOMContentLoaded", () => {
-    const filterBtn = document.getElementById("filter-btn");
-    const filterBox = document.getElementById("filter-box-merged");
 
-    if (filterBtn && filterBox) {
-        filterBtn.addEventListener("click", () => {
-            const isHidden = filterBox.style.display === "none";
-
-            // 토글
-            filterBox.style.display = isHidden ? "block" : "none";
-
-            // 🔥 필터창을 항상 화면 좌측 상단 고정 위치로 설정
-            if (isHidden) {
-                filterBox.style.position = "fixed";
-                filterBox.style.top = "calc(var(--header-height) + 10px)";
-                filterBox.style.left = "10px";
-                filterBox.style.zIndex = "99999";
-            }
-        });
-    }
-});
-
-// 🔥 필터창 외 클릭하면 닫기 (왼쪽 고정 버전)
-window.addEventListener("click", (e) => {
-    const filterBtn = document.getElementById("filter-btn");
-    const filterBox = document.getElementById("filter-box-merged");
-
-    if (!filterBtn || !filterBox) return;
-
-    const clickedInside =
-        filterBox.contains(e.target) || filterBtn.contains(e.target);
-
-    if (!clickedInside) {
-        filterBox.style.display = "none";
-    }
-});
 
 // =====================================================================================
 // 🔥 고객창: 필터창처럼 바깥 클릭 시 닫기
@@ -1001,8 +965,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 const customers = await loadCustomers();
                 panel.innerHTML = renderCustomerList(customers);
 
-                // 필터창 닫기 (겹침 방지)
-                if (filterBox) filterBox.style.display = "none";
 
                 // filter-box-merged 와 완전히 동일한 위치로 고정
                 panel.style.position = "fixed";
