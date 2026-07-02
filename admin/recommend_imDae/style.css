@@ -39,21 +39,20 @@
         border-collapse: collapse;
     }
 
-    /* 테두리 색상 진하게 */
+    /* 화면 디자인과 동일한 테두리, 패딩, 폰트크기 설정 */
     #print-portal th,
     #print-portal td {
-        border: 1px solid #999;
-        padding: 4px;
-        font-size: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 0.35rem;
+        font-size: 0.8125rem;
         text-align: center;
         vertical-align: middle !important;
     }
 
-    /* 헤더 음영 진하게 */
+    /* 화면 디자인과 동일한 헤더 스타일 설정 */
     #print-portal thead {
-        background: #d1d5db !important;
-        /* 진한 회색 */
-        color: #000 !important;
+        background: #f8fafc !important;
+        color: #475569 !important;
         position: static !important;
         font-weight: bold;
     }
@@ -64,13 +63,13 @@
         /* inline 색상 그대로 출력 */
     }
 
-    /* ※ 혹시 inline 이 없을 때만 기본 줄무늬 */
+    /* ※ 혹시 inline 이 없을 때만 기본 줄무늬 (화면 디자인과 동일) */
     #print-portal tbody tr:not([data-usercolor]):nth-child(odd) {
         background-color: #ffffff !important;
     }
 
     #print-portal tbody tr:not([data-usercolor]):nth-child(even) {
-        background-color: #f2f2f2 !important;
+        background-color: #f8fafc !important;
     }
 
     /* 색/배경 출력 */

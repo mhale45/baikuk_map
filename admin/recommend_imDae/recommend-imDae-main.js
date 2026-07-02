@@ -2269,6 +2269,35 @@ function buildPrintPortal() {
   cloned.style.top = "0";
   cloned.style.margin = "0";
 
+  // textarea 엘리먼트를 div 엘리먼트로 교체하여 줄바꿈이 인쇄 시 그대로 유지되도록 처리
+  const textareas = cloned.querySelectorAll("textarea");
+  textareas.forEach(textarea => {
+    const val = textarea.value;
+    const div = document.createElement('div');
+    
+    // textarea의 클래스를 복사
+    div.className = textarea.className;
+    
+    // 줄바꿈 스타일 및 크기 설정 추가
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.wordBreak = 'break-all';
+    div.style.width = '100%';
+    div.style.textAlign = 'center';
+    div.style.height = 'auto'; // 높이가 자동으로 늘어나도록 설정
+    div.style.minHeight = '1.5rem';
+    div.style.overflow = 'visible'; // 텍스트가 잘리지 않고 다 보이도록 설정
+    div.style.transform = 'none'; // 하단이 밀려 잘리지 않게 기존 y축 이동(translate-y-[3px]) 무효화
+    div.style.paddingBottom = '6px'; // 텍스트 하단과 셀 하단 사이의 시각적 여백 확보
+    div.textContent = val;
+    
+    if (textarea.dataset.field) {
+      div.dataset.field = textarea.dataset.field;
+    }
+    
+    // 교체
+    textarea.parentNode.replaceChild(div, textarea);
+  });
+
   // print-portal에 넣기
   portalEl.appendChild(cloned);
   document.body.appendChild(portalEl);
