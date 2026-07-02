@@ -1,8 +1,7 @@
 import { client as supabase, waitForSupabase } from '../core/supabase.js';
 
 const menuItems = [
-  { key: 'baikuk_map', label: '백억지도', href: 'https://baikuk.com/map', target: '_self' },
-  { key: 'mmap', label: '백억지도', href: '/admin/mmap/', mb5: true },
+  { key: 'baikuk_map', label: '백억지도', href: 'https://baikuk.com/map', target: '_self', mb5: true },
   { key: 'listings', label: '매물장부', href: '/admin/listings/' },
   { key: 'recommend_imDae', label: '임대추천', href: '/admin/recommend_imDae/' },
   { key: 'recommend_maeMae', label: '매매추천', href: '/admin/recommend_maeMae/' },
