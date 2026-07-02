@@ -757,6 +757,7 @@ function resetFilterSelections() {
 // URL 파라미터에서 필터 설정을 읽어와 세팅하는 함수 (고객 자동 선택 포함)
 async function applyFiltersFromURL() {
     const params = new URLSearchParams(window.location.search);
+    let hasParams = false;
     
     // 1. 고객 정보(ID, 이름)가 넘어온 경우 해당 고객을 자동 선택 처리
     if (params.has("customerId")) {
@@ -766,28 +767,32 @@ async function applyFiltersFromURL() {
         // 고객 버튼 라벨 업데이트 및 해당 고객의 필터 적용
         updateCustomerButtonLabel(customerName);
         await loadCustomerFilter(customerId);
-        return;
+        hasParams = true;
+    } else {
+        // 2. 고객 정보는 없고 개별 필터 값들만 넘어온 경우
+        Object.keys(numericFilters).forEach(key => {
+            ["min", "max"].forEach(type => {
+                const paramKey = `${key}-${type}`;
+                if (params.has(paramKey)) {
+                    const val = params.get(paramKey);
+                    const inputEl = document.getElementById(`${key}-${type}`);
+                    if (inputEl) {
+                        inputEl.value = val;
+                        hasParams = true;
+                    }
+                }
+            });
+        });
+
+        if (hasParams) {
+            // 필터 입력값이 세팅되었으면 지도의 매물을 새로고침
+            reloadListingsOnMapThrottled();
+        }
     }
 
-    // 2. 고객 정보는 없고 개별 필터 값들만 넘어온 경우
-    let hasParams = false;
-    Object.keys(numericFilters).forEach(key => {
-        ["min", "max"].forEach(type => {
-            const paramKey = `${key}-${type}`;
-            if (params.has(paramKey)) {
-                const val = params.get(paramKey);
-                const inputEl = document.getElementById(`${key}-${type}`);
-                if (inputEl) {
-                    inputEl.value = val;
-                    hasParams = true;
-                }
-            }
-        });
-    });
-
+    // 🔗 파라미터가 적용된 경우, 주소창의 쿼리 스트링을 지워서 이후 새로고침 시 초기화되도록 처리
     if (hasParams) {
-        // 필터 입력값이 세팅되었으면 지도의 매물을 새로고침
-        reloadListingsOnMapThrottled();
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
