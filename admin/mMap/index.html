@@ -96,11 +96,26 @@
         class="flex flex-row items-center gap-4 w-full px-4 py-2 bg-white shadow-md border-b border-gray-200 z-[10000]">
         <!-- 왼쪽 버튼 그룹 (고객리스트 아래에 초기화, 저장 배치) -->
         <div class="flex flex-col gap-1.5 shrink-0 w-[170px]">
-            <!-- 고객 리스트 버튼 -->
-            <button id="toggle-customer-panel"
-                class="w-full px-3 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm font-medium hover:bg-gray-200 transition duration-150 text-center select-none truncate">
-                👤 고객 리스트
-            </button>
+            <!-- 고객 리스트 버튼 및 선택된 고객명 수정 인풋 영역 -->
+            <div class="relative w-full h-[34px]">
+                <!-- 기본 버튼 (고객 미선택 시 노출) -->
+                <button id="toggle-customer-panel"
+                    class="w-full h-full px-3 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm font-medium hover:bg-gray-200 transition duration-150 text-center select-none truncate">
+                    👤 고객 리스트
+                </button>
+                <!-- 고객명 수정 인풋 (고객 선택 시 노출, 기본은 숨김) -->
+                <div id="customer-name-edit-box" class="hidden absolute inset-0 flex flex-row items-center border border-gray-300 rounded bg-white overflow-hidden">
+                    <span class="pl-2 text-slate-400 select-none text-xs shrink-0">👤</span>
+                    <input type="text" id="customer-name-input" 
+                           class="w-full h-full px-1.5 text-xs font-semibold text-gray-800 focus:outline-none border-none" 
+                           placeholder="고객명 입력" />
+                    <button id="clear-selected-customer-btn" 
+                            class="px-2 h-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition text-xs shrink-0" 
+                            title="고객 선택 해제">
+                        ✕
+                    </button>
+                </div>
+            </div>
             <!-- 초기화 및 저장 버튼 -->
             <div class="flex flex-row items-center gap-1.5">
                 <button id="filter-reset-btn"

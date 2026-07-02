@@ -661,6 +661,12 @@ window.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            const customer_name = document.getElementById("customer-name-input")?.value.trim() || "";
+            if (!customer_name) {
+                showToast("고객명을 입력해주세요.");
+                return;
+            }
+
             const floor_min = document.getElementById("floor-min").value !== "" ? Number(document.getElementById("floor-min").value) : null;
             const floor_max = document.getElementById("floor-max").value !== "" ? Number(document.getElementById("floor-max").value) : null;
             const area_min = document.getElementById("area-min").value !== "" ? Number(document.getElementById("area-min").value) : null;
@@ -685,6 +691,7 @@ window.addEventListener("DOMContentLoaded", () => {
             const { error } = await window.supabase
                 .from("customers")
                 .update({
+                    customer_name,
                     floor_min, floor_max,
                     area_min, area_max,
                     deposit_min, deposit_max,
@@ -700,11 +707,37 @@ window.addEventListener("DOMContentLoaded", () => {
 
             if (error) {
                 console.error("❌ 고객 필터 정보 저장 실패:", error);
-                showToast("고객 필터 정보를 저장하지 못했습니다.");
+                showToast("고객 정보를 저장하지 못했습니다.");
             } else {
-                showToast("고객 필터 정보가 저장되었습니다.");
+                showToast("고객 정보가 저장되었습니다.");
+                // 캐시 업데이트 및 리스트 동기화
+                const updatedCustomers = await loadCustomers();
+                window.allCustomersCache = updatedCustomers;
+                const listContainer = document.getElementById("customer-list-container");
+                if (listContainer && document.getElementById("customer-panel").style.display !== "none") {
+                    const searchVal = document.getElementById("customer-search")?.value.trim() || "";
+                    const isSearching = searchVal.length > 0;
+                    
+                    const filtered = updatedCustomers.filter(c => {
+                        const name = (c.customer_name || "").toLowerCase();
+                        const phone = (c.customer_phone_number || "").toLowerCase();
+                        return name.includes(searchVal.toLowerCase()) || phone.includes(searchVal.toLowerCase());
+                    });
+                    listContainer.innerHTML = renderCustomerList(filtered, isSearching);
+                }
                 onFilterChanged();
             }
+        });
+    }
+
+    // ✕ 고객 선택 해제 버튼 클릭 시 해제
+    const clearCustBtn = document.getElementById("clear-selected-customer-btn");
+    if (clearCustBtn) {
+        clearCustBtn.addEventListener("click", () => {
+            resetFilterSelections();
+            updateCustomerButtonLabel("");
+            clearAllMarkers();
+            reloadListingsOnMapThrottled();
         });
     }
 });
@@ -1130,12 +1163,17 @@ async function loadCustomerFilter(customerId) {
 // =====================================================================================
 function updateCustomerButtonLabel(name) {
     const btn = document.getElementById("toggle-customer-panel");
-    if (!btn) return;
+    const editBox = document.getElementById("customer-name-edit-box");
+    const nameInput = document.getElementById("customer-name-input");
 
     if (!name) {
-        btn.textContent = "👤 고객 리스트";
+        if (btn) btn.style.display = "block";
+        if (editBox) editBox.style.display = "none";
+        if (nameInput) nameInput.value = "";
     } else {
-        btn.textContent = `👤 ${name}`;
+        if (btn) btn.style.display = "none";
+        if (editBox) editBox.style.display = "flex";
+        if (nameInput) nameInput.value = name;
     }
 }
 
