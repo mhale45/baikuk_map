@@ -251,12 +251,12 @@ async function refreshLatestMeta() {
     // 기본 표기
     meta.textContent = `매물정보 업데이트 :  ${formatDate(maemulAt)}`;
 
-    // 1시간 이상 차이 → 빨간색
-    if (diffHours >= 1) {
+    // 2시간 초과 차이 → 빨간색
+    if (diffHours > 2) {
       meta.style.color = '#FF4D4D';
       meta.style.fontWeight = 'bold';
     } else {
-      // 1시간 미만 → 기본색 (원상복구)
+      // 2시간 이하 → 기본색 (원상복구)
       meta.style.color = '';
       meta.style.fontWeight = '';
     }
