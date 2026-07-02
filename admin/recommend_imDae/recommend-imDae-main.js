@@ -2352,6 +2352,31 @@ document.getElementById('print-btn3')?.addEventListener('click', async () => {
         cells.forEach(cell => {
           cell.style.paddingBottom = '20px';
         });
+
+        // textarea 엘리먼트를 div 엘리먼트로 교체하여 줄바꿈이 이미지 저장 시 그대로 유지되도록 처리
+        const textareas = clonedDoc.querySelectorAll('#white-box textarea');
+        textareas.forEach(textarea => {
+          const val = textarea.value;
+          const div = clonedDoc.createElement('div');
+          
+          // textarea의 클래스를 복사
+          div.className = textarea.className;
+          
+          // 줄바꿈 스타일 및 크기 설정 추가
+          div.style.whiteSpace = 'pre-wrap';
+          div.style.wordBreak = 'break-all';
+          div.style.width = '100%';
+          div.style.textAlign = 'center';
+          div.style.minHeight = textarea.style.height || '1.5rem';
+          div.textContent = val;
+          
+          if (textarea.dataset.field) {
+            div.dataset.field = textarea.dataset.field;
+          }
+          
+          // 교체
+          textarea.parentNode.replaceChild(div, textarea);
+        });
       }
     });
 
