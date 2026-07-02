@@ -882,7 +882,7 @@ async function loadCustomers() {
     return data;
 }
 
-function renderCustomerList(customers) {
+function renderCustomerList(customers, isSearching = false) {
     if (!customers.length) {
         return "<div class='text-sm'>등록된 고객이 없습니다.</div>";
     }
@@ -927,14 +927,18 @@ function renderCustomerList(customers) {
         // 🔥 등급 내부를 고객 이름 오름차순 정렬
         list.sort((a, b) => b.customer_name.localeCompare(a.customer_name, "ko"));
 
+        // 검색 중이면 세부 명단을 펼치고(▲), 기본 상태면 접음(▼)
+        const displayStyle = isSearching ? "display:block;" : "display:none;";
+        const iconChar = isSearching ? "▲" : "▼";
+
         html += `
             <div class="grade-wrapper border-b pb-2">
                 <div class="grade-header flex justify-between items-center py-2 cursor-pointer font-bold text-base"
                      data-grade="${grade}">
                     <span>${grade} (${list.length})</span>
-                    <span class="toggle-icon">▼</span>
+                    <span class="toggle-icon">${iconChar}</span>
                 </div>
-                <div class="grade-content pl-2" id="grade-${grade}" style="display:none;">
+                <div class="grade-content pl-2" id="grade-${grade}" style="${displayStyle}">
                     ${list
                 .map(c => `
                             <div class="customer-item py-1 text-sm border-b cursor-pointer"
@@ -996,6 +1000,7 @@ window.addEventListener("DOMContentLoaded", () => {
         searchInput.addEventListener("input", (e) => {
             const keyword = e.target.value.trim().toLowerCase();
             const customers = window.allCustomersCache || [];
+            const isSearching = keyword.length > 0; // 검색어가 입력되어 있는지 여부
             
             // 이름 또는 전화번호에 검색어가 포함되는 고객 필터링
             const filtered = customers.filter(c => {
@@ -1005,7 +1010,7 @@ window.addEventListener("DOMContentLoaded", () => {
             });
 
             if (listContainer) {
-                listContainer.innerHTML = renderCustomerList(filtered);
+                listContainer.innerHTML = renderCustomerList(filtered, isSearching);
             }
         });
     }
